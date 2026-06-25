@@ -15,6 +15,9 @@ export default function BacktestPage() {
   const [result, setResult] = useState<BacktestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // No unmount-cleanup here (unlike the Market page's loadBars): this
+  // page only fetches on an explicit "Run" click, never on mount, so
+  // there's no request that could still be in flight at unmount time.
   const abortControllerRef = useRef<AbortController | null>(null);
 
   async function runBacktest() {
