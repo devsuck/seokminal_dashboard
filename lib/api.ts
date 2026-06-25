@@ -62,7 +62,8 @@ export async function getBacktest(
   start: string,
   end: string,
   fast: number,
-  slow: number
+  slow: number,
+  signal?: AbortSignal
 ): Promise<BacktestResponse> {
   const params = new URLSearchParams({
     instrument_id: instrumentId,
@@ -72,6 +73,6 @@ export async function getBacktest(
     fast: String(fast),
     slow: String(slow),
   });
-  const response = await fetch(`${API_URL}/backtest?${params.toString()}`);
+  const response = await fetch(`${API_URL}/backtest?${params.toString()}`, { signal });
   return handleResponse<BacktestResponse>(response);
 }
