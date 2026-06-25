@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { CandlestickChart } from "@/components/CandlestickChart";
@@ -13,14 +13,29 @@ export default function MarketPage() {
   const [bars, setBars] = useState<BarOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function loadBars() {
     setLoading(true);
     setError(null);
+
+    // Abort any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create a new controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await getBars(instrumentId, start, end);
+      const response = await getBars(instrumentId, start, end, controller.signal);
       setBars(response.bars);
     } catch (e) {
+      // Silently ignore abort errors (stale requests)
+      if (e instanceof DOMException && e.name === "AbortError") {
+        return;
+      }
       setBars([]);
       setError(e instanceof ApiError ? e.message : "Failed to load bars");
     } finally {
@@ -30,6 +45,13 @@ export default function MarketPage() {
 
   useEffect(() => {
     loadBars();
+
+    // Cleanup: abort the current request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

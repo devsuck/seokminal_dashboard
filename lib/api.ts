@@ -45,14 +45,15 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function getBars(
   instrumentId: string,
   start: string,
-  end: string
+  end: string,
+  signal?: AbortSignal
 ): Promise<BarsResponse> {
   const params = new URLSearchParams({
     instrument_id: instrumentId,
     start,
     end,
   });
-  const response = await fetch(`${API_URL}/bars?${params.toString()}`);
+  const response = await fetch(`${API_URL}/bars?${params.toString()}`, { signal });
   return handleResponse<BarsResponse>(response);
 }
 
