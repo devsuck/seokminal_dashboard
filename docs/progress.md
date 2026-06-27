@@ -6,6 +6,21 @@
 
 ---
 
+### Event Study + Universe Builder (2026-06-28)
+
+**S-4 Event Study:**
+- `lib/event-study-utils.ts` — `computeEventStudy()`: windowed return analysis (6 tests)
+- `components/event-study/EventReturnChart.tsx` — D3 line chart (avg/median/individual lines)
+- `app/event-study/page.tsx` — instrument + date range + event source (KSD Dividend, KSD Rights, FRED Series, Custom) + window selector + results chart + events table
+
+**S-5 Universe Builder:**
+- `app/universe/page.tsx` — KRX listing browser (KOSPI/KOSDAQ) with market cap slider, name search, watchlist add, backtest CTA
+
+**Nav additions:** Event Study, Universe (between Correlation and Bots)
+**Tests:** 73 passing (67 existing + 6 event-study-utils)
+
+---
+
 ## 완료된 작업
 
 ### Correlation Network (2026-06-28)
