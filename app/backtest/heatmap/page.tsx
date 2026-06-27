@@ -269,7 +269,7 @@ export default function HeatmapPage() {
                 onClick={() => { setMetric(m); setResults({}); }}
                 className={`px-3 h-8 text-xs rounded border transition-colors cursor-pointer ${
                   metric === m
-                    ? "bg-accent text-black font-semibold border-accent"
+                    ? "bg-panel-2 text-text-1 font-semibold border-accent"
                     : "bg-panel-2 text-text-2 border-border hover:text-text-1"
                 }`}
               >

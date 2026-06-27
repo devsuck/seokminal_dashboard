@@ -72,8 +72,12 @@ export function saveExperiment(
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   } catch {
     // Quota exceeded — trim to half and retry
-    const trimmed = [experiment, ...existing.slice(0, Math.floor(MAX_EXPERIMENTS / 2))];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    try {
+      const trimmed = [experiment, ...existing.slice(0, Math.floor(MAX_EXPERIMENTS / 2))];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    } catch {
+      // Storage exhausted — silently skip persistence
+    }
   }
   return experiment;
 }
