@@ -19,7 +19,7 @@ function krxToRow(label: string, row: KRXIndexRow | undefined): MarketRow {
   if (!row || row.clpr == null) {
     return { label, value: "—", changePct: "—", positive: null, noFeed: false };
   }
-  const pos = (row.vs ?? 0) >= 0;
+  const pos = row.vs == null ? null : row.vs >= 0;
   return {
     label,
     value: row.clpr.toLocaleString("ko-KR"),
