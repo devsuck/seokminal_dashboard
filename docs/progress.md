@@ -6,6 +6,22 @@
 
 ---
 
+### Factor Lab + Rolling Analytics (2026-06-28)
+
+**S-12 Rolling Analytics:**
+- `lib/rolling-analytics-utils.ts` — `computeRollingVolatility()`, `zipRollingPoints()` (7 tests)
+- `components/rolling/RollingChart.tsx` — lightweight-charts multi-metric line chart
+- `app/rolling/page.tsx` — instrument + benchmark + window selector; 5 metrics: Sharpe, Beta, Correlation, Drawdown, Volatility
+
+**S-10 Factor Lab:**
+- `lib/factor-utils.ts` — `computeFactor()` with momentum/volatility + Spearman IC (5 tests)
+- `app/factor/page.tsx` — instrument list, factor/lookback/horizon selectors, ranked bar chart + IC display; concurrent getBars fetching (max 5)
+
+**Nav additions:** Rolling, Factor (between Universe and Bots)
+**Tests:** 85 passing (73 existing + 7 rolling-utils + 5 factor-utils)
+
+---
+
 ### Event Study + Universe Builder (2026-06-28)
 
 **S-4 Event Study:**
