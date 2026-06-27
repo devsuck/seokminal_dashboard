@@ -565,3 +565,31 @@ export async function deleteBot(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/bots/${id}`, { method: "DELETE" });
   if (!res.ok) { const b = await res.json().catch(() => ({ detail: res.statusText })); throw new ApiError(res.status, b.detail); }
 }
+
+// ── Correlation ───────────────────────────────────────────────────────────────
+
+export interface CorrelationPair {
+  a: string;
+  b: string;
+  correlation: number;
+}
+
+export interface CorrelationResponse {
+  pairs: CorrelationPair[];
+}
+
+export async function getCorrelation(
+  instrumentIds: string[],
+  start: string,
+  end: string,
+  signal?: AbortSignal,
+): Promise<CorrelationResponse> {
+  const params = new URLSearchParams({
+    instrument_ids: instrumentIds.join(","),
+    start,
+    end,
+  });
+  return handleResponse<CorrelationResponse>(
+    await fetch(`${API_URL}/correlation?${params}`, { signal }),
+  );
+}
