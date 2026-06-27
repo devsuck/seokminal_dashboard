@@ -17,7 +17,7 @@ interface RollingChartProps {
   height?: number;
 }
 
-export function RollingChart({ series, height = 300 }: RollingChartProps) {
+export function RollingChart({ series, height = 300, yFormat }: RollingChartProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,6 +29,9 @@ export function RollingChart({ series, height = 300 }: RollingChartProps) {
       grid: { vertLines: { color: "#1E2530" }, horzLines: { color: "#1E2530" } },
       timeScale: { borderColor: "#374151" },
       rightPriceScale: { borderColor: "#374151" },
+      localization: {
+        priceFormatter: yFormat ?? ((v: number) => v.toFixed(2)),
+      },
     });
 
     for (const s of series) {

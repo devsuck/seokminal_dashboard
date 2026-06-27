@@ -73,7 +73,7 @@ export default function RollingPage() {
           setTsPoints(
             pts.map((p) => ({
               ts_ns: p.ts_ns,
-              value: p.drawdown !== null ? p.drawdown * 100 : null,
+              value: p.drawdown * 100,
             })),
           );
         } else {
@@ -126,17 +126,17 @@ export default function RollingPage() {
     ];
   }, [ran, tsPoints, currentMeta]);
 
-  const validValues = tsPoints
-    .map((p) => p.value)
-    .filter((v): v is number => v !== null);
-
-  const currentVal = validValues.length > 0 ? validValues[validValues.length - 1] : null;
-  const minVal = validValues.length > 0 ? Math.min(...validValues) : null;
-  const maxVal = validValues.length > 0 ? Math.max(...validValues) : null;
-  const avgVal =
-    validValues.length > 0
-      ? validValues.reduce((s, v) => s + v, 0) / validValues.length
-      : null;
+  const { validValues, currentVal, minVal, maxVal, avgVal } = useMemo(() => {
+    const validValues = tsPoints.map((p) => p.value).filter((v): v is number => v !== null);
+    const currentVal = validValues.length > 0 ? validValues[validValues.length - 1] : null;
+    const minVal = validValues.length > 0 ? Math.min(...validValues) : null;
+    const maxVal = validValues.length > 0 ? Math.max(...validValues) : null;
+    const avgVal =
+      validValues.length > 0
+        ? validValues.reduce((s, v) => s + v, 0) / validValues.length
+        : null;
+    return { validValues, currentVal, minVal, maxVal, avgVal };
+  }, [tsPoints]);
 
   function fmt(v: number | null): string {
     if (v === null) return "—";
@@ -237,7 +237,7 @@ export default function RollingPage() {
             {METRIC_OPTIONS.map((m) => (
               <button
                 key={m.value}
-                onClick={() => setMetric(m.value)}
+                onClick={() => { setMetric(m.value); setRan(false); setTsPoints([]); }}
                 className={`px-3 py-1.5 text-xs rounded border cursor-pointer transition-colors ${
                   metric === m.value
                     ? "border-accent text-accent bg-accent/10"
