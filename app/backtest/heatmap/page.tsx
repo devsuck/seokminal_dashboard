@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ApiError, getBacktest, type BacktestResponse } from "@/lib/api";
+import { getBacktest, type BacktestResponse } from "@/lib/api";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
 
@@ -266,7 +266,7 @@ export default function HeatmapPage() {
             {(["sharpe", "sortino", "maxDrawdown", "winRate"] as HeatmapMetric[]).map(m => (
               <button
                 key={m}
-                onClick={() => setMetric(m)}
+                onClick={() => { setMetric(m); setResults({}); }}
                 className={`px-3 h-8 text-xs rounded border transition-colors cursor-pointer ${
                   metric === m
                     ? "bg-accent text-black font-semibold border-accent"
