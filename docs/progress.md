@@ -8,6 +8,22 @@
 
 ## 완료된 작업
 
+### Experiment Lab (2026-06-27)
+
+- `lib/experiment-storage.ts` — Experiment CRUD (localStorage, max 200), extractMetrics, makeExperimentLabel (10 tests)
+- `lib/scenario-presets.ts` — 8 crisis date range presets: GFC, COVID, Dot-com, Ukraine, Inflation, High Rate, Bull 2017, Bear 2022 (7 tests)
+- `components/backtest/ScenarioSelect.tsx` — preset dropdown, fires onStartChange/onEndChange
+- `app/backtest/page.tsx` — ScenarioSelect added, auto-save experiment on run, nav links to Experiments + Heatmap
+- `app/backtest/heatmap/page.tsx` — Parameter Heatmap: N×M EMA sweep, concurrent pool (max 5), color-coded grid
+- `components/experiments/ExperimentTable.tsx` — list with search, sort by 5 keys, inline notes edit, checkbox compare select, delete
+- `components/experiments/ExperimentCompare.tsx` — side-by-side metric diff with Δ column (green/red)
+- `app/experiments/page.tsx` — experiment browser, compare panel, clear all
+- `app/layout.tsx` — "Experiments" added to nav
+
+Tests: 37 passing (10 experiment + 7 scenario + 8 watchlist + 6 dashboard-storage + 4 system-status-utils + 2 sanity)
+
+---
+
 ### Dashboard Foundation (2026-06-27)
 
 Dashboard 홈 스크린 + 5개 위젯 구성 완료.
