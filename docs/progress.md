@@ -48,6 +48,23 @@ Dashboard 홈 스크린 + 5개 위젯 구성 완료.
 
 ---
 
+### Market Discovery Workspace (2026-06-27)
+
+Market Discovery Workspace 완성. Watchlist localStorage + 3개 탭 (Chart/Compare/Events) 구현.
+
+- `app/market/page.tsx` → thin Server Component rendering `<MarketWorkspace />`
+- `lib/watchlist-storage.ts` — localStorage watchlist CRUD (8 tests)
+- `components/market/WatchlistSidebar.tsx` — symbol list + price fetch + add/remove + Backtest/Research CTAs
+- `components/market/ChartTab.tsx` — single-symbol candlestick chart
+- `components/market/ComparisonChart.tsx` — lightweight-charts multi-line normalized % return
+- `components/market/ComparisonTab.tsx` — date range + ComparisonChart + legend + logActivity
+- `components/market/EventsTab.tsx` — KSD rights schedule (30d), borrow rank, stub sections
+- `components/market/MarketWorkspace.tsx` — 2-panel layout (WatchlistSidebar + Chart/Compare/Events tabs)
+
+**테스트 통과:** 20/20 (8 watchlist + 6 dashboard-storage + 4 system-status-utils + 2 sanity)
+
+---
+
 ### UI/UX 리디자인 (2026-06-27)
 
 Market + Backtest 페이지, 공통 레이아웃 전체 리디자인 완료.
