@@ -9,9 +9,9 @@ interface DateRangePickerProps {
 
 export function DateRangePicker({ start, end, onStartChange, onEndChange }: DateRangePickerProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="flex items-center gap-2">
       <input type="date" value={start} onChange={(e) => onStartChange(e.target.value)} />
-      <span style={{ color: "#444" }}>—</span>
+      <span className="text-text-3">–</span>
       <input type="date" value={end} onChange={(e) => onEndChange(e.target.value)} />
     </div>
   );

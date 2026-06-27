@@ -4,17 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { CandlestickChart } from "@/components/CandlestickChart";
+import { EmptyState } from "@/components/ui";
 import { ApiError, getBars, type BarOut } from "@/lib/api";
-
-const S = {
-  page: { padding: 20 },
-  header: { color: "#ff8c00", fontSize: 13, letterSpacing: 1, marginBottom: 12 },
-  toolbar: { display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" as const },
-  btn: { background: "#ff8c00", color: "#000", border: "none", padding: "5px 18px", fontFamily: "inherit", fontSize: 13, fontWeight: "bold", cursor: "pointer" },
-  err: { color: "#ff3333", fontSize: 13 },
-  muted: { color: "#777", fontSize: 13 },
-  label: { color: "#ff8c00", fontSize: 13 },
-};
 
 export default function MarketPage() {
   const [instrumentId, setInstrumentId] = useState("AAPL.NASDAQ");
@@ -47,19 +38,52 @@ export default function MarketPage() {
   }, []);
 
   return (
-    <div style={S.page}>
-      <div style={S.header}>MARKET DATA / PRICE HISTORY</div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOL</span>
-        <InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-        <span style={S.label}>DATE</span>
-        <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={loadBars}>GO</button>
-        {loading && <span style={S.muted}>LOADING...</span>}
-        {bars.length > 0 && !loading && <span style={S.muted}>{bars.length} BARS</span>}
+    <div className="p-6 space-y-4 max-w-[1600px]">
+      <div>
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Market Data</h1>
+        <p className="text-text-3 text-sm mt-0.5">Price history for instruments in the catalog</p>
       </div>
-      {error && <p style={S.err}>ERR: {error}</p>}
-      {!loading && !error && bars.length > 0 && <CandlestickChart bars={bars} />}
+
+      <div className="bg-panel border border-border rounded-lg p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-text-3 text-[11px] uppercase tracking-wider">Symbol</span>
+            <InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-text-3 text-[11px] uppercase tracking-wider">Date</span>
+            <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
+          </div>
+          <button
+            onClick={loadBars}
+            className="ml-auto px-5 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0"
+          >
+            {loading ? "Loading…" : "Load"}
+          </button>
+          {!loading && bars.length > 0 && (
+            <span className="text-text-3 text-xs font-data">{bars.length} bars</span>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div className="text-neg text-sm bg-neg/10 border border-neg/20 rounded-md px-4 py-2.5">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-panel border border-border rounded-lg overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-border bg-panel-2">
+          <span className="font-data text-sm text-text-1 font-medium">{instrumentId}</span>
+        </div>
+        {bars.length > 0 ? (
+          <CandlestickChart bars={bars} />
+        ) : (
+          <div className="h-[480px] flex items-center justify-center">
+            <EmptyState message="No chart data" hint="Select a symbol and date range, then click Load" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
