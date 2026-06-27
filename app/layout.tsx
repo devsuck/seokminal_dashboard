@@ -1,44 +1,59 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "NAUTILUS TERMINAL",
+  title: "NAUTILUS",
 };
 
 const NAV_ITEMS = [
-  { href: "/", label: "F1:MARKET" },
-  { href: "/backtest", label: "F2:BACKTEST" },
-  { href: "/quant", label: "F3:QUANT" },
-  { href: "/bots", label: "F4:BOTS" },
-  { href: "/ai-trader", label: "F5:AI-TRADER" },
+  { href: "/",          label: "Market" },
+  { href: "/backtest",  label: "Backtest" },
+  { href: "/quant",     label: "Quant" },
+  { href: "/bots",      label: "Bots" },
+  { href: "/ai-trader", label: "AI Trader" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" style={{ background: "#090909", colorScheme: "dark" }}>
-      <body style={{ background: "#090909", color: "#e8e8e8", fontFamily: "'Courier New', Courier, monospace", margin: 0, fontSize: 14 }}>
-        <header style={{ borderBottom: "1px solid #2a2a2a", background: "#0d0d0d" }}>
-          <div style={{ display: "flex", alignItems: "center", padding: "8px 20px", gap: 32 }}>
-            <span style={{ color: "#ff8c00", fontWeight: "bold", fontSize: 16, letterSpacing: 2 }}>
-              NAUTILUS
-            </span>
-            <nav style={{ display: "flex", gap: 2 }}>
-              {NAV_ITEMS.map(({ href, label }) => (
-                <Link key={href} href={href}
-                  style={{ color: "#aaa", fontSize: 13, padding: "5px 14px", textDecoration: "none",
-                    borderRight: "1px solid #2a2a2a" }}
-                  className="nav-link">
-                  {label}
-                </Link>
-              ))}
-            </nav>
-            <div style={{ marginLeft: "auto", color: "#666", fontSize: 12 }}>
-              {new Date().toISOString().slice(0, 10)}
-            </div>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}
+      style={{ background: "var(--color-bg)", colorScheme: "dark" }}>
+      <body className="bg-bg text-text-1 font-ui antialiased m-0">
+        <header className="h-12 border-b border-border bg-panel flex items-center px-6 gap-8 shrink-0">
+          <span className="text-text-1 font-semibold text-sm tracking-widest uppercase">
+            NAUTILUS
+          </span>
+          <nav className="flex items-center gap-1">
+            {NAV_ITEMS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="px-3 py-1.5 text-sm text-text-3 hover:text-text-1 rounded transition-colors duration-150 no-underline"
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <div className="ml-auto text-xs text-text-3 font-data">
+            {new Date().toISOString().slice(0, 10)}
           </div>
         </header>
-        {children}
+        <main className="min-h-[calc(100vh-48px)]">
+          {children}
+        </main>
       </body>
     </html>
   );
