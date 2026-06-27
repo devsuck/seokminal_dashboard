@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { ApiError, getBars, getBacktest, type BarOut, type BacktestResponse } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
 import {
@@ -9,6 +10,11 @@ import {
   type Mode,
   type SpawnRuleState,
 } from "@/lib/backtest-types";
+import { ScenarioSelect } from "@/components/backtest/ScenarioSelect";
+import {
+  saveExperiment, extractMetrics, makeExperimentLabel,
+  type ExperimentStrategy,
+} from "@/lib/experiment-storage";
 import {
   StrategyModeTabs,
   StrategyControlPanel,
@@ -65,6 +71,23 @@ export default function BacktestPage() {
           : `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`,
         href: "/backtest",
       });
+      saveExperiment({
+        label: makeExperimentLabel(
+          mode === "single"
+            ? { strategy: "ema_cross", instrumentId, fast, slow }
+            : { strategy: "gated", instrumentId, rulesCount: rules.length }
+        ),
+        params: {
+          strategy: (mode === "single" ? "ema_cross" : "gated") as ExperimentStrategy,
+          instrumentId,
+          start,
+          end,
+          timeframe,
+          benchmarkId,
+          ...(mode === "single" ? { fast, slow } : { rulesCount: rules.length }),
+        },
+        metrics: extractMetrics(btRes),
+      });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof ApiError ? e.message : "Failed");
@@ -76,14 +99,27 @@ export default function BacktestPage() {
   return (
     <div className="p-6 space-y-4 max-w-[1600px]">
       {/* Page title */}
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Strategy Backtest</h1>
-        <p className="text-text-3 text-sm mt-0.5">Run and analyze EMA cross strategies with optional gating conditions</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-text-1 text-lg font-semibold tracking-tight">Strategy Backtest</h1>
+          <p className="text-text-3 text-sm mt-0.5">Run and analyze EMA cross strategies with optional gating conditions</p>
+        </div>
+        <div className="flex gap-4 text-xs pt-1">
+          <Link href="/experiments" className="text-text-3 hover:text-accent no-underline transition-colors">
+            Experiments →
+          </Link>
+          <Link href="/backtest/heatmap" className="text-text-3 hover:text-accent no-underline transition-colors">
+            Heatmap →
+          </Link>
+        </div>
       </div>
 
       {/* ── Top Control Panel ─────────────────────────────────────── */}
       <div className="space-y-3">
-        <StrategyModeTabs mode={mode} onChange={setMode} />
+        <div className="flex items-center gap-4 flex-wrap">
+          <StrategyModeTabs mode={mode} onChange={setMode} />
+          <ScenarioSelect onStartChange={setStart} onEndChange={setEnd} />
+        </div>
 
         <StrategyControlPanel
           instrumentId={instrumentId} onInstrumentChange={setInstrumentId}
