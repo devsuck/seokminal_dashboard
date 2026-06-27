@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { ComparisonChart, SERIES_CONFIG } from "@/components/market/ComparisonChart";
 import { ApiError, getBars, type BarOut } from "@/lib/api";
@@ -61,7 +61,10 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols]);
 
-  const chartSymbols = symbols.filter(s => (data[s]?.length ?? 0) > 0);
+  const chartSymbols = useMemo(
+    () => symbols.filter(s => (data[s]?.length ?? 0) > 0),
+    [data, symbols]
+  );
 
   return (
     <div className="flex flex-col gap-3 p-4">

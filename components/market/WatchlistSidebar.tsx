@@ -39,29 +39,43 @@ export function WatchlistSidebar({
     let alive = true;
     const { start, end } = getRecentWindow();
 
+    let toFetch: string[] = [];
+
     setPrices(prev => {
-      const init: Record<string, SymbolPrice> = {};
-      for (const s of symbols) init[s] = prev[s] ?? { close: null, changePct: null, loading: true };
-      return init;
+      const next: Record<string, SymbolPrice> = {};
+      toFetch = [];
+      for (const s of symbols) {
+        if (prev[s] && !prev[s].loading) {
+          next[s] = prev[s]; // already resolved — keep existing price
+        } else {
+          next[s] = { close: null, changePct: null, loading: true }; // new or pending — mark loading
+          toFetch.push(s);
+        }
+      }
+      return next;
     });
 
-    symbols.forEach(async symbol => {
-      try {
-        const { bars } = await getBars(symbol, start, end);
-        if (!alive) return;
-        const last = bars[bars.length - 1] ?? null;
-        const prev = bars[bars.length - 2] ?? null;
-        const changePct = last && prev
-          ? ((last.close - prev.close) / prev.close) * 100
-          : null;
-        setPrices(p => ({ ...p, [symbol]: { close: last?.close ?? null, changePct, loading: false } }));
-      } catch {
-        if (!alive) return;
-        setPrices(p => ({ ...p, [symbol]: { close: null, changePct: null, loading: false } }));
-      }
+    queueMicrotask(() => {
+      if (!alive) return;
+      toFetch.forEach(async symbol => {
+        try {
+          const { bars } = await getBars(symbol, start, end);
+          if (!alive) return;
+          const last = bars[bars.length - 1] ?? null;
+          const prevBar = bars[bars.length - 2] ?? null;
+          const changePct = last && prevBar
+            ? ((last.close - prevBar.close) / prevBar.close) * 100
+            : null;
+          setPrices(p => ({ ...p, [symbol]: { close: last?.close ?? null, changePct, loading: false } }));
+        } catch {
+          if (!alive) return;
+          setPrices(p => ({ ...p, [symbol]: { close: null, changePct: null, loading: false } }));
+        }
+      });
     });
 
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols]);
 
   function handleAdd() {
