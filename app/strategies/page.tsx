@@ -60,15 +60,7 @@ export default function StrategiesPage() {
     refresh();
   }
 
-  function handleRun(strategy: Strategy) {
-    // Encode strategy params into sessionStorage for backtest page to read
-    // Simple approach: navigate to backtest (user re-enters params manually for MVP)
-    // We store a hint in sessionStorage
-    try {
-      sessionStorage.setItem("nautilus:pending_strategy", JSON.stringify(strategy.params));
-    } catch {
-      // ignore
-    }
+  function handleRun(_strategy: Strategy) {
     router.push("/backtest");
   }
 
@@ -180,7 +172,10 @@ export default function StrategiesPage() {
             </button>
           ))}
         </div>
-        <span className="text-text-3 text-xs font-data ml-auto">{visible.length} / {strategies.filter(s => filter === "archived" ? s.archived : !s.archived).length}</span>
+        <span className="text-text-3 text-xs font-data ml-auto">{visible.length} / {strategies.filter(s =>
+          filter === "favorites" ? s.favorite :
+          filter === "archived"  ? s.archived : !s.archived
+        ).length}</span>
       </div>
 
       {/* Strategy grid */}

@@ -122,6 +122,7 @@ export function NoteBlockRenderer({
 
       case "image":
         return (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={block.src}
             alt={block.alt || "notebook image"}

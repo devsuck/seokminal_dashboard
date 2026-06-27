@@ -1,13 +1,14 @@
 "use client";
 
-import type { Strategy, StrategyParams } from "@/lib/strategy-storage";
+import type { ReactNode } from "react";
+import type { Strategy, StrategyParams, EmaParams } from "@/lib/strategy-storage";
 
 interface StrategyCompareProps {
   strategies: [Strategy, Strategy];
   onClose: () => void;
 }
 
-function renderParams(params: StrategyParams): React.ReactNode {
+function renderParams(params: StrategyParams): ReactNode {
   if (params.type === "ema_cross") {
     return (
       <div className="space-y-1 text-xs font-data">
@@ -69,8 +70,8 @@ export function StrategyCompare({ strategies, onClose }: StrategyCompareProps) {
 
       {/* Numeric diff for EMA cross */}
       {bothEma && (() => {
-        const ap = a.params as import("@/lib/strategy-storage").EmaParams;
-        const bp = b.params as import("@/lib/strategy-storage").EmaParams;
+        const ap = a.params as EmaParams;
+        const bp = b.params as EmaParams;
         return (
           <div className="px-4 pb-4 border-t border-border/40 pt-3">
             <span className="text-text-3 text-[10px] uppercase tracking-wider">Delta (B − A)</span>
