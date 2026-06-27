@@ -185,6 +185,7 @@ export function CorrelationNetwork({
       ref={svgRef}
       width={width}
       height={height}
+      viewBox={`0 0 ${width} ${height}`}
       className="w-full rounded-lg"
     />
   );

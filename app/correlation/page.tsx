@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { getCorrelation, ApiError, type CorrelationPair } from "@/lib/api";
 import { CorrelationNetwork } from "@/components/network/CorrelationNetwork";
@@ -27,6 +27,8 @@ export default function CorrelationPage() {
   const [ran, setRan] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
+
   const run = useCallback(async () => {
     const ids = instrumentsText
       .split(",")
@@ -50,7 +52,7 @@ export default function CorrelationPage() {
       if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof ApiError ? e.message : "Failed to fetch correlation data");
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted) setLoading(false);
     }
   }, [instrumentsText, start, end]);
 
@@ -236,9 +238,9 @@ export default function CorrelationPage() {
                       <td className="px-4 py-1.5 text-text-2 font-data">{p.b}</td>
                       <td
                         className={`px-4 py-1.5 font-data font-semibold ${
-                          p.correlation >= 0.5
+                          p.correlation >= threshold
                             ? "text-pos"
-                            : p.correlation <= -0.5
+                            : p.correlation <= -threshold
                             ? "text-neg"
                             : "text-text-2"
                         }`}
