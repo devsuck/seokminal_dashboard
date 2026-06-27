@@ -21,9 +21,10 @@ function makeInstrument(id: string, closes: number[], startDate = "2024-01-02"):
 
 describe("computeFactor — momentum", () => {
   it("computes correct momentum return", () => {
-    // Stock A: 100 → 110 over 5 days. momentum = (110-100)/100 = 0.1
+    // horizon=1 shifts "now" to bars[5]=110; lookback=5 uses bars[0]=100 → (110-100)/100 = 0.1
+    // bars[6]=112 is the future bar (consumed by IC but not checked here)
     const instruments: InstrumentBars[] = [
-      makeInstrument("A.X", [100, 102, 104, 106, 108, 110]),
+      makeInstrument("A.X", [100, 102, 104, 106, 108, 110, 112]),
     ];
     const result = computeFactor(instruments, "momentum", 5, 1);
     expect(result.values[0].instrumentId).toBe("A.X");
@@ -31,9 +32,10 @@ describe("computeFactor — momentum", () => {
   });
 
   it("sorts by value descending", () => {
+    // trailing bar added so horizon=1 can shift "now" to bars[5]
     const instruments: InstrumentBars[] = [
-      makeInstrument("A.X", [100, 102, 104, 106, 108, 110]),   // +10%
-      makeInstrument("B.X", [100, 98, 96, 94, 92, 90]),        // -10%
+      makeInstrument("A.X", [100, 102, 104, 106, 108, 110, 112]),  // +10%
+      makeInstrument("B.X", [100, 98, 96, 94, 92, 90, 88]),        // -10%
     ];
     const result = computeFactor(instruments, "momentum", 5, 1);
     expect(result.values[0].instrumentId).toBe("A.X");
@@ -47,19 +49,16 @@ describe("computeFactor — momentum", () => {
   });
 
   it("computes IC using Spearman rank correlation", () => {
-    // 3 instruments with clear factor → future return alignment
-    // For IC with horizon=0, futureReturn is null, so let's test that IC handles this gracefully
-    // by checking that we can still rank instruments and compute their factors
+    // 3 instruments: high momentum → high future return alignment → positive IC
+    // bars[5] is "now", bars[6] is the horizon=1 future bar
     const instruments: InstrumentBars[] = [
-      makeInstrument("A.X", [100, 102, 104, 106, 108, 110, 115]),  // momentum +10% (from 100 to 110)
-      makeInstrument("B.X", [100, 101, 102, 103, 104, 105, 107]),  // momentum +5% (from 100 to 105)
-      makeInstrument("C.X", [100,  99,  98,  97,  96,  95,  94]),  // momentum -5% (from 100 to 95)
+      makeInstrument("A.X", [100, 102, 104, 106, 108, 110, 115]),  // momentum +10%, future +4.5%
+      makeInstrument("B.X", [100, 101, 102, 103, 104, 105, 107]),  // momentum +5%, future +1.9%
+      makeInstrument("C.X", [100,  99,  98,  97,  96,  95,  94]),  // momentum -5%, future -1.1%
     ];
-    const result = computeFactor(instruments, "momentum", 5, 0);
-    // With horizon=0, futureReturn is null, so IC will be null (no valid pairs)
-    // But the instruments should be ranked by momentum value
-    expect(result.values[0].value).toBeGreaterThan(result.values[1].value!);
-    expect(result.values[1].value).toBeGreaterThan(result.values[2].value!);
+    const result = computeFactor(instruments, "momentum", 5, 1);
+    expect(result.ic).not.toBeNull();
+    expect(result.ic!).toBeGreaterThan(0);
   });
 
   it("computes volatility factor", () => {

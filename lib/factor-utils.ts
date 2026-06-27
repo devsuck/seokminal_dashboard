@@ -60,9 +60,12 @@ export function computeFactor(
 ): FactorResult {
   const values: FactorValue[] = instruments.map(inst => {
     const bars = [...inst.bars].sort((a, b) => a.ts_event - b.ts_event);
-    const n = bars.length - 1;
+    // When horizon > 0, "now" is horizon bars before the last bar so that future data exists.
+    const n = horizon > 0 ? bars.length - 1 - horizon : bars.length - 1;
     let value: number | null = null;
     let futureReturn: number | null = null;
+
+    if (n < 0) return { instrumentId: inst.instrumentId, value: null, futureReturn: null };
 
     if (factorType === "momentum") {
       if (n >= lookback) {
