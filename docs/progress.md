@@ -1,12 +1,34 @@
 # Nautilus Dashboard — 진행 현황
 
-**마지막 업데이트:** 2026-06-27  
+**마지막 업데이트:** 2026-06-28  
 **브랜치:** main  
-**HEAD:** 18a675c
+**HEAD:** (see git log)
 
 ---
 
 ## 완료된 작업
+
+### Research Workspace (2026-06-28)
+
+**S-2 Strategy Repository:**
+- `lib/strategy-storage.ts` — Strategy CRUD, version history, clone, rollback (11 tests)
+- `components/strategies/StrategyCard.tsx` — card with favorite, archive, clone, run, delete
+- `components/strategies/StrategyCompare.tsx` — side-by-side param diff + EMA numeric delta
+- `components/strategies/SaveStrategyForm.tsx` — inline save form (name, description, tags)
+- `app/backtest/page.tsx` — "Save Strategy" button + SaveStrategyForm panel
+- `app/strategies/page.tsx` — browser with search, filter (all/favorites/archived), version history panel, rollback
+
+**S-6 Research Notebook:**
+- `lib/notebook-storage.ts` — Notebook CRUD + block CRUD (add/update/remove/move) (13 tests)
+- `components/notebooks/NoteBlockRenderer.tsx` — 5 block types: comment/metric/table/chart/image
+- `components/notebooks/NoteBlockEditor.tsx` — create/edit any block type with validation
+- `components/notebooks/NotebookEditor.tsx` — full editor with inline title/tags/experiment linking
+- `app/notebooks/page.tsx` — left sidebar list + right editor panel
+
+**Nav additions:** Strategies, Notebooks (between Experiments and Research)
+**Tests:** 62 passing (37 existing + 11 strategy + 13 notebook + 1 sanity)
+
+---
 
 ### Experiment Lab (2026-06-27)
 
