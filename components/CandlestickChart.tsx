@@ -41,33 +41,33 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
-      height: 420,
+      height: 480,
       layout: {
-        background: { color: "#0d0d0d" },
-        textColor: "#666",
-        fontFamily: "'Courier New', monospace",
+        background: { color: "#0F131A" },
+        textColor: "#5F6B7A",
+        fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#1a1a1a" },
-        horzLines: { color: "#1a1a1a" },
+        vertLines: { color: "#151A23" },
+        horzLines: { color: "#151A23" },
       },
       crosshair: {
-        vertLine: { color: "#ff8c00", labelBackgroundColor: "#ff8c00" },
-        horzLine: { color: "#ff8c00", labelBackgroundColor: "#ff8c00" },
+        vertLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
+        horzLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
       },
-      rightPriceScale: { borderColor: "#2a2a2a" },
-      timeScale: { borderColor: "#2a2a2a", timeVisible: true },
+      rightPriceScale: { borderColor: "#242A35" },
+      timeScale: { borderColor: "#242A35", timeVisible: true },
     });
     chartRef.current = chart;
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#00cc44",
-      downColor: "#ff3333",
-      borderUpColor: "#00cc44",
-      borderDownColor: "#ff3333",
-      wickUpColor: "#00cc44",
-      wickDownColor: "#ff3333",
+      upColor: "#22C55E",
+      downColor: "#EF4444",
+      borderUpColor: "#22C55E",
+      borderDownColor: "#EF4444",
+      wickUpColor: "#22C55E",
+      wickDownColor: "#EF4444",
     });
 
     candleSeries.setData(
@@ -84,7 +84,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
           markers.push({
             time: Math.floor(t.entry_ts_ns / 1e9) as UTCTimestamp,
             position: "belowBar",
-            color: "#00cc44",
+            color: "#22C55E",
             shape: "arrowUp",
             text: `BUY ${t.entry_price.toFixed(2)}`,
           });
@@ -93,7 +93,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
           markers.push({
             time: Math.floor(t.exit_ts_ns / 1e9) as UTCTimestamp,
             position: "aboveBar",
-            color: "#ff3333",
+            color: "#EF4444",
             shape: "arrowDown",
             text: `SELL ${t.exit_price.toFixed(2)}`,
           });
@@ -106,14 +106,14 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
     if (emaFast && emaFast > 0) {
       const fastData = computeEMA(bars, emaFast);
       if (fastData.length) {
-        const s = chart.addSeries(LineSeries, { color: "#ff8c00", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        const s = chart.addSeries(LineSeries, { color: "#FF9F1C", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(fastData);
       }
     }
     if (emaSlow && emaSlow > 0) {
       const slowData = computeEMA(bars, emaSlow);
       if (slowData.length) {
-        const s = chart.addSeries(LineSeries, { color: "#4488ff", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        const s = chart.addSeries(LineSeries, { color: "#3B82F6", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(slowData);
       }
     }
@@ -121,5 +121,5 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
     return () => { chart.remove(); chartRef.current = null; };
   }, [bars, trades, emaFast, emaSlow]);
 
-  return <div ref={containerRef} style={{ width: "100%", border: "1px solid #2a2a2a" }} />;
+  return <div ref={containerRef} className="w-full border border-border rounded-b-lg" />;
 }
