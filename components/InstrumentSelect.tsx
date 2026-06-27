@@ -14,15 +14,9 @@ interface InstrumentSelectProps {
 
 export function InstrumentSelect({ value, onChange }: InstrumentSelectProps) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="border border-gray-300 rounded px-3 py-2"
-    >
+    <select value={value} onChange={(e) => onChange(e.target.value)}>
       {KNOWN_INSTRUMENTS.map((id) => (
-        <option key={id} value={id}>
-          {id}
-        </option>
+        <option key={id} value={id}>{id}</option>
       ))}
     </select>
   );

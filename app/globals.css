@@ -1,1 +1,54 @@
 @import "tailwindcss";
+
+:root {
+  --bg: #090909;
+  --bg-panel: #111111;
+  --bg-hover: #1a1a1a;
+  --border: #2a2a2a;
+  --border-accent: #ff8c00;
+  --text-primary: #e8e8e8;
+  --text-muted: #666666;
+  --text-accent: #ff8c00;
+  --text-pos: #00cc44;
+  --text-neg: #ff3333;
+  --btn-bg: #ff8c00;
+  --btn-text: #000000;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+input[type="date"],
+input[type="number"],
+select {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  outline: none;
+}
+
+input[type="date"]:focus,
+input[type="number"]:focus,
+select:focus {
+  border-color: var(--border-accent);
+}
+
+/* webkit date picker dark */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(0deg);
+  opacity: 0.6;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #333; }
