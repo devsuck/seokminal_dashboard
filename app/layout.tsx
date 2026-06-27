@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/market",      label: "Market" },
   { href: "/backtest",    label: "Backtest" },
   { href: "/experiments", label: "Experiments" },
+  { href: "/strategies",  label: "Strategies" },
   { href: "/quant",       label: "Research" },
   { href: "/bots",        label: "Bots" },
   { href: "/ai-trader",   label: "AI Trader" },

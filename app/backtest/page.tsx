@@ -24,6 +24,8 @@ import {
   MetricGrid,
   TradeLogTable,
 } from "@/components/ui";
+import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
+import type { StrategyParams } from "@/lib/strategy-storage";
 
 export default function BacktestPage() {
   const [mode, setMode]               = useState<Mode>("single");
@@ -39,6 +41,7 @@ export default function BacktestPage() {
   const [result, setResult]           = useState<BacktestResponse | null>(null);
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
+  const [showSaveStrategy, setShowSaveStrategy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // ── Business logic (unchanged from original) ─────────────────────
@@ -95,6 +98,13 @@ export default function BacktestPage() {
     } finally { setLoading(false); }
   }
 
+  function currentStrategyParams(): StrategyParams {
+    if (mode === "single") {
+      return { type: "ema_cross", fast, slow };
+    }
+    return { type: "gated", rules };
+  }
+
   // ── Layout ───────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-4 max-w-[1600px]">
@@ -111,6 +121,12 @@ export default function BacktestPage() {
           <Link href="/backtest/heatmap" className="text-text-3 hover:text-accent no-underline transition-colors">
             Heatmap →
           </Link>
+          <button
+            onClick={() => setShowSaveStrategy(v => !v)}
+            className="text-text-3 hover:text-accent text-xs bg-transparent border-0 cursor-pointer transition-colors"
+          >
+            Save Strategy
+          </button>
         </div>
       </div>
 
@@ -142,6 +158,14 @@ export default function BacktestPage() {
         <div className="text-neg text-sm bg-neg/10 border border-neg/20 rounded-md px-4 py-2.5">
           {error}
         </div>
+      )}
+
+      {showSaveStrategy && (
+        <SaveStrategyForm
+          params={currentStrategyParams()}
+          onSaved={() => setShowSaveStrategy(false)}
+          onCancel={() => setShowSaveStrategy(false)}
+        />
       )}
 
       {/* ── Bottom Analytics (2-col) ──────────────────────────────── */}
