@@ -29,8 +29,7 @@ const NAV_ITEMS = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}
-      style={{ background: "var(--color-bg)", colorScheme: "dark" }}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-bg text-text-1 font-ui antialiased m-0">
         <header className="h-12 border-b border-border bg-panel flex items-center px-6 gap-8 shrink-0">
           <span className="text-text-1 font-semibold text-sm tracking-widest uppercase">

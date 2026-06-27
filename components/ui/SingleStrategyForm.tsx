@@ -1,3 +1,5 @@
+"use client";
+
 interface SingleStrategyFormProps {
   fast: number;
   slow: number;

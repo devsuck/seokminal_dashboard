@@ -24,7 +24,7 @@ export function ChartPanel({ bars, trades = [], emaFast, emaSlow, symbol, timefr
         {mode === "single" && emaFast && emaSlow && (
           <div className="flex items-center gap-3 ml-2 text-xs">
             <span className="flex items-center gap-1">
-              <span className="inline-block w-4 h-0.5 bg-accent" />
+              <span className="inline-block w-4 h-0.5 bg-[#FF9F1C]" />
               <span className="text-text-3">EMA {emaFast}</span>
             </span>
             <span className="flex items-center gap-1">

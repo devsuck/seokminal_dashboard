@@ -1,5 +1,6 @@
 import { MetricCard } from "./MetricCard";
 import type { BacktestResponse } from "@/lib/api";
+import { pnlClass } from "@/lib/backtest-types";
 
 interface MetricGridProps {
   result: BacktestResponse | null;
@@ -7,10 +8,6 @@ interface MetricGridProps {
 
 function fmt(v: number | null | undefined, fn: (n: number) => string): string {
   return v == null ? "—" : fn(v);
-}
-
-function pnlClass(v: number | null | undefined): string {
-  return v == null ? "text-text-3" : v >= 0 ? "text-pos" : "text-neg";
 }
 
 export function MetricGrid({ result }: MetricGridProps) {

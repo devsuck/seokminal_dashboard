@@ -121,5 +121,5 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
     return () => { chart.remove(); chartRef.current = null; };
   }, [bars, trades, emaFast, emaSlow]);
 
-  return <div ref={containerRef} className="w-full border border-border rounded-b-lg" />;
+  return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }

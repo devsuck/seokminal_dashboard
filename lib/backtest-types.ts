@@ -81,6 +81,11 @@ export function newRule(): SpawnRuleState {
   };
 }
 
+// ── UI Helpers ─────────────────────────────────────────────────────
+export function pnlClass(v: number | null | undefined): string {
+  return v == null ? "text-text-3" : v >= 0 ? "text-pos" : "text-neg";
+}
+
 // ── JSON Serialization (preserved exactly from original) ───────────
 export function indToJson(op: IndicatorOp, barType: string) {
   const p: Record<string, unknown> = {};

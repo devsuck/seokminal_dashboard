@@ -1,3 +1,5 @@
+"use client";
+
 import type { Mode } from "@/lib/backtest-types";
 
 interface StrategyModeTabsProps {

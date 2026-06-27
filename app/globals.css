@@ -23,6 +23,10 @@
 
 /* ── Base Styles ─────────────────────────────────────────────────── */
 @layer base {
+  html {
+    color-scheme: dark;
+  }
+
   * { box-sizing: border-box; }
 
   body {

@@ -53,7 +53,7 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
           <div key={c.id} className="flex items-start gap-2">
             {/* AND/OR pill connector */}
             {i > 0 ? (
-              <span className="text-[10px] font-semibold text-accent bg-accent/10 border border-accent/20 rounded px-1.5 py-0.5 mt-2.5 shrink-0 w-8 text-center">
+              <span className="text-[10px] font-semibold text-text-2 bg-panel-2 border border-border rounded px-1.5 py-0.5 mt-2.5 shrink-0 w-8 text-center">
                 {rule.combinator}
               </span>
             ) : (

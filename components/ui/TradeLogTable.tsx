@@ -1,12 +1,9 @@
 import { EmptyState } from "./EmptyState";
 import type { TradeRecord } from "@/lib/api";
+import { pnlClass } from "@/lib/backtest-types";
 
 interface TradeLogTableProps {
   trades: TradeRecord[];
-}
-
-function pnlClass(v: number | null): string {
-  return v == null ? "text-text-3" : v >= 0 ? "text-pos" : "text-neg";
 }
 
 const HEADERS = ["#", "Side", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Qty", "PnL"];
