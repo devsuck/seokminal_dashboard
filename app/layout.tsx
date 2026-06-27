@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { href: "/correlation",  label: "Correlation" },
   { href: "/event-study",  label: "Event Study" },
   { href: "/universe",     label: "Universe" },
+  { href: "/rolling",      label: "Rolling" },
   { href: "/bots",         label: "Bots" },
   { href: "/ai-trader",    label: "AI Trader" },
 ];
