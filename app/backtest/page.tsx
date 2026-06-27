@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ApiError, getBars, getBacktest, type BarOut, type BacktestResponse } from "@/lib/api";
+import { logActivity } from "@/lib/dashboard-storage";
 import {
   buildSpawnRules,
   newRule,
@@ -57,6 +58,13 @@ export default function BacktestPage() {
       ]);
       setBars(barsRes.bars);
       setResult(btRes);
+      logActivity({
+        type: "backtest",
+        label: mode === "single"
+          ? `${instrumentId} EMA ${fast}/${slow}`
+          : `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`,
+        href: "/backtest",
+      });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof ApiError ? e.message : "Failed");
