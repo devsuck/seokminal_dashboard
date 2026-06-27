@@ -8,6 +8,24 @@
 
 ## 완료된 작업
 
+### Correlation Network (2026-06-28)
+
+- `lib/api.ts` — added `getCorrelation`, `CorrelationPair`, `CorrelationResponse` (5 tests)
+- `components/network/CorrelationNetwork.tsx` — D3.js force-directed graph with draggable nodes
+- `app/correlation/page.tsx` — instrument input, date range, threshold slider, network + table
+- `app/layout.tsx` — Correlation nav item added between Research and Bots
+- **New dependency:** `d3@7.x` + `@types/d3`
+- **Tests:** 67 passing (62 existing + 5 getCorrelation)
+
+**Features:**
+- Nodes colored by venue: orange (XKRX), blue (NASDAQ/NYSE), gray (other)
+- Edges: green = positive correlation, red = negative; opacity/width = |correlation|
+- Threshold slider filters edges in real-time (no re-fetch)
+- Pair table sorted by |correlation| descending, text-pos/text-neg color coding
+- Drag nodes to rearrange; simulation re-heats on drag
+
+---
+
 ### Research Workspace (2026-06-28)
 
 **S-2 Strategy Repository:**

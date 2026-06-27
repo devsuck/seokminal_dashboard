@@ -20,15 +20,16 @@ export const metadata: Metadata = {
 };
 
 const NAV_ITEMS = [
-  { href: "/dashboard",   label: "Dashboard" },
-  { href: "/market",      label: "Market" },
-  { href: "/backtest",    label: "Backtest" },
-  { href: "/experiments", label: "Experiments" },
-  { href: "/strategies",  label: "Strategies" },
-  { href: "/notebooks",   label: "Notebooks" },
-  { href: "/quant",       label: "Research" },
-  { href: "/bots",        label: "Bots" },
-  { href: "/ai-trader",   label: "AI Trader" },
+  { href: "/dashboard",    label: "Dashboard" },
+  { href: "/market",       label: "Market" },
+  { href: "/backtest",     label: "Backtest" },
+  { href: "/experiments",  label: "Experiments" },
+  { href: "/strategies",   label: "Strategies" },
+  { href: "/notebooks",    label: "Notebooks" },
+  { href: "/quant",        label: "Research" },
+  { href: "/correlation",  label: "Correlation" },
+  { href: "/bots",         label: "Bots" },
+  { href: "/ai-trader",    label: "AI Trader" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
