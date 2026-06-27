@@ -170,10 +170,10 @@ export default function StrategiesPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 h-8 text-xs rounded border transition-colors cursor-pointer capitalize ${
+              className={`px-3 h-8 text-xs rounded transition-colors cursor-pointer capitalize ${
                 filter === f
-                  ? "border-b-2 border-accent text-accent bg-panel-2"
-                  : "border-border text-text-3 hover:text-text-1 bg-panel-2"
+                  ? "border-0 border-b-2 border-accent text-accent bg-panel-2"
+                  : "border border-border text-text-3 hover:text-text-1 bg-panel-2"
               }`}
             >
               {f}
