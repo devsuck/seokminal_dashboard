@@ -1,54 +1,75 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #090909;
-  --bg-panel: #111111;
-  --bg-hover: #1a1a1a;
-  --border: #2a2a2a;
-  --border-accent: #ff8c00;
-  --text-primary: #e8e8e8;
-  --text-muted: #666666;
-  --text-accent: #ff8c00;
-  --text-pos: #00cc44;
-  --text-neg: #ff3333;
-  --btn-bg: #ff8c00;
-  --btn-text: #000000;
+/* ── Design Tokens ───────────────────────────────────────────────── */
+@theme {
+  /* Colors */
+  --color-bg:       #080A0F;
+  --color-panel:    #0F131A;
+  --color-panel-2:  #151A23;
+  --color-border:   #242A35;
+  --color-text-1:   #E6EAF0;
+  --color-text-2:   #9AA4B2;
+  --color-text-3:   #5F6B7A;
+  --color-accent:   #FF9F1C;
+  --color-pos:      #22C55E;
+  --color-neg:      #EF4444;
+  --color-warn:     #F59E0B;
+  --color-info:     #3B82F6;
+
+  /* Fonts */
+  --font-ui:   var(--font-inter), system-ui, sans-serif;
+  --font-data: var(--font-mono), 'IBM Plex Mono', monospace;
 }
 
-* { box-sizing: border-box; }
+/* ── Base Styles ─────────────────────────────────────────────────── */
+@layer base {
+  * { box-sizing: border-box; }
 
-body {
-  background-color: var(--bg);
-  color: var(--text-primary);
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 14px;
-  line-height: 1.55;
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-1);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  /* Form elements base */
+  input[type="date"],
+  input[type="number"],
+  input[type="text"],
+  select {
+    background: var(--color-panel-2);
+    color: var(--color-text-1);
+    border: 1px solid var(--color-border);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    padding: 0 10px;
+    height: 36px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="date"]:focus,
+  input[type="number"]:focus,
+  input[type="text"]:focus,
+  select:focus {
+    border-color: var(--color-accent);
+  }
+
+  input[type="number"].compact,
+  select.compact {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    opacity: 0.6;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--color-bg); }
+  ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 }
-
-input[type="date"],
-input[type="number"],
-select {
-  background: var(--bg-panel);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  font-family: inherit;
-  font-size: 13px;
-  padding: 5px 10px;
-  outline: none;
-}
-
-input[type="date"]:focus,
-input[type="number"]:focus,
-select:focus {
-  border-color: var(--border-accent);
-}
-
-/* webkit date picker dark */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) sepia(1) saturate(5) hue-rotate(0deg);
-  opacity: 0.6;
-}
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: #333; }
