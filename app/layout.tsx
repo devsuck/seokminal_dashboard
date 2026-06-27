@@ -20,9 +20,10 @@ export const metadata: Metadata = {
 };
 
 const NAV_ITEMS = [
-  { href: "/",          label: "Market" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/market",    label: "Market" },
   { href: "/backtest",  label: "Backtest" },
-  { href: "/quant",     label: "Quant" },
+  { href: "/quant",     label: "Research" },
   { href: "/bots",      label: "Bots" },
   { href: "/ai-trader", label: "AI Trader" },
 ];
