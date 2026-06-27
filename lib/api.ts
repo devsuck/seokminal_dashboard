@@ -290,8 +290,8 @@ export interface FREDSeriesResponse {
 }
 export interface FREDCatalogItem { series_id: string; label: string; unit: string; category: string; }
 
-export async function getFREDCatalog(): Promise<FREDCatalogItem[]> {
-  return handleResponse<FREDCatalogItem[]>(await fetch(`${API_URL}/fred/catalog`));
+export async function getFREDCatalog(signal?: AbortSignal): Promise<FREDCatalogItem[]> {
+  return handleResponse<FREDCatalogItem[]>(await fetch(`${API_URL}/fred/catalog`, { signal }));
 }
 
 export async function getFREDSeries(

@@ -39,7 +39,6 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
     const yScale = d3.scaleLinear().domain([yMin - yPad, yMax + yPad]).range([innerH, 0]);
 
     const g = svg
-      .attr("viewBox", `0 0 ${width} ${height}`)
       .append("g")
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
 

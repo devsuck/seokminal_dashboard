@@ -41,11 +41,13 @@ export default function EventStudyPage() {
   // Load FRED catalog when source switches to "fred"
   useEffect(() => {
     if (source !== "fred" || fredCatalog.length > 0) return;
-    getFREDCatalog().then(items => {
+    const ctrl = new AbortController();
+    getFREDCatalog(ctrl.signal).then(items => {
       setFredCatalog(items);
       if (items.length > 0 && !fredSeriesId) setFredSeriesId(items[0].series_id);
     }).catch(() => {});
-  }, [source, fredCatalog.length, fredSeriesId]);
+    return () => ctrl.abort();
+  }, [source, fredCatalog.length]);
 
   const run = useCallback(async () => {
     abortRef.current?.abort();
@@ -259,7 +261,7 @@ export default function EventStudyPage() {
               </span>
             </div>
             <div className="text-text-3">
-              Avg Return (+{windowDays}d):{" "}
+              Avg Return (+{result.stats.windowDays}d):{" "}
               <span className={`font-data ${result.stats.avgReturns[result.stats.windowDays * 2] !== null && (result.stats.avgReturns[result.stats.windowDays * 2] ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
                 {pct(result.stats.avgReturns[result.stats.windowDays * 2])}
               </span>

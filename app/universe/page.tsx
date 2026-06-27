@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import Link from "next/link";
 import { getKRXStockBase, ApiError, type KRXStockBaseRow } from "@/lib/api";
 import { addToWatchlist, getWatchlist } from "@/lib/watchlist-storage";
 
@@ -15,7 +15,6 @@ function formatMktcap(v: number | null): string {
 }
 
 export default function UniversePage() {
-  const router = useRouter();
   const [market, setMarket] = useState<Market>("KOSPI");
   const [rows, setRows] = useState<KRXStockBaseRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,7 +34,7 @@ export default function UniversePage() {
     setWatchlist(getWatchlist());
   }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -59,7 +58,7 @@ export default function UniversePage() {
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
-  };
+  }, [market]);
 
   const filtered = useMemo(() => {
     let out = rows;
@@ -85,10 +84,6 @@ export default function UniversePage() {
     const id = `${isu_cd}.XKRX`;
     addToWatchlist(id);
     setAddedSet(prev => new Set(prev).add(isu_cd));
-  };
-
-  const handleBacktest = (_isu_cd: string) => {
-    router.push("/backtest");
   };
 
   return (
@@ -222,12 +217,12 @@ export default function UniversePage() {
                           >
                             {inWl ? "✓ Watchlist" : "+ Watchlist"}
                           </button>
-                          <button
-                            onClick={() => handleBacktest(isu_cd)}
-                            className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent cursor-pointer transition-colors"
+                          <Link
+                            href="/backtest"
+                            className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent transition-colors no-underline"
                           >
-                            {"→ Backtest"}
-                          </button>
+                            → Backtest
+                          </Link>
                         </div>
                       </td>
                     </tr>

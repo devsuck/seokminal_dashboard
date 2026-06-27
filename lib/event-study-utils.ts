@@ -56,7 +56,7 @@ export function computeEventStudy(
       continue;
     }
     const basePx = sortedBars[idx - 1].close;  // close of day before event
-    if (basePx === 0 || basePx === null) {
+    if (basePx === 0) {
       windows.push({ eventDate: event.date, label: event.label, returns: Array(len).fill(null) });
       continue;
     }
