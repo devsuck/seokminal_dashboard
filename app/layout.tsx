@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/notebooks",    label: "Notebooks" },
   { href: "/quant",        label: "Research" },
   { href: "/correlation",  label: "Correlation" },
+  { href: "/event-study",  label: "Event Study" },
   { href: "/bots",         label: "Bots" },
   { href: "/ai-trader",    label: "AI Trader" },
 ];
