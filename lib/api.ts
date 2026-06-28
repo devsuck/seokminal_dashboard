@@ -804,3 +804,98 @@ export async function getFuturesRoll(
     await fetch(`${API_URL}/futures/roll?${params}`, { signal })
   );
 }
+
+// ── Forex ─────────────────────────────────────────────────────────────────────
+
+export interface ForexForwardResponse {
+  spot: number;
+  rate_domestic: number;
+  rate_foreign: number;
+  days: number;
+  forward: number;
+  forward_points: number;
+  forward_points_pct: number;
+  annualized_differential: number;
+  market_structure: string;
+}
+
+export interface ForexCurveRow {
+  tenor_days: number;
+  forward: number;
+  forward_points: number;
+  forward_points_pct: number;
+  annualized_differential: number;
+  market_structure: string;
+}
+
+export interface ForexCurveResponse {
+  spot: number;
+  rate_domestic: number;
+  rate_foreign: number;
+  rows: ForexCurveRow[];
+}
+
+export interface ForexCarryResponse {
+  spot: number;
+  rate_domestic: number;
+  rate_foreign: number;
+  days: number;
+  forward: number;
+  carry_rate: number;
+  net_carry_pct: number;
+  breakeven_move_pct: number;
+  favorable: boolean;
+  uip_expected_move_pct: number;
+}
+
+export async function getForexForward(
+  spot: number,
+  rateDomestic: number,
+  rateForeign: number,
+  days: number,
+  signal?: AbortSignal
+): Promise<ForexForwardResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate_domestic: String(rateDomestic),
+    rate_foreign: String(rateForeign),
+    days: String(days),
+  });
+  return handleResponse<ForexForwardResponse>(
+    await fetch(`${API_URL}/forex/forward?${params}`, { signal })
+  );
+}
+
+export async function getForexCurve(
+  spot: number,
+  rateDomestic: number,
+  rateForeign: number,
+  signal?: AbortSignal
+): Promise<ForexCurveResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate_domestic: String(rateDomestic),
+    rate_foreign: String(rateForeign),
+  });
+  return handleResponse<ForexCurveResponse>(
+    await fetch(`${API_URL}/forex/curve?${params}`, { signal })
+  );
+}
+
+export async function getForexCarry(
+  spot: number,
+  rateDomestic: number,
+  rateForeign: number,
+  days: number,
+  signal?: AbortSignal
+): Promise<ForexCarryResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate_domestic: String(rateDomestic),
+    rate_foreign: String(rateForeign),
+    days: String(days),
+  });
+  return handleResponse<ForexCarryResponse>(
+    await fetch(`${API_URL}/forex/carry?${params}`, { signal })
+  );
+}
