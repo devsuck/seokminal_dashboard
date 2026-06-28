@@ -24,6 +24,17 @@ function Err({ msg }: { msg: string | null }) {
 
 // ── Greeks Tab ───────────────────────────────────────────────────────────────
 
+const GREEK_ROWS: { label: string; key: keyof OptionsGreeksResponse; fmt: (v: number) => string; desc: string }[] = [
+  { label: "Price",           key: "price",           fmt: fmt4, desc: "Theoretical option price" },
+  { label: "Intrinsic Value", key: "intrinsic_value", fmt: fmt4, desc: "max(S-K, 0) for call, max(K-S, 0) for put" },
+  { label: "Time Value",      key: "time_value",      fmt: fmt4, desc: "Price minus intrinsic value" },
+  { label: "Delta (Δ)",       key: "delta",           fmt: fmt4, desc: "Price change per $1 move in spot" },
+  { label: "Gamma (Γ)",       key: "gamma",           fmt: fmt6, desc: "Delta change per $1 move in spot" },
+  { label: "Theta (Θ)",       key: "theta",           fmt: fmt4, desc: "Price change per calendar day" },
+  { label: "Vega (ν)",        key: "vega",            fmt: fmt4, desc: "Price change per 1% vol change" },
+  { label: "Rho (ρ)",         key: "rho",             fmt: fmt4, desc: "Price change per 1% rate change" },
+];
+
 function GreeksTab() {
   const [optionType, setOptionType] = useState<"call" | "put">("call");
   const [spot, setSpot] = useState("100");
@@ -56,17 +67,6 @@ function GreeksTab() {
       if (!ctrl.signal.aborted) setLoading(false);
     }
   }
-
-  const GREEK_ROWS: { label: string; key: keyof OptionsGreeksResponse; fmt: (v: number) => string; desc: string }[] = [
-    { label: "Price",           key: "price",           fmt: fmt4, desc: "Theoretical option price" },
-    { label: "Intrinsic Value", key: "intrinsic_value", fmt: fmt4, desc: "max(S-K, 0) for call, max(K-S, 0) for put" },
-    { label: "Time Value",      key: "time_value",      fmt: fmt4, desc: "Price minus intrinsic value" },
-    { label: "Delta (Δ)",       key: "delta",           fmt: fmt4, desc: "Price change per $1 move in spot" },
-    { label: "Gamma (Γ)",       key: "gamma",           fmt: fmt6, desc: "Delta change per $1 move in spot" },
-    { label: "Theta (Θ)",       key: "theta",           fmt: fmt4, desc: "Price change per calendar day" },
-    { label: "Vega (ν)",        key: "vega",            fmt: fmt4, desc: "Price change per 1% vol change" },
-    { label: "Rho (ρ)",         key: "rho",             fmt: fmt4, desc: "Price change per 1% rate change" },
-  ];
 
   return (
     <div className="space-y-4">
