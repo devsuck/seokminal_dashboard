@@ -1164,10 +1164,12 @@ export async function validateSpawnRules(
   spawnRulesJson: string,
   signal?: AbortSignal,
 ): Promise<SpawnValidateResponse> {
-  const r = await fetch(
-    `${API_URL}/spawner/validate?spawn_rules=${encodeURIComponent(spawnRulesJson)}`,
-    { signal },
-  );
+  const r = await fetch(`${API_URL}/spawner/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ spawn_rules: JSON.parse(spawnRulesJson) as object[] }),
+    signal,
+  });
   return handleResponse<SpawnValidateResponse>(r);
 }
 
