@@ -34,6 +34,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/event-study",  label: "Event Study" },
       { href: "/rolling",      label: "Rolling" },
       { href: "/factor",       label: "Factor" },
+      { href: "/risk",         label: "Risk" },
       { href: "/data-quality", label: "Data Quality" },
     ],
   },
