@@ -1334,11 +1334,11 @@ function MonteCarloTab() {
       {/* Fan chart — always visible */}
       <div className="mb-2">
         <div className="flex gap-3 text-[13px] text-text-3/50 mb-1">
-          <span><span className="text-neg">— P5</span></span>
-          <span><span className="text-warn">— P25</span></span>
-          <span><span className="text-text-2">— P50</span></span>
+          <span><span style={{ color: "#ff3333" }}>— P5</span></span>
+          <span><span style={{ color: "#ff8844" }}>— P25</span></span>
+          <span><span style={{ color: "#e8e8e8" }}>— P50</span></span>
           <span><span style={{ color: "#44cc88" }}>— P75</span></span>
-          <span><span className="text-pos">— P95</span></span>
+          <span><span style={{ color: "#00cc44" }}>— P95</span></span>
         </div>
         <svg width={CW} height={CH} className="block bg-bg border border-border">
           {[0.25, 0.5, 0.75].map(r => <line key={r} x1={CPX} y1={CPY + r * (CH - CPY * 2)} x2={CW - CPX} y2={CPY + r * (CH - CPY * 2)} stroke="#1a1a1a" strokeWidth={1} />)}
@@ -1428,14 +1428,14 @@ function RegimeTab() {
       {/* Current regime card */}
       <div className="flex gap-6 mb-4 flex-wrap">
         {[
-          { label: "CURRENT REGIME", val: result?.current_regime?.toUpperCase().replace("_", " / ") ?? "—", cls: result ? (REGIME_CLS[result.current_regime] ?? "text-text-2") : "text-text-3/50" },
-          { label: "CURRENT VOL (ANN.)", val: result?.current_vol != null ? (result.current_vol * 100).toFixed(2) + "%" : "—", cls: "text-text-2" },
-          { label: "VOL THRESHOLD", val: result ? (result.vol_threshold * 100).toFixed(2) + "%" : "—", cls: "text-text-3" },
-          { label: "SMA PERIOD", val: result ? String(result.sma_period) : "—", cls: "text-text-3/50" },
+          { label: "CURRENT REGIME", val: result?.current_regime?.toUpperCase().replace(/_/g, " / ") ?? "—", cls: result ? "" : "text-text-3/50", style: result ? { color: REGIME_COLORS[result.current_regime] } : undefined },
+          { label: "CURRENT VOL (ANN.)", val: result?.current_vol != null ? (result.current_vol * 100).toFixed(2) + "%" : "—", cls: "text-text-2", style: undefined },
+          { label: "VOL THRESHOLD", val: result ? (result.vol_threshold * 100).toFixed(2) + "%" : "—", cls: "text-text-3", style: undefined },
+          { label: "SMA PERIOD", val: result ? String(result.sma_period) : "—", cls: "text-text-3/50", style: undefined },
         ].map(s => (
           <div key={s.label}>
             <div className="text-accent text-[13px] tracking-wide mb-0.5">{s.label}</div>
-            <div className={`text-[15px] font-data font-bold ${s.cls}`}>{loading ? "..." : s.val}</div>
+            <div className={`text-[15px] font-data font-bold ${s.cls}`} style={s.style}>{loading ? "..." : s.val}</div>
           </div>
         ))}
       </div>
@@ -1453,8 +1453,8 @@ function RegimeTab() {
           )}
         </svg>
         <div className="flex gap-4 mt-1.5 text-[13px]">
-          {Object.entries(REGIME_CLS).map(([name, cls]) => (
-            <span key={name}><span className={cls}>■</span> {name.replace("_", " / ").toUpperCase()}</span>
+          {Object.entries(REGIME_COLORS).map(([name, color]) => (
+            <span key={name}><span style={{ color }}>■</span> {name.replace(/_/g, " / ").toUpperCase()}</span>
           ))}
         </div>
       </div>
@@ -1476,7 +1476,7 @@ function RegimeTab() {
                 <td className={`py-1.5 text-sm font-data font-bold ${REGIME_CLS[name] ?? "text-text-3"}`}>{(frac * 100).toFixed(1)}%</td>
               </tr>
             )) : (
-              <tr><td colSpan={2} className="py-1.5 text-sm font-data font-bold text-text-3/50 text-center p-4">RUN TO SEE DISTRIBUTION</td></tr>
+              <tr><td colSpan={2} className="text-sm font-data font-bold text-text-3/50 text-center p-4">RUN TO SEE DISTRIBUTION</td></tr>
             )}
           </tbody>
         </table>
