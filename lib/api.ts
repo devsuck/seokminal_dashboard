@@ -982,3 +982,48 @@ export async function getCryptoBook(
     await fetch(`${API_URL}/crypto/book?${params}`, { signal })
   );
 }
+
+// ── IB Market Data ────────────────────────────────────────────────────────────
+
+export interface IBBar {
+  ts_ms: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface IBBarsResponse {
+  symbol: string;
+  asset_type: string;
+  bars: IBBar[];
+  count: number;
+}
+
+export interface IBBarsParams {
+  symbol: string;
+  asset_type: "stock" | "forex" | "future" | "option" | "crypto";
+  end_date?: string;
+  duration?: string;
+  exchange?: string;
+  expiry?: string;
+  strike?: number;
+  right?: "C" | "P";
+}
+
+export async function getIBBars(
+  params: IBBarsParams,
+  signal?: AbortSignal
+): Promise<IBBarsResponse> {
+  const p = new URLSearchParams({ symbol: params.symbol, asset_type: params.asset_type });
+  if (params.end_date)  p.set("end_date",  params.end_date);
+  if (params.duration)  p.set("duration",  params.duration);
+  if (params.exchange)  p.set("exchange",  params.exchange);
+  if (params.expiry)    p.set("expiry",    params.expiry);
+  if (params.strike !== undefined && params.strike !== 0) p.set("strike", String(params.strike));
+  if (params.right)     p.set("right",     params.right);
+  return handleResponse<IBBarsResponse>(
+    await fetch(`${API_URL}/ib/bars?${p}`, { signal })
+  );
+}
