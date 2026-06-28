@@ -1,8 +1,8 @@
 # Seokminal Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-29  
-**HEAD:** dcba0c7  
-**테스트:** 147/147 통과  
+**HEAD:** e792843 (frontend) / 6a7515a (backend)  
+**테스트:** 155/155 통과 (frontend) / 270 통과 (backend)  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
 ---
@@ -34,6 +34,7 @@
 | 19 | Strategy Spawner UI | 조건 규칙 빌더, 스폰 규칙 CRUD, 활성 전략 모니터 | 5d78d4f..1263c94 |
 | 20 | Live Order Dashboard | IB/KIS 주문 실행, 포지션 모니터, P&L 추적 | 1b36e97..fe67f27 |
 | 21 | Orders Complete | IB 주문, cancel/status UI, Bot P&L 표시 | 73331ee..0704e0b |
+| 22 | Notifications + Alert System | `lib/alert-storage.ts`, `lib/api.ts` alert 함수, `/alerts` 페이지, threading.Lock dedup | 826e248..e792843 (FE) / c6ed03c..6a7515a (BE) |
 
 ---
 

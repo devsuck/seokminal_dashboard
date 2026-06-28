@@ -1,3 +1,30 @@
+## Phase 22 — Notifications + Alert System (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- Backend: `POST /alerts/rules` (201), `GET /alerts/rules`, `DELETE /alerts/rules/{id}` (204), `GET /alerts/triggered` — lazy evaluation against live_engine
+- Backend: 6 condition types (price_above/below, pnl_above/below, bot_error, bot_stopped)
+- Backend: `threading.Lock()` dedup race 방지, snapshot inside lock, 5분 dedup window, 200-entry cap
+- Frontend: `lib/alert-storage.ts` — triggered localStorage cache (merge/dedup/cap-100)
+- Frontend: `lib/api.ts` — `AlertRule`, `TriggeredAlert` 타입 + 4 API 함수
+- Frontend: `/alerts` 페이지 — rule 생성 폼, rule 목록+delete (optimistic), triggered 피드+refresh+clear
+- Frontend: NavBar Live 그룹에 Alerts 추가
+- Fix: `loadTriggered` AbortController signal 추가 (project constraint)
+- Fix: `handleDelete` optimistic removal
+
+### 변경된 파일
+**Backend (c6ed03c..6a7515a):** `api_server/main.py`, `tests/test_alerts_api.py`
+**Frontend (826e248..e792843):** `lib/alert-storage.ts`, `lib/api.ts`, `app/alerts/page.tsx`, `components/NavBar.tsx`, `tests/lib/alert-storage.test.ts`
+
+### 테스트
+- Backend: 270 passed, 4 pre-existing failures (test_auth × 3, test_backtest_happy_path)
+- Frontend: 155/155 passed
+
+### 다음 할 일
+- Phase 23: Risk Dashboard (VaR, drawdown, 베타 시각화)
+- Cleanup: D3 타입 (CorrelationNetwork.tsx:120), quant.tsx 디자인 토큰, ai-trader 플레이스홀더
+
+---
+
 ## Phase 21 — Orders Complete (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
