@@ -899,3 +899,86 @@ export async function getForexCarry(
     await fetch(`${API_URL}/forex/carry?${params}`, { signal })
   );
 }
+
+// ── Crypto (Hyperliquid) ──────────────────────────────────────────────────────
+
+export interface CryptoAsset {
+  name: string;
+  mid_price: number;
+  mark_price: number;
+  funding_rate_8h: number;   // % per 8h
+  funding_rate: number;      // annualized %
+  open_interest: number;
+  day_change_pct: number;
+  day_volume: number;
+}
+
+export interface CryptoAssetsResponse {
+  assets: CryptoAsset[];
+  count: number;
+}
+
+export interface CryptoCandle {
+  time_ms: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  num_trades: number;
+}
+
+export interface CryptoCandlesResponse {
+  coin: string;
+  interval: string;
+  candles: CryptoCandle[];
+}
+
+export interface BookLevel {
+  price: number;
+  size: number;
+  num_orders: number;
+}
+
+export interface CryptoBookResponse {
+  coin: string;
+  bids: BookLevel[];
+  asks: BookLevel[];
+  mid_price: number;
+  spread: number;
+  spread_pct: number;
+}
+
+export async function getCryptoAssets(
+  signal?: AbortSignal
+): Promise<CryptoAssetsResponse> {
+  return handleResponse<CryptoAssetsResponse>(
+    await fetch(`${API_URL}/crypto/assets`, { signal })
+  );
+}
+
+export async function getCryptoCandles(
+  coin: string,
+  interval: string,
+  days: number,
+  signal?: AbortSignal
+): Promise<CryptoCandlesResponse> {
+  const params = new URLSearchParams({
+    coin,
+    interval,
+    days: String(days),
+  });
+  return handleResponse<CryptoCandlesResponse>(
+    await fetch(`${API_URL}/crypto/candles?${params}`, { signal })
+  );
+}
+
+export async function getCryptoBook(
+  coin: string,
+  signal?: AbortSignal
+): Promise<CryptoBookResponse> {
+  const params = new URLSearchParams({ coin });
+  return handleResponse<CryptoBookResponse>(
+    await fetch(`${API_URL}/crypto/book?${params}`, { signal })
+  );
+}
