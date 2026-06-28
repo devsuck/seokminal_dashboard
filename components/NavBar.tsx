@@ -22,6 +22,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/futures",     label: "Futures" },
       { href: "/forex",       label: "Forex" },
       { href: "/crypto",      label: "Crypto" },
+      { href: "/ib",          label: "IB Data" },
       { href: "/report",      label: "Report" },
     ],
   },

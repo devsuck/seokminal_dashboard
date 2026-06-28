@@ -1,3 +1,28 @@
+## Phase 17 — IB Market Data (2026-06-28)
+
+### 완료된 작업
+- IBClient 확장: `get_daily_bars_forex`, `get_daily_bars_future`, `get_daily_bars_option`, `get_daily_bars_crypto`
+- API: `/ib/bars` async endpoint (5 asset types, input validation, try/except)
+- Frontend: `/ib` 페이지 — Stock/Forex/Future/Option/Crypto 5탭, lightweight-charts v5 캔들차트
+- NavBar: IB Data 추가 (Crypto↔Report 사이)
+
+### 변경된 파일
+**Backend (nautilus-multi-venue):**
+- `backends/ib/client.py` (+4 methods)
+- `tests/test_ib_client.py` (+9 tests)
+- `api_server/main.py` (+IBBarsResponse, +_bar_date_to_ms, +/ib/bars)
+
+**Frontend (nautilus-dashboard):**
+- `lib/api.ts` (+IBBar, IBBarsResponse, IBBarsParams, getIBBars)
+- `app/ib/page.tsx` (new — 5-tab IB data browser)
+- `components/NavBar.tsx` (IB Data link added)
+
+### 다음 할 일
+- Phase 18: TBD (discuss with user)
+- Note: IB page requires TWS/Gateway running locally — no live data without IB connection
+
+---
+
 ## Phase 16 — Crypto Analytics (2026-06-28)
 
 ### 완료된 작업

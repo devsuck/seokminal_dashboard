@@ -1,7 +1,7 @@
 # Nautilus Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-28  
-**HEAD:** 816546b  
+**HEAD:** afcdbab  
 **테스트:** 127/127 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -29,6 +29,7 @@
 | 14 | Futures Analytics | `futures/pricer.py`, `app/futures/page.tsx`, term structure curve | — |
 | 15 | Forex Analytics | `forex/pricer.py`, `app/forex/page.tsx`, forward curve | — |
 | 16 | Crypto Analytics | `hyperliquid/client.py`, `app/crypto/page.tsx`, order book depth | — |
+| 17 | IB Market Data | `backends/ib/client.py`, `app/ib/page.tsx`, 5 contract types | — |
 
 ---
 
