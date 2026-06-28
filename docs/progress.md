@@ -1,3 +1,29 @@
+## Phase 14 — Futures Analytics (2026-06-28)
+
+### 완료된 작업
+- Cost-of-carry pricer: `futures_price`, `futures_calendar`, `futures_roll` (`futures/pricer.py`)
+- API: `/futures/price`, `/futures/calendar`, `/futures/roll` endpoints (`api_server/main.py`)
+- Frontend: `/futures` page — Pricer card, Roll table, Term Structure D3 line chart
+- NavBar: Futures added to Research group (after Options)
+
+### 변경된 파일
+**Backend (nautilus-multi-venue):**
+- `futures/__init__.py` (new)
+- `futures/pricer.py` (new)
+- `tests/test_futures_pricer.py` (new)
+- `api_server/main.py` (+~110 lines)
+- `pyproject.toml` (+futures*)
+
+**Frontend (nautilus-dashboard):**
+- `lib/api.ts` (+3 functions, +5 types)
+- `app/futures/page.tsx` (new)
+- `components/NavBar.tsx` (Futures link added)
+
+### 다음 할 일
+- Phase 15: Forex (ECOS FX 환율 데이터 연동)
+
+---
+
 ## Phase 13 — Options Analytics (2026-06-28)
 
 ### 완료된 작업
