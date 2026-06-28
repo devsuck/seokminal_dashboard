@@ -10,6 +10,7 @@ import {
   rollbackStrategy, deleteStrategy,
   type Strategy,
 } from "@/lib/strategy-storage";
+import { updateWorkflow } from "@/lib/workflow-storage";
 
 type Filter = "all" | "favorites" | "archived";
 
@@ -61,6 +62,7 @@ export default function StrategiesPage() {
   }
 
   function handleRun(_strategy: Strategy) {
+    updateWorkflow({ strategyId: _strategy.id });
     router.push("/backtest");
   }
 
@@ -209,6 +211,21 @@ export default function StrategiesPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {selected.length === 1 && (
+        <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-text-3 text-[10px] uppercase tracking-wider">Workflow</div>
+            <p className="text-text-1 text-sm font-medium mt-0.5">Strategy selected — run a backtest to continue the workflow</p>
+          </div>
+          <button
+            onClick={() => { const s = strategies.find(st => st.id === selected[0]); if (s) handleRun(s); }}
+            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0"
+          >
+            → Run Backtest
+          </button>
         </div>
       )}
     </div>

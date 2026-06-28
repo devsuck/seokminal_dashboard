@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { updateWorkflow } from "@/lib/workflow-storage";
 import {
   getPortfolioOptimize, getTimeSeries, ApiError,
   type PortfolioOptimizeResponse, type TimeSeriesPoint,
@@ -57,6 +59,7 @@ export default function PortfolioPage() {
   const [end, setEnd] = useState("2026-12-31");
   const optimizerAbortRef = useRef<AbortController | null>(null);
   const attrAbortRef = useRef<AbortController | null>(null);
+  const router = useRouter();
 
   // Optimizer state
   const [optimizerText, setOptimizerText] = useState(
@@ -140,6 +143,12 @@ export default function PortfolioPage() {
     if (!attrResult) return 0.001;
     return Math.max(...attrResult.instruments.map(i => Math.abs(i.contribution)), 0.001);
   }, [attrResult]);
+
+  function handleWorkflowNext() {
+    if (!optimizerResult) return;
+    updateWorkflow({ portfolioWeights: optimizerResult.max_sharpe.weights });
+    router.push("/bots");
+  }
 
   function fmtPct(v: number): string {
     return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)}%`;
@@ -361,6 +370,21 @@ export default function PortfolioPage() {
               Set instrument weights (must sum to 100%) and click Run to compute attribution.
             </div>
           )}
+        </div>
+      )}
+
+      {optimizerResult !== null && tab === "optimizer" && (
+        <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-text-3 text-[10px] uppercase tracking-wider">Workflow</div>
+            <p className="text-text-1 text-sm font-medium mt-0.5">Portfolio optimised — deploy a bot with the Max-Sharpe weights</p>
+          </div>
+          <button
+            onClick={handleWorkflowNext}
+            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0"
+          >
+            → Deploy Bot
+          </button>
         </div>
       )}
     </div>

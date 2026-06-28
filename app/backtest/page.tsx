@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { updateWorkflow } from "@/lib/workflow-storage";
 import { ApiError, getBars, getBacktest, type BarOut, type BacktestResponse } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
 import {
@@ -43,6 +45,7 @@ export default function BacktestPage() {
   const [loading, setLoading]         = useState(false);
   const [showSaveStrategy, setShowSaveStrategy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const router = useRouter();
 
   // ── Business logic (unchanged from original) ─────────────────────
   async function run() {
@@ -96,6 +99,14 @@ export default function BacktestPage() {
       setError(e instanceof ApiError ? e.message : "Failed");
       setBars([]); setResult(null);
     } finally { setLoading(false); }
+  }
+
+  function handleWorkflowNext() {
+    updateWorkflow({
+      backtestSharpe: result?.sharpe_ratio ?? null,
+      backtestPnlPct: result?.total_pnl_pct ?? null,
+    });
+    router.push("/portfolio");
   }
 
   function currentStrategyParams(): StrategyParams {
@@ -195,6 +206,21 @@ export default function BacktestPage() {
           <TradeLogTable trades={result?.trades ?? []} />
         </div>
       </div>
+
+      {result !== null && (
+        <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-text-3 text-[10px] uppercase tracking-wider">Workflow</div>
+            <p className="text-text-1 text-sm font-medium mt-0.5">Backtest complete — optimise your portfolio weights next</p>
+          </div>
+          <button
+            onClick={handleWorkflowNext}
+            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0"
+          >
+            → Optimise Portfolio
+          </button>
+        </div>
+      )}
     </div>
   );
 }

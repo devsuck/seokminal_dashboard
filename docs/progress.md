@@ -1,3 +1,19 @@
+### Phase 12 — Workflow Automation (2026-06-28)
+
+**S-15 Workflow Automation:**
+- `lib/workflow-storage.ts` — `WorkflowState` CRUD + `getWorkflowStep()` step detection (pure, 12 tests)
+- `app/workflow/page.tsx` — 6-step stepper: status indicators, summary cards, Reset button
+- CTAs on 4 existing pages:
+  - `/universe`: saves watchlist instrumentIds → workflow, navigates to /factor
+  - `/strategies`: saves strategyId → workflow, navigates to /backtest
+  - `/backtest`: saves backtestSharpe + backtestPnlPct → workflow, navigates to /portfolio
+  - `/portfolio`: saves max_sharpe weights → workflow, navigates to /bots
+- NavBar: Workflow added as standalone top-level item (between Market and Research)
+
+**Tests:** 127 passing (115 existing + 12 workflow-storage)
+
+---
+
 ### Phase 11 — Data Quality Center + Report Builder (2026-06-28)
 
 **S-13 Data Quality Center:**

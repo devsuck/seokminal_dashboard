@@ -23,26 +23,7 @@
 | 10 | Bot Infrastructure | `app/bots/page.tsx` 디자인 토큰 마이그레이션 | 9b5a70a..0102869 |
 | Nav | Grouped Dropdown Nav | `components/NavBar.tsx` — 16개 → 6그룹 | 0102869..ea8f478 |
 | 11 | Data Quality Center + Report Builder | `app/data-quality/page.tsx`, `app/report/page.tsx`, `lib/report-utils.ts` | — |
-
----
-
-## 남은 Phase
-
-### Phase 12: Workflow Automation (S-15)
-
-**목표:** Universe → Factor → Strategy → Backtest → Portfolio → Bot 전체 플로우 연결
-
-- `app/workflow/page.tsx` — 단계별 상태 머신 UI
-- 단계: Universe 선택 → Factor 분석 → Strategy 선택 → Backtest 실행 → Portfolio 최적화 → Bot 배포
-- 각 단계 완료 시 다음 단계로 CTA 버튼 자동 안내
-- 단계 간 파라미터 전달: Universe instrument_ids → Backtest 자동 주입, Portfolio → Bot config 자동 주입
-- `lib/workflow-storage.ts` — 현재 워크플로우 상태 localStorage 저장
-- Nav: 별도 최상위 항목 또는 Live 그룹 추가
-
-**예상 Task 구성:**
-1. `lib/workflow-storage.ts` + tests
-2. `app/workflow/page.tsx` — 상태 머신 + 단계 UI
-3. 각 기존 페이지에 "→ 다음 단계" CTA 연결 + docs
+| 12 | Workflow Automation | `app/workflow/page.tsx`, `lib/workflow-storage.ts` | — |
 
 ---
 
