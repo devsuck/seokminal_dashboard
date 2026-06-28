@@ -3,14 +3,14 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   getPortfolioOptimize, getTimeSeries, ApiError,
-  type PortfolioOptimizeResponse, type TimeSeriesPoint, type PortfolioWeights,
+  type PortfolioOptimizeResponse, type TimeSeriesPoint,
 } from "@/lib/api";
 import { computeAttribution, type AttributionInput, type PortfolioAttribution } from "@/lib/portfolio-utils";
 import { EfficientFrontierChart } from "@/components/portfolio/EfficientFrontierChart";
 
 type Tab = "optimizer" | "attribution";
 
-interface WeightRow { instrumentId: string; weightStr: string; }
+interface WeightRow { id: string; instrumentId: string; weightStr: string; }
 
 async function fetchAllTimeSeries(
   instrumentIds: string[],
@@ -67,9 +67,9 @@ export default function PortfolioPage() {
 
   // Attribution state
   const [weightRows, setWeightRows] = useState<WeightRow[]>([
-    { instrumentId: "005930.XKRX", weightStr: "40" },
-    { instrumentId: "000660.XKRX", weightStr: "30" },
-    { instrumentId: "035420.XKRX", weightStr: "30" },
+    { id: crypto.randomUUID(), instrumentId: "005930.XKRX", weightStr: "40" },
+    { id: crypto.randomUUID(), instrumentId: "000660.XKRX", weightStr: "30" },
+    { id: crypto.randomUUID(), instrumentId: "035420.XKRX", weightStr: "30" },
   ]);
   const [attrResult, setAttrResult] = useState<PortfolioAttribution | null>(null);
   const [attrLoading, setAttrLoading] = useState(false);
@@ -102,6 +102,10 @@ export default function PortfolioPage() {
       instrumentId: r.instrumentId.trim(),
       weight: parseFloat(r.weightStr) / 100,
     })).filter(r => r.instrumentId);
+    if (parsedWeights.some(r => isNaN(r.weight) || r.weight < 0)) {
+      setAttrError("All weights must be non-negative numbers");
+      return;
+    }
     const totalWeight = parsedWeights.reduce((s, r) => s + r.weight, 0);
     if (Math.abs(totalWeight - 1) > 0.005) {
       setAttrError(`Weights sum to ${(totalWeight * 100).toFixed(1)}% — must equal 100%`);
@@ -142,7 +146,7 @@ export default function PortfolioPage() {
   }
 
   function addRow() {
-    setWeightRows(rows => [...rows, { instrumentId: "", weightStr: "0" }]);
+    setWeightRows(rows => [...rows, { id: crypto.randomUUID(), instrumentId: "", weightStr: "0" }]);
   }
 
   function removeRow(i: number) {
@@ -257,7 +261,7 @@ export default function PortfolioPage() {
               <label className="text-text-3 text-[11px] uppercase tracking-wider">Instrument Weights</label>
               <div className="space-y-1.5">
                 {weightRows.map((row, i) => (
-                  <div key={i} className="flex gap-2 items-center">
+                  <div key={row.id} className="flex gap-2 items-center">
                     <input
                       value={row.instrumentId}
                       onChange={e => updateRow(i, "instrumentId", e.target.value)}
