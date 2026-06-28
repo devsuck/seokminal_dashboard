@@ -1021,7 +1021,7 @@ export async function getIBBars(
   if (params.duration)  p.set("duration",  params.duration);
   if (params.exchange)  p.set("exchange",  params.exchange);
   if (params.expiry)    p.set("expiry",    params.expiry);
-  if (params.strike !== undefined && params.strike !== 0) p.set("strike", String(params.strike));
+  if (params.strike !== undefined && Number.isFinite(params.strike) && params.strike !== 0) p.set("strike", String(params.strike));
   if (params.right)     p.set("right",     params.right);
   return handleResponse<IBBarsResponse>(
     await fetch(`${API_URL}/ib/bars?${p}`, { signal })

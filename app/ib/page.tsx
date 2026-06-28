@@ -187,7 +187,7 @@ function StockTab() {
 
   return (
     <div className="space-y-4">
-      <FormShell onLoad={() => load({ symbol, asset_type: "stock", end_date: endDate, duration })} loading={loading}>
+      <FormShell onLoad={() => { if (!symbol.trim()) { return; } load({ symbol, asset_type: "stock", end_date: endDate, duration }); }} loading={loading}>
         <Field label="Symbol">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-20 uppercase`} />
         </Field>
@@ -208,7 +208,7 @@ function ForexTab() {
 
   return (
     <div className="space-y-4">
-      <FormShell onLoad={() => load({ symbol: pair, asset_type: "forex", end_date: endDate, duration })} loading={loading}>
+      <FormShell onLoad={() => { if (!pair.trim()) { return; } load({ symbol: pair, asset_type: "forex", end_date: endDate, duration }); }} loading={loading}>
         <Field label="Pair (e.g. EURUSD)">
           <input type="text" value={pair} onChange={e => setPair(e.target.value.toUpperCase())} className={`${inputCls} w-24 uppercase`} />
         </Field>
@@ -232,7 +232,7 @@ function FutureTab() {
   return (
     <div className="space-y-4">
       <FormShell
-        onLoad={() => load({ symbol, asset_type: "future", exchange, expiry, end_date: endDate, duration })}
+        onLoad={() => { if (!symbol.trim() || !exchange.trim() || !expiry.trim()) { return; } load({ symbol, asset_type: "future", exchange, expiry, end_date: endDate, duration }); }}
         loading={loading}
       >
         <Field label="Symbol">
@@ -255,17 +255,18 @@ function FutureTab() {
 
 function OptionTab() {
   const [symbol, setSymbol]   = useState("SPY");
-  const [expiry, setExpiry]   = useState("20251219");
+  const [expiry, setExpiry]   = useState("20271219");
   const [strike, setStrike]   = useState("500");
   const [right, setRight]     = useState<"C" | "P">("C");
-  const [duration, setDuration] = useState("90 D");
+  const [duration, setDuration] = useState("3 M");
   const [endDate, setEndDate] = useState("");
   const { result, error, loading, load } = useIBBars();
 
   return (
     <div className="space-y-4">
       <FormShell
-        onLoad={() =>
+        onLoad={() => {
+          if (!symbol.trim() || !expiry.trim()) { return; }
           load({
             symbol,
             asset_type: "option",
@@ -274,8 +275,8 @@ function OptionTab() {
             right,
             end_date: endDate,
             duration,
-          })
-        }
+          });
+        }}
         loading={loading}
       >
         <Field label="Symbol">
@@ -315,7 +316,7 @@ function CryptoTab() {
   return (
     <div className="space-y-4">
       <FormShell
-        onLoad={() => load({ symbol, asset_type: "crypto", end_date: endDate, duration })}
+        onLoad={() => { if (!symbol.trim()) { return; } load({ symbol, asset_type: "crypto", end_date: endDate, duration }); }}
         loading={loading}
       >
         <Field label="Symbol (BTC/ETH/SOL…)">
