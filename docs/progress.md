@@ -1,17 +1,25 @@
-## Phase 21 — Orders Complete (2026-06-28) ✅ SHIPPED
+## Phase 21 — Orders Complete (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
-- Backend: `POST /orders/us` (IB 수동 주문), `POST /orders/us/{id}/cancel`, `GET /orders/us/{id}/status`
-- Backend: `live_engine` entry_price 추적 + `unrealized_pnl` 계산
-- Frontend: KR/US 탭, cancel/status 버튼, Entry + Unr. PnL 컬럼
-- order-storage: venue 필드 + updateOrderStatus 추가
+- Backend: `POST /orders/us`, `POST /orders/us/{id}/cancel`, `GET /orders/us/{id}/status` (IBOrderClient async)
+- Backend: IBOrderClient.close() + try/finally teardown (소켓 누수 수정)
+- Backend: `_BotRunState` + `BotStatus`에 `entry_price` 추가, 포지션 진입 시 기록
+- Backend: `_compute_unrealized_pnl` + `BotLiveEntry` 확장 (`entry_price`, `unrealized_pnl`)
+- Frontend: `OrderLogEntry`에 `venue: "KR"|"US"` + `updateOrderStatus` 추가
+- Frontend: KR/US 탭, US 주문 폼, cancel/status 버튼 (per-row AbortController Map), Entry + Unr. PnL 컬럼
+- 양쪽 레포 GitHub push 완료 (seokminal_multi_venue, seokminal_dashboard)
 
 ### 변경된 파일
-**Backend:** `api_server/main.py`, `live_engine/broker_interface.py`, `live_engine/engine.py`, `tests/test_orders_us_api.py`, `tests/test_live_engine_pnl.py`
-**Frontend:** `lib/order-storage.ts`, `lib/api.ts`, `app/orders/page.tsx`, `tests/lib/order-storage.test.ts`
+**Backend (23c86da..01e630b):** `api_server/main.py`, `live_engine/broker_interface.py`, `live_engine/engine.py`, `backends/ib/order_client.py`, `tests/test_orders_us_api.py`, `tests/test_live_engine_pnl.py`
+**Frontend (73331ee..dcba0c7):** `lib/order-storage.ts`, `lib/api.ts`, `app/orders/page.tsx`, `tests/lib/order-storage.test.ts`
+
+### 테스트
+- Backend: 255 passed, 4 pre-existing failures (test_auth × 3, test_backtest_happy_path)
+- Frontend: 147/147 passed
 
 ### 다음 할 일
 - Phase 22: Notifications + Alert System
+- Cleanup: D3 타입 (CorrelationNetwork.tsx:120), quant.tsx 디자인 토큰, ai-trader 플레이스홀더
 
 ---
 

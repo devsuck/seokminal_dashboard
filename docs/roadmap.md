@@ -1,7 +1,7 @@
 # Nautilus Dashboard — Roadmap
 
-**마지막 업데이트:** 2026-06-28  
-**HEAD:** 0704e0b  
+**마지막 업데이트:** 2026-06-29  
+**HEAD:** dcba0c7  
 **테스트:** 147/147 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -72,3 +72,29 @@
 - `components/network/CorrelationNetwork.tsx:120` — D3 타입 오류 (`BaseType | SVGCircleElement` 불일치), `npm run build` 실패. 기능은 정상 동작. 수정 시 D3 selection 타입 캐스팅 필요.
 - `app/quant/page.tsx` — 아직 레거시 인라인 스타일 (디자인 토큰 미적용)
 - `app/ai-trader/page.tsx` — 개발 예정 플레이스홀더
+
+---
+
+## 다음 Phase 계획
+
+| Phase | 내용 | 범위 |
+|---|---|---|
+| Cleanup | D3 타입 수정, quant.tsx 토큰, ai-trader 플레이스홀더 | Frontend만 |
+| 22 | Notification + Alert System | 백엔드 알림 조건 엔진 + 프론트 알림 UI |
+| 23 | Risk Dashboard | 포트폴리오 리스크 지표 (VaR, drawdown, 베타) 시각화 |
+| 24 | Backtesting UI v2 | 멀티 전략 비교, 파라미터 스윕, 결과 저장/불러오기 |
+
+### Phase 22 — Notifications + Alert System (예정)
+
+**목표:** 봇 상태/가격/P&L 조건 충족 시 알림 생성 + 프론트에서 확인
+
+**백엔드:**
+- `POST /alerts/rules` — 알림 규칙 등록 (조건: price_above, pnl_below, bot_error 등)
+- `GET /alerts/triggered` — 트리거된 알림 목록
+- `DELETE /alerts/rules/{id}` — 규칙 삭제
+- condition_engine 재사용 또는 간단한 threshold 비교
+
+**프론트엔드:**
+- `lib/alert-storage.ts` — 알림 규칙 localStorage
+- `/alerts` 페이지 — 규칙 생성 폼 + 트리거된 알림 목록
+- NavBar: Alerts 추가 (Live 그룹)
