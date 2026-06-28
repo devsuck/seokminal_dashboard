@@ -19,6 +19,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/experiments", label: "Experiments" },
       { href: "/quant",       label: "Quant" },
       { href: "/options",     label: "Options" },
+      { href: "/futures",     label: "Futures" },
       { href: "/report",      label: "Report" },
     ],
   },
