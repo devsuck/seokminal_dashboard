@@ -100,7 +100,6 @@ interface CoverageResult {
 
 const COVERAGE_START = "2020-01-01";
 const COVERAGE_END = new Date().toISOString().slice(0, 10);
-const EXPECTED_BARS = 1300; // ~252 trading days * ~5 years
 
 function calcExpected(start: string, end: string): number {
   const ms = new Date(end).getTime() - new Date(start).getTime();
@@ -133,51 +132,54 @@ export default function DataQualityPage() {
     setChecked(false);
     setResults([]);
 
-    const expected = calcExpected(COVERAGE_START, COVERAGE_END);
+    try {
+      const expected = calcExpected(COVERAGE_START, COVERAGE_END);
 
-    const settled = await Promise.allSettled(
-      ids.map(id => getBars(id, COVERAGE_START, COVERAGE_END, undefined, ctrl.signal))
-    );
+      const settled = await Promise.allSettled(
+        ids.map(id => getBars(id, COVERAGE_START, COVERAGE_END, undefined, ctrl.signal))
+      );
 
-    if (ctrl.signal.aborted) return;
+      if (ctrl.signal.aborted) return;
 
-    const rows: CoverageResult[] = settled.map((r, i) => {
-      const id = ids[i];
-      if (r.status === "rejected") {
-        const err = r.reason;
+      const rows: CoverageResult[] = settled.map((r, i) => {
+        const id = ids[i];
+        if (r.status === "rejected") {
+          const err = r.reason;
+          return {
+            instrumentId: id,
+            barCount: 0,
+            firstDate: null,
+            lastDate: null,
+            expectedBars: expected,
+            missingPct: 100,
+            error: err instanceof ApiError ? err.message : "Failed",
+          };
+        }
+        const bars = r.value.bars;
+        const firstDate = bars.length > 0
+          ? new Date(Math.floor(bars[0].ts_event / 1e6)).toISOString().slice(0, 10)
+          : null;
+        const lastDate = bars.length > 0
+          ? new Date(Math.floor(bars[bars.length - 1].ts_event / 1e6)).toISOString().slice(0, 10)
+          : null;
+        const missing = Math.max(0, expected - bars.length);
+        const missingPct = expected > 0 ? (missing / expected) * 100 : 0;
         return {
           instrumentId: id,
-          barCount: 0,
-          firstDate: null,
-          lastDate: null,
+          barCount: bars.length,
+          firstDate,
+          lastDate,
           expectedBars: expected,
-          missingPct: 100,
-          error: err instanceof ApiError ? err.message : "Failed",
+          missingPct,
+          error: null,
         };
-      }
-      const bars = r.value.bars;
-      const firstDate = bars.length > 0
-        ? new Date(Math.floor(bars[0].ts_event / 1e6)).toISOString().slice(0, 10)
-        : null;
-      const lastDate = bars.length > 0
-        ? new Date(Math.floor(bars[bars.length - 1].ts_event / 1e6)).toISOString().slice(0, 10)
-        : null;
-      const missing = Math.max(0, expected - bars.length);
-      const missingPct = expected > 0 ? (missing / expected) * 100 : 0;
-      return {
-        instrumentId: id,
-        barCount: bars.length,
-        firstDate,
-        lastDate,
-        expectedBars: expected,
-        missingPct,
-        error: null,
-      };
-    });
+      });
 
-    setResults(rows);
-    setChecked(true);
-    setLoading(false);
+      setResults(rows);
+      setChecked(true);
+    } finally {
+      if (!ctrl.signal.aborted) setLoading(false);
+    }
   }, [instrumentsInput]);
 
   function missingColor(pct: number): string {
