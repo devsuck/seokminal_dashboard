@@ -593,3 +593,113 @@ export async function getCorrelation(
     await fetch(`${API_URL}/correlation?${params}`, { signal }),
   );
 }
+
+// ── Options ─────────────────────────────────────────────────────────────────
+
+export interface OptionsGreeksResponse {
+  option_type: string;
+  spot: number;
+  strike: number;
+  expiry_days: number;
+  rate: number;
+  vol: number;
+  price: number;
+  intrinsic_value: number;
+  time_value: number;
+  delta: number;
+  gamma: number;
+  theta: number;
+  vega: number;
+  rho: number;
+}
+
+export interface OptionsChainRow {
+  strike: number;
+  call_price: number;
+  call_delta: number;
+  call_gamma: number;
+  call_theta: number;
+  call_vega: number;
+  put_price: number;
+  put_delta: number;
+  put_gamma: number;
+  put_theta: number;
+  put_vega: number;
+}
+
+export interface OptionsChainResponse {
+  spot: number;
+  expiry_days: number;
+  rate: number;
+  vol: number;
+  rows: OptionsChainRow[];
+}
+
+export interface OptionsIvSurfaceResponse {
+  spot: number;
+  rate: number;
+  atm_vol: number;
+  strikes: number[];
+  expiry_days: number[];
+  iv_surface: number[][];
+}
+
+export async function getOptionsGreeks(
+  optionType: string,
+  spot: number,
+  strike: number,
+  expiryDays: number,
+  rate: number,
+  vol: number,
+  signal?: AbortSignal
+): Promise<OptionsGreeksResponse> {
+  const params = new URLSearchParams({
+    option_type: optionType,
+    spot: String(spot),
+    strike: String(strike),
+    expiry_days: String(expiryDays),
+    rate: String(rate),
+    vol: String(vol),
+  });
+  return handleResponse<OptionsGreeksResponse>(
+    await fetch(`${API_URL}/options/greeks?${params}`, { signal })
+  );
+}
+
+export async function getOptionsChain(
+  spot: number,
+  expiryDays: number,
+  rate: number,
+  vol: number,
+  signal?: AbortSignal
+): Promise<OptionsChainResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    expiry_days: String(expiryDays),
+    rate: String(rate),
+    vol: String(vol),
+  });
+  return handleResponse<OptionsChainResponse>(
+    await fetch(`${API_URL}/options/chain?${params}`, { signal })
+  );
+}
+
+export async function getOptionsIvSurface(
+  spot: number,
+  rate: number,
+  atmVol: number,
+  skew?: number,
+  smile?: number,
+  signal?: AbortSignal
+): Promise<OptionsIvSurfaceResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate: String(rate),
+    atm_vol: String(atmVol),
+  });
+  if (skew !== undefined) params.set("skew", String(skew));
+  if (smile !== undefined) params.set("smile", String(smile));
+  return handleResponse<OptionsIvSurfaceResponse>(
+    await fetch(`${API_URL}/options/iv-surface?${params}`, { signal })
+  );
+}
