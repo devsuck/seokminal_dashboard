@@ -10,7 +10,7 @@ export interface OrderLogEntry {
   submitted_at: string;
 }
 
-const STORAGE_KEY = "nautilus_order_log";
+export const STORAGE_KEY = "nautilus_order_log";
 
 export function getOrderLog(): OrderLogEntry[] {
   try {
