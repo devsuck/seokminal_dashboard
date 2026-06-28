@@ -91,7 +91,7 @@ export default function UniversePage() {
 
   function handleWorkflowNext() {
     updateWorkflow({
-      instrumentIds: watchlist,
+      instrumentIds: getWatchlist(),
       start: "2022-01-01",
       end: new Date().toISOString().slice(0, 10),
     });
@@ -261,7 +261,7 @@ export default function UniversePage() {
         </div>
       )}
 
-      {watchlist.length > 0 && (
+      {(watchlist.length > 0 || addedSet.size > 0) && (
         <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
           <div>
             <div className="text-text-3 text-[10px] uppercase tracking-wider">Workflow</div>
