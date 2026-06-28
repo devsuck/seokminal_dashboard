@@ -1,3 +1,15 @@
+### Trade Replay (2026-06-28)
+
+**S-7 Trade Replay:**
+- `lib/replay-utils.ts` — `computeRunningStats()` (7 tests)
+- `components/replay/ReplayChart.tsx` — candlestick chart with entry/exit markers via `createSeriesMarkers` (lightweight-charts v5)
+- `app/replay/page.tsx` — instrument/strategy config, run controls, step/play/pause playback, trade list panel, running P&L stats
+
+**Nav additions:** Replay (between Universe and Rolling)
+**Tests:** 92 passing (85 existing + 7 replay-utils)
+
+---
+
 # Nautilus Dashboard — 진행 현황
 
 **마지막 업데이트:** 2026-06-28  
