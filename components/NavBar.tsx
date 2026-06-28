@@ -49,6 +49,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Live",
     items: [
+      { href: "/spawner",   label: "Spawner" },
       { href: "/bots",      label: "Bots" },
       { href: "/ai-trader", label: "AI Trader" },
     ],

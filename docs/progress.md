@@ -1,3 +1,20 @@
+## Phase 19 — Strategy Spawner UI (2026-06-28) ✅ SHIPPED
+
+### 완료된 작업
+- Backend: `GET /spawner/validate` (ConditionParser 검증), `POST /spawner/evaluate` (catalog 바 기반 조건 평가)
+- Frontend: `lib/spawner-storage.ts` (localStorage CRUD), `lib/api.ts` (+6 types +2 functions)
+- `/spawner` 페이지 — 시각적 조건 빌더, 저장된 룰 CRUD, 히스토리 평가 + 트리거 테이블
+- NavBar: Spawner 추가 (Live 그룹 첫 번째)
+
+### 변경된 파일
+**Backend:** `api_server/main.py`, `tests/test_spawner_condition_api.py`
+**Frontend:** `lib/spawner-storage.ts`, `lib/api.ts`, `app/spawner/page.tsx`, `components/NavBar.tsx`, `docs/`
+
+### 다음 할 일
+- Phase 20: Live Order Dashboard
+
+---
+
 ## Phase 18 — Universal Search + Real-time Streaming (2026-06-28) ✅ SHIPPED
 
 ### 완료된 작업

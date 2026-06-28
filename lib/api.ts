@@ -1119,3 +1119,67 @@ export async function getKRBars(
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
+
+// ── Spawner ───────────────────────────────────────────────────────────────────
+
+export interface ConditionInfo {
+  rule_index: number;
+  combinator: string;
+  condition_count: number;
+  indicators: string[];
+}
+
+export interface SpawnValidationError {
+  rule_index: number;
+  error: string;
+}
+
+export interface SpawnValidateResponse {
+  valid: boolean;
+  errors: SpawnValidationError[];
+  rules: ConditionInfo[];
+}
+
+export interface TriggerEvent {
+  rule_index: number;
+  trigger_date: string;
+}
+
+export interface SpawnEvaluateRequest {
+  spawn_rules: object[];
+  instrument_id: string;
+  start: string;
+  end: string;
+}
+
+export interface SpawnEvaluateResponse {
+  instrument_id: string;
+  start: string;
+  end: string;
+  bar_count: number;
+  trigger_events: TriggerEvent[];
+}
+
+export async function validateSpawnRules(
+  spawnRulesJson: string,
+  signal?: AbortSignal,
+): Promise<SpawnValidateResponse> {
+  const r = await fetch(
+    `${API_URL}/spawner/validate?spawn_rules=${encodeURIComponent(spawnRulesJson)}`,
+    { signal },
+  );
+  return handleResponse<SpawnValidateResponse>(r);
+}
+
+export async function evaluateSpawnRules(
+  req: SpawnEvaluateRequest,
+  signal?: AbortSignal,
+): Promise<SpawnEvaluateResponse> {
+  const r = await fetch(`${API_URL}/spawner/evaluate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<SpawnEvaluateResponse>(r);
+}
