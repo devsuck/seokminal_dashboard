@@ -14,20 +14,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 const INSTRUMENTS = ["AAPL.NASDAQ", "MSFT.NASDAQ", "005930.XKRX", "000660.XKRX"];
 
-const S = {
-  btn:   { background: "#ff8c00", color: "#000", border: "none", padding: "5px 14px", fontFamily: "inherit", fontSize: 13, fontWeight: "bold" as const, cursor: "pointer" },
-  btnSm: { border: "1px solid #333", background: "transparent", color: "#aaa", padding: "3px 10px", fontFamily: "inherit", fontSize: 14, cursor: "pointer" } as const,
-  label: { color: "#ff8c00", fontSize: 14 },
-  err:   { color: "#ff3333", fontSize: 13 },
-  muted: { color: "#777", fontSize: 13 },
-  th:    { padding: "6px 14px 6px 0", color: "#ff8c00", fontSize: 14, fontWeight: "normal" as const, textAlign: "left" as const, borderBottom: "1px solid #2a2a2a", whiteSpace: "nowrap" as const },
-  td:    { padding: "7px 14px 7px 0", fontSize: 13, fontFamily: "monospace", borderBottom: "1px solid #181818" },
-  input: { fontSize: 13 },
-};
-
-function statusColor(s: string) { return s === "running" ? "#00cc44" : s === "error" ? "#ff3333" : "#555"; }
-function pnlColor(v: number | null) { return v == null ? "#888" : v >= 0 ? "#00cc44" : "#ff3333"; }
-
 const DEFAULT_FORM: BotConfig = { name: "", strategy: "ema_cross", instrument_id: "AAPL.NASDAQ", fast_ema: 10, slow_ema: 20, trade_size: 10 };
 
 // ── Bot Detail Panel ──────────────────────────────────────────────────────────
@@ -102,56 +88,74 @@ function BotDetail({ bot, onUpdate }: { bot: BotRecord; onUpdate: (b: BotRecord)
   ];
 
   const stats = btResult ? [
-    { label: "TOTAL PNL",   val: btResult.total_pnl != null ? btResult.total_pnl.toFixed(2) : "N/A", col: pnlColor(btResult.total_pnl) },
-    { label: "TOTAL PNL %", val: btResult.total_pnl_pct != null ? (btResult.total_pnl_pct * 100).toFixed(2) + "%" : "N/A", col: pnlColor(btResult.total_pnl_pct) },
-    { label: "SHARPE",      val: btResult.sharpe_ratio?.toFixed(4) ?? "N/A", col: pnlColor(btResult.sharpe_ratio) },
-    { label: "MAX DD",      val: btResult.max_drawdown != null ? (btResult.max_drawdown * 100).toFixed(2) + "%" : "N/A", col: "#ff3333" },
-    { label: "TRADES",      val: String(btResult.trades.length), col: "#e8e8e8" },
+    { label: "Total P&L",  val: btResult.total_pnl != null ? btResult.total_pnl.toFixed(2) : "N/A",
+      className: btResult.total_pnl != null ? (btResult.total_pnl >= 0 ? "text-pos" : "text-neg") : "text-text-3" },
+    { label: "P&L %",      val: btResult.total_pnl_pct != null ? (btResult.total_pnl_pct * 100).toFixed(2) + "%" : "N/A",
+      className: btResult.total_pnl_pct != null ? (btResult.total_pnl_pct >= 0 ? "text-pos" : "text-neg") : "text-text-3" },
+    { label: "Sharpe",     val: btResult.sharpe_ratio?.toFixed(4) ?? "N/A",
+      className: btResult.sharpe_ratio != null ? (btResult.sharpe_ratio >= 0 ? "text-pos" : "text-neg") : "text-text-3" },
+    { label: "Max DD",     val: btResult.max_drawdown != null ? (btResult.max_drawdown * 100).toFixed(2) + "%" : "N/A",
+      className: "text-neg" },
+    { label: "Trades",     val: String(btResult.trades.length), className: "text-text-1" },
   ] : [];
 
   return (
-    <div style={{ flex: 1, padding: 16, overflowY: "auto" as const }}>
+    <div className="flex-1 p-4 overflow-y-auto">
       {/* Bot name + status + toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
-        <span style={{ color: "#e8e8e8", fontSize: 14, fontWeight: "bold" }}>{bot.name}</span>
-        <span style={{ color: statusColor(bot.status), fontSize: 13 }}>● {bot.status.toUpperCase()}</span>
-        <button
-          onClick={toggle}
-          style={{ ...S.btnSm, color: bot.status === "running" ? "#ff8c00" : "#00cc44", borderColor: bot.status === "running" ? "#ff8c00" : "#00cc44" }}>
-          {bot.status === "running" ? "STOP" : "START"}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-text-1 text-sm font-semibold">{bot.name}</span>
+        <span className={`text-xs ${
+          bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"
+        }`}>● {bot.status}</span>
+        <button onClick={toggle} className={`h-7 px-3 text-xs rounded border cursor-pointer bg-transparent hover:opacity-80 ${
+          bot.status === "running"
+            ? "border-neg text-neg"
+            : "border-pos text-pos"
+        }`}>
+          {bot.status === "running" ? "Stop" : "Start"}
         </button>
       </div>
 
       {/* Live status panel */}
       {bot.status === "running" && (
-        <div style={{ border: "1px solid #2a2a2a", background: "#0d0d0d", padding: "10px 14px", marginBottom: 14, maxWidth: 480 }}>
-          <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 8 }}>LIVE STATUS</div>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" as const }}>
+        <div className="border border-border rounded-lg bg-panel-2 p-3 mb-4 max-w-sm">
+          <div className="text-accent text-xs font-semibold uppercase tracking-wider mb-2">Live Status</div>
+          <div className="flex gap-6 flex-wrap">
             <div>
-              <div style={{ color: "#ff8c00", fontSize: 13 }}>LAST PRICE</div>
-              <div style={{ color: "#e8e8e8", fontSize: 16, fontFamily: "monospace", fontWeight: "bold" }}>
+              <div className="text-text-3 text-[11px] uppercase">Last Price</div>
+              <div className="text-text-1 text-base font-data font-semibold">
                 {livePrice != null ? livePrice.toFixed(2) : liveStatus?.last_price?.toFixed(2) ?? "—"}
               </div>
             </div>
             <div>
-              <div style={{ color: "#ff8c00", fontSize: 13 }}>POSITION</div>
-              <div style={{ color: liveStatus?.position === "LONG" ? "#00cc44" : liveStatus?.position === "SHORT" ? "#ff3333" : "#555", fontSize: 14, fontFamily: "monospace", fontWeight: "bold" }}>
-                {liveStatus?.position ?? "FLAT"} {liveStatus?.qty ? `×${liveStatus.qty}` : ""}
+              <div className="text-text-3 text-[11px] uppercase">Position</div>
+              <div className={`text-sm font-data font-semibold ${
+                liveStatus?.position === "LONG" ? "text-pos"
+                : liveStatus?.position === "SHORT" ? "text-neg"
+                : "text-text-3"
+              }`}>
+                {liveStatus?.position ?? "FLAT"}{liveStatus?.qty ? ` ×${liveStatus.qty}` : ""}
               </div>
             </div>
             <div>
-              <div style={{ color: "#ff8c00", fontSize: 13 }}>SIGNAL</div>
-              <div style={{ color: liveStatus?.last_signal === "EMA_BUY" ? "#00cc44" : liveStatus?.last_signal === "EMA_SELL" ? "#ff3333" : "#555", fontSize: 14, fontFamily: "monospace" }}>
+              <div className="text-text-3 text-[11px] uppercase">Signal</div>
+              <div className={`text-sm font-data ${
+                liveStatus?.last_signal?.includes("BUY") ? "text-pos"
+                : liveStatus?.last_signal?.includes("SELL") ? "text-neg"
+                : "text-text-3"
+              }`}>
                 {liveStatus?.last_signal ?? "—"}
               </div>
             </div>
           </div>
-          {liveStatus?.error && <div style={{ color: "#ff3333", fontSize: 14, marginTop: 6 }}>ERR: {liveStatus.error}</div>}
+          {liveStatus?.error && (
+            <div className="text-neg text-xs mt-1.5 font-data">{liveStatus.error}</div>
+          )}
           {liveStatus?.recent_orders && liveStatus.recent_orders.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ color: "#ff8c00", fontSize: 13, marginBottom: 4 }}>RECENT ORDERS</div>
+            <div className="mt-2">
+              <div className="text-text-3 text-[11px] uppercase mb-1">Recent Orders</div>
               {liveStatus.recent_orders.slice(-5).map((o, i) => (
-                <div key={i} style={{ fontSize: 14, fontFamily: "monospace", color: "#888" }}>
+                <div key={i} className="text-xs font-data text-text-3">
                   {o.order_id} · {o.status} · filled {o.filled}
                 </div>
               ))}
@@ -161,69 +165,91 @@ function BotDetail({ bot, onUpdate }: { bot: BotRecord; onUpdate: (b: BotRecord)
       )}
 
       {/* Config table */}
-      <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>CONFIGURATION</div>
-      <table style={{ borderCollapse: "collapse", marginBottom: 16 }}>
+      <div className="text-accent text-xs font-semibold uppercase tracking-wider mb-2">Configuration</div>
+      <table className="border-collapse mb-4">
         <tbody>
           {configRows.map(r => (
-            <tr key={r.k} style={{ borderBottom: "1px solid #181818" }}>
-              <td style={{ padding: "4px 16px 4px 0", color: "#ff8c00", fontSize: 14, width: 120 }}>{r.k}</td>
-              <td style={{ padding: "4px 0", color: "#888", fontSize: 14, fontFamily: "monospace" }}>{r.v}</td>
+            <tr key={r.k} className="border-b border-border/40">
+              <td className="py-1 pr-4 text-accent text-xs w-28">{r.k}</td>
+              <td className="py-1 text-text-2 text-xs font-data">{r.v}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       {/* Backtest preview */}
-      <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 8 }}>BACKTEST PREVIEW</div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" as const }}>
-        <span style={S.label}>DATE</span>
+      <div className="text-accent text-xs font-semibold uppercase tracking-wider mb-2">Backtest Preview</div>
+      <div className="flex gap-2 items-center flex-wrap mb-3">
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={runPreview}>RUN PREVIEW</button>
-        {loading && <span style={S.muted}>RUNNING...</span>}
+        <button onClick={runPreview}
+          className="h-7 px-4 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 border-0">
+          Run Preview
+        </button>
+        {loading && <span className="text-text-3 text-xs">Running…</span>}
       </div>
-      {error && <div style={S.err}>ERR: {error}</div>}
+      {error && (
+        <div className="text-neg text-xs bg-neg/10 border border-neg/20 rounded px-3 py-1.5 mb-3">
+          {error}
+        </div>
+      )}
 
       {!loading && !error && btResult && bars.length > 0 && (
         <>
-          <div style={{ display: "flex", gap: 20, marginBottom: 10, flexWrap: "wrap" as const }}>
+          {/* Stats row */}
+          <div className="flex gap-5 flex-wrap mb-3">
             {stats.map(s => (
               <div key={s.label}>
-                <div style={{ color: "#ff8c00", fontSize: 14 }}>{s.label}</div>
-                <div style={{ color: s.col, fontSize: 15, fontFamily: "monospace", fontWeight: "bold" }}>{s.val}</div>
+                <div className="text-text-3 text-[11px] uppercase">{s.label}</div>
+                <div className={`text-sm font-data font-semibold ${s.className}`}>{s.val}</div>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 14, color: "#555", marginBottom: 6, display: "flex", gap: 12 }}>
-            <span><span style={{ color: "#ff8c00" }}>—</span> EMA {bot.fast_ema}</span>
-            <span><span style={{ color: "#4488ff" }}>—</span> EMA {bot.slow_ema}</span>
-            <span><span style={{ color: "#00cc44" }}>▲</span> BUY</span>
-            <span><span style={{ color: "#ff3333" }}>▼</span> SELL</span>
+
+          {/* EMA legend */}
+          <div className="flex gap-3 text-xs mb-2 text-text-3">
+            <span><span className="text-accent">—</span> EMA {bot.fast_ema}</span>
+            <span><span className="text-info">—</span> EMA {bot.slow_ema}</span>
+            <span><span className="text-pos">▲</span> Buy</span>
+            <span><span className="text-neg">▼</span> Sell</span>
           </div>
           <CandlestickChart bars={bars} trades={btResult.trades} emaFast={bot.fast_ema} emaSlow={bot.slow_ema} />
 
           {btResult.trades.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>TRADE LOG ({btResult.trades.length})</div>
-              <div style={{ overflowX: "auto" as const }}>
-                <table style={{ borderCollapse: "collapse", minWidth: 640 }}>
+            <div className="mt-4">
+              <div className="text-accent text-xs font-semibold uppercase tracking-wider mb-2">
+                Trade Log ({btResult.trades.length})
+              </div>
+              <div className="overflow-x-auto">
+                <table className="border-collapse min-w-[640px]">
                   <thead>
                     <tr>
-                      {["#", "SIDE", "ENTRY", "ENTRY PX", "EXIT", "EXIT PX", "QTY", "PNL"].map(h => (
-                        <th key={h} style={S.th}>{h}</th>
+                      {["#","Side","Entry","Entry Px","Exit","Exit Px","Qty","P&L"].map(h => (
+                        <th key={h}
+                          className="pb-2 pt-1 pr-3 text-accent text-xs font-normal text-left border-b border-border whitespace-nowrap">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {btResult.trades.map((t, i) => (
                       <tr key={i}>
-                        <td style={{ ...S.td, color: "#444" }}>{i + 1}</td>
-                        <td style={{ ...S.td, color: t.side === "LONG" ? "#00cc44" : "#ff8c00" }}>{t.side}</td>
-                        <td style={{ ...S.td, color: "#888" }}>{new Date(t.entry_ts_ns / 1e6).toISOString().slice(0, 10)}</td>
-                        <td style={{ ...S.td, color: "#e8e8e8" }}>{t.entry_price.toFixed(2)}</td>
-                        <td style={{ ...S.td, color: "#888" }}>{t.exit_ts_ns ? new Date(t.exit_ts_ns / 1e6).toISOString().slice(0, 10) : "—"}</td>
-                        <td style={{ ...S.td, color: "#e8e8e8" }}>{t.exit_price?.toFixed(2) ?? "—"}</td>
-                        <td style={{ ...S.td, color: "#888" }}>{t.qty.toFixed(0)}</td>
-                        <td style={{ ...S.td, color: pnlColor(t.pnl), fontWeight: "bold" }}>{t.pnl != null ? t.pnl.toFixed(2) : "—"}</td>
+                        <td className="py-1.5 pr-3 text-xs font-data text-text-3 border-b border-border/40">{i + 1}</td>
+                        <td className={`py-1.5 pr-3 text-xs font-data border-b border-border/40 ${t.side === "LONG" ? "text-pos" : "text-neg"}`}>{t.side}</td>
+                        <td className="py-1.5 pr-3 text-xs font-data text-text-2 border-b border-border/40">
+                          {new Date(t.entry_ts_ns / 1e6).toISOString().slice(0, 10)}
+                        </td>
+                        <td className="py-1.5 pr-3 text-xs font-data text-text-1 border-b border-border/40">{t.entry_price.toFixed(2)}</td>
+                        <td className="py-1.5 pr-3 text-xs font-data text-text-2 border-b border-border/40">
+                          {t.exit_ts_ns ? new Date(t.exit_ts_ns / 1e6).toISOString().slice(0, 10) : "—"}
+                        </td>
+                        <td className="py-1.5 pr-3 text-xs font-data text-text-1 border-b border-border/40">{t.exit_price?.toFixed(2) ?? "—"}</td>
+                        <td className="py-1.5 pr-3 text-xs font-data text-text-2 border-b border-border/40">{t.qty.toFixed(0)}</td>
+                        <td className={`py-1.5 pr-3 text-xs font-data font-semibold border-b border-border/40 ${
+                          t.pnl != null ? (t.pnl >= 0 ? "text-pos" : "text-neg") : "text-text-3"
+                        }`}>
+                          {t.pnl != null ? t.pnl.toFixed(2) : "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -283,79 +309,137 @@ export default function BotsPage() {
 
   const selectedBot = bots.find(b => b.id === selectedId) ?? null;
 
-  function field(label: string, node: React.ReactNode) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ ...S.label, width: 90 }}>{label}</span>
-        {node}
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: "flex", height: "calc(100vh - 37px)", overflow: "hidden" }}>
+    <div className="flex h-[calc(100vh-37px)] overflow-hidden">
 
       {/* ── Sidebar ── */}
-      <div style={{ width: 220, borderRight: "1px solid #2a2a2a", background: "#0d0d0d", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid #2a2a2a" }}>
-          <div style={{ color: "#ff8c00", fontSize: 14, letterSpacing: 1, marginBottom: 8 }}>TRADING BOTS</div>
-          <div style={{ display: "flex", gap: 4 }}>
-            <button style={{ ...S.btn, fontSize: 14, padding: "2px 8px", flex: 1 }} onClick={() => { setShowForm(p => !p); setSelectedId(null); }}>
-              {showForm ? "✕ CANCEL" : "+ NEW"}
+      <div className="w-56 border-r border-border bg-bg flex flex-col shrink-0">
+        <div className="px-3 py-2.5 border-b border-border">
+          <div className="text-accent text-xs font-semibold uppercase tracking-wider mb-2">Trading Bots</div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => { setShowForm(p => !p); setSelectedId(null); }}
+              className="flex-1 h-7 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 border-0">
+              {showForm ? "✕ Cancel" : "+ New"}
             </button>
-            <button style={S.btnSm} onClick={load}>↺</button>
+            <button
+              onClick={load}
+              className="h-7 px-2 border border-border text-text-3 text-xs rounded cursor-pointer hover:text-text-2 bg-transparent">
+              ↺
+            </button>
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" as const }}>
-          {loading && <div style={{ padding: "8px 12px", ...S.muted }}>LOADING...</div>}
-          {bots.length === 0 && !loading && <div style={{ padding: "8px 12px", ...S.muted }}>NO BOTS</div>}
+        <div className="flex-1 overflow-y-auto">
+          {loading && <div className="px-3 py-2 text-text-3 text-xs">Loading…</div>}
+          {bots.length === 0 && !loading && <div className="px-3 py-2 text-text-3 text-xs">No bots</div>}
           {bots.map(bot => (
             <div
               key={bot.id}
               onClick={() => { setSelectedId(bot.id); setShowForm(false); }}
-              style={{
-                padding: "8px 12px", cursor: "pointer",
-                background: selectedId === bot.id ? "#1a1a1a" : "transparent",
-                borderBottom: "1px solid #181818",
-                borderLeft: selectedId === bot.id ? "2px solid #ff8c00" : "2px solid transparent",
-              }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: selectedId === bot.id ? "#e8e8e8" : "#888", fontSize: 14 }}>{bot.name}</span>
+              className={`px-3 py-2 cursor-pointer border-b border-border/50 border-l-2 transition-colors ${
+                selectedId === bot.id
+                  ? "border-l-accent bg-panel"
+                  : "border-l-transparent hover:bg-panel/50"
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs ${selectedId === bot.id ? "text-text-1" : "text-text-2"}`}>
+                  {bot.name}
+                </span>
                 <button
                   onClick={e => { e.stopPropagation(); handleDelete(bot.id); }}
-                  style={{ ...S.btnSm, fontSize: 13, padding: "1px 5px", color: "#ff3333", borderColor: "#ff3333" }}>✕</button>
+                  className="text-neg text-xs px-1 cursor-pointer bg-transparent border-0 hover:opacity-70">
+                  ✕
+                </button>
               </div>
-              <div style={{ fontSize: 14, color: statusColor(bot.status), marginTop: 2 }}>
-                ● {bot.status.toUpperCase()}
+              <div className={`text-xs mt-0.5 ${
+                bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"
+              }`}>
+                ● {bot.status}
               </div>
-              <div style={{ fontSize: 13, color: "#444", marginTop: 1 }}>{bot.instrument_id}</div>
+              <div className="text-[11px] text-text-3 mt-0.5 font-data">{bot.instrument_id}</div>
             </div>
           ))}
         </div>
 
-        {error && <div style={{ padding: "6px 12px", ...S.err }}>{error}</div>}
+        {error && (
+          <div className="px-3 py-2 text-neg text-xs border-t border-border">{error}</div>
+        )}
       </div>
 
       {/* ── Main area ── */}
-      <div style={{ flex: 1, overflowY: "auto" as const }}>
+      <div className="flex-1 overflow-y-auto">
         {showForm && (
-          <div style={{ padding: 16, maxWidth: 440, borderBottom: "1px solid #2a2a2a" }}>
-            <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 12 }}>NEW BOT</div>
-            <form onSubmit={handleCreate}>
-              {field("NAME",      <input style={S.input} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="bot-name" />)}
-              {field("STRATEGY",  <select style={S.input} value={form.strategy} onChange={e => setForm(p => ({ ...p, strategy: e.target.value }))}><option value="ema_cross">EMA CROSS</option></select>)}
-              {field("SYMBOL",    <select style={S.input} value={form.instrument_id} onChange={e => setForm(p => ({ ...p, instrument_id: e.target.value }))}>{INSTRUMENTS.map(id => <option key={id} value={id}>{id}</option>)}</select>)}
-              {field("FAST EMA",  <input type="number" style={{ ...S.input, width: 56 }} value={form.fast_ema} min={1} onChange={e => setForm(p => ({ ...p, fast_ema: Number(e.target.value) }))} />)}
-              {field("SLOW EMA",  <input type="number" style={{ ...S.input, width: 56 }} value={form.slow_ema} min={1} onChange={e => setForm(p => ({ ...p, slow_ema: Number(e.target.value) }))} />)}
-              {field("TRADE SIZE",<input type="number" style={{ ...S.input, width: 56 }} value={form.trade_size} min={1} onChange={e => setForm(p => ({ ...p, trade_size: Number(e.target.value) }))} />)}
-              <button type="submit" style={{ ...S.btn, marginTop: 8 }} disabled={submitting}>{submitting ? "CREATING..." : "CREATE"}</button>
+          <div className="p-4 max-w-md border-b border-border">
+            <div className="text-accent text-xs font-semibold uppercase tracking-wider mb-3">New Bot</div>
+            <form onSubmit={handleCreate} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs w-24 shrink-0">Name</span>
+                <input
+                  value={form.name}
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="bot-name"
+                  className="h-7 flex-1 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs w-24 shrink-0">Strategy</span>
+                <select
+                  value={form.strategy}
+                  onChange={e => setForm(p => ({ ...p, strategy: e.target.value }))}
+                  className="h-7 flex-1 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data">
+                  <option value="ema_cross">EMA Cross</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs w-24 shrink-0">Symbol</span>
+                <select
+                  value={form.instrument_id}
+                  onChange={e => setForm(p => ({ ...p, instrument_id: e.target.value }))}
+                  className="h-7 flex-1 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data">
+                  {INSTRUMENTS.map(id => <option key={id} value={id}>{id}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs w-24 shrink-0">Fast EMA</span>
+                <input
+                  type="number"
+                  value={form.fast_ema}
+                  min={1}
+                  onChange={e => setForm(p => ({ ...p, fast_ema: Number(e.target.value) }))}
+                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs w-24 shrink-0">Slow EMA</span>
+                <input
+                  type="number"
+                  value={form.slow_ema}
+                  min={1}
+                  onChange={e => setForm(p => ({ ...p, slow_ema: Number(e.target.value) }))}
+                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs w-24 shrink-0">Trade Size</span>
+                <input
+                  type="number"
+                  value={form.trade_size}
+                  min={1}
+                  onChange={e => setForm(p => ({ ...p, trade_size: Number(e.target.value) }))}
+                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
+                />
+              </div>
+              <button type="submit" disabled={submitting}
+                className="mt-1 h-7 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 border-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                {submitting ? "Creating…" : "Create"}
+              </button>
             </form>
           </div>
         )}
 
         {!showForm && !selectedBot && (
-          <div style={{ padding: 24, color: "#333", fontSize: 14 }}>← SELECT A BOT OR CREATE NEW</div>
+          <div className="p-6 text-text-3 text-sm">← Select a bot or create new</div>
         )}
 
         {!showForm && selectedBot && (

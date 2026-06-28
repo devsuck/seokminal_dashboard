@@ -1,3 +1,17 @@
+### Bot Infrastructure (2026-06-28)
+
+**Phase 10 — Bots Page Upgrade:**
+- `app/bots/page.tsx` — migrated from terminal inline styles to design token system
+  - Removed `const S` style object, `statusColor()`, `pnlColor()` helpers
+  - Applied: `bg-bg`, `bg-panel`, `bg-panel-2`, `border-border`, `text-text-1/2/3`, `text-accent`, `text-pos`, `text-neg`, `font-data`
+  - `bg-accent text-black`: Create button, Run Preview button
+  - Bot status: `text-pos` (running), `text-neg` (error), `text-text-3` (stopped)
+  - Start/Stop: `border-pos text-pos` / `border-neg text-neg` (destructive vs positive)
+  - All functionality preserved: bot list, create form, start/stop toggle, live status polling, WebSocket price, backtest preview, candlestick chart, trade log
+**Tests:** 98 passing (no new tests)
+
+---
+
 ### Portfolio Lab (2026-06-28)
 
 **S-9 Portfolio Lab:**
