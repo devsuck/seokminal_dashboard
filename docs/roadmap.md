@@ -1,7 +1,7 @@
 # Nautilus Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-28  
-**HEAD:** a60fea1  
+**HEAD:** 5c25495  
 **테스트:** 127/127 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -25,17 +25,13 @@
 | 11 | Data Quality Center + Report Builder | `app/data-quality/page.tsx`, `app/report/page.tsx`, `lib/report-utils.ts` | — |
 | 12 | Workflow Automation | `app/workflow/page.tsx`, `lib/workflow-storage.ts` | — |
 | Cleanup | D3 타입 에러 수정 + 디자인 토큰 전면 적용 + ai-trader 플레이스홀더 | `CorrelationNetwork.tsx`, `app/quant/page.tsx`, `app/ai-trader/page.tsx` | 5cee8ae..a60fea1 |
+| 13 | Options Analytics | `options/pricer.py`, `app/options/page.tsx`, IV Surface heatmap | — |
 
 ---
 
 ## 향후 계획 — Asset Class 확장 (Phase 13~16)
 
 각 Phase는 백엔드(nautilus-multi-venue) + 프론트엔드(nautilus-dashboard) 동시 작업 필요.
-
-### Phase 13: Options (옵션)
-- **백엔드:** Greeks (Delta/Gamma/Theta/Vega) 계산, IV Surface 데이터 수집/저장
-- **프론트엔드:** Options Chain 테이블, IV Surface 3D 차트 (D3 또는 Three.js)
-- **Nav:** Research▾ 또는 별도 `Assets▾` 그룹
 
 ### Phase 14: Futures (선물)
 - **백엔드:** 롤오버 처리, 연속 계약(Continuous Contract) 데이터 파이프라인

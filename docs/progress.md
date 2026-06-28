@@ -1,3 +1,29 @@
+## Phase 13 — Options Analytics (2026-06-28)
+
+### 완료된 작업
+- Black-Scholes pricer: `bs_price`, `bs_greeks`, `implied_vol`, `bs_chain`, `bs_iv_surface` (`options/pricer.py`)
+- API: `/options/greeks`, `/options/chain`, `/options/iv-surface` endpoints (`api_server/main.py`)
+- Frontend: `/options` page — Greeks calculator, Options Chain table, IV Surface D3 heatmap
+- NavBar: Options added to Research group
+
+### 변경된 파일
+**Backend (nautilus-multi-venue):**
+- `options/__init__.py` (new)
+- `options/pricer.py` (new)
+- `tests/test_options_pricer.py` (new)
+- `api_server/main.py` (+~120 lines)
+- `pyproject.toml` (+options* to packages)
+
+**Frontend (nautilus-dashboard):**
+- `lib/api.ts` (+3 functions, +5 types)
+- `app/options/page.tsx` (new)
+- `components/NavBar.tsx` (Options link added)
+
+### 다음 할 일
+- Phase 14: Futures (롤오버 처리, 연속 계약)
+
+---
+
 ### Phase 12 — Workflow Automation (2026-06-28)
 
 **S-15 Workflow Automation:**
