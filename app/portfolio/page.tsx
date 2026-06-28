@@ -54,8 +54,9 @@ function WeightBars({ weights }: { weights: Record<string, number> }) {
 export default function PortfolioPage() {
   const [tab, setTab] = useState<Tab>("optimizer");
   const [start, setStart] = useState("2022-01-01");
-  const [end, setEnd] = useState("2026-01-01");
-  const abortRef = useRef<AbortController | null>(null);
+  const [end, setEnd] = useState("2026-12-31");
+  const optimizerAbortRef = useRef<AbortController | null>(null);
+  const attrAbortRef = useRef<AbortController | null>(null);
 
   // Optimizer state
   const [optimizerText, setOptimizerText] = useState(
@@ -75,14 +76,17 @@ export default function PortfolioPage() {
   const [attrLoading, setAttrLoading] = useState(false);
   const [attrError, setAttrError] = useState<string | null>(null);
 
-  useEffect(() => () => { abortRef.current?.abort(); }, []);
+  useEffect(() => () => {
+    optimizerAbortRef.current?.abort();
+    attrAbortRef.current?.abort();
+  }, []);
 
   const runOptimizer = useCallback(async () => {
     const ids = optimizerText.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
     if (ids.length < 2) { setOptimizerError("Enter at least 2 instruments"); return; }
-    abortRef.current?.abort();
+    optimizerAbortRef.current?.abort();
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    optimizerAbortRef.current = ctrl;
     setOptimizerLoading(true);
     setOptimizerError(null);
     setOptimizerResult(null);
@@ -111,9 +115,9 @@ export default function PortfolioPage() {
       setAttrError(`Weights sum to ${(totalWeight * 100).toFixed(1)}% — must equal 100%`);
       return;
     }
-    abortRef.current?.abort();
+    attrAbortRef.current?.abort();
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    attrAbortRef.current = ctrl;
     setAttrLoading(true);
     setAttrError(null);
     setAttrResult(null);

@@ -156,10 +156,6 @@ export function EfficientFrontierChart({
       .attr("fill", "#6B7280")
       .attr("font-size", "11")
       .text("Expected Return");
-
-    return () => {
-      svg.selectAll("*").remove();
-    };
   }, [frontier, minVariance, maxSharpe, width, height]);
 
   return (
