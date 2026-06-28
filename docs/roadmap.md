@@ -30,6 +30,9 @@
 | 15 | Forex Analytics | `forex/pricer.py`, `app/forex/page.tsx`, forward curve | — |
 | 16 | Crypto Analytics | `hyperliquid/client.py`, `app/crypto/page.tsx`, order book depth | — |
 | 17 | IB Market Data | `backends/ib/client.py`, `app/ib/page.tsx`, 5 contract types | — |
+| 18 | Universal Search + Real-time Streaming | KR/US 종목 검색, 온디맨드 OHLCV, KIS WS → FastAPI WS → 실시간 차트 | TBD |
+| 19 | Strategy Spawner UI | 조건 규칙 빌더, 스폰 규칙 CRUD, 활성 전략 모니터 | TBD |
+| 20 | Live Order Dashboard | IB/KIS 주문 실행, 포지션 모니터, P&L 추적 | TBD |
 
 ---
 
