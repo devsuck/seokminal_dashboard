@@ -56,6 +56,7 @@ export default function AlertsPage() {
   }, []);
 
   const loadTriggered = useCallback(async () => {
+    setLoading(true);
     try {
       const fresh = await getTriggeredAlerts();
       const merged = mergeTriggered(fresh);
@@ -65,6 +66,8 @@ export default function AlertsPage() {
       if (e instanceof Error && e.name === "AbortError") return;
       setTrigError(e instanceof Error ? e.message : "Failed to load triggered alerts");
       setTriggered(getCachedTriggered());
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -105,11 +108,12 @@ export default function AlertsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    setRules(prev => prev.filter(r => r.id !== id));
     try {
       await deleteAlertRule(id);
-      setRules(prev => prev.filter(r => r.id !== id));
     } catch (e) {
       setRulesError(e instanceof Error ? e.message : "Delete failed");
+      await loadRules();
     }
   };
 
