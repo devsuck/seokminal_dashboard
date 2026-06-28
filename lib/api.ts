@@ -1312,3 +1312,90 @@ export async function cancelUSOrder(
   });
   return handleResponse<USOrderResponse>(r);
 }
+
+// ── Alert System ──────────────────────────────────────────────
+
+export type AlertConditionType =
+  | "price_above"
+  | "price_below"
+  | "pnl_above"
+  | "pnl_below"
+  | "bot_error"
+  | "bot_stopped";
+
+export interface AlertRule {
+  id: string;
+  label: string;
+  condition_type: AlertConditionType;
+  bot_id: string;
+  threshold: number | null;
+  created_at: string;
+}
+
+export interface CreateAlertRuleRequest {
+  label: string;
+  condition_type: AlertConditionType;
+  bot_id: string;
+  threshold?: number;
+}
+
+export interface AlertRulesResponse {
+  rules: AlertRule[];
+}
+
+export interface TriggeredAlert {
+  rule_id: string;
+  rule_label: string;
+  condition_type: AlertConditionType;
+  bot_id: string;
+  detail: string;
+  triggered_at: string;
+}
+
+export interface TriggeredAlertsResponse {
+  triggered: TriggeredAlert[];
+}
+
+export async function createAlertRule(
+  req: CreateAlertRuleRequest,
+  signal?: AbortSignal,
+): Promise<AlertRule> {
+  const r = await fetch(`${API_URL}/alerts/rules`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(err.detail ?? r.statusText);
+  }
+  return r.json();
+}
+
+export async function getAlertRules(signal?: AbortSignal): Promise<AlertRule[]> {
+  const r = await fetch(`${API_URL}/alerts/rules`, { signal });
+  if (!r.ok) throw new Error(r.statusText);
+  const data: AlertRulesResponse = await r.json();
+  return data.rules;
+}
+
+export async function deleteAlertRule(
+  id: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  const r = await fetch(`${API_URL}/alerts/rules/${id}`, {
+    method: "DELETE",
+    signal,
+  });
+  if (!r.ok && r.status !== 204) throw new Error(r.statusText);
+}
+
+export async function getTriggeredAlerts(
+  signal?: AbortSignal,
+): Promise<TriggeredAlert[]> {
+  const r = await fetch(`${API_URL}/alerts/triggered`, { signal });
+  if (!r.ok) throw new Error(r.statusText);
+  const data: TriggeredAlertsResponse = await r.json();
+  return data.triggered;
+}
