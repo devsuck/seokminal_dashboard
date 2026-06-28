@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { getOrderLog, addOrderEntry, clearOrderLog, type OrderLogEntry } from "../../lib/order-storage";
+import { getOrderLog, addOrderEntry, clearOrderLog, STORAGE_KEY, type OrderLogEntry } from "../../lib/order-storage";
 
 beforeEach(() => {
   localStorage.clear();
@@ -11,7 +11,7 @@ describe("getOrderLog", () => {
   });
 
   it("returns [] when storage contains invalid JSON", () => {
-    localStorage.setItem("nautilus_order_log", "bad");
+    localStorage.setItem(STORAGE_KEY, "bad");
     expect(getOrderLog()).toEqual([]);
   });
 });

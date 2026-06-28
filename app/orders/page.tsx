@@ -36,7 +36,7 @@ export default function OrdersPage() {
   // Bot positions state
   const [bots, setBots] = useState<BotLiveEntry[]>([]);
   const [botsError, setBotsError] = useState<string | null>(null);
-  const [botsLoading, setBotsLoading] = useState(false);
+  const [botsLoading, setBotsLoading] = useState(true);
   const botsAbortRef = useRef<AbortController | null>(null);
 
   // Order log state
@@ -61,7 +61,7 @@ export default function OrdersPage() {
       setSubmitError("Code and quantity are required.");
       return;
     }
-    if (orderType === "LIMIT" && (!price || isNaN(parseFloat(price)))) {
+    if (orderType === "LIMIT" && (!price || isNaN(parseInt(price)))) {
       setSubmitError("Price required for LIMIT order.");
       return;
     }

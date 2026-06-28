@@ -26,7 +26,7 @@ export function addOrderEntry(
   const log = getOrderLog();
   const full: OrderLogEntry = {
     ...entry,
-    id: Math.random().toString(36).slice(2),
+    id: crypto.randomUUID(),
     submitted_at: new Date().toISOString(),
   };
   log.push(full);
