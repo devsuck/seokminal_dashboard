@@ -1,3 +1,20 @@
+## Phase 20 — Live Order Dashboard (2026-06-28) ✅ SHIPPED
+
+### 완료된 작업
+- Backend: `POST /orders/kr` (KIS 수동 주문), `POST /orders/kr/{no}/cancel`, `GET /orders/kr/{no}/status`, `GET /bots/all-live-status`
+- Frontend: `lib/order-storage.ts` (localStorage 주문 로그), `lib/api.ts` (+5 types +4 functions)
+- `/orders` 페이지 — KR 주문 폼, 봇 포지션 테이블, 주문 로그
+- NavBar: Orders 추가 (Live 그룹, Bots 뒤)
+
+### 변경된 파일
+**Backend:** `api_server/main.py`, `tests/test_orders_api.py`
+**Frontend:** `lib/order-storage.ts`, `lib/api.ts`, `app/orders/page.tsx`, `components/NavBar.tsx`, `docs/`
+
+### 다음 할 일
+- (로드맵 완료)
+
+---
+
 ## Phase 19 — Strategy Spawner UI (2026-06-28) ✅ SHIPPED
 
 ### 완료된 작업

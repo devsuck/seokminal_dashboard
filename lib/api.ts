@@ -1185,3 +1185,87 @@ export async function evaluateSpawnRules(
   });
   return handleResponse<SpawnEvaluateResponse>(r);
 }
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+
+export interface KROrderRequest {
+  code: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  order_type: "MARKET" | "LIMIT";
+  price?: number;
+}
+
+export interface KROrderResponse {
+  order_id: string;
+  status: string;
+  filled: number;
+  remaining: number;
+}
+
+export interface KRCancelRequest {
+  code: string;
+  quantity: number;
+}
+
+export interface BotLiveEntry {
+  bot_id: string;
+  name: string;
+  instrument_id: string;
+  running: boolean;
+  position: string;
+  qty: number;
+  last_price: number | null;
+  last_signal: string | null;
+  error: string | null;
+}
+
+export interface AllBotsStatusResponse {
+  bots: BotLiveEntry[];
+}
+
+export async function placeKROrder(
+  req: KROrderRequest,
+  signal?: AbortSignal,
+): Promise<KROrderResponse> {
+  const r = await fetch(`${API_URL}/orders/kr`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<KROrderResponse>(r);
+}
+
+export async function cancelKROrder(
+  orderNo: string,
+  req: KRCancelRequest,
+  signal?: AbortSignal,
+): Promise<KROrderResponse> {
+  const r = await fetch(`${API_URL}/orders/kr/${encodeURIComponent(orderNo)}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<KROrderResponse>(r);
+}
+
+export async function getKROrderStatus(
+  orderNo: string,
+  date: string,
+  signal?: AbortSignal,
+): Promise<KROrderResponse> {
+  const r = await fetch(
+    `${API_URL}/orders/kr/${encodeURIComponent(orderNo)}/status?date=${encodeURIComponent(date)}`,
+    { signal },
+  );
+  return handleResponse<KROrderResponse>(r);
+}
+
+export async function getAllBotsLiveStatus(
+  signal?: AbortSignal,
+): Promise<AllBotsStatusResponse> {
+  const r = await fetch(`${API_URL}/bots/all-live-status`, { signal });
+  return handleResponse<AllBotsStatusResponse>(r);
+}
