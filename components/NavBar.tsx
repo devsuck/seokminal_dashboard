@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -51,14 +51,29 @@ const NAV_GROUPS: NavGroup[] = [
 export function NavBar() {
   const pathname = usePathname();
   const [open, setOpen] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   function isGroupActive(group: NavGroup): boolean {
     if (group.href) return pathname.startsWith(group.href);
     return group.items?.some(item => pathname.startsWith(item.href)) ?? false;
   }
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpen(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Close dropdown on route change
+  useEffect(() => { setOpen(null); }, [pathname]);
+
   return (
-    <nav className="flex items-center gap-0.5">
+    <nav ref={navRef} className="flex items-center gap-0.5">
       {NAV_GROUPS.map(group => {
         const active = isGroupActive(group);
 
@@ -77,13 +92,9 @@ export function NavBar() {
         }
 
         return (
-          <div
-            key={group.label}
-            className="relative"
-            onMouseEnter={() => setOpen(group.label)}
-            onMouseLeave={() => setOpen(null)}
-          >
+          <div key={group.label} className="relative">
             <button
+              onClick={() => setOpen(open === group.label ? null : group.label)}
               className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded transition-colors duration-150 bg-transparent border-0 cursor-pointer ${
                 active || open === group.label ? "text-accent" : "text-text-3 hover:text-text-1"
               }`}
