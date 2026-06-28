@@ -1,3 +1,13 @@
+### Nav Refactor (2026-06-28)
+
+**GroupedDropdown Navigation:**
+- `components/NavBar.tsx` (NEW) — `"use client"` 컴포넌트, hover 드롭다운, `usePathname` 기반 active 그룹 하이라이트
+- `app/layout.tsx` — 16개 flat nav → 6개 그룹으로 압축 (`NavBar` 컴포넌트 교체)
+- 그룹 구조: Dashboard | Market | Research▾ | Analyze▾ | Trade▾ | Live▾
+- **HEAD:** ea8f478
+
+---
+
 ### Bot Infrastructure (2026-06-28)
 
 **Phase 10 — Bots Page Upgrade:**
