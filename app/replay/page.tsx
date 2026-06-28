@@ -93,7 +93,9 @@ export default function ReplayPage() {
 
   const hasTrades = trades.length > 0;
   const tradeLabel = hasTrades
-    ? `Trade ${currentIndex < 0 ? 0 : currentIndex + 1} / ${trades.length}`
+    ? currentIndex < 0
+      ? `— / ${trades.length}`
+      : `Trade ${currentIndex + 1} / ${trades.length}`
     : "No trades";
 
   function fmtPnl(v: number): string {
@@ -162,14 +164,14 @@ export default function ReplayPage() {
           {/* Running stats */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Trades Shown", value: `${stats.totalTrades}/${trades.length}` },
+              { label: "Trades Shown", value: `${stats.totalTrades}/${trades.length}`, colored: false, val: 0 },
+              { label: "Completed", value: String(stats.completedTrades), colored: false, val: 0 },
               { label: "Running P&L", value: fmtPnl(stats.runningPnl), colored: true, val: stats.runningPnl },
-              { label: "Win Rate", value: fmtPct(stats.winRate) },
-              { label: "W / L", value: `${stats.winCount} / ${stats.lossCount}` },
+              { label: "Win Rate", value: fmtPct(stats.winRate), colored: false, val: 0 },
             ].map(s => (
               <div key={s.label} className="bg-panel border border-border rounded-lg px-4 py-3">
                 <div className="text-text-3 text-[10px] uppercase tracking-wider">{s.label}</div>
-                <div className={`text-sm font-data mt-1 ${s.colored ? (s.val! >= 0 ? "text-pos" : "text-neg") : "text-text-1"}`}>
+                <div className={`text-sm font-data mt-1 ${s.colored ? (s.val >= 0 ? "text-pos" : "text-neg") : "text-text-1"}`}>
                   {s.value}
                 </div>
               </div>
