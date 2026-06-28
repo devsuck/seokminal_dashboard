@@ -245,7 +245,7 @@ describe("computeEventStudy", () => {
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-cd /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard && npm test tests/lib/event-study-utils.test.ts
+cd /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard && npm test tests/lib/event-study-utils.test.ts
 ```
 Expected: FAIL — "computeEventStudy is not defined" (or module not found)
 
@@ -309,7 +309,7 @@ No unit tests (D3 DOM not testable in jsdom). Just run `npm test` for no regress
 - [ ] **Step 1: Create components/event-study/ directory**
 
 ```bash
-mkdir -p /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard/components/event-study
+mkdir -p /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard/components/event-study
 ```
 
 - [ ] **Step 2: Create EventReturnChart.tsx**

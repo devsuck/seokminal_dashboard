@@ -1,6 +1,6 @@
 import type { SpawnRuleState } from "@/lib/backtest-types";
 
-const STORAGE_KEY = "nautilus:strategies";
+const STORAGE_KEY = "seokminal:strategies";
 const MAX_STRATEGIES = 200;
 
 export interface EmaParams   { type: "ema_cross"; fast: number; slow: number; }

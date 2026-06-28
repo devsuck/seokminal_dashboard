@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Redesign Nautilus Dashboard from raw terminal UI to professional quant trading platform (Bloomberg Terminal + TradingView aesthetic) — readability, information hierarchy, design system — without changing any API or business logic.
+**Goal:** Redesign Seokminal Dashboard from raw terminal UI to professional quant trading platform (Bloomberg Terminal + TradingView aesthetic) — readability, information hierarchy, design system — without changing any API or business logic.
 
 **Architecture:** Tailwind v4 CSS-first config via `@theme {}` in globals.css defines all design tokens; new `components/ui/` directory holds 11 extracted components; backtest/page.tsx is restructured into top-control + bottom-analytics layout using these components; all inline styles replaced with Tailwind classNames.
 
@@ -17,7 +17,7 @@
 - Tailwind v4 uses CSS-first config: tokens go in `globals.css` under `@theme {}`, not `tailwind.config.ts`
 - Orange (`--color-accent: #FF9F1C`) used ONLY for: active tab indicator, primary RUN button, selected TF button state
 - TypeScript must compile clean: `npx tsc --noEmit` passes after every task
-- Working directory for all commands: `nautilus-dashboard/`
+- Working directory for all commands: `seokminal-dashboard/`
 
 ---
 

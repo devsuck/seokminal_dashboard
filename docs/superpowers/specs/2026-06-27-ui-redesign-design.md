@@ -1,7 +1,7 @@
-# Nautilus Dashboard UI/UX Redesign Spec
+# Seokminal Dashboard UI/UX Redesign Spec
 
 **Date:** 2026-06-27  
-**Scope:** nautilus-dashboard (Next.js frontend only)  
+**Scope:** seokminal-dashboard (Next.js frontend only)  
 **Goal:** Information structure, readability, usability, design system improvement — not feature addition.
 
 ---

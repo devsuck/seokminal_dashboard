@@ -382,7 +382,7 @@ Check if `const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8
 - [ ] **Step 4: Run full test suite**
 
 ```bash
-cd /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard && npm test
+cd /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard && npm test
 ```
 Expected: 98/98 passing
 

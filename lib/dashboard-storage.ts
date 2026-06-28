@@ -1,4 +1,4 @@
-const STORAGE_KEY = "nautilus:research_activity";
+const STORAGE_KEY = "seokminal:research_activity";
 const MAX_ENTRIES = 50;
 
 export type ActivityType = "backtest" | "strategy" | "experiment" | "portfolio" | "bot";

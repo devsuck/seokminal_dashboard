@@ -88,13 +88,13 @@
 - Fix: UTC timestamps in `_bar_date_to_ms`, NaN strike guard, expired expiry default, empty field guards
 
 ### 변경된 파일
-**Backend (nautilus-multi-venue):**
+**Backend (seokminal-multi-venue):**
 - `backends/ib/client.py` (+4 methods, forex useRTH=False)
 - `tests/test_ib_client.py` (+10 tests, 37/38 pass)
 - `api_server/main.py` (+IBBarsResponse, +_bar_date_to_ms UTC, +/ib/bars, +random client_id)
 - `tests/test_api_server.py` (+7 /ib/bars tests)
 
-**Frontend (nautilus-dashboard):**
+**Frontend (seokminal-dashboard):**
 - `lib/api.ts` (+IBBar, IBBarsResponse, IBBarsParams, getIBBars, Number.isFinite strike guard)
 - `app/ib/page.tsx` (new — 5-tab IB data browser)
 - `components/NavBar.tsx` (IB Data link added)
@@ -118,14 +118,14 @@
 - NavBar: Crypto 추가 (Forex↔Report 사이)
 
 ### 변경된 파일
-**Backend (nautilus-multi-venue):**
+**Backend (seokminal-multi-venue):**
 - `hyperliquid/__init__.py` (new)
 - `hyperliquid/client.py` (new)
 - `tests/test_hyperliquid_client.py` (new, 9 tests, mocked)
 - `api_server/main.py` (+~80 lines)
 - `pyproject.toml` (+hyperliquid*)
 
-**Frontend (nautilus-dashboard):**
+**Frontend (seokminal-dashboard):**
 - `lib/api.ts` (+3 functions, +5 types)
 - `app/crypto/page.tsx` (new)
 - `components/NavBar.tsx` (Crypto link added)
@@ -144,14 +144,14 @@
 - NavBar: Forex added to Research group (after Futures, before Report)
 
 ### 변경된 파일
-**Backend (nautilus-multi-venue):**
+**Backend (seokminal-multi-venue):**
 - `forex/__init__.py` (new)
 - `forex/pricer.py` (new)
 - `tests/test_forex_pricer.py` (new)
 - `api_server/main.py` (+~100 lines)
 - `pyproject.toml` (+forex*)
 
-**Frontend (nautilus-dashboard):**
+**Frontend (seokminal-dashboard):**
 - `lib/api.ts` (+3 functions, +4 types)
 - `app/forex/page.tsx` (new)
 - `components/NavBar.tsx` (Forex link added)
@@ -170,14 +170,14 @@
 - NavBar: Futures added to Research group (after Options)
 
 ### 변경된 파일
-**Backend (nautilus-multi-venue):**
+**Backend (seokminal-multi-venue):**
 - `futures/__init__.py` (new)
 - `futures/pricer.py` (new)
 - `tests/test_futures_pricer.py` (new)
 - `api_server/main.py` (+~110 lines)
 - `pyproject.toml` (+futures*)
 
-**Frontend (nautilus-dashboard):**
+**Frontend (seokminal-dashboard):**
 - `lib/api.ts` (+3 functions, +5 types)
 - `app/futures/page.tsx` (new)
 - `components/NavBar.tsx` (Futures link added)
@@ -196,14 +196,14 @@
 - NavBar: Options added to Research group
 
 ### 변경된 파일
-**Backend (nautilus-multi-venue):**
+**Backend (seokminal-multi-venue):**
 - `options/__init__.py` (new)
 - `options/pricer.py` (new)
 - `tests/test_options_pricer.py` (new)
 - `api_server/main.py` (+~120 lines)
 - `pyproject.toml` (+options* to packages)
 
-**Frontend (nautilus-dashboard):**
+**Frontend (seokminal-dashboard):**
 - `lib/api.ts` (+3 functions, +5 types)
 - `app/options/page.tsx` (new)
 - `components/NavBar.tsx` (Options link added)
@@ -297,7 +297,7 @@
 
 ---
 
-# Nautilus Dashboard — 진행 현황
+# Seokminal Dashboard — 진행 현황
 
 **마지막 업데이트:** 2026-06-28  
 **브랜치:** main  
@@ -416,7 +416,7 @@ Dashboard 홈 스크린 + 5개 위젯 구성 완료.
 - **MarketOverview**: KOSPI/KOSDAQ KRX 실데이터, S&P/NASDAQ/FX/Crypto/VIX는 "No feed" stub
 - **SystemStatus**: API Server/KRX/FRED/Bot Engine 헬스체크, 30초 자동 갱신
 - **TodayEvents**: KSD 권리일정 14일 윈도우 실데이터, 나머지(어닝/경제캘린더/배당)는 stub
-- **ResearchActivity**: localStorage `nautilus:research_activity` 최근 8개 표시
+- **ResearchActivity**: localStorage `seokminal:research_activity` 최근 8개 표시
 - **PortfolioSnapshot**: Phase 6 Portfolio Lab 구현 전까지 stub
 
 **추가된 라이브러리/파일:**

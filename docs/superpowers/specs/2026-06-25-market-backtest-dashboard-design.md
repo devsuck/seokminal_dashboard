@@ -1,7 +1,7 @@
 # Market & Backtest Dashboard (Sub-project 12)
 
 **Goal:** A standalone Next.js web dashboard that consumes the `/bars` and
-`/backtest` endpoints of `nautilus-multi-venue`'s `api_server` (sub-project
+`/backtest` endpoints of `seokminal-multi-venue`'s `api_server` (sub-project
 11) to show price charts and run backtests interactively. This is the
 first slice of the platform roadmap's frontend layer — the "general
 financial information/market data viewing" and part of the "quant
@@ -14,10 +14,10 @@ instruction).
 ## Scope
 
 In scope:
-- A new, independent repository (`~/nautilus-dashboard`) with no code
-  dependency on `nautilus-multi-venue` — communicates with it purely over
+- A new, independent repository (`~/seokminal-dashboard`) with no code
+  dependency on `seokminal-multi-venue` — communicates with it purely over
   HTTP, preserving the headless/API-first boundary established in
-  `nautilus-multi-venue`'s Phase 1 standing constraints.
+  `seokminal-multi-venue`'s Phase 1 standing constraints.
 - Next.js (App Router) + TypeScript + Tailwind CSS.
 - Two pages:
   1. **Market (`/`)**: instrument selector (the four instruments known to
@@ -31,7 +31,7 @@ In scope:
      "Run" button that calls `GET /backtest` and displays the returned
      metrics (`sharpe_ratio`, `max_drawdown`, `total_pnl`,
      `total_pnl_pct`, `bar_count`) as result cards.
-- A small CORS patch to `nautilus-multi-venue`'s `api_server/main.py`
+- A small CORS patch to `seokminal-multi-venue`'s `api_server/main.py`
   (sub-project 11's API had no CORS configuration, since it had no
   browser client yet) — add FastAPI's `CORSMiddleware` allowing
   `http://localhost:3000` so the dashboard's browser-side `fetch` calls
@@ -69,10 +69,10 @@ Out of scope (deferred to later sub-projects):
 
 ## Architecture
 
-`nautilus-dashboard/` is a standalone Next.js project:
+`seokminal-dashboard/` is a standalone Next.js project:
 
 ```
-nautilus-dashboard/
+seokminal-dashboard/
   app/
     page.tsx              # Market page ("/")
     backtest/page.tsx     # Backtest page ("/backtest")
@@ -102,7 +102,7 @@ seconds for the chart library).
 -> response parsed into `BacktestResponse` type -> `BacktestResultCard`
 renders the five metrics as labeled cards (e.g. "Sharpe Ratio: 0.474").
 
-**CORS patch (in `nautilus-multi-venue`):** `api_server/main.py` adds:
+**CORS patch (in `seokminal-multi-venue`):** `api_server/main.py` adds:
 
 ```python
 from fastapi.middleware.cors import CORSMiddleware

@@ -55,7 +55,7 @@
 - [ ] **Step 1: Install vitest + jsdom**
 
 ```bash
-cd /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard
+cd /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard
 npm install --save-dev vitest jsdom
 ```
 
@@ -207,7 +207,7 @@ Expected: FAIL — "Cannot find module '../../lib/dashboard-storage'"
 
 Create `lib/dashboard-storage.ts`:
 ```typescript
-const STORAGE_KEY = "nautilus:research_activity";
+const STORAGE_KEY = "seokminal:research_activity";
 const MAX_ENTRIES = 50;
 
 export type ActivityType = "backtest" | "strategy" | "experiment" | "portfolio" | "bot";
@@ -974,7 +974,7 @@ const NAV_ITEMS = [
 - [ ] **Step 4: Verify dev server**
 
 ```bash
-cd /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard
+cd /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard
 npm run dev
 ```
 

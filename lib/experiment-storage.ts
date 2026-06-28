@@ -1,6 +1,6 @@
 import type { BacktestResponse } from "@/lib/api";
 
-const STORAGE_KEY = "nautilus:experiments";
+const STORAGE_KEY = "seokminal:experiments";
 const MAX_EXPERIMENTS = 200;
 
 export type ExperimentStrategy = "ema_cross" | "gated";

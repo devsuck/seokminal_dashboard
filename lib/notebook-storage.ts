@@ -1,4 +1,4 @@
-const STORAGE_KEY = "nautilus:notebooks";
+const STORAGE_KEY = "seokminal:notebooks";
 const MAX_NOTEBOOKS = 100;
 
 export type BlockType = "comment" | "metric" | "table" | "chart" | "image";

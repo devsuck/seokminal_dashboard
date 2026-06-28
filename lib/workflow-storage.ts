@@ -1,4 +1,4 @@
-const STORAGE_KEY = "nautilus:workflow";
+const STORAGE_KEY = "seokminal:workflow";
 
 export interface WorkflowState {
   instrumentIds: string[];

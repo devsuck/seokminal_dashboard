@@ -4,7 +4,7 @@ export interface SavedSpawnRule {
   savedAt: string;
 }
 
-const STORAGE_KEY = "nautilus_spawn_rules";
+const STORAGE_KEY = "seokminal_spawn_rules";
 
 export function listSavedRules(): SavedSpawnRule[] {
   try {

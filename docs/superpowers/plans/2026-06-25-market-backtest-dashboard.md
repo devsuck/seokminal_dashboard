@@ -2,28 +2,28 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a standalone Next.js dashboard (`~/nautilus-dashboard`) with a Market page (candlestick chart) and a Backtest page (form + result cards), consuming `nautilus-multi-venue`'s `api_server` `/bars` and `/backtest` endpoints over HTTP.
+**Goal:** Build a standalone Next.js dashboard (`~/seokminal-dashboard`) with a Market page (candlestick chart) and a Backtest page (form + result cards), consuming `seokminal-multi-venue`'s `api_server` `/bars` and `/backtest` endpoints over HTTP.
 
-**Architecture:** Two client-rendered Next.js pages under the App Router, a typed `lib/api.ts` fetch client, and shared form components (`InstrumentSelect`, `DateRangePicker`). One small CORS patch lands in the separate `~/nautilus-multi-venue` repo so the browser can call `api_server` from `localhost:3000`.
+**Architecture:** Two client-rendered Next.js pages under the App Router, a typed `lib/api.ts` fetch client, and shared form components (`InstrumentSelect`, `DateRangePicker`). One small CORS patch lands in the separate `~/seokminal-multi-venue` repo so the browser can call `api_server` from `localhost:3000`.
 
 **Tech Stack:** Next.js 16.2.9 (App Router), React 19.2.7, TypeScript 6.0.3, Tailwind CSS 4.3.1 (CSS-first config, no `tailwind.config.js`), `lightweight-charts` 5.2.0.
 
 ## Global Constraints
 
-- `nautilus-dashboard` has no code dependency on `nautilus-multi-venue` — HTTP only.
+- `seokminal-dashboard` has no code dependency on `seokminal-multi-venue` — HTTP only.
 - No automated test suite in this sub-project (explicit spec decision) — verification is `npm run build` (type/compile correctness) plus manual browser checks in the final task.
 - `NEXT_PUBLIC_API_URL` env var configures the API base URL, defaulting to `http://127.0.0.1:8000`.
 - Non-2xx API responses must be caught and shown as inline error text — never an uncaught exception / Next.js error boundary.
-- The CORS patch in `nautilus-multi-venue` is additive only — no existing `api_server` route logic changes.
+- The CORS patch in `seokminal-multi-venue` is additive only — no existing `api_server` route logic changes.
 - Only the four instruments already in the catalog are offered in `InstrumentSelect`: `AAPL.NASDAQ`, `MSFT.NASDAQ`, `005930.XKRX`, `000660.XKRX`.
 - The Backtest page's `strategy` is fixed to `"ema_cross"` (the only value `api_server` accepts).
 
 ---
 
-### Task 1: CORS patch in `nautilus-multi-venue`
+### Task 1: CORS patch in `seokminal-multi-venue`
 
 **Files:**
-- Modify: `~/nautilus-multi-venue/api_server/main.py:14` (right after the `app = FastAPI(...)` line)
+- Modify: `~/seokminal-multi-venue/api_server/main.py:14` (right after the `app = FastAPI(...)` line)
 
 **Interfaces:**
 - Consumes: nothing new.
@@ -31,14 +31,14 @@
 
 - [ ] **Step 1: Add the CORS middleware**
 
-In `~/nautilus-multi-venue/api_server/main.py`, add this import alongside the existing `fastapi` import (line 3):
+In `~/seokminal-multi-venue/api_server/main.py`, add this import alongside the existing `fastapi` import (line 3):
 
 ```python
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 ```
 
-Immediately after `app = FastAPI(title="Nautilus Multi-Venue Dashboard API")` (line 14), add:
+Immediately after `app = FastAPI(title="Seokminal Multi-Venue Dashboard API")` (line 14), add:
 
 ```python
 app.add_middleware(
@@ -51,7 +51,7 @@ app.add_middleware(
 
 - [ ] **Step 2: Verify the existing test suite still passes**
 
-Run (from `~/nautilus-multi-venue`): `pytest -v`
+Run (from `~/seokminal-multi-venue`): `pytest -v`
 Expected: all tests pass (this change adds middleware, doesn't touch any route logic — should be the same count as before, currently 101).
 
 - [ ] **Step 3: Manually verify the CORS header appears**
@@ -69,7 +69,7 @@ Then: `pkill -f "uvicorn api_server.main:app --port 8000"`
 - [ ] **Step 4: Commit**
 
 ```bash
-cd ~/nautilus-multi-venue
+cd ~/seokminal-multi-venue
 git add api_server/main.py
 git commit -m "feat: add CORS middleware for localhost:3000 dashboard"
 ```
@@ -98,7 +98,7 @@ git commit -m "feat: add CORS middleware for localhost:3000 dashboard"
 
 ```json
 {
-  "name": "nautilus-dashboard",
+  "name": "seokminal-dashboard",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -186,7 +186,7 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nautilus Dashboard",
+  title: "Seokminal Dashboard",
 };
 
 export default function RootLayout({
@@ -369,9 +369,9 @@ Expected: no errors.
 
 - [ ] **Step 3: Verify it works against the real running `api_server`**
 
-Run (from `~/nautilus-multi-venue`): `uvicorn api_server.main:app --port 8000 &` (wait ~2s).
+Run (from `~/seokminal-multi-venue`): `uvicorn api_server.main:app --port 8000 &` (wait ~2s).
 
-Then, from `~/nautilus-dashboard`, use `npx tsx` to run `lib/api.ts` directly (it can execute TypeScript without a separate build step):
+Then, from `~/seokminal-dashboard`, use `npx tsx` to run `lib/api.ts` directly (it can execute TypeScript without a separate build step):
 
 ```bash
 npx --yes tsx -e "
@@ -605,8 +605,8 @@ Expected: build completes with no type errors.
 
 - [ ] **Step 6: Manually verify in the browser**
 
-Run (from `~/nautilus-multi-venue`): `uvicorn api_server.main:app --port 8000 &` (wait ~2s).
-Run (from `~/nautilus-dashboard`): `npm run dev &` (wait ~3s).
+Run (from `~/seokminal-multi-venue`): `uvicorn api_server.main:app --port 8000 &` (wait ~2s).
+Run (from `~/seokminal-dashboard`): `npm run dev &` (wait ~3s).
 Open `http://localhost:3000/` in a browser.
 Expected: page loads with the instrument dropdown, date pickers, and Load button; a candlestick chart renders automatically on load (since `useEffect` calls `loadBars()` on mount) for `AAPL.NASDAQ`.
 
@@ -750,8 +750,8 @@ Expected: build completes with no type errors, `/backtest` route listed in outpu
 
 - [ ] **Step 4: Manually verify in the browser**
 
-Run (from `~/nautilus-multi-venue`): `uvicorn api_server.main:app --port 8000 &` (wait ~2s).
-Run (from `~/nautilus-dashboard`): `npm run dev &` (wait ~3s).
+Run (from `~/seokminal-multi-venue`): `uvicorn api_server.main:app --port 8000 &` (wait ~2s).
+Run (from `~/seokminal-dashboard`): `npm run dev &` (wait ~3s).
 Open `http://localhost:3000/backtest` in a browser. Click "Run" with the default values.
 Expected: five result cards appear (Sharpe Ratio, Max Drawdown, Total PnL, Total PnL %, Bar Count) with real numbers, no console errors.
 
@@ -775,8 +775,8 @@ git commit -m "feat: add Backtest page with result cards"
 - [ ] **Step 1: Start both servers**
 
 ```bash
-cd ~/nautilus-multi-venue && uvicorn api_server.main:app --port 8000 &
-cd ~/nautilus-dashboard && npm run dev &
+cd ~/seokminal-multi-venue && uvicorn api_server.main:app --port 8000 &
+cd ~/seokminal-dashboard && npm run dev &
 ```
 
 Wait ~3s for both to start.
@@ -802,7 +802,7 @@ pkill -f "uvicorn api_server.main:app --port 8000"
 
 - [ ] **Step 6: Record completion**
 
-Append to `.superpowers/sdd/progress.md` (in `~/nautilus-dashboard`):
+Append to `.superpowers/sdd/progress.md` (in `~/seokminal-dashboard`):
 
 ```
 Manual end-to-end verification: complete (date). Market page renders candlesticks for all 4 known instruments, error message shown for out-of-range dates. Backtest page returns matching metrics for the default AAPL.NASDAQ run, error message shown for malformed dates. No CORS errors observed. Sub-project 12 fully complete.

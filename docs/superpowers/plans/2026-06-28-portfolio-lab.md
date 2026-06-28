@@ -188,7 +188,7 @@ describe("computeAttribution", () => {
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-cd /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard && npm test tests/lib/portfolio-utils.test.ts
+cd /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard && npm test tests/lib/portfolio-utils.test.ts
 ```
 Expected: FAIL — module not found
 
@@ -434,7 +434,7 @@ No new tests required. Run `npm test` for regression check.
 - [ ] **Step 1: Create components/portfolio/ directory**
 
 ```bash
-mkdir -p /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard/components/portfolio
+mkdir -p /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard/components/portfolio
 ```
 
 - [ ] **Step 2: Create components/portfolio/EfficientFrontierChart.tsx**

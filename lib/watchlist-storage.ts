@@ -1,4 +1,4 @@
-const STORAGE_KEY = "nautilus:watchlist";
+const STORAGE_KEY = "seokminal:watchlist";
 
 export const DEFAULT_SYMBOLS = [
   "AAPL.NASDAQ",

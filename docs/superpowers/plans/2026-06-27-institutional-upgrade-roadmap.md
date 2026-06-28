@@ -275,7 +275,7 @@ Universe → Factor 분석 → Strategy → Backtest → Parameter Opt. → Port
 ## 기술 스택 (변경 없음)
 
 - **Frontend:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts 5
-- **Backend:** FastAPI (nautilus-multi-venue) — 기존 엔드포인트 최대 활용
+- **Backend:** FastAPI (seokminal-multi-venue) — 기존 엔드포인트 최대 활용
 - **신규 dependency 검토 필요:** D3.js (S-11 Correlation Network)
 - **제외:** AI/LLM 기능 일체
 

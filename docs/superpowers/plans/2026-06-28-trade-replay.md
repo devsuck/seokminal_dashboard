@@ -183,7 +183,7 @@ describe("computeRunningStats", () => {
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-cd /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard && npm test tests/lib/replay-utils.test.ts
+cd /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard && npm test tests/lib/replay-utils.test.ts
 ```
 Expected: FAIL — module not found
 
@@ -435,7 +435,7 @@ No tests needed. Run full suite to check regressions.
 - [ ] **Step 1: Create components/replay/ directory**
 
 ```bash
-mkdir -p /Users/seokhun/Desktop/claude-test/seokminal/nautilus-dashboard/components/replay
+mkdir -p /Users/seokhun/Desktop/claude-test/seokminal/seokminal-dashboard/components/replay
 ```
 
 - [ ] **Step 2: Create components/replay/ReplayChart.tsx**
