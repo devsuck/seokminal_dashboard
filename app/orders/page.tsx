@@ -74,6 +74,7 @@ export default function OrdersPage() {
 
   // Per-order action state: { [entryId]: { loading, error } }
   const [actionState, setActionState] = useState<Record<string, { loading: boolean; error: string | null }>>({});
+  const cancelAbortRefs = useRef<Map<string, AbortController>>(new Map());
 
   // Bot positions
   const [bots, setBots] = useState<BotLiveEntry[]>([]);
@@ -91,6 +92,8 @@ export default function OrdersPage() {
   useEffect(() => () => {
     submitAbortRef.current?.abort();
     botsAbortRef.current?.abort();
+    cancelAbortRefs.current.forEach(c => c.abort());
+    cancelAbortRefs.current.clear();
   }, []);
 
   // ── Place order ───────────────────────────────────────────────────────────
@@ -158,7 +161,10 @@ export default function OrdersPage() {
   // ── Cancel order ──────────────────────────────────────────────────────────
 
   async function handleCancel(entry: OrderLogEntry) {
+    cancelAbortRefs.current.get(entry.id)?.abort();
+    cancelAbortRefs.current.delete(entry.id);
     const ctrl = new AbortController();
+    cancelAbortRefs.current.set(entry.id, ctrl);
     setActionState(s => ({ ...s, [entry.id]: { loading: true, error: null } }));
     try {
       if (entry.venue === "KR") {
@@ -174,13 +180,18 @@ export default function OrdersPage() {
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       setActionState(s => ({ ...s, [entry.id]: { loading: false, error: e instanceof Error ? e.message : String(e) } }));
+    } finally {
+      if (cancelAbortRefs.current.get(entry.id) === ctrl) cancelAbortRefs.current.delete(entry.id);
     }
   }
 
   // ── Check status (KR only) ─────────────────────────────────────────────────
 
   async function handleCheckStatus(entry: OrderLogEntry) {
+    cancelAbortRefs.current.get(entry.id)?.abort();
+    cancelAbortRefs.current.delete(entry.id);
     const ctrl = new AbortController();
+    cancelAbortRefs.current.set(entry.id, ctrl);
     setActionState(s => ({ ...s, [entry.id]: { loading: true, error: null } }));
     try {
       const date = toKRDate(entry.submitted_at);
@@ -191,6 +202,8 @@ export default function OrdersPage() {
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       setActionState(s => ({ ...s, [entry.id]: { loading: false, error: e instanceof Error ? e.message : String(e) } }));
+    } finally {
+      if (cancelAbortRefs.current.get(entry.id) === ctrl) cancelAbortRefs.current.delete(entry.id);
     }
   }
 
@@ -407,7 +420,7 @@ export default function OrdersPage() {
                             <div className="flex items-center gap-1">
                               {canCancel(entry.status) && (
                                 <button
-                                  className="text-xs bg-accent text-black rounded px-2 py-0.5 disabled:opacity-40"
+                                  className="text-xs text-neg border border-neg/50 rounded px-2 py-0.5 hover:bg-neg/10 disabled:opacity-40"
                                   disabled={act?.loading}
                                   onClick={() => handleCancel(entry)}
                                 >
