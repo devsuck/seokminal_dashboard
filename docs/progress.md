@@ -1,3 +1,15 @@
+### Portfolio Lab (2026-06-28)
+
+**S-9 Portfolio Lab:**
+- `lib/portfolio-utils.ts` — `computeAttribution()` (6 tests)
+- `components/portfolio/EfficientFrontierChart.tsx` — D3 scatter chart for efficient frontier
+- `app/portfolio/page.tsx` — Optimizer tab (Markowitz + frontier chart + weight bars) + Attribution tab (weight input + contribution bar chart)
+
+**Nav additions:** Portfolio (between Replay and Rolling)
+**Tests:** 98 passing (92 existing + 6 portfolio-utils)
+
+---
+
 ### Trade Replay (2026-06-28)
 
 **S-7 Trade Replay:**

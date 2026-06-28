@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { href: "/event-study",  label: "Event Study" },
   { href: "/universe",     label: "Universe" },
   { href: "/replay",       label: "Replay" },
+  { href: "/portfolio",    label: "Portfolio" },
   { href: "/rolling",      label: "Rolling" },
   { href: "/factor",       label: "Factor" },
   { href: "/bots",         label: "Bots" },
