@@ -10,6 +10,7 @@ interface NavGroup { label: string; href?: string; items?: NavItem[]; }
 const NAV_GROUPS: NavGroup[] = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Market",    href: "/market" },
+  { label: "Workflow",  href: "/workflow" },
   {
     label: "Research",
     items: [
