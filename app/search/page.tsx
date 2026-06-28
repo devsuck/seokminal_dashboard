@@ -116,9 +116,9 @@ export default function SearchPage() {
     setWsStatus("connecting");
     const ws = new WebSocket(`${WS_BASE}/ws/live/${code}`);
     wsRef.current = ws;
-    ws.onopen = () => setWsStatus("live");
-    ws.onclose = () => setWsStatus("off");
-    ws.onerror = () => setWsStatus("off");
+    ws.onopen = () => { if (wsRef.current === ws) setWsStatus("live"); };
+    ws.onclose = () => { if (wsRef.current === ws) setWsStatus("off"); };
+    ws.onerror = () => { if (wsRef.current === ws) setWsStatus("off"); };
     ws.onmessage = (evt) => {
       try {
         const tick = JSON.parse(evt.data) as KISTick;
@@ -151,8 +151,9 @@ export default function SearchPage() {
         })));
         connectWS(code);
       } else {
+        const ibDuration = days > 365 ? `${Math.round(days / 365)} Y` : `${days} D`;
         const res = await getIBBars(
-          { symbol: code, asset_type: "stock", duration: `${days} D` },
+          { symbol: code, asset_type: "stock", duration: ibDuration },
           ctrl.signal,
         );
         if (barsAbortRef.current !== ctrl) return;
