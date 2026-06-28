@@ -247,7 +247,7 @@ export default function RiskPage() {
               <span className="text-text-2 text-xs">Instrument</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-4 border-t border-border inline-block" />
+              <span className="w-4 h-px inline-block" style={{ backgroundColor: "#4B5563" }} />
               <span className="text-text-2 text-xs">Benchmark</span>
             </span>
             <span className="flex items-center gap-1.5">
@@ -273,11 +273,11 @@ export default function RiskPage() {
         <div className="bg-panel border border-border rounded-lg p-4">
           <div className="flex gap-4 mb-3">
             <span className="flex items-center gap-1.5">
-              <span className="w-4 h-0.5 bg-accent inline-block rounded" />
+              <span className="w-4 h-0.5 inline-block rounded" style={{ backgroundColor: "#FF9F1C" }} />
               <span className="text-text-2 text-xs">Beta</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-4 h-0.5 bg-info inline-block rounded" />
+              <span className="w-4 h-0.5 inline-block rounded" style={{ backgroundColor: "#60A5FA" }} />
               <span className="text-text-2 text-xs">Correlation</span>
             </span>
           </div>

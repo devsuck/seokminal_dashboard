@@ -93,10 +93,10 @@ export function DrawdownChart({ points, height = 320 }: DrawdownChartProps) {
       .attr("d", cumLine);
 
     // ── Bottom panel: drawdown ────────────────────────────────────────
-    const maxDD = d3.max(points, (p) => p.drawdown) ?? 0.01;
+    const minDD = d3.min(points, (p) => p.drawdown) ?? -0.01;
     const yDD = d3
       .scaleLinear()
-      .domain([maxDD * 1.1 || 0.01, 0])
+      .domain([minDD * 1.1 || -0.01, 0])
       .range([botH - mb, mt]);
 
     const g2 = svg.append("g").attr("transform", `translate(${ml},${topH})`);
