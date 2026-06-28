@@ -25,30 +25,21 @@ const ALL_INSTRUMENTS = ["AAPL.NASDAQ", "MSFT.NASDAQ", "005930.XKRX", "000660.XK
 const BENCHMARKS = [{ value: "KOSPI.XKRX", label: "KOSPI.XKRX" }, { value: "SPY.ARCA", label: "SPY.ARCA" }];
 type Tab = "risk" | "factor" | "correlation" | "portfolio" | "charts" | "us-macro" | "kr-macro" | "montecarlo" | "regime";
 
-const S = {
-  page: { padding: 20 },
-  header: { color: "#ff8c00", fontSize: 13, letterSpacing: 1, marginBottom: 10 },
-  tabs: { display: "flex", gap: 0, borderBottom: "1px solid #2a2a2a", marginBottom: 16 },
-  toolbar: { display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" as const },
-  btn: { background: "#ff8c00", color: "#000", border: "none", padding: "5px 18px", fontFamily: "inherit", fontSize: 13, fontWeight: "bold", cursor: "pointer" },
-  label: { color: "#ff8c00", fontSize: 13 },
-  err: { color: "#ff3333", fontSize: 13 },
-  muted: { color: "#777", fontSize: 13 },
-  table: { borderCollapse: "collapse" as const, width: "100%", maxWidth: 560 },
-  tdLabel: { padding: "6px 18px 6px 0", color: "#ff8c00", fontSize: 13, width: 220 },
-  tdVal: { padding: "6px 0", fontSize: 14, fontFamily: "monospace", fontWeight: "bold" as const },
-};
-
 function pct(v: number | null | undefined, d = 2) { return v == null ? "N/A" : (v * 100).toFixed(d) + "%"; }
 function num(v: number | null | undefined, d = 4) { return v == null ? "N/A" : v.toFixed(d); }
-function col(v: number | null | undefined, invert = false) {
-  if (v == null) return "#888";
-  if (invert) return v < 0 ? "#00cc44" : "#ff3333";
-  return v >= 0 ? "#00cc44" : "#ff3333";
+
+function colCls(v: number | null | undefined, invert = false): string {
+  if (v == null) return "text-text-3";
+  if (invert) return v < 0 ? "text-pos" : "text-neg";
+  return v >= 0 ? "text-pos" : "text-neg";
+}
+
+function pnlMCCls(v: number | null | undefined): string {
+  return v == null ? "text-text-3/50" : v > 1 ? "text-pos" : v > 0 ? "text-warn" : "text-neg";
 }
 
 function Err({ msg }: { msg: string | null }) {
-  return msg ? <p style={S.err}>ERR: {msg}</p> : null;
+  return msg ? <p className="text-neg text-[13px] mt-0 mb-3">ERR: {msg}</p> : null;
 }
 
 // ── Risk ──────────────────────────────────────────────────────────────────────
@@ -72,38 +63,38 @@ function RiskTab() {
   }
 
   const rows = [
-    { label: "ANNUALIZED RETURN", val: result ? pct(result.annualized_return) : "—", c: col(result?.annualized_return) },
-    { label: "VOLATILITY (ANN.)",  val: result ? pct(result.volatility) : "—",       c: "#e8e8e8" },
-    { label: "SHARPE RATIO",       val: result ? num(result.sharpe_ratio, 4) : "—",  c: col(result?.sharpe_ratio) },
-    { label: "SORTINO RATIO",      val: result ? num(result.sortino_ratio, 4) : "—", c: col(result?.sortino_ratio) },
-    { label: "MAX DRAWDOWN",       val: result ? pct(result.max_drawdown) : "—",     c: result?.max_drawdown != null ? "#ff3333" : "#888" },
-    { label: "VAR 95% (1-DAY)",    val: result ? pct(result.var_95, 3) : "—",        c: result ? "#ff3333" : "#444" },
-    { label: "CALMAR RATIO",       val: result ? num(result.calmar_ratio, 4) : "—",  c: col(result?.calmar_ratio) },
-    { label: "ALPHA (ANN.)",       val: result ? pct(result.alpha) : "—",            c: col(result?.alpha) },
-    { label: "BETA (vs bench)",    val: result?.r_squared != null ? num(result.r_squared, 4) : "—", c: "#e8e8e8" },
-    { label: "R-SQUARED",          val: result ? num(result.r_squared, 4) : "—",     c: "#e8e8e8" },
-    { label: "OBSERVATIONS",       val: result ? String(result.observation_count) : "—", c: "#555" },
+    { label: "ANNUALIZED RETURN", val: result ? pct(result.annualized_return) : "—", cls: colCls(result?.annualized_return) },
+    { label: "VOLATILITY (ANN.)",  val: result ? pct(result.volatility) : "—",       cls: "text-text-2" },
+    { label: "SHARPE RATIO",       val: result ? num(result.sharpe_ratio, 4) : "—",  cls: colCls(result?.sharpe_ratio) },
+    { label: "SORTINO RATIO",      val: result ? num(result.sortino_ratio, 4) : "—", cls: colCls(result?.sortino_ratio) },
+    { label: "MAX DRAWDOWN",       val: result ? pct(result.max_drawdown) : "—",     cls: result?.max_drawdown != null ? "text-neg" : "text-text-3" },
+    { label: "VAR 95% (1-DAY)",    val: result ? pct(result.var_95, 3) : "—",        cls: result ? "text-neg" : "text-text-3/50" },
+    { label: "CALMAR RATIO",       val: result ? num(result.calmar_ratio, 4) : "—",  cls: colCls(result?.calmar_ratio) },
+    { label: "ALPHA (ANN.)",       val: result ? pct(result.alpha) : "—",            cls: colCls(result?.alpha) },
+    { label: "BETA (vs bench)",    val: result?.r_squared != null ? num(result.r_squared, 4) : "—", cls: "text-text-2" },
+    { label: "R-SQUARED",          val: result ? num(result.r_squared, 4) : "—",     cls: "text-text-2" },
+    { label: "OBSERVATIONS",       val: result ? String(result.observation_count) : "—", cls: "text-text-3/50" },
   ];
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-        <span style={S.label}>BENCH</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
+        <span className="text-accent text-[13px]">BENCH</span>
         <select value={benchmarkId} onChange={e => setBenchmarkId(e.target.value)}>
           {BENCHMARKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
         </select>
-        <span style={S.label}>DATE</span>
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={run}>{loading ? "COMPUTING..." : "RUN"}</button>
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "COMPUTING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
-      <table style={S.table}>
+      <table className="border-collapse w-full max-w-[560px]">
         <tbody>
           {rows.map(r => (
-            <tr key={r.label} style={{ borderBottom: "1px solid #181818" }}>
-              <td style={S.tdLabel}>{r.label}</td>
-              <td style={{ ...S.tdVal, color: loading ? "#333" : r.c }}>{loading ? "..." : r.val}</td>
+            <tr key={r.label} className="border-b border-border">
+              <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">{r.label}</td>
+              <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : r.cls}`}>{loading ? "..." : r.val}</td>
             </tr>
           ))}
         </tbody>
@@ -147,42 +138,42 @@ function FactorTab() {
   const W = 640, H = 140, PX = 24, PY = 16;
 
   const betaRows = [
-    { label: "BETA", val: beta ? num(beta.beta, 4) : "—", c: "#e8e8e8" },
-    { label: "CORRELATION", val: beta ? num(beta.correlation, 4) : "—", c: "#e8e8e8" },
+    { label: "BETA", val: beta ? num(beta.beta, 4) : "—", cls: "text-text-2" },
+    { label: "CORRELATION", val: beta ? num(beta.correlation, 4) : "—", cls: "text-text-2" },
   ];
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-        <span style={S.label}>BENCH</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
+        <span className="text-accent text-[13px]">BENCH</span>
         <select value={benchmarkId} onChange={e => setBenchmarkId(e.target.value)}>
           {BENCHMARKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
         </select>
-        <span style={S.label}>DATE</span>
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <span style={S.label}>WINDOW</span>
+        <span className="text-accent text-[13px]">WINDOW</span>
         <input type="number" value={window} onChange={e => setWindow(Number(e.target.value))} style={{ width: 48 }} min={5} />
-        <button style={S.btn} onClick={run}>{loading ? "COMPUTING..." : "RUN"}</button>
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "COMPUTING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
 
       {/* Beta metrics — always visible */}
-      <table style={{ ...S.table, maxWidth: 360, marginBottom: 16 }}>
+      <table className="border-collapse w-full max-w-[360px] mb-4">
         <tbody>
           {betaRows.map(r => (
-            <tr key={r.label} style={{ borderBottom: "1px solid #181818" }}>
-              <td style={S.tdLabel}>{r.label}</td>
-              <td style={{ ...S.tdVal, color: loading ? "#333" : r.c }}>{loading ? "..." : r.val}</td>
+            <tr key={r.label} className="border-b border-border">
+              <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">{r.label}</td>
+              <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : r.cls}`}>{loading ? "..." : r.val}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       {/* Rolling Beta chart — always visible */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 4 }}>ROLLING BETA ({window}D)</div>
-        <svg width={W} height={H} style={{ display: "block", border: "1px solid #1e1e1e", background: "#0d0d0d" }}>
+      <div className="mb-4">
+        <div className="text-accent text-sm mb-1">ROLLING BETA ({window}D)</div>
+        <svg width={W} height={H} className="block border border-border bg-bg">
           {[0.25, 0.5, 0.75].map(r => (
             <line key={r} x1={PX} y1={PY + r * (H - PY * 2)} x2={W - PX} y2={PY + r * (H - PY * 2)} stroke="#1a1a1a" strokeWidth={1} />
           ))}
@@ -252,9 +243,9 @@ function CorpFinancePanel() {
     const maxV = Math.max(...vals.map(Math.abs), 1);
     const W = 480, H = 100, PX = 40, PY = 10, barW = Math.max(20, (W - PX * 2) / yrs.length - 8);
     return (
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 4 }}>{label}</div>
-        <svg width={W} height={H} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+      <div className="mb-4">
+        <div className="text-accent text-sm mb-1">{label}</div>
+        <svg width={W} height={H} className="block bg-bg border border-border">
           <line x1={PX} y1={H / 2} x2={W - PX} y2={H / 2} stroke="#222" strokeWidth={1} />
           {yrs.map((yr, i) => {
             const v = getValue(yr);
@@ -278,47 +269,47 @@ function CorpFinancePanel() {
   }
 
   return (
-    <div style={{ marginTop: 24, borderTop: "1px solid #1e1e1e", paddingTop: 16 }}>
-      <div style={{ ...S.header, marginBottom: 12 }}>기업 재무정보 (금융위원회 공시)</div>
-      <div style={S.toolbar}>
-        <span style={S.label}>종목코드</span>
-        <select value={stockCode} onChange={e => setStockCode(e.target.value)} style={{ fontFamily: "inherit", fontSize: 14 }}>
+    <div className="mt-6 border-t border-border pt-4">
+      <div className="text-accent text-[13px] tracking-widest uppercase mb-3">기업 재무정보 (금융위원회 공시)</div>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">종목코드</span>
+        <select value={stockCode} onChange={e => setStockCode(e.target.value)}>
           {catalog.map(c => <option key={c.stock_code} value={c.stock_code}>{c.stock_code}</option>)}
           <option value="">직접입력</option>
         </select>
         {(!catalog.some(c => c.stock_code === stockCode) || stockCode === "") && (
           <>
-            <span style={S.label}>종목코드</span>
-            <input value={stockCode} onChange={e => setStockCode(e.target.value)} placeholder="005930" style={{ width: 70, fontFamily: "inherit", fontSize: 14 }} />
-            <span style={S.label}>법인등록번호</span>
-            <input value={customCrno} onChange={e => setCustomCrno(e.target.value)} placeholder="1301110006246" style={{ width: 130, fontFamily: "inherit", fontSize: 14 }} />
+            <span className="text-accent text-[13px]">종목코드</span>
+            <input value={stockCode} onChange={e => setStockCode(e.target.value)} placeholder="005930" className="w-[70px]" />
+            <span className="text-accent text-[13px]">법인등록번호</span>
+            <input value={customCrno} onChange={e => setCustomCrno(e.target.value)} placeholder="1301110006246" className="w-[130px]" />
           </>
         )}
-        <span style={S.label}>연도</span>
+        <span className="text-accent text-[13px]">연도</span>
         <input type="number" value={startYear} onChange={e => setStartYear(Number(e.target.value))} style={{ width: 55 }} />
-        <span style={{ color: "#555" }}>~</span>
+        <span className="text-text-3/50">~</span>
         <input type="number" value={endYear} onChange={e => setEndYear(Number(e.target.value))} style={{ width: 55 }} />
-        <span style={S.label}>재무제표</span>
-        <select value={fnclDcd} onChange={e => setFnclDcd(e.target.value)} style={{ fontFamily: "inherit", fontSize: 14 }}>
+        <span className="text-accent text-[13px]">재무제표</span>
+        <select value={fnclDcd} onChange={e => setFnclDcd(e.target.value)}>
           <option value="110">연결</option>
           <option value="120">별도</option>
         </select>
-        <button style={S.btn} onClick={run}>조회</button>
-        {loading && <span style={S.muted}>LOADING...</span>}
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>조회</button>
+        {loading && <span className="text-text-3 text-[13px]">LOADING...</span>}
       </div>
       <Err msg={error} />
       {data && yrs.length > 0 && (
         <>
-          <div style={{ color: "#555", fontSize: 14, marginBottom: 8 }}>
+          <div className="text-text-3 text-sm mb-2">
             crno: {data.crno} · {yrs[0]?.report_type}
           </div>
           {/* 재무 요약 테이블 */}
-          <div style={{ overflowX: "auto", marginBottom: 16 }}>
-            <table style={{ borderCollapse: "collapse", fontSize: 14, fontFamily: "monospace", minWidth: 600 }}>
+          <div className="overflow-x-auto mb-4">
+            <table className="border-collapse text-sm font-data min-w-[600px]">
               <thead>
-                <tr style={{ borderBottom: "1px solid #2a2a2a" }}>
-                  <th style={{ padding: "4px 12px", color: "#ff8c00", textAlign: "left", fontSize: 14 }}>항목</th>
-                  {yrs.map(y => <th key={y.biz_year} style={{ padding: "4px 12px", color: "#ff8c00", textAlign: "right", fontSize: 14 }}>{y.biz_year}</th>)}
+                <tr className="border-b border-border">
+                  <th className="px-3 py-1 text-accent text-sm text-left">항목</th>
+                  {yrs.map(y => <th key={y.biz_year} className="px-3 py-1 text-accent text-sm text-right">{y.biz_year}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -329,11 +320,11 @@ function CorpFinancePanel() {
                   { label: "총자산", get: (y: CorpFinancialYear) => y.total_assets },
                   { label: "총자본", get: (y: CorpFinancialYear) => y.total_equity },
                 ].map(row => (
-                  <tr key={row.label} style={{ borderBottom: "1px solid #141414" }}>
-                    <td style={{ padding: "4px 12px", color: "#666", fontSize: 13 }}>{row.label}</td>
+                  <tr key={row.label} className="border-b border-border">
+                    <td className="px-3 py-1 text-text-3 text-[13px]">{row.label}</td>
                     {yrs.map(y => {
                       const v = row.get(y);
-                      return <td key={y.biz_year} style={{ padding: "4px 12px", textAlign: "right", color: v >= 0 ? "#e8e8e8" : "#ff3333" }}>{(v / 1e12).toFixed(2)}조</td>;
+                      return <td key={y.biz_year} className={`px-3 py-1 text-right ${v >= 0 ? "text-text-2" : "text-neg"}`}>{(v / 1e12).toFixed(2)}조</td>;
                     })}
                   </tr>
                 ))}
@@ -343,12 +334,12 @@ function CorpFinancePanel() {
                   { label: "ROE", get: (y: CorpFinancialYear) => y.roe_pct, unit: "%" },
                   { label: "부채비율", get: (y: CorpFinancialYear) => y.debt_ratio_pct, unit: "%" },
                 ].map(row => (
-                  <tr key={row.label} style={{ borderBottom: "1px solid #141414" }}>
-                    <td style={{ padding: "4px 12px", color: "#666", fontSize: 13 }}>{row.label}</td>
+                  <tr key={row.label} className="border-b border-border">
+                    <td className="px-3 py-1 text-text-3 text-[13px]">{row.label}</td>
                     {yrs.map(y => {
                       const v = row.get(y);
                       const good = row.label === "부채비율" ? (v != null && v < 100) : (v != null && v > 0);
-                      return <td key={y.biz_year} style={{ padding: "4px 12px", textAlign: "right", color: v == null ? "#444" : (good ? "#00cc44" : "#ff3333") }}>
+                      return <td key={y.biz_year} className={`px-3 py-1 text-right ${v == null ? "text-text-3/50" : good ? "text-pos" : "text-neg"}`}>
                         {v == null ? "—" : v.toFixed(2) + row.unit}
                       </td>;
                     })}
@@ -408,40 +399,43 @@ function CorrelationTab() {
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOLS</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOLS</span>
         {ALL_INSTRUMENTS.map(id => (
-          <button key={id} onClick={() => toggle(id)} style={{
-            padding: "2px 10px", fontSize: 13, fontFamily: "inherit", cursor: "pointer",
-            background: selected.includes(id) ? "#ff8c00" : "transparent",
-            color: selected.includes(id) ? "#000" : "#666",
-            border: "1px solid " + (selected.includes(id) ? "#ff8c00" : "#333"),
-          }}>{id.split(".")[0]}</button>
+          <button
+            key={id}
+            onClick={() => toggle(id)}
+            className={`px-2.5 py-0.5 text-[13px] cursor-pointer border rounded transition-colors ${
+              selected.includes(id)
+                ? "bg-accent text-black border-accent"
+                : "bg-transparent text-text-3 border-border hover:text-text-2"
+            }`}
+          >{id.split(".")[0]}</button>
         ))}
-        <span style={S.label}>DATE</span>
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={run}>RUN</button>
-        {loading && <span style={S.muted}>COMPUTING...</span>}
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>RUN</button>
+        {loading && <span className="text-text-3 text-[13px]">COMPUTING...</span>}
       </div>
       <Err msg={error} />
       {!loading && !error && matrix && (
-        <table style={{ borderCollapse: "collapse" }}>
+        <table className="border-collapse">
           <thead>
             <tr>
-              <th style={{ padding: "4px 8px", color: "#444", fontSize: 14, fontWeight: "normal" }} />
-              {selected.map(id => <th key={id} style={{ padding: "4px 8px", color: "#ff8c00", fontSize: 14, fontWeight: "normal" }}>{id.split(".")[0]}</th>)}
+              <th className="px-2 py-1 text-text-3 text-sm font-normal" />
+              {selected.map(id => <th key={id} className="px-2 py-1 text-accent text-sm font-normal">{id.split(".")[0]}</th>)}
             </tr>
           </thead>
           <tbody>
             {selected.map(a => (
               <tr key={a}>
-                <td style={{ padding: "2px 8px", color: "#ff8c00", fontSize: 14, whiteSpace: "nowrap" }}>{a.split(".")[0]}</td>
+                <td className="px-2 py-0.5 text-accent text-sm whitespace-nowrap">{a.split(".")[0]}</td>
                 {selected.map(b => {
                   const v = matrix[a]?.[b] ?? 0;
                   return (
-                    <td key={b} style={{ padding: 0 }}>
-                      <div style={{ background: corrBg(v), width: 80, height: 44, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #111" }}>
-                        <span style={{ fontSize: 14, fontFamily: "monospace", color: Math.abs(v) > 0.5 ? "#000" : "#ccc", fontWeight: "bold" }}>{v.toFixed(2)}</span>
+                    <td key={b} className="p-0">
+                      <div className="w-20 h-11 flex items-center justify-center border border-border" style={{ background: corrBg(v) }}>
+                        <span className="text-sm font-data font-bold" style={{ color: Math.abs(v) > 0.5 ? "#000" : "#ccc" }}>{v.toFixed(2)}</span>
                       </div>
                     </td>
                   );
@@ -490,53 +484,56 @@ function PortfolioTab() {
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOLS</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOLS</span>
         {ALL_INSTRUMENTS.map(id => (
-          <button key={id} onClick={() => toggle(id)} style={{
-            padding: "2px 10px", fontSize: 13, fontFamily: "inherit", cursor: "pointer",
-            background: selected.includes(id) ? "#ff8c00" : "transparent",
-            color: selected.includes(id) ? "#000" : "#666",
-            border: "1px solid " + (selected.includes(id) ? "#ff8c00" : "#333"),
-          }}>{id.split(".")[0]}</button>
+          <button
+            key={id}
+            onClick={() => toggle(id)}
+            className={`px-2.5 py-0.5 text-[13px] cursor-pointer border rounded transition-colors ${
+              selected.includes(id)
+                ? "bg-accent text-black border-accent"
+                : "bg-transparent text-text-3 border-border hover:text-text-2"
+            }`}
+          >{id.split(".")[0]}</button>
         ))}
-        <span style={S.label}>DATE</span>
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={run}>OPTIMIZE</button>
-        {loading && <span style={S.muted}>COMPUTING...</span>}
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>OPTIMIZE</button>
+        {loading && <span className="text-text-3 text-[13px]">COMPUTING...</span>}
       </div>
       <Err msg={error} />
 
       {/* Always-visible portfolio stats — fills on OPTIMIZE */}
-      <div style={{ display: "flex", gap: 32, flexWrap: "wrap" as const }}>
+      <div className="flex gap-8 flex-wrap">
         {/* Min Variance */}
         <div>
-          <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>MIN VARIANCE PORTFOLIO</div>
-          <table style={S.table}>
+          <div className="text-accent text-sm mb-1.5">MIN VARIANCE PORTFOLIO</div>
+          <table className="border-collapse w-full max-w-[560px]">
             <tbody>
-              <tr style={{ borderBottom: "1px solid #181818" }}>
-                <td style={S.tdLabel}>EXP. RETURN</td>
-                <td style={{ ...S.tdVal, color: loading ? "#333" : col(result?.min_variance.expected_return ?? null) }}>
+              <tr className="border-b border-border">
+                <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">EXP. RETURN</td>
+                <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : colCls(result?.min_variance.expected_return ?? null)}`}>
                   {loading ? "..." : result ? pct(result.min_variance.expected_return) : "—"}
                 </td>
               </tr>
-              <tr style={{ borderBottom: "1px solid #181818" }}>
-                <td style={S.tdLabel}>VOLATILITY</td>
-                <td style={{ ...S.tdVal, color: loading ? "#333" : "#e8e8e8" }}>
+              <tr className="border-b border-border">
+                <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">VOLATILITY</td>
+                <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : "text-text-2"}`}>
                   {loading ? "..." : result ? pct(result.min_variance.volatility) : "—"}
                 </td>
               </tr>
               {result
                 ? Object.entries(result.min_variance.weights).map(([id, w]) => (
-                    <tr key={id} style={{ borderBottom: "1px solid #181818" }}>
-                      <td style={{ ...S.tdLabel, color: "#888" }}>{id}</td>
-                      <td style={{ ...S.tdVal, color: "#e8e8e8" }}>{(w * 100).toFixed(1)}%</td>
+                    <tr key={id} className="border-b border-border">
+                      <td className="py-1.5 pr-[72px] text-text-3 text-[13px] w-[220px]">{id}</td>
+                      <td className="py-1.5 text-sm font-data font-bold text-text-2">{(w * 100).toFixed(1)}%</td>
                     </tr>
                   ))
                 : selected.map(id => (
-                    <tr key={id} style={{ borderBottom: "1px solid #181818" }}>
-                      <td style={{ ...S.tdLabel, color: "#444" }}>{id}</td>
-                      <td style={{ ...S.tdVal, color: "#333" }}>—</td>
+                    <tr key={id} className="border-b border-border">
+                      <td className="py-1.5 pr-[72px] text-text-3/50 text-[13px] w-[220px]">{id}</td>
+                      <td className="py-1.5 text-sm font-data font-bold text-text-3/30">—</td>
                     </tr>
                   ))}
             </tbody>
@@ -545,38 +542,38 @@ function PortfolioTab() {
 
         {/* Max Sharpe */}
         <div>
-          <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>MAX SHARPE PORTFOLIO</div>
-          <table style={S.table}>
+          <div className="text-accent text-sm mb-1.5">MAX SHARPE PORTFOLIO</div>
+          <table className="border-collapse w-full max-w-[560px]">
             <tbody>
-              <tr style={{ borderBottom: "1px solid #181818" }}>
-                <td style={S.tdLabel}>EXP. RETURN</td>
-                <td style={{ ...S.tdVal, color: loading ? "#333" : col(result?.max_sharpe.expected_return ?? null) }}>
+              <tr className="border-b border-border">
+                <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">EXP. RETURN</td>
+                <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : colCls(result?.max_sharpe.expected_return ?? null)}`}>
                   {loading ? "..." : result ? pct(result.max_sharpe.expected_return) : "—"}
                 </td>
               </tr>
-              <tr style={{ borderBottom: "1px solid #181818" }}>
-                <td style={S.tdLabel}>VOLATILITY</td>
-                <td style={{ ...S.tdVal, color: loading ? "#333" : "#e8e8e8" }}>
+              <tr className="border-b border-border">
+                <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">VOLATILITY</td>
+                <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : "text-text-2"}`}>
                   {loading ? "..." : result ? pct(result.max_sharpe.volatility) : "—"}
                 </td>
               </tr>
-              <tr style={{ borderBottom: "1px solid #181818" }}>
-                <td style={S.tdLabel}>SHARPE</td>
-                <td style={{ ...S.tdVal, color: loading ? "#333" : col(result?.max_sharpe.sharpe ?? null) }}>
+              <tr className="border-b border-border">
+                <td className="py-1.5 pr-[72px] text-accent text-[13px] w-[220px]">SHARPE</td>
+                <td className={`py-1.5 text-sm font-data font-bold ${loading ? "text-text-3/30" : colCls(result?.max_sharpe.sharpe ?? null)}`}>
                   {loading ? "..." : result ? num(result.max_sharpe.sharpe ?? null, 4) : "—"}
                 </td>
               </tr>
               {result
                 ? Object.entries(result.max_sharpe.weights).map(([id, w]) => (
-                    <tr key={id} style={{ borderBottom: "1px solid #181818" }}>
-                      <td style={{ ...S.tdLabel, color: "#888" }}>{id}</td>
-                      <td style={{ ...S.tdVal, color: "#e8e8e8" }}>{(w * 100).toFixed(1)}%</td>
+                    <tr key={id} className="border-b border-border">
+                      <td className="py-1.5 pr-[72px] text-text-3 text-[13px] w-[220px]">{id}</td>
+                      <td className="py-1.5 text-sm font-data font-bold text-text-2">{(w * 100).toFixed(1)}%</td>
                     </tr>
                   ))
                 : selected.map(id => (
-                    <tr key={id} style={{ borderBottom: "1px solid #181818" }}>
-                      <td style={{ ...S.tdLabel, color: "#444" }}>{id}</td>
-                      <td style={{ ...S.tdVal, color: "#333" }}>—</td>
+                    <tr key={id} className="border-b border-border">
+                      <td className="py-1.5 pr-[72px] text-text-3/50 text-[13px] w-[220px]">{id}</td>
+                      <td className="py-1.5 text-sm font-data font-bold text-text-3/30">—</td>
                     </tr>
                   ))}
             </tbody>
@@ -585,8 +582,8 @@ function PortfolioTab() {
 
         {/* Efficient Frontier — always visible */}
         <div>
-          <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>EFFICIENT FRONTIER</div>
-          <svg width={W} height={H} style={{ border: "1px solid #1e1e1e", background: "#0d0d0d", display: "block" }}>
+          <div className="text-accent text-sm mb-1.5">EFFICIENT FRONTIER</div>
+          <svg width={W} height={H} className="block bg-bg border border-border">
             {frontier.length > 1 ? <>
               <polyline points={frontier.map(p => `${fx(p.volatility)},${fy(p.expected_return)}`).join(" ")} fill="none" stroke="#ff8c00" strokeWidth={1.5} />
               <circle cx={fx(result!.min_variance.volatility)} cy={fy(result!.min_variance.expected_return)} r={4} fill="#00cc44" />
@@ -602,8 +599,8 @@ function PortfolioTab() {
               </text>
             )}
           </svg>
-          <div style={{ display: "flex", gap: 16, marginTop: 4, fontSize: 14, color: "#555" }}>
-            <span><span style={{ color: "#00cc44" }}>●</span> MIN VAR</span>
+          <div className="flex gap-4 mt-1 text-sm text-text-3/50">
+            <span><span className="text-pos">●</span> MIN VAR</span>
             <span><span style={{ color: "#4488ff" }}>●</span> MAX SHARPE</span>
           </div>
         </div>
@@ -620,8 +617,8 @@ function svgLine(pts: { x: number; y: number }[], color: string, strokeWidth = 1
 
 function ChartPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>{title}</div>
+    <div className="mb-6">
+      <div className="text-accent text-sm mb-1.5">{title}</div>
       {children}
     </div>
   );
@@ -686,24 +683,24 @@ function ChartsTab() {
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-        <span style={S.label}>BENCH</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
+        <span className="text-accent text-[13px]">BENCH</span>
         <select value={benchmarkId} onChange={e => setBenchmarkId(e.target.value)}>
           {BENCHMARKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
         </select>
-        <span style={S.label}>DATE</span>
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={run}>RUN</button>
-        {loading && <span style={S.muted}>COMPUTING...</span>}
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>RUN</button>
+        {loading && <span className="text-text-3 text-[13px]">COMPUTING...</span>}
       </div>
-      {error && <p style={S.err}>ERR: {error}</p>}
+      {error && <p className="text-neg text-[13px] mt-0 mb-3">ERR: {error}</p>}
 
       {!loading && !error && points.length > 0 && (
         <>
           {/* Cumulative Returns */}
           <ChartPanel title={`CUMULATIVE RETURN — ${instrumentId} vs ${benchmarkId}`}>
-            <svg width={W} height={H_RET} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+            <svg width={W} height={H_RET} className="block bg-bg border border-border">
               {[0.25, 0.5, 0.75].map(r => <line key={r} x1={PX} y1={PY + r * (H_RET - PY * 2)} x2={W - PX} y2={PY + r * (H_RET - PY * 2)} stroke="#1a1a1a" strokeWidth={1} />)}
               {svgLine(mkPts(benchVals, H_RET), "#4488ff")}
               {svgLine(mkPts(retVals, H_RET), "#ff8c00")}
@@ -717,15 +714,15 @@ function ChartsTab() {
                 </>;
               })()}
             </svg>
-            <div style={{ display: "flex", gap: 16, marginTop: 4, fontSize: 14, color: "#555" }}>
-              <span><span style={{ color: "#ff8c00" }}>—</span> {instrumentId}</span>
+            <div className="flex gap-4 mt-1 text-sm text-text-3/50">
+              <span><span className="text-accent">—</span> {instrumentId}</span>
               <span><span style={{ color: "#4488ff" }}>—</span> {benchmarkId}</span>
             </div>
           </ChartPanel>
 
           {/* Drawdown */}
           <ChartPanel title="DRAWDOWN">
-            <svg width={W} height={H_DD} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+            <svg width={W} height={H_DD} className="block bg-bg border border-border">
               {[0.5].map(r => <line key={r} x1={PX} y1={PY + r * (H_DD - PY * 2)} x2={W - PX} y2={PY + r * (H_DD - PY * 2)} stroke="#1a1a1a" strokeWidth={1} />)}
               {/* Zero line */}
               <line x1={PX} y1={PY} x2={W - PX} y2={PY} stroke="#333" strokeWidth={1} strokeDasharray="3" />
@@ -746,7 +743,7 @@ function ChartsTab() {
 
           {/* Rolling Sharpe */}
           <ChartPanel title="ROLLING SHARPE (60D)">
-            <svg width={W} height={H_SHARPE} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+            <svg width={W} height={H_SHARPE} className="block bg-bg border border-border">
               {/* Zero line */}
               {(() => {
                 const validSharpe = sharpeVals.filter(v => v != null) as number[];
@@ -773,7 +770,7 @@ function ChartsTab() {
 
           {/* Returns Histogram */}
           <ChartPanel title="DAILY RETURNS DISTRIBUTION">
-            <svg width={W} height={H_HIST} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+            <svg width={W} height={H_HIST} className="block bg-bg border border-border">
               {histBins.map((bin, i) => {
                 const barW = (W - PX * 2) / histBins.length;
                 const barH = (bin.count / maxCount) * (H_HIST - PY * 2);
@@ -797,7 +794,7 @@ function ChartsTab() {
               <text x={PX} y={H_HIST - 4} fontSize={12} fill="#444">{(Math.min(...dailyVals) * 100).toFixed(1)}%</text>
               <text x={W - PX - 30} y={H_HIST - 4} fontSize={12} fill="#444">{(Math.max(...dailyVals) * 100).toFixed(1)}%</text>
             </svg>
-            <div style={{ fontSize: 14, color: "#555", marginTop: 4 }}>
+            <div className="text-sm text-text-3/50 mt-1">
               {dailyVals.length} observations · mean {(dailyVals.reduce((a, b) => a + b, 0) / dailyVals.length * 100).toFixed(3)}%
             </div>
           </ChartPanel>
@@ -835,13 +832,13 @@ function MiniSeriesChart({ s }: { s: { series_id: string; label: string; unit: s
   const { pts, mn, mx } = mkPts(s.observations);
   const last = s.observations.filter(o => o.value != null).at(-1);
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 4 }}>
-        <span style={{ color: "#ff8c00", fontSize: 14 }}>{s.series_id}</span>
-        <span style={{ color: "#888", fontSize: 13 }}>{s.label}</span>
-        {last && <span style={{ color: "#e8e8e8", fontSize: 14, fontFamily: "monospace", fontWeight: "bold" }}>{last.value?.toFixed(2)} {s.unit}</span>}
+    <div className="mb-5">
+      <div className="flex items-baseline gap-3 mb-1">
+        <span className="text-accent text-sm">{s.series_id}</span>
+        <span className="text-text-3 text-[13px]">{s.label}</span>
+        {last && <span className="text-text-2 text-sm font-data font-bold">{last.value?.toFixed(2)} {s.unit}</span>}
       </div>
-      <svg width={W} height={H} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+      <svg width={W} height={H} className="block bg-bg border border-border">
         {[0.25, 0.5, 0.75].map(r => <line key={r} x1={PX} y1={PY + r * (H - PY * 2)} x2={W - PX} y2={PY + r * (H - PY * 2)} stroke="#1a1a1a" strokeWidth={1} />)}
         {pts.length > 1 && <polyline points={pts.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#ff8c00" strokeWidth={1.5} />}
         <text x={4} y={PY + 8} fontSize={12} fill="#444">{mx.toFixed(2)}</text>
@@ -890,29 +887,33 @@ function FREDPanel() {
 
   return (
     <div>
-      <div style={{ color: "#aaa", fontSize: 13, marginBottom: 14 }}>세인트루이스 연준 거시 경제 지표 — 지표 선택 후 FETCH</div>
+      <div className="text-text-3 text-[13px] mb-3.5">세인트루이스 연준 거시 경제 지표 — 지표 선택 후 FETCH</div>
       {categories.map(cat => (
-        <div key={cat} style={{ marginBottom: 12 }}>
-          <div style={{ color: "#ff8c00", fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>{CATEGORY_LABEL[cat] ?? cat.toUpperCase()}</div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
+        <div key={cat} className="mb-3">
+          <div className="text-accent text-[11px] tracking-widest mb-1.5">{CATEGORY_LABEL[cat] ?? cat.toUpperCase()}</div>
+          <div className="flex gap-1 flex-wrap">
             {catalog.filter(c => c.category === cat).map(item => (
-              <button key={item.series_id} onClick={() => toggle(item.series_id)} style={{
-                padding: "4px 10px", fontSize: 13, fontFamily: "inherit", cursor: "pointer",
-                background: selected.includes(item.series_id) ? "#ff8c00" : "#111",
-                color: selected.includes(item.series_id) ? "#000" : "#aaa",
-                border: "1px solid " + (selected.includes(item.series_id) ? "#ff8c00" : "#2a2a2a"),
-              }} title={item.label}>{item.series_id}</button>
+              <button
+                key={item.series_id}
+                onClick={() => toggle(item.series_id)}
+                title={item.label}
+                className={`px-2.5 py-1 text-[13px] cursor-pointer border rounded transition-colors ${
+                  selected.includes(item.series_id)
+                    ? "bg-accent text-black border-accent"
+                    : "bg-panel text-text-3 border-border hover:text-text-2"
+                }`}
+              >{item.series_id}</button>
             ))}
           </div>
         </div>
       ))}
-      <div style={{ ...S.toolbar, marginTop: 8 }}>
-        <span style={S.label}>DATE</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap mt-2">
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button style={S.btn} onClick={run}>FETCH</button>
-        {loading && <span style={S.muted}>LOADING...</span>}
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>FETCH</button>
+        {loading && <span className="text-text-3 text-[13px]">LOADING...</span>}
       </div>
-      {error && <p style={S.err}>ERR: {error}</p>}
+      {error && <p className="text-neg text-[13px] mt-0 mb-3">ERR: {error}</p>}
       {Object.values(series).map(s => <MiniSeriesChart key={s.series_id} s={s} />)}
     </div>
   );
@@ -951,34 +952,36 @@ function ECOSPanel() {
 
   return (
     <div>
-      <div style={{ color: "#aaa", fontSize: 13, marginBottom: 6 }}>한국은행 거시 경제 지표 — 지표 선택 후 FETCH</div>
-      <div style={{ color: "#666", fontSize: 12, marginBottom: 14 }}>날짜 형식: YYYYMM (월) · YYYY (연) · YYYYQn (분기)</div>
+      <div className="text-text-3 text-[13px] mb-1.5">한국은행 거시 경제 지표 — 지표 선택 후 FETCH</div>
+      <div className="text-text-3 text-xs mb-3.5">날짜 형식: YYYYMM (월) · YYYY (연) · YYYYQn (분기)</div>
       {categories.map(cat => (
-        <div key={cat} style={{ marginBottom: 12 }}>
-          <div style={{ color: "#ff8c00", fontSize: 11, letterSpacing: 1, marginBottom: 6 }}>{CATEGORY_LABEL[cat] ?? cat.toUpperCase()}</div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
+        <div key={cat} className="mb-3">
+          <div className="text-accent text-[11px] tracking-widest mb-1.5">{CATEGORY_LABEL[cat] ?? cat.toUpperCase()}</div>
+          <div className="flex gap-1 flex-wrap">
             {catalog.filter(c => c.category === cat).map(item => (
-              <button key={item.series_id} onClick={() => toggle(item.series_id)} style={{
-                padding: "4px 10px", fontSize: 13, fontFamily: "inherit", cursor: "pointer",
-                background: selected.includes(item.series_id) ? "#ff8c00" : "#111",
-                color: selected.includes(item.series_id) ? "#000" : "#aaa",
-                border: "1px solid " + (selected.includes(item.series_id) ? "#ff8c00" : "#2a2a2a"),
-              }} title={item.label}>{item.series_id}</button>
+              <button
+                key={item.series_id}
+                onClick={() => toggle(item.series_id)}
+                title={item.label}
+                className={`px-2.5 py-1 text-[13px] cursor-pointer border rounded transition-colors ${
+                  selected.includes(item.series_id)
+                    ? "bg-accent text-black border-accent"
+                    : "bg-panel text-text-3 border-border hover:text-text-2"
+                }`}
+              >{item.series_id}</button>
             ))}
           </div>
         </div>
       ))}
-      <div style={{ ...S.toolbar, marginTop: 8 }}>
-        <span style={S.label}>PERIOD</span>
-        <input value={start} onChange={e => setStart(e.target.value)} placeholder="202001"
-          style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 80 }} />
-        <span style={S.muted}>~</span>
-        <input value={end} onChange={e => setEnd(e.target.value)} placeholder="202506"
-          style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 80 }} />
-        <button style={S.btn} onClick={run}>FETCH</button>
-        {loading && <span style={S.muted}>LOADING...</span>}
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap mt-2">
+        <span className="text-accent text-[13px]">PERIOD</span>
+        <input value={start} onChange={e => setStart(e.target.value)} placeholder="202001" className="w-20" />
+        <span className="text-text-3 text-[13px]">~</span>
+        <input value={end} onChange={e => setEnd(e.target.value)} placeholder="202506" className="w-20" />
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>FETCH</button>
+        {loading && <span className="text-text-3 text-[13px]">LOADING...</span>}
       </div>
-      {error && <p style={S.err}>ERR: {error}</p>}
+      {error && <p className="text-neg text-[13px] mt-0 mb-3">ERR: {error}</p>}
       {Object.values(series).map(s => (
         <MiniSeriesChart key={s.series_id} s={{ ...s, observations: s.observations }} />
       ))}
@@ -1025,75 +1028,72 @@ function KSDPanel() {
     } finally { setLoading(false); }
   }
 
-  const th = { padding: "4px 12px 4px 0", color: "#ff8c00", fontSize: 14, textAlign: "left" as const, borderBottom: "1px solid #2a2a2a", whiteSpace: "nowrap" as const };
-  const td = { padding: "5px 12px 5px 0", fontSize: 14, fontFamily: "monospace", borderBottom: "1px solid #181818", color: "#e8e8e8" };
-
   const PENDING_MSG = "KSD API 승인 대기 중 — data.go.kr 마이페이지에서 승인 상태 확인";
 
   return (
     <div>
-      <div style={{ color: "#aaa", fontSize: 13, marginBottom: 14 }}>한국예탁결제원 — 배당 · 대차 · 권리일정</div>
+      <div className="text-text-3 text-[13px] mb-3.5">한국예탁결제원 — 배당 · 대차 · 권리일정</div>
 
       {/* 모드 탭 */}
-      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid #2a2a2a", marginBottom: 10 }}>
+      <div className="flex border-b border-border mb-2.5">
         {(["dividend", "borrow", "rights"] as const).map(m => (
-          <button key={m} onClick={() => setMode(m)} style={{
-            padding: "3px 14px", fontSize: 14, fontFamily: "inherit", cursor: "pointer",
-            background: "transparent", border: "none",
-            borderBottom: mode === m ? "2px solid #ff8c00" : "2px solid transparent",
-            color: mode === m ? "#ff8c00" : "#555", marginBottom: -1,
-          }}>
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-3.5 py-0.5 text-sm cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
+              mode === m
+                ? "border-accent text-accent font-bold"
+                : "border-transparent text-text-3 font-normal hover:text-text-1"
+            }`}
+          >
             {m === "dividend" ? "배당정보" : m === "borrow" ? "대차순위" : "권리일정"}
           </button>
         ))}
       </div>
 
       {/* 입력 */}
-      <div style={{ ...S.toolbar }}>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
         {mode === "dividend" && <>
-          <span style={S.label}>종목코드</span>
-          <input value={stockCode} onChange={e => setStockCode(e.target.value)}
-            placeholder="005930"
-            style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 80 }} />
+          <span className="text-accent text-[13px]">종목코드</span>
+          <input value={stockCode} onChange={e => setStockCode(e.target.value)} placeholder="005930" className="w-20" />
         </>}
         {mode === "borrow" ? <>
-          <span style={S.label}>기준일</span>
-          <input value={basDt} onChange={e => setBasDt(e.target.value)} placeholder="20250101"
-            style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 90 }} />
+          <span className="text-accent text-[13px]">기준일</span>
+          <input value={basDt} onChange={e => setBasDt(e.target.value)} placeholder="20250101" className="w-[90px]" />
         </> : <>
-          <span style={S.label}>시작</span>
-          <input value={beginDt} onChange={e => setBeginDt(e.target.value)}
-            style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 90 }} />
-          <span style={S.muted}>~</span>
-          <input value={endDt} onChange={e => setEndDt(e.target.value)}
-            style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 90 }} />
+          <span className="text-accent text-[13px]">시작</span>
+          <input value={beginDt} onChange={e => setBeginDt(e.target.value)} className="w-[90px]" />
+          <span className="text-text-3 text-[13px]">~</span>
+          <input value={endDt} onChange={e => setEndDt(e.target.value)} className="w-[90px]" />
         </>}
-        <button style={S.btn} onClick={run}>{loading ? "FETCHING..." : "FETCH"}</button>
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "FETCHING..." : "FETCH"}</button>
       </div>
 
       {error && (
-        <div style={{ color: error.includes("승인 대기") ? "#ff8c00" : "#ff3333", fontSize: 13, marginBottom: 8, padding: "6px 10px", background: "#111", border: "1px solid #2a2a2a" }}>
+        <div className={`text-[13px] mb-2 px-2.5 py-1.5 bg-panel border border-border ${error.includes("승인 대기") ? "text-accent" : "text-neg"}`}>
           {error.includes("승인 대기") ? `⏳ ${PENDING_MSG}` : `ERR: ${error}`}
         </div>
       )}
 
       {/* 배당 테이블 */}
       {mode === "dividend" && (
-        <table style={{ borderCollapse: "collapse", width: "100%", maxWidth: 680 }}>
+        <table className="border-collapse w-full max-w-[680px]">
           <thead><tr>
-            {["종목명", "배당기준일", "현금배당지급일", "주당배당금", "현금배당률", "주식종류"].map(h => <th key={h} style={th}>{h}</th>)}
+            {["종목명", "배당기준일", "현금배당지급일", "주당배당금", "현금배당률", "주식종류"].map(h => (
+              <th key={h} className="py-1 pr-3 text-accent text-sm text-left border-b border-border whitespace-nowrap">{h}</th>
+            ))}
           </tr></thead>
           <tbody>
             {divResult && divResult.rows.length > 0 ? divResult.rows.map((r, i) => (
               <tr key={i}>
-                <td style={{ ...td, color: "#888" }}>{r.isin_cd_nm ?? r.isin_cd ?? "—"}</td>
-                <td style={td}>{r.dvdn_bas_dt ?? "—"}</td>
-                <td style={td}>{r.cash_dvdn_pay_dt ?? "—"}</td>
-                <td style={{ ...td, color: "#ff8c00" }}>{r.stck_genr_dvdn_amt ? Number(r.stck_genr_dvdn_amt).toLocaleString() + "원" : "—"}</td>
-                <td style={td}>{r.stck_genr_cash_dvdn_rt ? r.stck_genr_cash_dvdn_rt + "%" : "—"}</td>
-                <td style={td}>{r.scrs_itms_kcd_nm ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-3">{r.isin_cd_nm ?? r.isin_cd ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.dvdn_bas_dt ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.cash_dvdn_pay_dt ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-accent">{r.stck_genr_dvdn_amt ? Number(r.stck_genr_dvdn_amt).toLocaleString() + "원" : "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.stck_genr_cash_dvdn_rt ? r.stck_genr_cash_dvdn_rt + "%" : "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.scrs_itms_kcd_nm ?? "—"}</td>
               </tr>
-            )) : <tr><td colSpan={6} style={{ ...td, color: "#333", textAlign: "center", padding: 16 }}>
+            )) : <tr><td colSpan={6} className="p-4 text-sm font-data border-b border-border text-text-3/50 text-center">
               {loading ? "FETCHING..." : "종목코드 입력 후 FETCH"}
             </td></tr>}
           </tbody>
@@ -1102,21 +1102,23 @@ function KSDPanel() {
 
       {/* 대차 순위 */}
       {mode === "borrow" && (
-        <table style={{ borderCollapse: "collapse", width: "100%", maxWidth: 600 }}>
+        <table className="border-collapse w-full max-w-[600px]">
           <thead><tr>
-            {["순위", "ISIN", "종목명", "대차체결주식수", "대차잔여주식수", "대차잔액"].map(h => <th key={h} style={th}>{h}</th>)}
+            {["순위", "ISIN", "종목명", "대차체결주식수", "대차잔여주식수", "대차잔액"].map(h => (
+              <th key={h} className="py-1 pr-3 text-accent text-sm text-left border-b border-border whitespace-nowrap">{h}</th>
+            ))}
           </tr></thead>
           <tbody>
             {borrowResult && borrowResult.rows.length > 0 ? borrowResult.rows.map((r, i) => (
               <tr key={i}>
-                <td style={{ ...td, color: "#ff8c00" }}>{r.rank}</td>
-                <td style={{ ...td, color: "#888", fontSize: 14 }}>{r.isin_cd ?? "—"}</td>
-                <td style={td}>{r.isin_cd_nm ?? "—"}</td>
-                <td style={td}>{r.lnb_ccl_stck_cnt ? Number(r.lnb_ccl_stck_cnt).toLocaleString() : "—"}</td>
-                <td style={td}>{r.lnb_rman_stck_cnt ? Number(r.lnb_rman_stck_cnt).toLocaleString() : "—"}</td>
-                <td style={td}>{r.lnb_bal ? Number(r.lnb_bal).toLocaleString() + "원" : "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-accent">{r.rank}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-3">{r.isin_cd ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.isin_cd_nm ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.lnb_ccl_stck_cnt ? Number(r.lnb_ccl_stck_cnt).toLocaleString() : "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.lnb_rman_stck_cnt ? Number(r.lnb_rman_stck_cnt).toLocaleString() : "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.lnb_bal ? Number(r.lnb_bal).toLocaleString() + "원" : "—"}</td>
               </tr>
-            )) : <tr><td colSpan={6} style={{ ...td, color: "#333", textAlign: "center", padding: 16 }}>
+            )) : <tr><td colSpan={6} className="p-4 text-sm font-data border-b border-border text-text-3/50 text-center">
               {loading ? "FETCHING..." : "기준일 입력 후 FETCH"}
             </td></tr>}
           </tbody>
@@ -1125,22 +1127,24 @@ function KSDPanel() {
 
       {/* 권리일정 */}
       {mode === "rights" && (
-        <table style={{ borderCollapse: "collapse", width: "100%", maxWidth: 780 }}>
+        <table className="border-collapse w-full max-w-[780px]">
           <thead><tr>
-            {["기준일", "발행회사", "발행사유", "권리행사사유", "권리행사시작일", "권리행사종료일", "명부폐쇄시작"].map(h => <th key={h} style={th}>{h}</th>)}
+            {["기준일", "발행회사", "발행사유", "권리행사사유", "권리행사시작일", "권리행사종료일", "명부폐쇄시작"].map(h => (
+              <th key={h} className="py-1 pr-3 text-accent text-sm text-left border-b border-border whitespace-nowrap">{h}</th>
+            ))}
           </tr></thead>
           <tbody>
             {rightsResult && rightsResult.rows.length > 0 ? rightsResult.rows.map((r, i) => (
               <tr key={i}>
-                <td style={{ ...td, color: "#888", fontSize: 14 }}>{r.bas_dt ?? "—"}</td>
-                <td style={td}>{r.stck_issu_cmpy_nm ?? "—"}</td>
-                <td style={td}>{r.stck_issu_rcd_nm ?? "—"}</td>
-                <td style={{ ...td, color: "#ff8c00" }}>{r.rgt_exert_rcd_nm ?? r.rgt_exert_rcd ?? "—"}</td>
-                <td style={td}>{r.rgt_exert_sttg_dt ?? "—"}</td>
-                <td style={td}>{r.rgt_exert_ed_dt ?? "—"}</td>
-                <td style={td}>{r.nmls_lck_sttg_dt ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-3">{r.bas_dt ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.stck_issu_cmpy_nm ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.stck_issu_rcd_nm ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-accent">{r.rgt_exert_rcd_nm ?? r.rgt_exert_rcd ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.rgt_exert_sttg_dt ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.rgt_exert_ed_dt ?? "—"}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-text-2">{r.nmls_lck_sttg_dt ?? "—"}</td>
               </tr>
-            )) : <tr><td colSpan={7} style={{ ...td, color: "#333", textAlign: "center", padding: 16 }}>
+            )) : <tr><td colSpan={7} className="p-4 text-sm font-data border-b border-border text-text-3/50 text-center">
               {loading ? "FETCHING..." : "시작/종료일 입력 후 FETCH"}
             </td></tr>}
           </tbody>
@@ -1176,71 +1180,71 @@ function EdgarPanel() {
     } finally { setLoading(false); }
   }
 
-  const th = { padding: "4px 12px 4px 0", color: "#ff8c00", fontSize: 14, textAlign: "left" as const, borderBottom: "1px solid #2a2a2a", whiteSpace: "nowrap" as const };
-  const td = { padding: "5px 12px 5px 0", fontSize: 14, fontFamily: "monospace", borderBottom: "1px solid #181818" };
   const fmt = (v: number | null, unit: "B" | "pct" | "plain" = "B") => {
-    if (v == null) return <span style={{ color: "#333" }}>—</span>;
-    if (unit === "B") return <span style={{ color: "#e8e8e8" }}>{(v / 1e9).toFixed(1)}B</span>;
-    if (unit === "pct") return <span style={{ color: v >= 0 ? "#00cc44" : "#ff3333" }}>{v.toFixed(1)}%</span>;
-    return <span style={{ color: "#e8e8e8" }}>{v.toFixed(2)}</span>;
+    if (v == null) return <span className="text-text-3/50">—</span>;
+    if (unit === "B") return <span className="text-text-2">{(v / 1e9).toFixed(1)}B</span>;
+    if (unit === "pct") return <span className={v >= 0 ? "text-pos" : "text-neg"}>{v.toFixed(1)}%</span>;
+    return <span className="text-text-2">{v.toFixed(2)}</span>;
   };
 
   return (
     <div>
-      <div style={{ color: "#aaa", fontSize: 13, marginBottom: 14 }}>미국 기업 XBRL 재무제표 — SEC EDGAR 무료 데이터</div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
+      <div className="text-text-3 text-[13px] mb-3.5">미국 기업 XBRL 재무제표 — SEC EDGAR 무료 데이터</div>
+      <div className="flex gap-1.5 flex-wrap mb-2.5">
         {EDGAR_TICKERS.map(t => (
-          <button key={t} onClick={() => { setTicker(t); setCustomTicker(""); }} style={{
-            padding: "4px 10px", fontSize: 13, fontFamily: "inherit", cursor: "pointer",
-            background: ticker === t && !customTicker ? "#ff8c00" : "#111",
-            color: ticker === t && !customTicker ? "#000" : "#aaa",
-            border: "1px solid " + (ticker === t && !customTicker ? "#ff8c00" : "#2a2a2a"),
-          }}>{t}</button>
+          <button
+            key={t}
+            onClick={() => { setTicker(t); setCustomTicker(""); }}
+            className={`px-2.5 py-1 text-[13px] cursor-pointer border rounded transition-colors ${
+              ticker === t && !customTicker
+                ? "bg-accent text-black border-accent"
+                : "bg-panel text-text-3 border-border hover:text-text-2"
+            }`}
+          >{t}</button>
         ))}
       </div>
-      <div style={{ ...S.toolbar, marginTop: 4 }}>
-        <span style={S.label}>TICKER</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap mt-1">
+        <span className="text-accent text-[13px]">TICKER</span>
         <input value={customTicker} onChange={e => setCustomTicker(e.target.value.toUpperCase())}
-          placeholder="커스텀 (예: NFLX)"
-          style={{ background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13, fontFamily: "inherit", width: 90 }} />
-        <span style={S.label}>YEAR</span>
+          placeholder="커스텀 (예: NFLX)" className="w-[90px]" />
+        <span className="text-accent text-[13px]">YEAR</span>
         <input type="number" value={startYear} onChange={e => setStartYear(Number(e.target.value))}
-          style={{ width: 54, background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13 }} />
-        <span style={S.muted}>~</span>
+          style={{ width: 54 }} />
+        <span className="text-text-3 text-[13px]">~</span>
         <input type="number" value={endYear} onChange={e => setEndYear(Number(e.target.value))}
-          style={{ width: 54, background: "#111", border: "1px solid #2a2a2a", color: "#e8e8e8", padding: "3px 6px", fontSize: 13 }} />
-        <button style={S.btn} onClick={run}>{loading ? "FETCHING..." : "FETCH"}</button>
-        {result && <span style={{ color: "#444", fontSize: 14 }}>CIK: {result.cik}</span>}
+          style={{ width: 54 }} />
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "FETCHING..." : "FETCH"}</button>
+        {result && <span className="text-text-3/50 text-sm">CIK: {result.cik}</span>}
       </div>
-      {error && <p style={S.err}>ERR: {error}</p>}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 700 }}>
+      {error && <p className="text-neg text-[13px] mt-0 mb-3">ERR: {error}</p>}
+      <div className="overflow-x-auto">
+        <table className="border-collapse w-full min-w-[700px]">
           <thead>
             <tr>
               {["YEAR","REVENUE","GROSS PROFIT","OP INCOME","NET INCOME","TOTAL ASSETS","EQUITY","L-T DEBT","EPS","OP MGN","NET MGN","ROE"].map(h => (
-                <th key={h} style={th}>{h}</th>
+                <th key={h} className="py-1 pr-3 text-accent text-sm text-left border-b border-border whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {result && result.rows.length > 0 ? result.rows.map(r => (
               <tr key={r.year}>
-                <td style={{ ...td, color: "#ff8c00" }}>{r.year}</td>
-                <td style={td}>{fmt(r.revenue, "B")}</td>
-                <td style={td}>{fmt(r.gross_profit, "B")}</td>
-                <td style={td}>{fmt(r.op_income, "B")}</td>
-                <td style={td}>{fmt(r.net_income, "B")}</td>
-                <td style={td}>{fmt(r.total_assets, "B")}</td>
-                <td style={td}>{fmt(r.equity, "B")}</td>
-                <td style={td}>{fmt(r.long_term_debt, "B")}</td>
-                <td style={td}>{fmt(r.eps_diluted, "plain")}</td>
-                <td style={td}>{fmt(r.op_margin_pct, "pct")}</td>
-                <td style={td}>{fmt(r.net_margin_pct, "pct")}</td>
-                <td style={td}>{fmt(r.roe_pct, "pct")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border text-accent">{r.year}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.revenue, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.gross_profit, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.op_income, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.net_income, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.total_assets, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.equity, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.long_term_debt, "B")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.eps_diluted, "plain")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.op_margin_pct, "pct")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.net_margin_pct, "pct")}</td>
+                <td className="py-[5px] pr-3 text-sm font-data border-b border-border">{fmt(r.roe_pct, "pct")}</td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={12} style={{ ...td, color: "#333", textAlign: "center", padding: 16 }}>
+                <td colSpan={12} className="p-4 text-sm font-data border-b border-border text-text-3/50 text-center">
                   {loading ? "FETCHING..." : "SELECT TICKER AND FETCH"}
                 </td>
               </tr>
@@ -1290,53 +1294,53 @@ function MonteCarloTab() {
   }
 
   const stats = [
-    { label: "PROB PROFIT",   val: result ? (result.prob_profit * 100).toFixed(1) + "%" : "—", c: result ? (result.prob_profit > 0.5 ? "#00cc44" : "#ff3333") : "#444" },
-    { label: "PROB LOSS 20%", val: result ? (result.prob_loss_20pct * 100).toFixed(1) + "%" : "—", c: result?.prob_loss_20pct != null ? "#ff3333" : "#444" },
-    { label: "MEDIAN (final)", val: result ? result.terminal_median.toFixed(3) : "—", c: pnlMC(result?.terminal_median) },
-    { label: "P5 (final)",    val: result ? result.terminal_p5.toFixed(3) : "—",    c: "#ff3333" },
-    { label: "P95 (final)",   val: result ? result.terminal_p95.toFixed(3) : "—",   c: "#00cc44" },
-    { label: "ANN RETURN (mean)", val: result ? pct(result.ann_return_mean) : "—", c: pnlMC(result?.ann_return_mean) },
-    { label: "ANN RET P5",   val: result ? pct(result.ann_return_p5) : "—",  c: "#ff3333" },
-    { label: "ANN RET P95",  val: result ? pct(result.ann_return_p95) : "—", c: "#00cc44" },
-    { label: "MAX DD (mean)", val: result ? pct(result.max_dd_mean) : "—",   c: "#ff8844" },
-    { label: "MAX DD P95",   val: result ? pct(result.max_dd_p95) : "—",    c: "#ff3333" },
+    { label: "PROB PROFIT",   val: result ? (result.prob_profit * 100).toFixed(1) + "%" : "—", cls: result ? (result.prob_profit > 0.5 ? "text-pos" : "text-neg") : "text-text-3/50" },
+    { label: "PROB LOSS 20%", val: result ? (result.prob_loss_20pct * 100).toFixed(1) + "%" : "—", cls: result?.prob_loss_20pct != null ? "text-neg" : "text-text-3/50" },
+    { label: "MEDIAN (final)", val: result ? result.terminal_median.toFixed(3) : "—", cls: pnlMCCls(result?.terminal_median) },
+    { label: "P5 (final)",    val: result ? result.terminal_p5.toFixed(3) : "—",    cls: "text-neg" },
+    { label: "P95 (final)",   val: result ? result.terminal_p95.toFixed(3) : "—",   cls: "text-pos" },
+    { label: "ANN RETURN (mean)", val: result ? pct(result.ann_return_mean) : "—", cls: pnlMCCls(result?.ann_return_mean) },
+    { label: "ANN RET P5",   val: result ? pct(result.ann_return_p5) : "—",  cls: "text-neg" },
+    { label: "ANN RET P95",  val: result ? pct(result.ann_return_p95) : "—", cls: "text-pos" },
+    { label: "MAX DD (mean)", val: result ? pct(result.max_dd_mean) : "—",   cls: "text-warn" },
+    { label: "MAX DD P95",   val: result ? pct(result.max_dd_p95) : "—",    cls: "text-neg" },
   ];
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-        <span style={S.label}>TRAIN DATE</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
+        <span className="text-accent text-[13px]">TRAIN DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <span style={S.label}>HORIZON</span>
+        <span className="text-accent text-[13px]">HORIZON</span>
         <input type="number" value={horizon} onChange={e => setHorizon(Number(e.target.value))} style={{ width: 52 }} min={20} max={1260} />
-        <span style={S.muted}>days</span>
-        <span style={S.label}>SIMS</span>
+        <span className="text-text-3 text-[13px]">days</span>
+        <span className="text-accent text-[13px]">SIMS</span>
         <input type="number" value={nSim} onChange={e => setNSim(Number(e.target.value))} style={{ width: 60 }} min={100} max={5000} step={100} />
-        <button style={S.btn} onClick={run}>{loading ? "SIMULATING..." : "RUN"}</button>
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "SIMULATING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
 
       {/* Summary stats — always visible */}
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className="flex gap-5 flex-wrap mb-4">
         {stats.map(s => (
-          <div key={s.label} style={{ minWidth: 90 }}>
-            <div style={{ color: "#ff8c00", fontSize: 13, letterSpacing: 0.5, marginBottom: 2 }}>{s.label}</div>
-            <div style={{ color: s.c, fontSize: 15, fontFamily: "monospace", fontWeight: "bold" }}>{loading ? "..." : s.val}</div>
+          <div key={s.label} className="min-w-[90px]">
+            <div className="text-accent text-[13px] tracking-wide mb-0.5">{s.label}</div>
+            <div className={`text-[15px] font-data font-bold ${s.cls}`}>{loading ? "..." : s.val}</div>
           </div>
         ))}
       </div>
 
       {/* Fan chart — always visible */}
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ display: "flex", gap: 12, fontSize: 13, color: "#555", marginBottom: 4 }}>
-          <span><span style={{ color: "#ff3333" }}>— P5</span></span>
-          <span><span style={{ color: "#ff8844" }}>— P25</span></span>
-          <span><span style={{ color: "#e8e8e8" }}>— P50</span></span>
-          <span><span style={{ color: "#44cc88" }}>— P75</span></span>
-          <span><span style={{ color: "#00cc44" }}>— P95</span></span>
+      <div className="mb-2">
+        <div className="flex gap-3 text-[13px] text-text-3/50 mb-1">
+          <span><span className="text-neg">— P5</span></span>
+          <span><span className="text-warn">— P25</span></span>
+          <span><span className="text-text-2">— P50</span></span>
+          <span><span className="text-[#44cc88]">— P75</span></span>
+          <span><span className="text-pos">— P95</span></span>
         </div>
-        <svg width={CW} height={CH} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+        <svg width={CW} height={CH} className="block bg-bg border border-border">
           {[0.25, 0.5, 0.75].map(r => <line key={r} x1={CPX} y1={CPY + r * (CH - CPY * 2)} x2={CW - CPX} y2={CPY + r * (CH - CPY * 2)} stroke="#1a1a1a" strokeWidth={1} />)}
           {/* baseline 1.0 */}
           {(() => {
@@ -1362,14 +1366,12 @@ function MonteCarloTab() {
           )}
         </svg>
       </div>
-      <div style={{ color: "#555", fontSize: 14 }}>
+      <div className="text-text-3/50 text-sm">
         Bootstrap resampling (numpy) · historical returns → {nSim.toLocaleString()} simulated paths · horizon {horizon} days
       </div>
     </div>
   );
 }
-
-function pnlMC(v: number | null | undefined) { return v == null ? "#444" : v > 1 ? "#00cc44" : v > 0 ? "#ff8c00" : "#ff3333"; }
 
 // ── Regime Filter ─────────────────────────────────────────────────────────────
 const REGIME_COLORS: Record<string, string> = {
@@ -1377,6 +1379,13 @@ const REGIME_COLORS: Record<string, string> = {
   bull_high_vol: "#ff8c00",
   bear_low_vol:  "#4488ff",
   bear_high_vol: "#ff3333",
+};
+
+const REGIME_CLS: Record<string, string> = {
+  bull_low_vol:  "text-pos",
+  bull_high_vol: "text-accent",
+  bear_low_vol:  "text-info",
+  bear_high_vol: "text-neg",
 };
 
 function RegimeTab() {
@@ -1404,37 +1413,37 @@ function RegimeTab() {
 
   return (
     <div>
-      <div style={S.toolbar}>
-        <span style={S.label}>SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-        <span style={S.label}>DATE</span>
+      <div className="flex gap-3 items-center mb-3.5 flex-wrap">
+        <span className="text-accent text-[13px]">SYMBOL</span><InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
+        <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <span style={S.label}>SMA</span>
+        <span className="text-accent text-[13px]">SMA</span>
         <input type="number" value={smaPeriod} onChange={e => setSmaPeriod(Number(e.target.value))} style={{ width: 48 }} min={5} max={200} />
-        <span style={S.label}>VOL</span>
+        <span className="text-accent text-[13px]">VOL</span>
         <input type="number" value={volPeriod} onChange={e => setVolPeriod(Number(e.target.value))} style={{ width: 48 }} min={5} max={60} />
-        <button style={S.btn} onClick={run}>{loading ? "DETECTING..." : "RUN"}</button>
+        <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "DETECTING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
 
       {/* Current regime card */}
-      <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="flex gap-6 mb-4 flex-wrap">
         {[
-          { label: "CURRENT REGIME", val: result?.current_regime?.toUpperCase().replace("_", " / ") ?? "—", c: result ? (REGIME_COLORS[result.current_regime] ?? "#e8e8e8") : "#444" },
-          { label: "CURRENT VOL (ANN.)", val: result?.current_vol != null ? (result.current_vol * 100).toFixed(2) + "%" : "—", c: "#e8e8e8" },
-          { label: "VOL THRESHOLD", val: result ? (result.vol_threshold * 100).toFixed(2) + "%" : "—", c: "#888" },
-          { label: "SMA PERIOD", val: result ? String(result.sma_period) : "—", c: "#555" },
+          { label: "CURRENT REGIME", val: result?.current_regime?.toUpperCase().replace("_", " / ") ?? "—", cls: result ? (REGIME_CLS[result.current_regime] ?? "text-text-2") : "text-text-3/50" },
+          { label: "CURRENT VOL (ANN.)", val: result?.current_vol != null ? (result.current_vol * 100).toFixed(2) + "%" : "—", cls: "text-text-2" },
+          { label: "VOL THRESHOLD", val: result ? (result.vol_threshold * 100).toFixed(2) + "%" : "—", cls: "text-text-3" },
+          { label: "SMA PERIOD", val: result ? String(result.sma_period) : "—", cls: "text-text-3/50" },
         ].map(s => (
           <div key={s.label}>
-            <div style={{ color: "#ff8c00", fontSize: 13, letterSpacing: 0.5, marginBottom: 2 }}>{s.label}</div>
-            <div style={{ color: s.c, fontSize: 15, fontFamily: "monospace", fontWeight: "bold" }}>{loading ? "..." : s.val}</div>
+            <div className="text-accent text-[13px] tracking-wide mb-0.5">{s.label}</div>
+            <div className={`text-[15px] font-data font-bold ${s.cls}`}>{loading ? "..." : s.val}</div>
           </div>
         ))}
       </div>
 
       {/* Regime timeline strip */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 4 }}>REGIME TIMELINE</div>
-        <svg width={RW} height={RH} style={{ display: "block", background: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+      <div className="mb-4">
+        <div className="text-accent text-sm mb-1">REGIME TIMELINE</div>
+        <svg width={RW} height={RH} className="block bg-bg border border-border">
           {pts.length > 1 ? pts.map((p, i) => {
             const x = Math.floor((i / pts.length) * RW);
             const w = Math.ceil(RW / pts.length) + 1;
@@ -1443,36 +1452,36 @@ function RegimeTab() {
             <text x={RW / 2} y={RH / 2} fontSize={12} fill="#333" textAnchor="middle">RUN TO SEE TIMELINE</text>
           )}
         </svg>
-        <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 13 }}>
-          {Object.entries(REGIME_COLORS).map(([name, color]) => (
-            <span key={name}><span style={{ color }}>■</span> {name.replace("_", " / ").toUpperCase()}</span>
+        <div className="flex gap-4 mt-1.5 text-[13px]">
+          {Object.entries(REGIME_CLS).map(([name, cls]) => (
+            <span key={name}><span className={cls}>■</span> {name.replace("_", " / ").toUpperCase()}</span>
           ))}
         </div>
       </div>
 
       {/* Regime distribution table */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ color: "#ff8c00", fontSize: 14, marginBottom: 6 }}>REGIME DISTRIBUTION</div>
-        <table style={{ ...S.table, maxWidth: 400 }}>
+      <div className="mb-4">
+        <div className="text-accent text-sm mb-1.5">REGIME DISTRIBUTION</div>
+        <table className="border-collapse w-full max-w-[400px]">
           <thead>
-            <tr style={{ borderBottom: "1px solid #2a2a2a" }}>
-              <th style={{ ...S.tdLabel, fontSize: 14 }}>REGIME</th>
-              <th style={{ ...S.tdVal, fontSize: 14, color: "#ff8c00" }}>% OF TIME</th>
+            <tr className="border-b border-border">
+              <th className="py-1.5 pr-[72px] text-accent text-sm w-[220px]">REGIME</th>
+              <th className="py-1.5 text-sm font-data font-bold text-accent">% OF TIME</th>
             </tr>
           </thead>
           <tbody>
             {result ? Object.entries(result.regime_distribution).sort((a, b) => b[1] - a[1]).map(([name, frac]) => (
-              <tr key={name} style={{ borderBottom: "1px solid #181818" }}>
-                <td style={{ ...S.tdLabel, color: REGIME_COLORS[name] ?? "#888" }}>{name.replace(/_/g, " / ").toUpperCase()}</td>
-                <td style={{ ...S.tdVal, color: REGIME_COLORS[name] ?? "#888" }}>{(frac * 100).toFixed(1)}%</td>
+              <tr key={name} className="border-b border-border">
+                <td className={`py-1.5 pr-[72px] text-[13px] w-[220px] ${REGIME_CLS[name] ?? "text-text-3"}`}>{name.replace(/_/g, " / ").toUpperCase()}</td>
+                <td className={`py-1.5 text-sm font-data font-bold ${REGIME_CLS[name] ?? "text-text-3"}`}>{(frac * 100).toFixed(1)}%</td>
               </tr>
             )) : (
-              <tr><td colSpan={2} style={{ ...S.tdVal, color: "#333", textAlign: "center", padding: 16 }}>RUN TO SEE DISTRIBUTION</td></tr>
+              <tr><td colSpan={2} className="py-1.5 text-sm font-data font-bold text-text-3/50 text-center p-4">RUN TO SEE DISTRIBUTION</td></tr>
             )}
           </tbody>
         </table>
       </div>
-      <div style={{ color: "#555", fontSize: 14 }}>
+      <div className="text-text-3/50 text-sm">
         Bull / Bear: price vs SMA{smaPeriod} · Low / High vol: {volPeriod}-day rolling annualised volatility vs historical median
       </div>
     </div>
@@ -1487,15 +1496,18 @@ function SubTabs({ items, active, onChange }: {
   onChange: (id: string) => void;
 }) {
   return (
-    <div style={{ display: "flex", gap: 6, marginBottom: 20, borderBottom: "1px solid #1e1e1e", paddingBottom: 12 }}>
+    <div className="flex gap-1.5 mb-5 border-b border-border pb-3">
       {items.map(item => (
-        <button key={item.id} onClick={() => onChange(item.id)} title={item.desc} style={{
-          padding: "6px 18px", fontFamily: "inherit", fontSize: 13, cursor: "pointer",
-          background: active === item.id ? "#ff8c00" : "#111",
-          color: active === item.id ? "#000" : "#aaa",
-          border: "1px solid " + (active === item.id ? "#ff8c00" : "#2a2a2a"),
-          fontWeight: active === item.id ? "bold" : "normal",
-        }}>
+        <button
+          key={item.id}
+          onClick={() => onChange(item.id)}
+          title={item.desc}
+          className={`px-5 py-1.5 text-[13px] cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
+            active === item.id
+              ? "border-accent text-accent font-bold"
+              : "border-transparent text-text-3 font-normal hover:text-text-1"
+          }`}
+        >
           {item.label}
         </button>
       ))}
@@ -1549,18 +1561,19 @@ export default function QuantPage() {
   const [tab, setTab] = useState<Tab>("risk");
 
   return (
-    <div style={S.page}>
-      <div style={S.header}>QUANTITATIVE ANALYSIS</div>
-      <div style={S.tabs}>
+    <div className="p-5">
+      <div className="text-accent text-[13px] tracking-widest uppercase mb-6">QUANTITATIVE ANALYSIS</div>
+      <div className="flex border-b border-border mb-4">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding: "6px 18px", fontSize: 13, fontFamily: "inherit", cursor: "pointer",
-            background: "transparent", border: "none",
-            borderBottom: tab === t.id ? "2px solid #ff8c00" : "2px solid transparent",
-            color: tab === t.id ? "#ff8c00" : "#888",
-            fontWeight: tab === t.id ? "bold" : "normal",
-            marginBottom: -1,
-          }}>
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-5 py-1.5 text-[13px] cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
+              tab === t.id
+                ? "border-accent text-accent font-bold"
+                : "border-transparent text-text-3 font-normal hover:text-text-1"
+            }`}
+          >
             {t.label}
           </button>
         ))}
