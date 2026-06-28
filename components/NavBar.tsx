@@ -52,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/spawner",   label: "Spawner" },
       { href: "/bots",      label: "Bots" },
       { href: "/orders",    label: "Orders" },
+      { href: "/alerts",    label: "Alerts" },
       { href: "/ai-trader", label: "AI Trader" },
     ],
   },
