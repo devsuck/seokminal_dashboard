@@ -1,21 +1,27 @@
-## Phase 17 — IB Market Data (2026-06-28)
+## Phase 17 — IB Market Data (2026-06-28) ✅ SHIPPED
 
 ### 완료된 작업
-- IBClient 확장: `get_daily_bars_forex`, `get_daily_bars_future`, `get_daily_bars_option`, `get_daily_bars_crypto`
-- API: `/ib/bars` async endpoint (5 asset types, input validation, try/except)
+- IBClient 확장: `get_daily_bars_forex` (useRTH=False), `get_daily_bars_future`, `get_daily_bars_option`, `get_daily_bars_crypto`
+- API: `/ib/bars` async endpoint (5 asset types, random client_id, UTC timestamps, input validation)
 - Frontend: `/ib` 페이지 — Stock/Forex/Future/Option/Crypto 5탭, lightweight-charts v5 캔들차트
 - NavBar: IB Data 추가 (Crypto↔Report 사이)
+- Fix: UTC timestamps in `_bar_date_to_ms`, NaN strike guard, expired expiry default, empty field guards
 
 ### 변경된 파일
 **Backend (nautilus-multi-venue):**
-- `backends/ib/client.py` (+4 methods)
-- `tests/test_ib_client.py` (+9 tests)
-- `api_server/main.py` (+IBBarsResponse, +_bar_date_to_ms, +/ib/bars)
+- `backends/ib/client.py` (+4 methods, forex useRTH=False)
+- `tests/test_ib_client.py` (+10 tests, 37/38 pass)
+- `api_server/main.py` (+IBBarsResponse, +_bar_date_to_ms UTC, +/ib/bars, +random client_id)
+- `tests/test_api_server.py` (+7 /ib/bars tests)
 
 **Frontend (nautilus-dashboard):**
-- `lib/api.ts` (+IBBar, IBBarsResponse, IBBarsParams, getIBBars)
+- `lib/api.ts` (+IBBar, IBBarsResponse, IBBarsParams, getIBBars, Number.isFinite strike guard)
 - `app/ib/page.tsx` (new — 5-tab IB data browser)
 - `components/NavBar.tsx` (IB Data link added)
+
+### 커밋 범위
+- Backend: `c87daf0..035920c`
+- Frontend: `4f98517..3e96923`
 
 ### 다음 할 일
 - Phase 18: TBD (discuss with user)
