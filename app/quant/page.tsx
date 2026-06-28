@@ -1337,7 +1337,7 @@ function MonteCarloTab() {
           <span><span className="text-neg">— P5</span></span>
           <span><span className="text-warn">— P25</span></span>
           <span><span className="text-text-2">— P50</span></span>
-          <span><span className="text-[#44cc88]">— P75</span></span>
+          <span><span style={{ color: "#44cc88" }}>— P75</span></span>
           <span><span className="text-pos">— P95</span></span>
         </div>
         <svg width={CW} height={CH} className="block bg-bg border border-border">
@@ -1496,7 +1496,7 @@ function SubTabs({ items, active, onChange }: {
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="flex gap-1.5 mb-5 border-b border-border pb-3">
+    <div className="flex gap-1.5 mb-5 border-b border-border">
       {items.map(item => (
         <button
           key={item.id}
