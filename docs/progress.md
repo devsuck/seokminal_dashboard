@@ -1,3 +1,23 @@
+### Phase 11 — Data Quality Center + Report Builder (2026-06-28)
+
+**S-13 Data Quality Center:**
+- `app/data-quality/page.tsx` — static source metadata table (8 sources) + instrument bar coverage checker
+  - Calls `getBars` for each instrument ID, computes missing bar % vs expected (~252/yr)
+  - div-based missing ratio bar (bg-pos/warn/neg), AbortController cleanup
+
+**S-14 Report Builder:**
+- `lib/report-utils.ts` — `experimentToMarkdown()`, `strategyToMarkdown()`, `notebookToMarkdown()` (pure, no deps)
+- `tests/lib/report-utils.test.ts` — 17 tests
+- `app/report/page.tsx` — source type picker, item selector from localStorage, markdown preview, Copy + Print/PDF
+
+**Nav additions:**
+- Research group: Report
+- Analyze group: Data Quality
+
+**Tests:** 115 passing (98 existing + 17 report-utils)
+
+---
+
 ### Nav Refactor (2026-06-28)
 
 **GroupedDropdown Navigation:**

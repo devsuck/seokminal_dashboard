@@ -22,35 +22,11 @@
 | 9 | Portfolio Lab + Attribution | `lib/portfolio-utils.ts`, `EfficientFrontierChart.tsx`, `/portfolio` | cd586a8..9b5a70a |
 | 10 | Bot Infrastructure | `app/bots/page.tsx` 디자인 토큰 마이그레이션 | 9b5a70a..0102869 |
 | Nav | Grouped Dropdown Nav | `components/NavBar.tsx` — 16개 → 6그룹 | 0102869..ea8f478 |
+| 11 | Data Quality Center + Report Builder | `app/data-quality/page.tsx`, `app/report/page.tsx`, `lib/report-utils.ts` | — |
 
 ---
 
 ## 남은 Phase
-
-### Phase 11: Data Quality Center + Report Builder (S-13 + S-14)
-
-**목표:** 데이터 신뢰성 대시보드 + 리서치 결과 리포트 자동생성
-
-#### S-13. Data Quality Center
-- `app/data-quality/page.tsx`
-- 데이터 소스별 메타데이터 테이블: Source (KRX/KSD/FRED/ECOS/EDGAR), Coverage (날짜 범위, 종목 수), Update Frequency, Missing Data 비율, Corporate Action 적용 여부
-- `/bars` 엔드포인트로 종목별 데이터 커버리지 체크
-- 결측 비율 시각화 (div-based bar)
-- Nav: Analyze 그룹 추가
-
-#### S-14. Report Builder
-- `lib/report-utils.ts` — Experiment/Strategy/Notebook → Markdown 문자열 생성
-- `tests/lib/report-utils.test.ts`
-- `app/report/page.tsx` — 소스 선택 (Experiment ID / Strategy / Notebook), 프리뷰 패널, 출력 (Markdown 텍스트 복사, HTML, 브라우저 print → PDF)
-- Nav: Research 그룹 추가
-- 신규 dependency 없음 (브라우저 `window.print()` 사용)
-
-**예상 Task 구성:**
-1. `lib/report-utils.ts` + tests
-2. `app/report/page.tsx` + nav
-3. `app/data-quality/page.tsx` + nav + docs
-
----
 
 ### Phase 12: Workflow Automation (S-15)
 

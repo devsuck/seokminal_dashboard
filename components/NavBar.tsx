@@ -23,10 +23,11 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Analyze",
     items: [
-      { href: "/correlation", label: "Correlation" },
-      { href: "/event-study", label: "Event Study" },
-      { href: "/rolling",     label: "Rolling" },
-      { href: "/factor",      label: "Factor" },
+      { href: "/correlation",  label: "Correlation" },
+      { href: "/event-study",  label: "Event Study" },
+      { href: "/rolling",      label: "Rolling" },
+      { href: "/factor",       label: "Factor" },
+      { href: "/data-quality", label: "Data Quality" },
     ],
   },
   {
