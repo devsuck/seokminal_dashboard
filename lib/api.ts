@@ -1027,3 +1027,95 @@ export async function getIBBars(
     await fetch(`${API_URL}/ib/bars?${p}`, { signal })
   );
 }
+
+// ── KR Universe Search ──────────────────────────────────────────────────────────
+
+export interface KRSearchResult {
+  code: string;
+  name: string;
+  market: string;
+}
+
+export interface KRSearchResponse {
+  query: string;
+  results: KRSearchResult[];
+  count: number;
+}
+
+export interface USSearchResult {
+  symbol: string;
+  name: string;
+  sec_type: string;
+  exchange: string;
+  currency: string;
+}
+
+export interface USSearchResponse {
+  query: string;
+  results: USSearchResult[];
+  count: number;
+}
+
+export interface KRBar {
+  date: string; // YYYYMMDD
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface KRBarsResponse {
+  code: string;
+  name: string;
+  bars: KRBar[];
+  count: number;
+}
+
+export interface KISTick {
+  code: string;
+  time: string; // HHMMSS
+  price: number;
+  change: number;
+  change_rate: number;
+  trade_volume: number;
+  total_volume: number;
+  error?: string;
+}
+
+export async function searchKR(
+  q: string,
+  signal?: AbortSignal,
+): Promise<KRSearchResponse> {
+  const r = await fetch(
+    `${API_URL}/search/kr?q=${encodeURIComponent(q)}`,
+    { signal },
+  );
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function searchUS(
+  q: string,
+  signal?: AbortSignal,
+): Promise<USSearchResponse> {
+  const r = await fetch(
+    `${API_URL}/search/us?q=${encodeURIComponent(q)}`,
+    { signal },
+  );
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function getKRBars(
+  code: string,
+  days: number,
+  signal?: AbortSignal,
+): Promise<KRBarsResponse> {
+  const r = await fetch(
+    `${API_URL}/kr/bars?code=${encodeURIComponent(code)}&days=${days}`,
+    { signal },
+  );
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}

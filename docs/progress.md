@@ -1,3 +1,23 @@
+## Phase 18 — Universal Search + Real-time Streaming (2026-06-28) ✅ SHIPPED
+
+### 완료된 작업
+- KR universe cache (`kr_universe/client.py`) — KIND scrape, 24h TTL, name/code search
+- `/search/kr?q=...` — KR 종목 검색 (최대 20개)
+- `/kr/bars?code=...&days=...` — KIS on-demand OHLCV
+- `/search/us?q=...` — IB reqMatchingSymbols
+- `/ws/live/{code}` — KIS WS → FastAPI WS relay, `_parse_kis_tick`
+- Frontend: `/search` 페이지 — KR/US 검색, 캔들차트, 실시간 틱 오버레이
+- NavBar: Search 링크 추가
+
+### 변경된 파일
+**Backend:** `kr_universe/`, `api_server/main.py`, `tests/test_kr_universe.py`, `tests/test_api_server.py`, `pyproject.toml`
+**Frontend:** `lib/api.ts`, `app/search/page.tsx`, `components/NavBar.tsx`, `docs/`
+
+### 다음 할 일
+- Phase 19: Strategy Spawner UI
+
+---
+
 ## Phase 17 — IB Market Data (2026-06-28) ✅ SHIPPED
 
 ### 완료된 작업
