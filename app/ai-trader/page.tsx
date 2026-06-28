@@ -1,31 +1,5 @@
 "use client";
 
-const S = {
-  page: { padding: 20 },
-  header: { color: "#ff8c00", fontSize: 13, letterSpacing: 1, marginBottom: 24 },
-  box: {
-    border: "1px solid #2a2a2a",
-    padding: 28,
-    maxWidth: 640,
-    background: "#0d0d0d",
-  },
-  title: { color: "#ff8c00", fontSize: 15, fontWeight: "bold" as const, marginBottom: 14 },
-  badge: {
-    display: "inline-block",
-    background: "#1a1a1a",
-    color: "#777",
-    border: "1px solid #333",
-    padding: "3px 12px",
-    fontSize: 12,
-    letterSpacing: 1,
-    marginBottom: 18,
-  },
-  desc: { color: "#888", fontSize: 14, lineHeight: 2 },
-  featureList: { margin: "16px 0", paddingLeft: 0, listStyle: "none" as const },
-  feature: { color: "#aaa", fontSize: 13, padding: "4px 0", display: "flex" as const, gap: 8 },
-  dot: { color: "#ff8c00" },
-};
-
 const PLANNED_FEATURES = [
   "LangGraph multi-agent trading orchestration",
   "Autonomous order execution with risk limits",
@@ -38,23 +12,40 @@ const PLANNED_FEATURES = [
 
 export default function AITraderPage() {
   return (
-    <div style={S.page}>
-      <div style={S.header}>AI AUTONOMOUS TRADER</div>
-      <div style={S.box}>
-        <div style={S.badge}>UNDER DEVELOPMENT</div>
-        <div style={S.title}>AGENTIC TRADING SYSTEM</div>
-        <p style={S.desc}>
-          Multi-agent AI framework for fully autonomous trading.<br />
-          Currently in design phase — implementation begins after quant suite stabilization.
+    <div className="p-6 space-y-4 max-w-[760px]">
+      <div>
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">AI Trader</h1>
+        <p className="text-text-3 text-sm mt-0.5">
+          Agentic trading system — multi-agent AI framework for autonomous execution.
         </p>
-        <ul style={S.featureList}>
-          {PLANNED_FEATURES.map(f => (
-            <li key={f} style={S.feature}>
-              <span style={S.dot}>›</span>
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
+      </div>
+
+      <div className="bg-panel border border-border rounded-lg p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] px-2 py-1 rounded border border-warn/40 text-warn bg-warn/5 tracking-wider uppercase">
+            Under Development
+          </span>
+        </div>
+
+        <div>
+          <h2 className="text-text-1 text-sm font-semibold">Agentic Trading System</h2>
+          <p className="text-text-3 text-sm mt-2 leading-relaxed">
+            Multi-agent AI framework for fully autonomous trading.
+            Currently in design phase — implementation begins after quant suite stabilization.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="text-text-3 text-[10px] uppercase tracking-wider">Planned Features</div>
+          <ul className="space-y-1.5">
+            {PLANNED_FEATURES.map(f => (
+              <li key={f} className="flex items-start gap-2 text-sm text-text-2">
+                <span className="text-accent mt-0.5 flex-shrink-0">›</span>
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

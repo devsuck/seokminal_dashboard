@@ -105,11 +105,11 @@ export function CorrelationNetwork({
       .attr("pointer-events", "none")
       .text(d => d.correlation.toFixed(2));
 
-    const nodeEl = svg
+    const nodeEl = (svg
       .append("g")
       .selectAll("circle")
       .data(nodes)
-      .join("circle")
+      .join("circle") as d3.Selection<SVGCircleElement, NetworkNode, SVGGElement, unknown>)
       .attr("r", 20)
       .attr("fill", d => nodeColor(d.id))
       .attr("fill-opacity", 0.85)
