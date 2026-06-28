@@ -1,7 +1,7 @@
 # Nautilus Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-28  
-**HEAD:** 29efdc7  
+**HEAD:** 816546b  
 **테스트:** 127/127 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -28,19 +28,7 @@
 | 13 | Options Analytics | `options/pricer.py`, `app/options/page.tsx`, IV Surface heatmap | — |
 | 14 | Futures Analytics | `futures/pricer.py`, `app/futures/page.tsx`, term structure curve | — |
 | 15 | Forex Analytics | `forex/pricer.py`, `app/forex/page.tsx`, forward curve | — |
-
----
-
-## 향후 계획 — Asset Class 확장 (Phase 16)
-
-각 Phase는 백엔드(nautilus-multi-venue) + 프론트엔드(nautilus-dashboard) 동시 작업 필요.
-
-### Phase 16: Crypto (가상화폐)
-- **백엔드:** Binance/Upbit WebSocket + REST 연동
-- **프론트엔드:** 24h 가격 대시보드, 거래량 프로파일, 호가창(Order Book)
-- **Nav:** Market 그룹 또는 Assets▾
-
-> **Nav 설계 결정 (각 Phase 시작 전):** 현재 Market은 단독 항목. Asset class 추가 시 Market을 드롭다운으로 전환하거나, 별도 `Assets▾` 그룹 추가. `NAV_GROUPS` 배열만 수정하면 됨 (`components/NavBar.tsx`).
+| 16 | Crypto Analytics | `hyperliquid/client.py`, `app/crypto/page.tsx`, order book depth | — |
 
 ---
 

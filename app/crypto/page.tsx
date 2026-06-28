@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import * as d3 from "d3";
 import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "lightweight-charts";
 import {
   ApiError,
-  getCryptoAssets, getCryptoCandles,
+  getCryptoAssets, getCryptoCandles, getCryptoBook,
   type CryptoAssetsResponse, type CryptoCandlesResponse,
+  type CryptoBookResponse, type BookLevel,
 } from "@/lib/api";
 
 type Tab = "markets" | "chart" | "book";
@@ -262,6 +264,224 @@ function ChartTab() {
   );
 }
 
+// ── Book Tab ──────────────────────────────────────────────────────────────────
+
+function BookTab() {
+  const [coin, setCoin]       = useState("BTC");
+  const [result, setResult]   = useState<CryptoBookResponse | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const abortRef              = useRef<AbortController | null>(null);
+  const svgRef                = useRef<SVGSVGElement | null>(null);
+
+  async function load() {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true); setError(null);
+    try {
+      setResult(await getCryptoBook(coin.toUpperCase(), ctrl.signal));
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setError(e instanceof ApiError ? e.message : "Failed");
+      setResult(null);
+    } finally {
+      if (!ctrl.signal.aborted) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!result || !svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    const W = 600, H = 280;
+    const margin = { top: 20, right: 30, bottom: 40, left: 80 };
+    const innerW = W - margin.left - margin.right;
+    const innerH = H - margin.top - margin.bottom;
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const N = 15;
+    const bids = result.bids.slice(0, N);
+    const asks = result.asks.slice(0, N);
+
+    // Cumulative bid depth (bids sorted best=highest first → cumulate left to right)
+    const bidCum: { price: number; cumSize: number }[] = [];
+    bids.forEach((l, i) => {
+      bidCum.push({ price: l.price, cumSize: (bidCum[i - 1]?.cumSize ?? 0) + l.size });
+    });
+
+    // Cumulative ask depth (asks sorted best=lowest first → cumulate left to right)
+    const askCum: { price: number; cumSize: number }[] = [];
+    asks.forEach((l, i) => {
+      askCum.push({ price: l.price, cumSize: (askCum[i - 1]?.cumSize ?? 0) + l.size });
+    });
+
+    const allPrices = [...bidCum.map(d => d.price), ...askCum.map(d => d.price)];
+    const maxCum = Math.max(...bidCum.map(d => d.cumSize), ...askCum.map(d => d.cumSize));
+
+    const xScale = d3.scaleLinear()
+      .domain([d3.min(allPrices)! * 0.9995, d3.max(allPrices)! * 1.0005])
+      .range([0, innerW]);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, maxCum * 1.05])
+      .range([innerH, 0]);
+
+    // Bid area (green, prices from worst to best = left to right)
+    const bidArea = d3.area<{ price: number; cumSize: number }>()
+      .x(d => xScale(d.price))
+      .y0(innerH)
+      .y1(d => yScale(d.cumSize))
+      .curve(d3.curveStepAfter);
+
+    g.append("path")
+      .datum([...bidCum].reverse())   // worst bid first for step chart
+      .attr("d", bidArea)
+      .attr("fill", "#44cc88")
+      .attr("opacity", 0.3);
+
+    g.append("path")
+      .datum([...bidCum].reverse())
+      .attr("d",
+        d3.line<{ price: number; cumSize: number }>()
+          .x(d => xScale(d.price))
+          .y(d => yScale(d.cumSize))
+          .curve(d3.curveStepAfter)
+      )
+      .attr("fill", "none")
+      .attr("stroke", "#44cc88")
+      .attr("stroke-width", 1.5);
+
+    // Ask area (red, prices from best to worst = left to right)
+    const askArea = d3.area<{ price: number; cumSize: number }>()
+      .x(d => xScale(d.price))
+      .y0(innerH)
+      .y1(d => yScale(d.cumSize))
+      .curve(d3.curveStepBefore);
+
+    g.append("path")
+      .datum(askCum)
+      .attr("d", askArea)
+      .attr("fill", "#ff4444")
+      .attr("opacity", 0.3);
+
+    g.append("path")
+      .datum(askCum)
+      .attr("d",
+        d3.line<{ price: number; cumSize: number }>()
+          .x(d => xScale(d.price))
+          .y(d => yScale(d.cumSize))
+          .curve(d3.curveStepBefore)
+      )
+      .attr("fill", "none")
+      .attr("stroke", "#ff4444")
+      .attr("stroke-width", 1.5);
+
+    // Mid price vertical dashed line
+    g.append("line")
+      .attr("x1", xScale(result.mid_price)).attr("x2", xScale(result.mid_price))
+      .attr("y1", 0).attr("y2", innerH)
+      .attr("stroke", "#9AA4B2")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "4 4");
+
+    g.append("text")
+      .attr("x", xScale(result.mid_price))
+      .attr("y", -6)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#9AA4B2")
+      .attr("font-size", 10)
+      .text(`Mid ${result.mid_price.toFixed(2)}`);
+
+    // Axes
+    g.append("g")
+      .attr("transform", `translate(0,${innerH})`)
+      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d => String(+d)))
+      .call(ax => ax.select(".domain").remove())
+      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 10))
+      .call(ax => ax.selectAll(".tick line").remove());
+
+    g.append("g")
+      .call(d3.axisLeft(yScale).ticks(5))
+      .call(ax => ax.select(".domain").remove())
+      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 10))
+      .call(ax => ax.selectAll(".tick line").attr("stroke", "#2a3040").attr("x2", innerW));
+
+    // Axis labels
+    g.append("text")
+      .attr("x", innerW / 2).attr("y", innerH + 32)
+      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
+      .text("Price");
+
+    g.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -innerH / 2).attr("y", -62)
+      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
+      .text("Cumulative Size");
+
+  }, [result]);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-panel border border-border rounded-lg p-4">
+        <div className="flex gap-3 items-end">
+          <div className="space-y-1">
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">Coin</label>
+            <input
+              type="text"
+              value={coin}
+              onChange={e => setCoin(e.target.value.toUpperCase())}
+              placeholder="BTC"
+              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-20 uppercase"
+            />
+          </div>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
+          >
+            {loading ? "Loading…" : "Load"}
+          </button>
+        </div>
+      </div>
+      <Err msg={error} />
+      {result && (
+        <div className="bg-panel border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-4">
+            <span className="text-text-3 text-[11px] uppercase tracking-wider">
+              {result.coin} · Order Book Depth
+            </span>
+            <span className="text-text-2 text-[11px]">
+              Spread: <span className="text-text-1 font-data">{result.spread.toFixed(4)}</span>
+              {" "}(<span className="text-text-1 font-data">{result.spread_pct.toFixed(4)}%</span>)
+            </span>
+          </div>
+          <div className="p-4">
+            <svg ref={svgRef} width={600} height={280} className="block" />
+          </div>
+          <div className="px-4 pb-3 flex gap-6 text-[11px] text-text-3">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#44cc88", opacity: 0.7 }} />
+              Bids
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#ff4444", opacity: 0.7 }} />
+              Asks
+            </span>
+          </div>
+        </div>
+      )}
+      {!result && !loading && !error && (
+        <div className="text-center py-16 text-text-3 text-sm">
+          Enter a coin and click Load to view the order book depth.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string }[] = [
@@ -300,11 +520,7 @@ export default function CryptoPage() {
 
       {tab === "markets" && <MarketsTab />}
       {tab === "chart"   && <ChartTab />}
-      {tab === "book"    && (
-        <div className="text-center py-16 text-text-3 text-sm">
-          Order book depth — implemented in Task 4.
-        </div>
-      )}
+      {tab === "book"    && <BookTab />}
     </div>
   );
 }

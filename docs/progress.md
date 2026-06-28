@@ -1,3 +1,29 @@
+## Phase 16 — Crypto Analytics (2026-06-28)
+
+### 완료된 작업
+- Hyperliquid 클라이언트: `get_all_mids`, `get_meta_and_ctxs`, `get_candles`, `get_l2_book` (`hyperliquid/client.py`)
+- API: `/crypto/assets`, `/crypto/candles`, `/crypto/book` endpoints (`api_server/main.py`)
+- Frontend: `/crypto` 페이지 — Markets 테이블 (라이브 데이터), Chart (lightweight-charts v5 캔들), Order Book Depth (D3 누적 depth chart)
+- NavBar: Crypto 추가 (Forex↔Report 사이)
+
+### 변경된 파일
+**Backend (nautilus-multi-venue):**
+- `hyperliquid/__init__.py` (new)
+- `hyperliquid/client.py` (new)
+- `tests/test_hyperliquid_client.py` (new, 9 tests, mocked)
+- `api_server/main.py` (+~80 lines)
+- `pyproject.toml` (+hyperliquid*)
+
+**Frontend (nautilus-dashboard):**
+- `lib/api.ts` (+3 functions, +5 types)
+- `app/crypto/page.tsx` (new)
+- `components/NavBar.tsx` (Crypto link added)
+
+### 다음 할 일
+- Phase 17: IB 실제 데이터 연결 (Options/Forex/Futures 기존 페이지 업그레이드)
+
+---
+
 ## Phase 15 — Forex Analytics (2026-06-28)
 
 ### 완료된 작업
