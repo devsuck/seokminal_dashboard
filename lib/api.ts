@@ -1218,6 +1218,8 @@ export interface BotLiveEntry {
   last_price: number | null;
   last_signal: string | null;
   error: string | null;
+  entry_price: number | null;
+  unrealized_pnl: number | null;
 }
 
 export interface AllBotsStatusResponse {
@@ -1268,4 +1270,45 @@ export async function getAllBotsLiveStatus(
 ): Promise<AllBotsStatusResponse> {
   const r = await fetch(`${API_URL}/bots/all-live-status`, { signal });
   return handleResponse<AllBotsStatusResponse>(r);
+}
+
+// ── US Orders ─────────────────────────────────────────────────────────────────
+
+export interface USOrderRequest {
+  symbol: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  order_type: "MARKET" | "LIMIT";
+  limit_price?: number;
+}
+
+export interface USOrderResponse {
+  order_id: number;
+  status: string;
+  filled: number;
+  remaining: number;
+}
+
+export async function placeUSOrder(
+  req: USOrderRequest,
+  signal?: AbortSignal,
+): Promise<USOrderResponse> {
+  const r = await fetch(`${API_URL}/orders/us`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<USOrderResponse>(r);
+}
+
+export async function cancelUSOrder(
+  orderId: number,
+  signal?: AbortSignal,
+): Promise<USOrderResponse> {
+  const r = await fetch(`${API_URL}/orders/us/${orderId}/cancel`, {
+    method: "POST",
+    signal,
+  });
+  return handleResponse<USOrderResponse>(r);
 }

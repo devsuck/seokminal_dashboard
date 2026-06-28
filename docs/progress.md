@@ -1,3 +1,20 @@
+## Phase 21 — Orders Complete (2026-06-28) ✅ SHIPPED
+
+### 완료된 작업
+- Backend: `POST /orders/us` (IB 수동 주문), `POST /orders/us/{id}/cancel`, `GET /orders/us/{id}/status`
+- Backend: `live_engine` entry_price 추적 + `unrealized_pnl` 계산
+- Frontend: KR/US 탭, cancel/status 버튼, Entry + Unr. PnL 컬럼
+- order-storage: venue 필드 + updateOrderStatus 추가
+
+### 변경된 파일
+**Backend:** `api_server/main.py`, `live_engine/broker_interface.py`, `live_engine/engine.py`, `tests/test_orders_us_api.py`, `tests/test_live_engine_pnl.py`
+**Frontend:** `lib/order-storage.ts`, `lib/api.ts`, `app/orders/page.tsx`, `tests/lib/order-storage.test.ts`
+
+### 다음 할 일
+- Phase 22: Notifications + Alert System
+
+---
+
 ## Phase 20 — Live Order Dashboard (2026-06-28) ✅ SHIPPED
 
 ### 완료된 작업
