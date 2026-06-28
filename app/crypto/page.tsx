@@ -296,6 +296,8 @@ function BookTab() {
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
+    if (!result.bids.length || !result.asks.length) return;
+
     const W = 600, H = 280;
     const margin = { top: 20, right: 30, bottom: 40, left: 80 };
     const innerW = W - margin.left - margin.right;
