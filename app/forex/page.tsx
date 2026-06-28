@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as d3 from "d3";
 import {
   ApiError,
-  getForexForward, getForexCarry,
-  type ForexForwardResponse, type ForexCarryResponse,
+  getForexForward, getForexCarry, getForexCurve,
+  type ForexForwardResponse, type ForexCarryResponse, type ForexCurveResponse,
 } from "@/lib/api";
 
 type Tab = "forward" | "curve" | "carry";
@@ -244,6 +245,191 @@ function CarryTab() {
   );
 }
 
+// ── Curve Tab ─────────────────────────────────────────────────────────────────
+
+function CurveTab() {
+  const [spot, setSpot]       = useState("1.10");
+  const [rDom, setRDom]       = useState("0.05");
+  const [rFor, setRFor]       = useState("0.03");
+  const [result, setResult]   = useState<ForexCurveResponse | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const abortRef              = useRef<AbortController | null>(null);
+  const svgRef                = useRef<SVGSVGElement | null>(null);
+
+  async function run() {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true); setError(null);
+    try {
+      setResult(await getForexCurve(
+        parseFloat(spot), parseFloat(rDom), parseFloat(rFor), ctrl.signal
+      ));
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setError(e instanceof ApiError ? e.message : "Failed");
+      setResult(null);
+    } finally {
+      if (!ctrl.signal.aborted) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!result || !svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    const W = 560, H = 280;
+    const margin = { top: 20, right: 20, bottom: 48, left: 72 };
+    const innerW = W - margin.left - margin.right;
+    const innerH = H - margin.top - margin.bottom;
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const { rows } = result;
+    const spotVal = result.spot;
+
+    const xScale = d3.scaleLinear()
+      .domain([0, d3.max(rows, d => d.tenor_days)!])
+      .range([0, innerW]);
+
+    const allPrices = [...rows.map(d => d.forward), spotVal];
+    const yMin = d3.min(allPrices)! * 0.999;
+    const yMax = d3.max(allPrices)! * 1.001;
+    const yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerH, 0]);
+
+    // Color: premium (r_d > r_f) = green, discount = red
+    const isPremium = rows[0]?.market_structure === "premium";
+    const fillColor = isPremium ? "#44cc88" : "#ff4444";
+
+    // Fill area between spot and forward curve
+    const area = d3.area<typeof rows[0]>()
+      .x(d => xScale(d.tenor_days))
+      .y0(yScale(spotVal))
+      .y1(d => yScale(d.forward))
+      .curve(d3.curveCatmullRom);
+
+    g.append("path")
+      .datum(rows)
+      .attr("d", area)
+      .attr("fill", fillColor)
+      .attr("opacity", 0.15);
+
+    // Spot price horizontal dashed reference line
+    g.append("line")
+      .attr("x1", 0).attr("x2", innerW)
+      .attr("y1", yScale(spotVal)).attr("y2", yScale(spotVal))
+      .attr("stroke", "#9AA4B2")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "4 4");
+
+    g.append("text")
+      .attr("x", -6).attr("y", yScale(spotVal) + 4)
+      .attr("text-anchor", "end")
+      .attr("fill", "#9AA4B2")
+      .attr("font-size", 10)
+      .text(`S=${spotVal}`);
+
+    // Forward curve line
+    const line = d3.line<typeof rows[0]>()
+      .x(d => xScale(d.tenor_days))
+      .y(d => yScale(d.forward))
+      .curve(d3.curveCatmullRom);
+
+    g.append("path")
+      .datum(rows)
+      .attr("d", line)
+      .attr("fill", "none")
+      .attr("stroke", fillColor)
+      .attr("stroke-width", 2);
+
+    // Dots + forward rate labels at each tenor
+    rows.forEach(d => {
+      g.append("circle")
+        .attr("cx", xScale(d.tenor_days))
+        .attr("cy", yScale(d.forward))
+        .attr("r", 3.5)
+        .attr("fill", fillColor);
+
+      g.append("text")
+        .attr("x", xScale(d.tenor_days))
+        .attr("y", yScale(d.forward) - 8)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#9AA4B2")
+        .attr("font-size", 9)
+        .text(d.forward.toFixed(4));
+    });
+
+    // x-axis
+    g.append("g")
+      .attr("transform", `translate(0,${innerH})`)
+      .call(d3.axisBottom(xScale).tickValues(rows.map(r => r.tenor_days)).tickFormat(d => `${d}d`))
+      .call(ax => ax.select(".domain").remove())
+      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 11))
+      .call(ax => ax.selectAll(".tick line").remove());
+
+    // y-axis
+    g.append("g")
+      .call(d3.axisLeft(yScale).ticks(5).tickFormat(d => String(d)))
+      .call(ax => ax.select(".domain").remove())
+      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 11))
+      .call(ax => ax.selectAll(".tick line").attr("stroke", "#2a3040").attr("x2", innerW));
+
+    // Axis labels
+    g.append("text")
+      .attr("x", innerW / 2).attr("y", innerH + 38)
+      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
+      .text("Tenor (days)");
+
+    g.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -innerH / 2).attr("y", -58)
+      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
+      .text("Forward Rate");
+
+  }, [result]);
+
+  const structure = result?.rows[0]?.market_structure ?? null;
+
+  return (
+    <div className="space-y-4">
+      <InputRow
+        fields={[
+          { label: "Spot (S)",        value: spot, set: setSpot },
+          { label: "Rate Dom. (r_d)", value: rDom, set: setRDom },
+          { label: "Rate For. (r_f)", value: rFor, set: setRFor },
+        ]}
+        onCompute={run}
+        loading={loading}
+      />
+      <Err msg={error} />
+      {result && (
+        <div className="bg-bg border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
+            <span className="text-text-3 text-[11px] uppercase tracking-wider">
+              Forward Curve — Spot {result.spot}
+            </span>
+            {structure && (
+              <span className={`text-[11px] font-semibold uppercase tracking-wider ${structureCls(structure)}`}>
+                {structure}
+              </span>
+            )}
+          </div>
+          <div className="p-4">
+            <svg ref={svgRef} width={560} height={280} className="block" />
+          </div>
+        </div>
+      )}
+      {!result && !loading && !error && (
+        <div className="text-center py-16 text-text-3 text-sm">
+          Configure parameters and click Compute to view the forward curve.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string }[] = [
@@ -282,11 +468,7 @@ export default function ForexPage() {
 
       {tab === "forward" && <ForwardTab />}
       {tab === "carry"   && <CarryTab />}
-      {tab === "curve"   && (
-        <div className="text-center py-16 text-text-3 text-sm">
-          Forward curve — implemented in Task 4.
-        </div>
-      )}
+      {tab === "curve"   && <CurveTab />}
     </div>
   );
 }

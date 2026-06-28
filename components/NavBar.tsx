@@ -20,6 +20,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/quant",       label: "Quant" },
       { href: "/options",     label: "Options" },
       { href: "/futures",     label: "Futures" },
+      { href: "/forex",       label: "Forex" },
       { href: "/report",      label: "Report" },
     ],
   },

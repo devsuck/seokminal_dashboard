@@ -1,3 +1,29 @@
+## Phase 15 — Forex Analytics (2026-06-28)
+
+### 완료된 작업
+- CIRP pricer: `fx_forward`, `fx_curve`, `fx_carry` (`forex/pricer.py`)
+- API: `/forex/forward`, `/forex/curve`, `/forex/carry` endpoints (`api_server/main.py`)
+- Frontend: `/forex` page — Forward pricer card, Carry analysis table, Forward Curve D3 line chart
+- NavBar: Forex added to Research group (after Futures, before Report)
+
+### 변경된 파일
+**Backend (nautilus-multi-venue):**
+- `forex/__init__.py` (new)
+- `forex/pricer.py` (new)
+- `tests/test_forex_pricer.py` (new)
+- `api_server/main.py` (+~100 lines)
+- `pyproject.toml` (+forex*)
+
+**Frontend (nautilus-dashboard):**
+- `lib/api.ts` (+3 functions, +4 types)
+- `app/forex/page.tsx` (new)
+- `components/NavBar.tsx` (Forex link added)
+
+### 다음 할 일
+- Phase 16: Crypto (Binance/Upbit WebSocket + REST 연동)
+
+---
+
 ## Phase 14 — Futures Analytics (2026-06-28)
 
 ### 완료된 작업

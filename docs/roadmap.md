@@ -1,7 +1,7 @@
 # Nautilus Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-28  
-**HEAD:** 7ac2737  
+**HEAD:** ba140a8  
 **테스트:** 127/127 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -27,17 +27,13 @@
 | Cleanup | D3 타입 에러 수정 + 디자인 토큰 전면 적용 + ai-trader 플레이스홀더 | `CorrelationNetwork.tsx`, `app/quant/page.tsx`, `app/ai-trader/page.tsx` | 5cee8ae..a60fea1 |
 | 13 | Options Analytics | `options/pricer.py`, `app/options/page.tsx`, IV Surface heatmap | — |
 | 14 | Futures Analytics | `futures/pricer.py`, `app/futures/page.tsx`, term structure curve | — |
+| 15 | Forex Analytics | `forex/pricer.py`, `app/forex/page.tsx`, forward curve | — |
 
 ---
 
-## 향후 계획 — Asset Class 확장 (Phase 15~16)
+## 향후 계획 — Asset Class 확장 (Phase 16)
 
 각 Phase는 백엔드(nautilus-multi-venue) + 프론트엔드(nautilus-dashboard) 동시 작업 필요.
-
-### Phase 15: Forex
-- **백엔드:** FX 환율 데이터 (ECOS 또는 외부 API 연동)
-- **프론트엔드:** Currency Pair 선택기, Cross-rate Matrix, FX 차트
-- **Nav:** Market 그룹 또는 Assets▾
 
 ### Phase 16: Crypto (가상화폐)
 - **백엔드:** Binance/Upbit WebSocket + REST 연동
