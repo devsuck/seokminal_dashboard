@@ -1,5 +1,6 @@
 export interface OrderLogEntry {
   id: string;
+  venue: "KR" | "US";
   code: string;
   side: "BUY" | "SELL";
   qty: number;
@@ -30,6 +31,14 @@ export function addOrderEntry(
     submitted_at: new Date().toISOString(),
   };
   log.push(full);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
+  return log;
+}
+
+export function updateOrderStatus(id: string, newStatus: string): OrderLogEntry[] {
+  const log = getOrderLog();
+  const entry = log.find(e => e.id === id);
+  if (entry) entry.status = newStatus;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
   return log;
 }
