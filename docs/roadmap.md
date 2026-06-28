@@ -1,7 +1,7 @@
 # Nautilus Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-28  
-**HEAD:** 5c25495  
+**HEAD:** 214107e  
 **테스트:** 127/127 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -29,7 +29,7 @@
 
 ---
 
-## 향후 계획 — Asset Class 확장 (Phase 13~16)
+## 향후 계획 — Asset Class 확장 (Phase 14~16)
 
 각 Phase는 백엔드(nautilus-multi-venue) + 프론트엔드(nautilus-dashboard) 동시 작업 필요.
 
