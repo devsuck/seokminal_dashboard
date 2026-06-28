@@ -40,6 +40,7 @@ export default function AlertsPage() {
   const [creating, setCreating]               = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+  const trigAbortRef = useRef<AbortController | null>(null);
 
   const loadRules = useCallback(async () => {
     abortRef.current?.abort();
@@ -56,9 +57,12 @@ export default function AlertsPage() {
   }, []);
 
   const loadTriggered = useCallback(async () => {
+    trigAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    trigAbortRef.current = ctrl;
     setLoading(true);
     try {
-      const fresh = await getTriggeredAlerts();
+      const fresh = await getTriggeredAlerts(ctrl.signal);
       const merged = mergeTriggered(fresh);
       setTriggered(merged);
       setTrigError(null);
@@ -74,7 +78,10 @@ export default function AlertsPage() {
   useEffect(() => {
     loadRules();
     loadTriggered();
-    return () => { abortRef.current?.abort(); };
+    return () => {
+      abortRef.current?.abort();
+      trigAbortRef.current?.abort();
+    };
   }, [loadRules, loadTriggered]);
 
   const handleCreate = async () => {
