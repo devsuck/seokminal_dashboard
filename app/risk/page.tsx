@@ -84,7 +84,7 @@ export default function RiskPage() {
       if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof ApiError ? e.message : "Fetch failed");
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted) setLoading(false);
     }
   }
 
