@@ -1,8 +1,8 @@
 # Nautilus Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-28  
-**HEAD:** ea8f478  
-**테스트:** 98/98 통과  
+**HEAD:** a60fea1  
+**테스트:** 127/127 통과  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
 ---
@@ -24,34 +24,35 @@
 | Nav | Grouped Dropdown Nav | `components/NavBar.tsx` — 16개 → 6그룹 | 0102869..ea8f478 |
 | 11 | Data Quality Center + Report Builder | `app/data-quality/page.tsx`, `app/report/page.tsx`, `lib/report-utils.ts` | — |
 | 12 | Workflow Automation | `app/workflow/page.tsx`, `lib/workflow-storage.ts` | — |
+| Cleanup | D3 타입 에러 수정 + 디자인 토큰 전면 적용 + ai-trader 플레이스홀더 | `CorrelationNetwork.tsx`, `app/quant/page.tsx`, `app/ai-trader/page.tsx` | 5cee8ae..a60fea1 |
 
 ---
 
-## 향후 추가 예정 (Asset Class 확장)
+## 향후 계획 — Asset Class 확장 (Phase 13~16)
 
-다음 Asset Class를 추가할 계획이 있음. Phase 계획 미수립 상태.
+각 Phase는 백엔드(nautilus-multi-venue) + 프론트엔드(nautilus-dashboard) 동시 작업 필요.
 
-### 옵션 (Options)
-- 필요 백엔드: Greeks (Delta/Gamma/Theta/Vega), IV Surface
-- 필요 UI: Options Chain 테이블, IV Surface 3D 차트 (D3 또는 Three.js)
-- Nav: Market 그룹 또는 별도 그룹
+### Phase 13: Options (옵션)
+- **백엔드:** Greeks (Delta/Gamma/Theta/Vega) 계산, IV Surface 데이터 수집/저장
+- **프론트엔드:** Options Chain 테이블, IV Surface 3D 차트 (D3 또는 Three.js)
+- **Nav:** Research▾ 또는 별도 `Assets▾` 그룹
 
-### 선물 (Futures)
-- 필요 백엔드: 롤오버 처리, 연속 계약 데이터
-- 필요 UI: 계약 달력, 롤오버 차트
-- Nav: Market 그룹
+### Phase 14: Futures (선물)
+- **백엔드:** 롤오버 처리, 연속 계약(Continuous Contract) 데이터 파이프라인
+- **프론트엔드:** 계약 달력(Contract Calendar), 롤오버 차트
+- **Nav:** Market 그룹 또는 Assets▾
 
-### Forex
-- 필요 백엔드: FX 환율 데이터 (ECOS 또는 외부 API)
-- 필요 UI: Currency Pair 선택기, Cross-rate Matrix
-- Nav: Market 그룹
+### Phase 15: Forex
+- **백엔드:** FX 환율 데이터 (ECOS 또는 외부 API 연동)
+- **프론트엔드:** Currency Pair 선택기, Cross-rate Matrix, FX 차트
+- **Nav:** Market 그룹 또는 Assets▾
 
-### 가상화폐 (Crypto)
-- 필요 백엔드: Binance/Upbit 연동
-- 필요 UI: 24h 가격, 거래량 프로파일
-- Nav: Market 그룹
+### Phase 16: Crypto (가상화폐)
+- **백엔드:** Binance/Upbit WebSocket + REST 연동
+- **프론트엔드:** 24h 가격 대시보드, 거래량 프로파일, 호가창(Order Book)
+- **Nav:** Market 그룹 또는 Assets▾
 
-> **Nav 설계 참고:** 현재 Market은 단독 항목. Asset class 확장 시 Market을 드롭다운으로 전환하거나, 별도 `Assets▾` 그룹 추가 권장.
+> **Nav 설계 결정 (각 Phase 시작 전):** 현재 Market은 단독 항목. Asset class 추가 시 Market을 드롭다운으로 전환하거나, 별도 `Assets▾` 그룹 추가. `NAV_GROUPS` 배열만 수정하면 됨 (`components/NavBar.tsx`).
 
 ---
 
