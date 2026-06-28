@@ -703,3 +703,104 @@ export async function getOptionsIvSurface(
     await fetch(`${API_URL}/options/iv-surface?${params}`, { signal })
   );
 }
+
+// ── Futures ──────────────────────────────────────────────────────────────────
+
+export interface FuturesPriceResponse {
+  spot: number;
+  rate: number;
+  convenience_yield: number;
+  expiry_days: number;
+  price: number;
+  basis: number;
+  basis_pct: number;
+  annualized_carry: number;
+  market_structure: string;
+}
+
+export interface FuturesCalendarRow {
+  expiry_days: number;
+  price: number;
+  basis: number;
+  basis_pct: number;
+  annualized_carry: number;
+  market_structure: string;
+}
+
+export interface FuturesCalendarResponse {
+  spot: number;
+  rate: number;
+  convenience_yield: number;
+  rows: FuturesCalendarRow[];
+}
+
+export interface FuturesRollRow {
+  front_days: number;
+  back_days: number;
+  front_price: number;
+  back_price: number;
+  roll_cost: number;
+  roll_cost_pct: number;
+  annualized_roll_yield: number;
+  days_to_roll: number;
+}
+
+export interface FuturesRollResponse {
+  spot: number;
+  rate: number;
+  convenience_yield: number;
+  front_days: number;
+  rolls: FuturesRollRow[];
+}
+
+export async function getFuturesPrice(
+  spot: number,
+  rate: number,
+  convenienceYield: number,
+  expiryDays: number,
+  signal?: AbortSignal
+): Promise<FuturesPriceResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate: String(rate),
+    convenience_yield: String(convenienceYield),
+    expiry_days: String(expiryDays),
+  });
+  return handleResponse<FuturesPriceResponse>(
+    await fetch(`${API_URL}/futures/price?${params}`, { signal })
+  );
+}
+
+export async function getFuturesCalendar(
+  spot: number,
+  rate: number,
+  convenienceYield: number,
+  signal?: AbortSignal
+): Promise<FuturesCalendarResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate: String(rate),
+    convenience_yield: String(convenienceYield),
+  });
+  return handleResponse<FuturesCalendarResponse>(
+    await fetch(`${API_URL}/futures/calendar?${params}`, { signal })
+  );
+}
+
+export async function getFuturesRoll(
+  spot: number,
+  rate: number,
+  convenienceYield: number,
+  frontDays: number,
+  signal?: AbortSignal
+): Promise<FuturesRollResponse> {
+  const params = new URLSearchParams({
+    spot: String(spot),
+    rate: String(rate),
+    convenience_yield: String(convenienceYield),
+    front_days: String(frontDays),
+  });
+  return handleResponse<FuturesRollResponse>(
+    await fetch(`${API_URL}/futures/roll?${params}`, { signal })
+  );
+}
