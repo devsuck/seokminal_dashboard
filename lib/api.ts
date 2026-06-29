@@ -1528,3 +1528,56 @@ export async function getTriggeredAlerts(
   const data: TriggeredAlertsResponse = await r.json();
   return data.triggered;
 }
+
+// ── Walk-Forward ──────────────────────────────────────────────────────────────
+
+export interface WalkForwardWindow {
+  window_start: string;
+  window_end: string;
+  sharpe_ratio: number | null;
+  total_pnl_pct: number | null;
+  win_rate: number | null;
+  max_drawdown: number | null;
+  num_trades: number;
+}
+
+export interface WalkForwardSummary {
+  avg_sharpe: number | null;
+  avg_pnl_pct: number | null;
+  profitable_windows: number;
+  total_windows: number;
+  avg_max_drawdown: number | null;
+}
+
+export interface WalkForwardResponse {
+  instrument_id: string;
+  strategy: string;
+  n_windows: number;
+  windows: WalkForwardWindow[];
+  summary: WalkForwardSummary;
+}
+
+export async function getWalkForward(
+  instrumentId: string,
+  start: string,
+  end: string,
+  strategy: string,
+  strategyParams: Record<string, string>,
+  nWindows: number,
+  signal?: AbortSignal,
+): Promise<WalkForwardResponse> {
+  const params = new URLSearchParams({
+    instrument_id: instrumentId,
+    start,
+    end,
+    strategy,
+    n_windows: String(nWindows),
+    ...strategyParams,
+  });
+  const r = await fetch(`${API_URL}/backtest/walk-forward?${params.toString()}`, { signal });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new ApiError(r.status, err.detail ?? r.statusText);
+  }
+  return r.json();
+}

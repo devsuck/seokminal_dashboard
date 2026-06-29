@@ -30,6 +30,7 @@ import {
 import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
 import type { StrategyParams } from "@/lib/strategy-storage";
 import { StrategyComparePanel } from "@/components/backtest/StrategyComparePanel";
+import { WalkForwardPanel } from "@/components/backtest/WalkForwardPanel";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { PageBanner } from "@/components/PageBanner";
 
@@ -851,6 +852,25 @@ function BacktestPageInner() {
               instrumentId={instrumentId}
               start={start}
               end={end}
+            />
+          )}
+
+          {/* Walk-Forward Analysis */}
+          {mode === "single" && result !== null && (
+            <WalkForwardPanel
+              instrumentId={instrumentId}
+              start={start}
+              end={end}
+              strategy={strategyType}
+              strategyParams={
+                strategyType === "macd"
+                  ? { fast: String(macdFast), slow: String(macdSlow), signal_period: String(macdSignal) }
+                  : strategyType === "rsi"
+                  ? { period: String(rsiPeriod), oversold: String(rsiOversold), overbought: String(rsiOverbought) }
+                  : strategyType === "xgb"
+                  ? { xgb_train_ratio: String(xgbTrainRatio), xgb_n_estimators: String(xgbNEstimators), xgb_max_depth: String(xgbMaxDepth), xgb_learning_rate: String(xgbLearningRate) }
+                  : { fast: String(fast), slow: String(slow) }
+              }
             />
           )}
         </div>
