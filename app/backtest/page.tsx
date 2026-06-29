@@ -237,7 +237,7 @@ export default function BacktestPage() {
                   />
                   <button
                     onClick={() => {
-                      saveBacktestResult({
+                      const saved = saveBacktestResult({
                         label: saveLabel.trim() || `${instrumentId} ${start}`,
                         instrumentId,
                         start,
@@ -247,7 +247,7 @@ export default function BacktestPage() {
                         result,
                       });
                       setShowSaveResult(false);
-                      setResultSaved(true);
+                      if (saved !== null) setResultSaved(true);
                     }}
                     className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors whitespace-nowrap"
                   >

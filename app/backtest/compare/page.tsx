@@ -53,7 +53,7 @@ const METRICS: MetricDef[] = [
     label: "Max Drawdown",
     get: r => r.result.max_drawdown,
     fmt: v => (v != null ? `${(v * 100).toFixed(2)}%` : "—"),
-    higherBetter: false,
+    higherBetter: true,
   },
   {
     label: "Win Rate",

@@ -18,7 +18,7 @@ export interface SavedBacktestResult {
 
 export function saveBacktestResult(
   entry: Omit<SavedBacktestResult, "id" | "timestamp">
-): SavedBacktestResult {
+): SavedBacktestResult | null {
   const saved: SavedBacktestResult = {
     ...entry,
     id: `bt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -32,7 +32,9 @@ export function saveBacktestResult(
     try {
       const trimmed = [saved, ...existing.slice(0, Math.floor(MAX_RESULTS / 2))];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-    } catch { /* storage exhausted */ }
+    } catch {
+      return null;
+    }
   }
   return saved;
 }

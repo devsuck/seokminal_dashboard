@@ -54,9 +54,10 @@ describe("backtest-result-storage", () => {
 
   it("saveBacktestResult persists and returns entry with id and timestamp", () => {
     const saved = saveBacktestResult(BASE_ENTRY);
-    expect(saved.id).toMatch(/^bt_\d+_[a-z0-9]{5}$/);
-    expect(saved.timestamp).toBeGreaterThan(0);
-    expect(saved.label).toBe("AAPL EMA 10/20");
+    expect(saved).not.toBeNull();
+    expect(saved!.id).toMatch(/^bt_\d+_[a-z0-9]{5}$/);
+    expect(saved!.timestamp).toBeGreaterThan(0);
+    expect(saved!.label).toBe("AAPL EMA 10/20");
     expect(getBacktestResults()).toHaveLength(1);
   });
 
@@ -70,7 +71,8 @@ describe("backtest-result-storage", () => {
 
   it("deleteBacktestResult removes by id", () => {
     const saved = saveBacktestResult(BASE_ENTRY);
-    deleteBacktestResult(saved.id);
+    expect(saved).not.toBeNull();
+    deleteBacktestResult(saved!.id);
     expect(getBacktestResults()).toHaveLength(0);
   });
 
