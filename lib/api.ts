@@ -1621,3 +1621,13 @@ export async function getInsiderUS(ticker: string, days: number, signal?: AbortS
   const r = await fetch(`${API_URL}/insider/us?ticker=${encodeURIComponent(ticker)}&days=${days}`, { signal });
   return handleResponse<InsiderTrade[]>(r);
 }
+
+export async function getInsiderUSRecent(days: number, maxFilings: number, signal?: AbortSignal): Promise<InsiderTrade[]> {
+  const r = await fetch(`${API_URL}/insider/us/recent?days=${days}&max_filings=${maxFilings}`, { signal });
+  return handleResponse<InsiderTrade[]>(r);
+}
+
+export async function getInsiderKRRecent(days: number, maxCorps: number, signal?: AbortSignal): Promise<InsiderTrade[]> {
+  const r = await fetch(`${API_URL}/insider/kr/recent?days=${days}&max_corps=${maxCorps}`, { signal });
+  return handleResponse<InsiderTrade[]>(r);
+}
