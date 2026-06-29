@@ -238,6 +238,25 @@ export async function runPortfolioBacktest(
   );
 }
 
+export interface AiRecommendation {
+  instrument_id: string;
+  strategy: string;
+  params: Record<string, number>;
+  reasoning: string;
+}
+
+export async function getAiRecommendation(
+  instrumentId: string,
+  start: string,
+  end: string,
+  signal?: AbortSignal,
+): Promise<AiRecommendation> {
+  const params = new URLSearchParams({ instrument_id: instrumentId, start, end });
+  return handleResponse<AiRecommendation>(
+    await fetch(`${API_URL}/ai/strategy-recommend?${params.toString()}`, { signal })
+  );
+}
+
 export async function getBeta(
   instrumentId: string,
   benchmarkId: string,
