@@ -1648,3 +1648,68 @@ export async function getEconomicCalendar(week: "this" | "next", signal?: AbortS
   const r = await fetch(`${API_URL}/calendar/economic?week=${week}`, { signal });
   return handleResponse<EconomicEvent[]>(r);
 }
+
+// ── Fear & Greed ───────────────────────────────────────────────────────────────
+
+export interface FearGreedResponse {
+  value: number;
+  classification: string;
+  timestamp: string;
+}
+
+export async function getFearGreed(signal?: AbortSignal): Promise<FearGreedResponse> {
+  const r = await fetch(`${API_URL}/macro/fear-greed`, { signal });
+  return handleResponse<FearGreedResponse>(r);
+}
+
+// ── News ───────────────────────────────────────────────────────────────────────
+
+export interface NewsItem {
+  id: number | string;
+  headline: string;
+  summary: string;
+  source: string;
+  url: string;
+  datetime: number;
+  category: string;
+  related: string | null;
+  image: string | null;
+}
+
+export async function getMarketNews(category = "general", signal?: AbortSignal): Promise<NewsItem[]> {
+  const r = await fetch(`${API_URL}/news/market?category=${encodeURIComponent(category)}`, { signal });
+  return handleResponse<NewsItem[]>(r);
+}
+
+export async function getCompanyNews(ticker: string, days = 7, signal?: AbortSignal): Promise<NewsItem[]> {
+  const r = await fetch(`${API_URL}/news/company?ticker=${encodeURIComponent(ticker)}&days=${days}`, { signal });
+  return handleResponse<NewsItem[]>(r);
+}
+
+// ── Screener ───────────────────────────────────────────────────────────────────
+
+export interface ScreenerResult {
+  instrument_id: string;
+  last_price: number;
+  rsi14: number | null;
+  ema12: number | null;
+  ema26: number | null;
+  ema_signal: "bullish_cross" | "bearish_cross" | "above" | "below" | "neutral";
+  change_pct: number | null;
+}
+
+export async function runScreener(params: {
+  instruments: string;
+  rsi_min?: number;
+  rsi_max?: number;
+  ema_signal?: string;
+  days?: number;
+}, signal?: AbortSignal): Promise<ScreenerResult[]> {
+  const q = new URLSearchParams({ instruments: params.instruments });
+  if (params.rsi_min != null) q.set("rsi_min", String(params.rsi_min));
+  if (params.rsi_max != null) q.set("rsi_max", String(params.rsi_max));
+  if (params.ema_signal) q.set("ema_signal", params.ema_signal);
+  if (params.days != null) q.set("days", String(params.days));
+  const r = await fetch(`${API_URL}/screener?${q}`, { signal });
+  return handleResponse<ScreenerResult[]>(r);
+}

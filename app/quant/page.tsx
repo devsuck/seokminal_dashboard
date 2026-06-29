@@ -435,7 +435,7 @@ function CorrelationTab() {
                   return (
                     <td key={b} className="p-0">
                       <div className="w-20 h-11 flex items-center justify-center border border-border" style={{ background: corrBg(v) }}>
-                        <span className="text-sm font-data font-bold" style={{ color: Math.abs(v) > 0.5 ? "#000" : "#ccc" }}>{v.toFixed(2)}</span>
+                        <span className={`text-sm font-data font-bold ${Math.abs(v) > 0.5 ? "text-[#000]" : "text-text-3"}`}>{v.toFixed(2)}</span>
                       </div>
                     </td>
                   );

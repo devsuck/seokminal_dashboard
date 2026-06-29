@@ -17,8 +17,9 @@ import type {
 } from "@/lib/api";
 import { RollingChart } from "@/components/rolling/RollingChart";
 import type { RollingSeries } from "@/components/rolling/RollingChart";
+import { PnlCalendar } from "@/components/bots/PnlCalendar";
 
-type Tab = "trades" | "equity" | "signals";
+type Tab = "trades" | "equity" | "signals" | "calendar";
 
 const SIGNAL_CLASS: Record<string, string> = {
   EMA_BUY: "text-pos",
@@ -121,6 +122,7 @@ export default function BotDetailPage() {
     { key: "trades", label: "Trade Log" },
     { key: "equity", label: "Equity Curve" },
     { key: "signals", label: "Signal Log" },
+    { key: "calendar", label: "P&L Calendar" },
   ];
 
   return (
@@ -312,6 +314,11 @@ export default function BotDetailPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+      {tab === "calendar" && (
+        <div className="bg-panel border border-border rounded-lg p-4">
+          <PnlCalendar trades={trades} weeks={12} />
         </div>
       )}
     </main>

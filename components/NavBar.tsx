@@ -43,6 +43,8 @@ export function NavBar() {
         { href: "/factor",       label: t("nav.factor") },
         { href: "/insider",      label: t("nav.insider") },
         { href: "/calendar",     label: t("nav.calendar") },
+        { href: "/news",         label: t("nav.news") },
+        { href: "/screener",     label: t("nav.screener") },
         { href: "/risk",         label: t("nav.risk") },
         { href: "/data-quality", label: t("nav.data-quality") },
       ],
