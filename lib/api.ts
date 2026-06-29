@@ -194,6 +194,50 @@ export async function runBacktestOptimize(
   );
 }
 
+export interface PortfolioInstrumentResult {
+  instrument_id: string;
+  sharpe_ratio: number | null;
+  total_pnl: number | null;
+  total_pnl_pct: number | null;
+  max_drawdown: number | null;
+  win_rate: number | null;
+  trade_count: number;
+  bar_count: number;
+}
+
+export interface EquityPoint {
+  ts_ns: number;
+  equity: number;
+}
+
+export interface PortfolioBacktestResponse {
+  results: PortfolioInstrumentResult[];
+  portfolio_equity: EquityPoint[];
+  portfolio_total_pnl: number | null;
+  portfolio_max_drawdown: number | null;
+  portfolio_sharpe: number | null;
+}
+
+export async function runPortfolioBacktest(
+  instrumentIds: string[],
+  start: string,
+  end: string,
+  strategy: string,
+  strategyParams: Record<string, string>,
+  signal?: AbortSignal,
+): Promise<PortfolioBacktestResponse> {
+  const params = new URLSearchParams({
+    instrument_ids: instrumentIds.join(","),
+    start,
+    end,
+    strategy,
+    ...strategyParams,
+  });
+  return handleResponse<PortfolioBacktestResponse>(
+    await fetch(`${API_URL}/backtest/portfolio?${params.toString()}`, { signal })
+  );
+}
+
 export async function getBeta(
   instrumentId: string,
   benchmarkId: string,
