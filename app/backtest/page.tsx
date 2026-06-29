@@ -32,6 +32,7 @@ import type { StrategyParams } from "@/lib/strategy-storage";
 import { StrategyComparePanel } from "@/components/backtest/StrategyComparePanel";
 import { WalkForwardPanel } from "@/components/backtest/WalkForwardPanel";
 import { PositionSizingPanel } from "@/components/backtest/PositionSizingPanel";
+import { MonteCarloPanel } from "@/components/backtest/MonteCarloPanel";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { PageBanner } from "@/components/PageBanner";
 
@@ -850,6 +851,15 @@ function BacktestPageInner() {
           {/* Strategy Comparison */}
           {mode === "single" && (
             <StrategyComparePanel
+              instrumentId={instrumentId}
+              start={start}
+              end={end}
+            />
+          )}
+
+          {/* Monte Carlo Simulation */}
+          {mode === "single" && result !== null && (
+            <MonteCarloPanel
               instrumentId={instrumentId}
               start={start}
               end={end}
