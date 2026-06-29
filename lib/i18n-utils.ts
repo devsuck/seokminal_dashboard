@@ -30,6 +30,7 @@ export const TRANSLATIONS: Translations = {
   "nav.event-study":  { ko: "이벤트 분석", en: "Event Study", de: "Ereignisstudie" },
   "nav.rolling":      { ko: "롤링",        en: "Rolling",     de: "Rollend" },
   "nav.factor":       { ko: "팩터",        en: "Factor",      de: "Faktor" },
+  "nav.insider":      { ko: "내부자 거래", en: "Insider",     de: "Insider" },
   "nav.risk":         { ko: "리스크",      en: "Risk",        de: "Risiko" },
   "nav.data-quality": { ko: "데이터 품질", en: "Data Quality",de: "Datenqualität" },
   "nav.backtest":     { ko: "백테스트",    en: "Backtest",    de: "Backtest" },
@@ -171,6 +172,14 @@ export const TRANSLATIONS: Translations = {
     ko: "전략 파라미터 실험을 기록하고 결과를 비교·관리합니다.",
     en: "Log strategy parameter experiments and compare results.",
     de: "Protokollieren Sie Strategie-Parameter-Experimente und vergleichen Sie Ergebnisse.",
+  },
+
+  // Insider trading
+  "page.insider.title":         { ko: "내부자 거래 모니터",  en: "Insider Trades",  de: "Insiderhandel" },
+  "page.insider.desc": {
+    ko: "미국(SEC EDGAR Form 4)과 한국(OpenDART) 임원·주요주주의 공개시장 매수/매도 내역을 조회합니다. 내부자 거래는 합법적이며, 공시 의무가 있는 정보입니다.",
+    en: "Track open-market buy/sell disclosures by corporate insiders for US (SEC EDGAR Form 4) and Korea (OpenDART). Insider trades are legal and publicly disclosed.",
+    de: "Verfolgen Sie offizielle Kauf-/Verkaufsmeldungen von Unternehmensinsidern für US (SEC EDGAR) und Korea (OpenDART).",
   },
 
   // IB live widget

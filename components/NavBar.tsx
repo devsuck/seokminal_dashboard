@@ -41,6 +41,7 @@ export function NavBar() {
         { href: "/event-study",  label: t("nav.event-study") },
         { href: "/rolling",      label: t("nav.rolling") },
         { href: "/factor",       label: t("nav.factor") },
+        { href: "/insider",      label: t("nav.insider") },
         { href: "/risk",         label: t("nav.risk") },
         { href: "/data-quality", label: t("nav.data-quality") },
       ],

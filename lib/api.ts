@@ -1581,3 +1581,43 @@ export async function getWalkForward(
   }
   return r.json();
 }
+
+// ── Insider Trading ───────────────────────────────────────────────────────────
+
+export interface DartCompany {
+  corp_code: string;
+  corp_name: string;
+  stock_code: string;
+}
+
+export interface InsiderTrade {
+  trade_date: string;
+  reporter: string;
+  trade_type: "BUY" | "SELL" | "OTHER";
+  shares_change?: number | null;
+  shares?: number | null;
+  price_per_share?: number | null;
+  value_usd?: number | null;
+  shares_owned_after?: number | null;
+  shares_total?: number | null;
+  ownership_pct?: number | null;
+  report_type?: string | null;
+  corp_name?: string | null;
+  ticker?: string | null;
+  issuer?: string | null;
+}
+
+export async function searchDartCompany(q: string, signal?: AbortSignal): Promise<DartCompany[]> {
+  const r = await fetch(`${API_URL}/insider/kr/search?q=${encodeURIComponent(q)}`, { signal });
+  return handleResponse<DartCompany[]>(r);
+}
+
+export async function getInsiderKR(corpCode: string, days: number, signal?: AbortSignal): Promise<InsiderTrade[]> {
+  const r = await fetch(`${API_URL}/insider/kr?corp_code=${corpCode}&days=${days}`, { signal });
+  return handleResponse<InsiderTrade[]>(r);
+}
+
+export async function getInsiderUS(ticker: string, days: number, signal?: AbortSignal): Promise<InsiderTrade[]> {
+  const r = await fetch(`${API_URL}/insider/us?ticker=${encodeURIComponent(ticker)}&days=${days}`, { signal });
+  return handleResponse<InsiderTrade[]>(r);
+}
