@@ -31,6 +31,7 @@ export const TRANSLATIONS: Translations = {
   "nav.rolling":      { ko: "롤링",        en: "Rolling",     de: "Rollend" },
   "nav.factor":       { ko: "팩터",        en: "Factor",      de: "Faktor" },
   "nav.insider":      { ko: "내부자 거래", en: "Insider",     de: "Insider" },
+  "nav.calendar":     { ko: "경제 캘린더", en: "Calendar",    de: "Kalender" },
   "nav.risk":         { ko: "리스크",      en: "Risk",        de: "Risiko" },
   "nav.data-quality": { ko: "데이터 품질", en: "Data Quality",de: "Datenqualität" },
   "nav.backtest":     { ko: "백테스트",    en: "Backtest",    de: "Backtest" },

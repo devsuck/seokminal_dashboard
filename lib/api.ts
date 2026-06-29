@@ -1631,3 +1631,20 @@ export async function getInsiderKRRecent(days: number, maxCorps: number, signal?
   const r = await fetch(`${API_URL}/insider/kr/recent?days=${days}&max_corps=${maxCorps}`, { signal });
   return handleResponse<InsiderTrade[]>(r);
 }
+
+// ── Economic Calendar ──────────────────────────────────────────────────────────
+
+export interface EconomicEvent {
+  title: string;
+  country: string;
+  date: string;
+  impact: string;
+  forecast: string | null;
+  previous: string | null;
+  actual: string | null;
+}
+
+export async function getEconomicCalendar(week: "this" | "next", signal?: AbortSignal): Promise<EconomicEvent[]> {
+  const r = await fetch(`${API_URL}/calendar/economic?week=${week}`, { signal });
+  return handleResponse<EconomicEvent[]>(r);
+}
