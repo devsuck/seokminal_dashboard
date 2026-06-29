@@ -566,6 +566,48 @@ export async function deleteBot(id: string): Promise<void> {
   if (!res.ok) { const b = await res.json().catch(() => ({ detail: res.statusText })); throw new ApiError(res.status, b.detail); }
 }
 
+export interface ClosedTrade {
+  entry_ts_ns: number | null;
+  exit_ts_ns: number;
+  side: "LONG" | "SHORT";
+  entry_price: number;
+  exit_price: number;
+  qty: number;
+  pnl: number;
+}
+
+export interface SignalEntry {
+  ts_ns: number;
+  signal: string;
+  price: number;
+}
+
+export interface BotTradeLogResponse {
+  bot_id: string;
+  trades: ClosedTrade[];
+}
+
+export interface BotSignalLogResponse {
+  bot_id: string;
+  signals: SignalEntry[];
+}
+
+export async function getBot(id: string): Promise<BotRecord> {
+  return handleResponse<BotRecord>(await fetch(`${API_URL}/bots/${encodeURIComponent(id)}`));
+}
+
+export async function fetchBotTrades(id: string, signal?: AbortSignal): Promise<BotTradeLogResponse> {
+  return handleResponse<BotTradeLogResponse>(
+    await fetch(`${API_URL}/bots/${encodeURIComponent(id)}/trades`, { signal })
+  );
+}
+
+export async function fetchBotSignals(id: string, signal?: AbortSignal): Promise<BotSignalLogResponse> {
+  return handleResponse<BotSignalLogResponse>(
+    await fetch(`${API_URL}/bots/${encodeURIComponent(id)}/signals`, { signal })
+  );
+}
+
 // ── Correlation ───────────────────────────────────────────────────────────────
 
 export interface CorrelationPair {
