@@ -1,3 +1,15 @@
+## Cleanup (2026-06-29) ✅ DONE
+
+### 완료된 작업
+- `app/quant/page.tsx` — `style={{ width }}` 위반 9개 → `className="w-N"` 교체
+- D3 타입 에러 (`CorrelationNetwork.tsx`) — 이미 수정됨 (tsc 0 errors)
+- `app/ai-trader/page.tsx` — 이미 깔끔한 placeholder
+
+### 변경된 파일
+`app/quant/page.tsx` (449984b)
+
+---
+
 ## Phase 24 — Backtesting UI v2 (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
