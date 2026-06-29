@@ -8,11 +8,11 @@ export const TRANSLATIONS: Translations = {
   // Nav groups
   "nav.dashboard":  { ko: "대시보드",   en: "Dashboard",  de: "Dashboard" },
   "nav.market":     { ko: "시장",       en: "Market",     de: "Markt" },
-  "nav.workflow":   { ko: "워크플로우", en: "Workflow",   de: "Workflow" },
-  "nav.research":   { ko: "리서치",     en: "Research",   de: "Forschung" },
+  "nav.discovery":  { ko: "발굴",       en: "Discovery",  de: "Entdeckung" },
   "nav.analyze":    { ko: "분석",       en: "Analyze",    de: "Analyse" },
-  "nav.trade":      { ko: "트레이딩",   en: "Trade",      de: "Handel" },
-  "nav.live":       { ko: "라이브",     en: "Live",       de: "Live" },
+  "nav.strategy":   { ko: "전략",       en: "Strategy",   de: "Strategie" },
+  "nav.backtest-group": { ko: "백테스트", en: "Backtest", de: "Backtest" },
+  "nav.trading":    { ko: "트레이딩",   en: "Trading",    de: "Handel" },
 
   // Nav items
   "nav.search":       { ko: "종목 검색",   en: "Search",      de: "Suche" },

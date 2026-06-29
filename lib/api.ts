@@ -1130,11 +1130,19 @@ export interface IBBarsResponse {
   count: number;
 }
 
+export const IB_BAR_SIZES = [
+  "1 min", "5 mins", "15 mins", "30 mins",
+  "1 hour", "4 hours",
+  "1 day", "1 week", "1 month",
+] as const;
+export type IBBarSize = typeof IB_BAR_SIZES[number];
+
 export interface IBBarsParams {
   symbol: string;
   asset_type: "stock" | "forex" | "future" | "option" | "crypto";
   end_date?: string;
   duration?: string;
+  bar_size?: IBBarSize;
   exchange?: string;
   expiry?: string;
   strike?: number;
@@ -1148,6 +1156,7 @@ export async function getIBBars(
   const p = new URLSearchParams({ symbol: params.symbol, asset_type: params.asset_type });
   if (params.end_date)  p.set("end_date",  params.end_date);
   if (params.duration)  p.set("duration",  params.duration);
+  if (params.bar_size)  p.set("bar_size",  params.bar_size);
   if (params.exchange)  p.set("exchange",  params.exchange);
   if (params.expiry)    p.set("expiry",    params.expiry);
   if (params.strike !== undefined && Number.isFinite(params.strike) && params.strike !== 0) p.set("strike", String(params.strike));

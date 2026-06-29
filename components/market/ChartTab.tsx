@@ -49,16 +49,44 @@ export function ChartTab({ symbol }: ChartTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
+  const PRESETS = [
+    { label: "1M",  months: 1 },
+    { label: "3M",  months: 3 },
+    { label: "6M",  months: 6 },
+    { label: "1Y",  months: 12 },
+    { label: "3Y",  months: 36 },
+    { label: "5Y",  months: 60 },
+    { label: "ALL", months: 120 },
+  ];
+
+  function applyPreset(months: number) {
+    const e = today();
+    const d = new Date();
+    d.setMonth(d.getMonth() - months);
+    const s = d.toISOString().slice(0, 10);
+    setStart(s);
+    setEnd(e);
+  }
+
   return (
     <div className="flex flex-col gap-3 p-4">
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">Date</span>
+      {/* Timeframe preset buttons */}
+      <div className="flex items-center gap-1">
+        {PRESETS.map(p => (
+          <button
+            key={p.label}
+            onClick={() => { applyPreset(p.months); }}
+            className="px-2.5 py-1 text-xs font-medium rounded border border-border text-text-3 hover:text-text-1 hover:border-accent hover:text-accent bg-panel-2 transition-colors"
+          >{p.label}</button>
+        ))}
+        <span className="text-border text-xs ml-2">|</span>
+        <span className="text-text-3 text-[11px] uppercase tracking-wider ml-2">Custom</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         <button
           onClick={loadBars}
-          className="px-4 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0"
+          className="px-4 h-7 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0"
         >
-          {loading ? "Loading…" : "Load"}
+          {loading ? "…" : "Load"}
         </button>
         {!loading && bars.length > 0 && (
           <span className="text-text-3 text-xs font-data">{bars.length} bars</span>

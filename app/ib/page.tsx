@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "lightweight-charts";
-import { ApiError, getIBBars, type IBBarsResponse } from "@/lib/api";
+import { ApiError, getIBBars, IB_BAR_SIZES, type IBBarsResponse, type IBBarSize } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 
 type AssetTab = "stock" | "forex" | "future" | "option" | "crypto";
@@ -16,6 +16,19 @@ const TABS: { id: AssetTab; label: string }[] = [
 ];
 
 const DURATIONS = ["1 W", "1 M", "3 M", "6 M", "1 Y", "2 Y", "5 Y"] as const;
+
+// Default duration per bar size (IB constraints)
+const BAR_SIZE_DEFAULT_DURATION: Record<IBBarSize, string> = {
+  "1 min":   "1 W",
+  "5 mins":  "1 M",
+  "15 mins": "3 M",
+  "30 mins": "3 M",
+  "1 hour":  "6 M",
+  "4 hours": "1 Y",
+  "1 day":   "1 Y",
+  "1 week":  "2 Y",
+  "1 month": "5 Y",
+};
 
 function Err({ msg }: { msg: string | null }) {
   return msg ? <p className="text-neg text-sm mb-3">ERR: {msg}</p> : null;
@@ -121,6 +134,34 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputCls = "h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data";
 
+function BarSizeButtons({ value, onChange }: { value: IBBarSize; onChange: (v: IBBarSize) => void }) {
+  const groups = [
+    { label: "Intraday", sizes: ["1 min", "5 mins", "15 mins", "30 mins"] as IBBarSize[] },
+    { label: "Daily+",   sizes: ["1 hour", "4 hours", "1 day", "1 week", "1 month"] as IBBarSize[] },
+  ];
+  return (
+    <Field label="Bar Size">
+      <div className="flex gap-1 flex-wrap">
+        {groups.map(g => (
+          <div key={g.label} className="flex rounded overflow-hidden border border-border">
+            {g.sizes.map(s => (
+              <button
+                key={s}
+                onClick={() => onChange(s)}
+                className={`px-2 py-1 text-[11px] font-medium border-r border-border last:border-r-0 ${
+                  value === s
+                    ? "bg-accent text-black"
+                    : "bg-panel-2 text-text-3 hover:text-text-1 hover:bg-panel"
+                }`}
+              >{s}</button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
 function DurationSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Field label="Duration">
@@ -181,17 +222,24 @@ function useIBBars() {
 // ── Tab implementations ───────────────────────────────────────────────────────
 
 function StockTab() {
-  const [symbol, setSymbol]   = useState("AAPL");
+  const [symbol, setSymbol]     = useState("AAPL");
+  const [barSize, setBarSize]   = useState<IBBarSize>("1 day");
   const [duration, setDuration] = useState("1 Y");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate]   = useState("");
   const { result, error, loading, load } = useIBBars();
+
+  function handleBarSizeChange(v: IBBarSize) {
+    setBarSize(v);
+    setDuration(BAR_SIZE_DEFAULT_DURATION[v]);
+  }
 
   return (
     <div className="space-y-4">
-      <FormShell onLoad={() => { if (!symbol.trim()) { return; } load({ symbol, asset_type: "stock", end_date: endDate, duration }); }} loading={loading}>
+      <FormShell onLoad={() => { if (!symbol.trim()) return; load({ symbol, asset_type: "stock", end_date: endDate, duration, bar_size: barSize }); }} loading={loading}>
         <Field label="Symbol">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-20 uppercase`} />
         </Field>
+        <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
         <DurationSelect value={duration} onChange={setDuration} />
         <EndDateInput value={endDate} onChange={setEndDate} />
       </FormShell>
@@ -202,17 +250,24 @@ function StockTab() {
 }
 
 function ForexTab() {
-  const [pair, setPair]       = useState("EURUSD");
+  const [pair, setPair]         = useState("EURUSD");
+  const [barSize, setBarSize]   = useState<IBBarSize>("1 day");
   const [duration, setDuration] = useState("1 Y");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate]   = useState("");
   const { result, error, loading, load } = useIBBars();
+
+  function handleBarSizeChange(v: IBBarSize) {
+    setBarSize(v);
+    setDuration(BAR_SIZE_DEFAULT_DURATION[v]);
+  }
 
   return (
     <div className="space-y-4">
-      <FormShell onLoad={() => { if (!pair.trim()) { return; } load({ symbol: pair, asset_type: "forex", end_date: endDate, duration }); }} loading={loading}>
+      <FormShell onLoad={() => { if (!pair.trim()) return; load({ symbol: pair, asset_type: "forex", end_date: endDate, duration, bar_size: barSize }); }} loading={loading}>
         <Field label="Pair (e.g. EURUSD)">
           <input type="text" value={pair} onChange={e => setPair(e.target.value.toUpperCase())} className={`${inputCls} w-24 uppercase`} />
         </Field>
+        <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
         <DurationSelect value={duration} onChange={setDuration} />
         <EndDateInput value={endDate} onChange={setEndDate} />
       </FormShell>
@@ -223,17 +278,23 @@ function ForexTab() {
 }
 
 function FutureTab() {
-  const [symbol, setSymbol]   = useState("ES");
+  const [symbol, setSymbol]     = useState("ES");
   const [exchange, setExchange] = useState("CME");
-  const [expiry, setExpiry]   = useState("202509");
+  const [expiry, setExpiry]     = useState("202509");
+  const [barSize, setBarSize]   = useState<IBBarSize>("1 day");
   const [duration, setDuration] = useState("1 Y");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate]   = useState("");
   const { result, error, loading, load } = useIBBars();
+
+  function handleBarSizeChange(v: IBBarSize) {
+    setBarSize(v);
+    setDuration(BAR_SIZE_DEFAULT_DURATION[v]);
+  }
 
   return (
     <div className="space-y-4">
       <FormShell
-        onLoad={() => { if (!symbol.trim() || !exchange.trim() || !expiry.trim()) { return; } load({ symbol, asset_type: "future", exchange, expiry, end_date: endDate, duration }); }}
+        onLoad={() => { if (!symbol.trim() || !exchange.trim() || !expiry.trim()) return; load({ symbol, asset_type: "future", exchange, expiry, end_date: endDate, duration, bar_size: barSize }); }}
         loading={loading}
       >
         <Field label="Symbol">
@@ -245,6 +306,7 @@ function FutureTab() {
         <Field label="Expiry (YYYYMM)">
           <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} className={`${inputCls} w-24`} />
         </Field>
+        <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
         <DurationSelect value={duration} onChange={setDuration} />
         <EndDateInput value={endDate} onChange={setEndDate} />
       </FormShell>
@@ -255,28 +317,26 @@ function FutureTab() {
 }
 
 function OptionTab() {
-  const [symbol, setSymbol]   = useState("SPY");
-  const [expiry, setExpiry]   = useState("20271219");
-  const [strike, setStrike]   = useState("500");
-  const [right, setRight]     = useState<"C" | "P">("C");
+  const [symbol, setSymbol]     = useState("SPY");
+  const [expiry, setExpiry]     = useState("20271219");
+  const [strike, setStrike]     = useState("500");
+  const [right, setRight]       = useState<"C" | "P">("C");
+  const [barSize, setBarSize]   = useState<IBBarSize>("1 day");
   const [duration, setDuration] = useState("3 M");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate]   = useState("");
   const { result, error, loading, load } = useIBBars();
+
+  function handleBarSizeChange(v: IBBarSize) {
+    setBarSize(v);
+    setDuration(BAR_SIZE_DEFAULT_DURATION[v]);
+  }
 
   return (
     <div className="space-y-4">
       <FormShell
         onLoad={() => {
-          if (!symbol.trim() || !expiry.trim()) { return; }
-          load({
-            symbol,
-            asset_type: "option",
-            expiry,
-            strike: parseFloat(strike),
-            right,
-            end_date: endDate,
-            duration,
-          });
+          if (!symbol.trim() || !expiry.trim()) return;
+          load({ symbol, asset_type: "option", expiry, strike: parseFloat(strike), right, end_date: endDate, duration, bar_size: barSize });
         }}
         loading={loading}
       >
@@ -290,15 +350,12 @@ function OptionTab() {
           <input type="number" value={strike} onChange={e => setStrike(e.target.value)} className={`${inputCls} w-20`} />
         </Field>
         <Field label="Right">
-          <select
-            value={right}
-            onChange={e => setRight(e.target.value as "C" | "P")}
-            className={`${inputCls} cursor-pointer`}
-          >
+          <select value={right} onChange={e => setRight(e.target.value as "C" | "P")} className={`${inputCls} cursor-pointer`}>
             <option value="C">Call</option>
             <option value="P">Put</option>
           </select>
         </Field>
+        <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
         <DurationSelect value={duration} onChange={setDuration} />
         <EndDateInput value={endDate} onChange={setEndDate} />
       </FormShell>
@@ -309,20 +366,27 @@ function OptionTab() {
 }
 
 function CryptoTab() {
-  const [symbol, setSymbol]   = useState("BTC");
+  const [symbol, setSymbol]     = useState("BTC");
+  const [barSize, setBarSize]   = useState<IBBarSize>("1 day");
   const [duration, setDuration] = useState("1 Y");
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate]   = useState("");
   const { result, error, loading, load } = useIBBars();
+
+  function handleBarSizeChange(v: IBBarSize) {
+    setBarSize(v);
+    setDuration(BAR_SIZE_DEFAULT_DURATION[v]);
+  }
 
   return (
     <div className="space-y-4">
       <FormShell
-        onLoad={() => { if (!symbol.trim()) { return; } load({ symbol, asset_type: "crypto", end_date: endDate, duration }); }}
+        onLoad={() => { if (!symbol.trim()) return; load({ symbol, asset_type: "crypto", end_date: endDate, duration, bar_size: barSize }); }}
         loading={loading}
       >
         <Field label="Symbol (BTC/ETH/SOL…)">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-16 uppercase`} />
         </Field>
+        <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
         <DurationSelect value={duration} onChange={setDuration} />
         <EndDateInput value={endDate} onChange={setEndDate} />
       </FormShell>
