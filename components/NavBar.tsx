@@ -41,10 +41,11 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Trade",
     items: [
-      { href: "/backtest",  label: "Backtest" },
-      { href: "/replay",    label: "Replay" },
-      { href: "/portfolio", label: "Portfolio" },
-      { href: "/universe",  label: "Universe" },
+      { href: "/backtest",         label: "Backtest" },
+      { href: "/backtest/compare", label: "Compare" },
+      { href: "/replay",           label: "Replay" },
+      { href: "/portfolio",        label: "Portfolio" },
+      { href: "/universe",         label: "Universe" },
     ],
   },
   {
