@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { updateWorkflow } from "@/lib/workflow-storage";
 import { ApiError, getBars, getBacktest, type BarOut, type BacktestResponse } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
+import { saveBacktestResult } from "@/lib/backtest-result-storage";
 import {
   buildSpawnRules,
   newRule,
@@ -43,6 +44,9 @@ export default function BacktestPage() {
   const [result, setResult]           = useState<BacktestResponse | null>(null);
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
+  const [saveLabel, setSaveLabel]           = useState("");
+  const [showSaveResult, setShowSaveResult] = useState(false);
+  const [resultSaved, setResultSaved]       = useState(false);
   const [showSaveStrategy, setShowSaveStrategy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const router = useRouter();
@@ -70,6 +74,13 @@ export default function BacktestPage() {
       ]);
       setBars(barsRes.bars);
       setResult(btRes);
+      setSaveLabel(
+        mode === "single"
+          ? `${instrumentId} EMA ${fast}/${slow} ${start}→${end}`
+          : `${instrumentId} Gated(${rules.length}R) ${start}→${end}`
+      );
+      setShowSaveResult(false);
+      setResultSaved(false);
       logActivity({
         type: "backtest",
         label: mode === "single"
@@ -200,6 +211,57 @@ export default function BacktestPage() {
               <span className="text-text-3 text-[11px] uppercase tracking-wider">Performance</span>
             </div>
             <MetricGrid result={result} />
+            {result !== null && !showSaveResult && !resultSaved && (
+              <div className="px-4 py-2 border-t border-border">
+                <button
+                  onClick={() => setShowSaveResult(true)}
+                  className="text-text-3 hover:text-accent text-xs transition-colors"
+                >
+                  Save Result
+                </button>
+              </div>
+            )}
+            {result !== null && resultSaved && (
+              <div className="px-4 py-2 border-t border-border">
+                <span className="text-pos text-xs">Saved ✓</span>
+              </div>
+            )}
+            {result !== null && showSaveResult && (
+              <div className="px-4 py-2 border-t border-border">
+                <div className="flex gap-2 items-center">
+                  <input
+                    value={saveLabel}
+                    onChange={e => setSaveLabel(e.target.value)}
+                    className="flex-1 bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs min-w-0"
+                    placeholder="Label"
+                  />
+                  <button
+                    onClick={() => {
+                      saveBacktestResult({
+                        label: saveLabel.trim() || `${instrumentId} ${start}`,
+                        instrumentId,
+                        start,
+                        end,
+                        strategy: mode === "single" ? "ema_cross" : "gated",
+                        ...(mode === "single" ? { fast, slow } : {}),
+                        result,
+                      });
+                      setShowSaveResult(false);
+                      setResultSaved(true);
+                    }}
+                    className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors whitespace-nowrap"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setShowSaveResult(false)}
+                    className="text-xs text-text-3 hover:text-text-2 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Trade Log */}
