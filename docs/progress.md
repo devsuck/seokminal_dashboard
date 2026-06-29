@@ -1,3 +1,25 @@
+## Phase 40 — Hyperliquid Trading UI (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `seokminal-multi-venue/hyperliquid/trader.py` — importlib 기반 SDK 로딩 (로컬 패키지 섀도 우회), get_positions/place_order/cancel_order/close_position
+- `api_server/main.py` — `GET /hl/positions`, `POST /hl/order`, `POST /hl/order/cancel`, `POST /hl/order/close` 엔드포인트
+- `lib/api.ts` — HLAssetPosition/HLMarginSummary/HLOpenOrder/HLPositionsResponse 인터페이스 + 4개 API 함수
+- `app/orders/page.tsx` — HL 탭 추가 (Venue="KR"|"US"|"HL"), HL 주문 폼 (코인/매수·매도/수량/시장·지정가/감소전용), 포지션 테이블 (크기/진입가/미실현PnL/청산가/Close 버튼), 미체결 주문 테이블 (Cancel 버튼)
+- `.env` — `HL_PRIVATE_KEY=` placeholder 추가
+
+### 변경된 파일
+- `seokminal-multi-venue/hyperliquid/trader.py` (신규)
+- `seokminal-multi-venue/api_server/main.py`
+- `seokminal-multi-venue/.env`
+- `seokminal-dashboard/lib/api.ts`
+- `seokminal-dashboard/app/orders/page.tsx`
+
+### 다음 할 일
+- `.env`에 `HL_PRIVATE_KEY=<실제 키>` 설정 후 Hyperliquid 거래 테스트
+- 필요시 거래소 페이지 별도 분리 (`/hl` 페이지)
+
+---
+
 ## Phase 39 — Economic Calendar (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업

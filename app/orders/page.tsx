@@ -8,9 +8,16 @@ import {
   placeUSOrder,
   cancelUSOrder,
   getAllBotsLiveStatus,
+  getHLPositions,
+  placeHLOrder,
+  cancelHLOrder,
+  closeHLPosition,
   type KROrderResponse,
   type USOrderResponse,
   type BotLiveEntry,
+  type HLPositionsResponse,
+  type HLOpenOrder,
+  type HLAssetPosition,
 } from "@/lib/api";
 import {
   getOrderLog,
@@ -23,7 +30,7 @@ import { PageBanner } from "@/components/PageBanner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Venue = "KR" | "US";
+type Venue = "KR" | "US" | "HL";
 type Side = "BUY" | "SELL";
 type OrderType = "MARKET" | "LIMIT";
 
@@ -76,6 +83,71 @@ export default function OrdersPage() {
   // Per-order action state: { [entryId]: { loading, error } }
   const [actionState, setActionState] = useState<Record<string, { loading: boolean; error: string | null }>>({});
   const cancelAbortRefs = useRef<Map<string, AbortController>>(new Map());
+
+  // HL state
+  const [hlPositions, setHlPositions] = useState<HLPositionsResponse | null>(null);
+  const [hlLoading, setHlLoading] = useState(false);
+  const [hlError, setHlError] = useState<string | null>(null);
+  const [hlCoin, setHlCoin] = useState("ETH");
+  const [hlSize, setHlSize] = useState("0.01");
+  const [hlOrderType, setHlOrderType] = useState<"market" | "limit">("market");
+  const [hlLimitPx, setHlLimitPx] = useState("");
+  const [hlSide, setHlSide] = useState<"BUY" | "SELL">("BUY");
+  const [hlReduceOnly, setHlReduceOnly] = useState(false);
+  const [hlSubmitting, setHlSubmitting] = useState(false);
+  const [hlSubmitMsg, setHlSubmitMsg] = useState<string | null>(null);
+  const hlAbortRef = useRef<AbortController | null>(null);
+
+  async function loadHLPositions() {
+    hlAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    hlAbortRef.current = ctrl;
+    setHlLoading(true); setHlError(null);
+    try {
+      const res = await getHLPositions(ctrl.signal);
+      if (!ctrl.signal.aborted) setHlPositions(res);
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted)
+        setHlError(e instanceof Error ? e.message : "HL 조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setHlLoading(false);
+    }
+  }
+
+  async function submitHLOrder() {
+    setHlSubmitting(true); setHlSubmitMsg(null);
+    try {
+      await placeHLOrder({
+        coin: hlCoin.toUpperCase(),
+        is_buy: hlSide === "BUY",
+        size: parseFloat(hlSize),
+        order_type: hlOrderType,
+        limit_px: hlOrderType === "limit" && hlLimitPx ? parseFloat(hlLimitPx) : undefined,
+        reduce_only: hlReduceOnly,
+      });
+      setHlSubmitMsg("주문 완료");
+      loadHLPositions();
+    } catch (e: unknown) {
+      setHlSubmitMsg(e instanceof Error ? e.message : "주문 실패");
+    } finally {
+      setHlSubmitting(false);
+    }
+  }
+
+  async function handleHLCancel(order: HLOpenOrder) {
+    try {
+      await cancelHLOrder(order.coin, order.oid);
+      loadHLPositions();
+    } catch { /* ignore */ }
+  }
+
+  async function handleHLClose(pos: HLAssetPosition) {
+    try {
+      await closeHLPosition(pos.position.coin);
+      loadHLPositions();
+    } catch { /* ignore */ }
+  }
 
   // Bot positions
   const [bots, setBots] = useState<BotLiveEntry[]>([]);
@@ -245,7 +317,7 @@ export default function OrdersPage() {
 
             {/* Venue tabs */}
             <div className="flex rounded overflow-hidden border border-border w-fit mb-4">
-              {(["KR", "US"] as Venue[]).map(v => (
+              {(["KR", "US", "HL"] as Venue[]).map(v => (
                 <button
                   key={v}
                   className={`px-5 py-1.5 text-sm font-medium ${
@@ -253,7 +325,7 @@ export default function OrdersPage() {
                       ? "border-accent text-accent bg-accent/10"
                       : "bg-panel-2 text-text-2 hover:bg-panel"
                   }`}
-                  onClick={() => { setVenue(v); setSubmitResult(null); setSubmitError(null); }}
+                  onClick={() => { setVenue(v); setSubmitResult(null); setSubmitError(null); if (v === "HL") loadHLPositions(); }}
                 >
                   {v}
                 </button>
@@ -261,10 +333,149 @@ export default function OrdersPage() {
             </div>
 
             <h2 className="text-sm font-semibold text-text-2 uppercase tracking-wide mb-4">
-              {venue === "KR" ? "KR Manual Order" : "US Manual Order"}
+              {venue === "KR" ? "KR Manual Order" : venue === "US" ? "US Manual Order" : "Hyperliquid Order"}
             </h2>
 
-            <div className="space-y-3">
+            {venue === "HL" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-text-2 w-24 shrink-0">Coin</label>
+                  <input
+                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono uppercase"
+                    placeholder="ETH"
+                    value={hlCoin}
+                    onChange={e => setHlCoin(e.target.value.toUpperCase())}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-text-2 w-24 shrink-0">Side</label>
+                  <div className="flex gap-2">
+                    {(["BUY", "SELL"] as const).map(s => (
+                      <button key={s} onClick={() => setHlSide(s)}
+                        className={`px-4 py-1.5 rounded text-sm font-medium border ${
+                          hlSide === s
+                            ? s === "BUY" ? "bg-pos/20 border-pos text-pos" : "bg-neg/20 border-neg text-neg"
+                            : "border-border text-text-3"
+                        }`}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-text-2 w-24 shrink-0">Size</label>
+                  <input
+                    type="number" step="0.001"
+                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"
+                    value={hlSize} onChange={e => setHlSize(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-text-2 w-24 shrink-0">Type</label>
+                  <div className="flex gap-2">
+                    {(["market", "limit"] as const).map(t => (
+                      <button key={t} onClick={() => setHlOrderType(t)}
+                        className={`px-4 py-1.5 rounded text-sm border ${
+                          hlOrderType === t ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"
+                        }`}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                {hlOrderType === "limit" && (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-text-2 w-24 shrink-0">Limit Px</label>
+                    <input
+                      type="number" step="0.01"
+                      className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"
+                      value={hlLimitPx} onChange={e => setHlLimitPx(e.target.value)}
+                      placeholder="2500.00"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-text-2 w-24 shrink-0">Reduce Only</label>
+                  <input type="checkbox" checked={hlReduceOnly} onChange={e => setHlReduceOnly(e.target.checked)}
+                    className="w-4 h-4 accent-accent" />
+                </div>
+                <button
+                  onClick={submitHLOrder}
+                  disabled={hlSubmitting}
+                  className="w-full bg-accent text-black py-2 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                >
+                  {hlSubmitting ? "주문 중…" : `${hlSide} ${hlCoin}`}
+                </button>
+                {hlSubmitMsg && (
+                  <p className={`text-sm ${hlSubmitMsg.includes("완료") ? "text-pos" : "text-neg"}`}>{hlSubmitMsg}</p>
+                )}
+
+                {/* Positions */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-text-3 text-xs uppercase tracking-wider">포지션</span>
+                    <button onClick={loadHLPositions} disabled={hlLoading}
+                      className="text-text-3 text-xs hover:text-text-1 disabled:opacity-40">
+                      {hlLoading ? "…" : "↻"}
+                    </button>
+                  </div>
+                  {hlError && <p className="text-neg text-xs">{hlError}</p>}
+                  {hlPositions && (
+                    <>
+                      <div className="flex gap-4 text-xs mb-3">
+                        <span className="text-text-3">Account Value <span className="text-text-1 font-data">${parseFloat(hlPositions.margin_summary.accountValue || "0").toFixed(2)}</span></span>
+                        <span className="text-text-3">Margin Used <span className="text-text-1 font-data">${parseFloat(hlPositions.margin_summary.totalMarginUsed || "0").toFixed(2)}</span></span>
+                      </div>
+                      {hlPositions.asset_positions.length === 0 ? (
+                        <p className="text-text-3 text-xs">오픈 포지션 없음</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {hlPositions.asset_positions.map((ap, i) => {
+                            const p = ap.position;
+                            const sz = parseFloat(p.szi);
+                            const pnl = parseFloat(p.unrealizedPnl);
+                            const isLong = sz > 0;
+                            return (
+                              <div key={i} className="border border-border rounded p-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-data font-semibold text-accent">{p.coin}</span>
+                                  <span className={`font-medium ${isLong ? "text-pos" : "text-neg"}`}>{isLong ? "LONG" : "SHORT"} {Math.abs(sz)}</span>
+                                </div>
+                                <div className="flex gap-4 mt-1 text-text-3">
+                                  <span>Entry <span className="font-data text-text-2">{p.entryPx ?? "—"}</span></span>
+                                  <span>Unr.PnL <span className={`font-data font-medium ${pnl >= 0 ? "text-pos" : "text-neg"}`}>{pnl >= 0 ? "+" : ""}{pnl.toFixed(4)}</span></span>
+                                  {p.liquidationPx && <span className="text-neg">Liq <span className="font-data">{p.liquidationPx}</span></span>}
+                                </div>
+                                <button onClick={() => handleHLClose(ap)}
+                                  className="mt-1.5 text-[10px] border border-neg/40 text-neg rounded px-2 py-0.5 hover:bg-neg/10">
+                                  Close Position
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {hlPositions.open_orders.length > 0 && (
+                        <div className="mt-3">
+                          <span className="text-text-3 text-xs uppercase tracking-wider block mb-1">미체결 주문</span>
+                          <div className="space-y-1">
+                            {hlPositions.open_orders.map((o, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs border-b border-border/40 py-1">
+                                <span className="font-data text-accent">{o.coin}</span>
+                                <span className={o.side === "B" ? "text-pos" : "text-neg"}>{o.side === "B" ? "BUY" : "SELL"}</span>
+                                <span className="font-data text-text-2">{o.sz} @ {o.limitPx}</span>
+                                <button onClick={() => handleHLCancel(o)}
+                                  className="text-[10px] text-neg border border-neg/30 rounded px-1.5 py-0.5 hover:bg-neg/10">
+                                  Cancel
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {venue !== "HL" && (
+              <><div className="space-y-3">
               {/* Code / Symbol */}
               <div className="flex items-center gap-3">
                 <label className="text-sm text-text-2 w-24 shrink-0">
@@ -375,7 +586,8 @@ export default function OrdersPage() {
               </button>
               {submitResult && <span className="text-sm text-pos font-mono">{submitResult}</span>}
               {submitError && <span className="text-sm text-neg">{submitError}</span>}
-            </div>
+            </div></>
+            )}
           </div>
 
           {/* Order Log */}

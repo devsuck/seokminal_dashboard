@@ -1713,3 +1713,90 @@ export async function runScreener(params: {
   const r = await fetch(`${API_URL}/screener?${q}`, { signal });
   return handleResponse<ScreenerResult[]>(r);
 }
+
+// ── Hyperliquid Trading ────────────────────────────────────────────────────────
+
+export interface HLAssetPosition {
+  position: {
+    coin: string;
+    szi: string;        // signed size
+    entryPx: string | null;
+    positionValue: string;
+    unrealizedPnl: string;
+    leverage: { type: string; value: number };
+    liquidationPx: string | null;
+    returnOnEquity: string;
+    maxLeverage: number;
+  };
+  type: string;
+}
+
+export interface HLMarginSummary {
+  accountValue: string;
+  totalNtlPos: string;
+  totalRawUsd: string;
+  totalMarginUsed: string;
+}
+
+export interface HLOpenOrder {
+  coin: string;
+  oid: number;
+  side: string;
+  limitPx: string;
+  sz: string;
+  timestamp: number;
+  origSz: string;
+}
+
+export interface HLPositionsResponse {
+  address: string;
+  margin_summary: HLMarginSummary;
+  cross_margin_summary: HLMarginSummary;
+  asset_positions: HLAssetPosition[];
+  open_orders: HLOpenOrder[];
+}
+
+export interface HLOrderRequest {
+  coin: string;
+  is_buy: boolean;
+  size: number;
+  order_type?: "market" | "limit";
+  limit_px?: number;
+  reduce_only?: boolean;
+  slippage?: number;
+}
+
+export async function getHLPositions(signal?: AbortSignal): Promise<HLPositionsResponse> {
+  const r = await fetch(`${API_URL}/hl/positions`, { signal });
+  return handleResponse<HLPositionsResponse>(r);
+}
+
+export async function placeHLOrder(req: HLOrderRequest, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
+  const r = await fetch(`${API_URL}/hl/order`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse(r);
+}
+
+export async function cancelHLOrder(coin: string, oid: number, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
+  const r = await fetch(`${API_URL}/hl/order/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ coin, oid }),
+    signal,
+  });
+  return handleResponse(r);
+}
+
+export async function closeHLPosition(coin: string, size?: number, slippage = 0.05, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
+  const r = await fetch(`${API_URL}/hl/order/close`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ coin, size: size ?? null, slippage }),
+    signal,
+  });
+  return handleResponse(r);
+}
