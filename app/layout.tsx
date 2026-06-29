@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LanguageProvider } from "@/lib/i18n";
+import { ToastContainer } from "@/components/ui/ToastContainer";
+import { AlertPoller } from "@/components/AlertPoller";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,6 +43,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-[calc(100vh-48px)]">
             {children}
           </main>
+          <AlertPoller />
+          <ToastContainer />
         </LanguageProvider>
       </body>
     </html>

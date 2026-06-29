@@ -1,8 +1,6 @@
 # Seokminal Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-29  
-**HEAD:** 9c50b70 (frontend) / 6a7515a (backend)  
-**테스트:** 163/163 통과 (frontend) / 270 통과 (backend)  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
 ---
@@ -37,6 +35,21 @@
 | 22 | Notifications + Alert System | `lib/alert-storage.ts`, `lib/api.ts` alert 함수, `/alerts` 페이지, threading.Lock dedup | 826e248..e792843 (FE) / c6ed03c..6a7515a (BE) |
 | 23 | Risk Dashboard | `components/risk/DrawdownChart.tsx`, `app/risk/page.tsx`, D3 drawdown + Rolling Beta chart | f3fb048..e557c62 (FE) |
 | 24 | Backtesting UI v2 | `lib/backtest-result-storage.ts`, Save Result button, `/backtest/compare` 비교 페이지 | 5db769f..9c50b70 (FE) |
+| 25 | Live Strategy Monitor | `app/bots/[id]/page.tsx`, Trade Log/Equity Curve/Signal Log 3탭, 5초 폴링 | — |
+| 26 | Backtest v3 MACD/RSI | `backtest_runner/simple_runner.py`, MACD/RSI 전략, `/backtest/optimize` | — |
+| 27 | Portfolio Backtest | `GET /backtest/portfolio`, per-instrument + 포트폴리오 equity curve | — |
+| 28 | AI Trader MVP | `ai_strategy/advisor.py`, Claude Haiku 전략 추천, `/ai-trader` 페이지 | — |
+| 29 | i18n + PageBanner | `lib/i18n.tsx`, KO/EN/DE, PageBanner 21개 페이지, IB 실시간 플레이스홀더 | — |
+| 30 | XGBoost ML Strategy | `xgb_strategy/`, XGBClassifier, HOLD train window, `/backtest` xgb 탭 | — |
+| 31 | Workflow Pipeline | ai-trader → backtest URL params 연결, backtest → updateWorkflow() | — |
+| 32 | KRX Market Tab | `KRMarketsTab.tsx`, KOSPI/KOSDAQ/KRX 지수, Suspense build fix | — |
+| 33 | Multi-Strategy Compare | `StrategyComparePanel.tsx`, 4전략 Promise.allSettled, Sharpe 정렬 | — |
+| 34 | AI Advisor XGBoost | advisor.py xgb 추가, trend_strength/volatility_pct 분석 | — |
+| 35 | Walk-Forward Backtest | `GET /backtest/walk-forward`, N window 분할, `WalkForwardPanel.tsx` | — |
+| 36 | Position Sizing + MC + Analytics | Kelly/Half-Kelly, Monte Carlo SVG fan, Trade Analytics 히스토그램 | — |
+| 37 | Insider Trading UI | EDGAR Form4 + OpenDART, openinsider 스타일 필터/테이블, `/insider` | — |
+| 38 | Economic Calendar | ForexFactory JSON, `GET /calendar/economic`, `/calendar` 페이지 | — |
+| 39 | Toast + Alert Poller | `lib/toast.ts`, `ToastContainer`, `AlertPoller` 30초 폴링 전역 | — |
 
 ---
 
@@ -78,26 +91,10 @@
 
 ---
 
-## 다음 Phase 계획
+## 다음 Phase 후보
 
 | Phase | 내용 | 범위 |
 |---|---|---|
-| Cleanup | D3 타입 수정, quant.tsx 토큰, ai-trader 플레이스홀더 | Frontend만 |
-| 22 | Notification + Alert System | 백엔드 알림 조건 엔진 + 프론트 알림 UI |
-| 23 | Risk Dashboard | 포트폴리오 리스크 지표 (VaR, drawdown, 베타) 시각화 |
-| 24 | Backtesting UI v2 | 멀티 전략 비교, 파라미터 스윕, 결과 저장/불러오기 |
-
-### Phase 22 — Notifications + Alert System (예정)
-
-**목표:** 봇 상태/가격/P&L 조건 충족 시 알림 생성 + 프론트에서 확인
-
-**백엔드:**
-- `POST /alerts/rules` — 알림 규칙 등록 (조건: price_above, pnl_below, bot_error 등)
-- `GET /alerts/triggered` — 트리거된 알림 목록
-- `DELETE /alerts/rules/{id}` — 규칙 삭제
-- condition_engine 재사용 또는 간단한 threshold 비교
-
-**프론트엔드:**
-- `lib/alert-storage.ts` — 알림 규칙 localStorage
-- `/alerts` 페이지 — 규칙 생성 폼 + 트리거된 알림 목록
-- NavBar: Alerts 추가 (Live 그룹)
+| 40 | IB WebSocket 실시간 | IbRealtimeWidget 실제 연결 (TWS → WS → 대시보드) | Backend + Frontend |
+| 41 | 워크플로우 시각적 개선 | `/workflow` 페이지 스텝 UI 개선 | Frontend |
+| 42 | LangGraph Multi-Agent | 자율 주문 실행 AI | Backend |
