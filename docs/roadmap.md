@@ -1,7 +1,7 @@
 # Seokminal Dashboard — Roadmap
 
 **마지막 업데이트:** 2026-06-29  
-**HEAD:** e792843 (frontend) / 6a7515a (backend)  
+**HEAD:** e557c62 (frontend) / 6a7515a (backend)  
 **테스트:** 155/155 통과 (frontend) / 270 통과 (backend)  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
@@ -35,6 +35,7 @@
 | 20 | Live Order Dashboard | IB/KIS 주문 실행, 포지션 모니터, P&L 추적 | 1b36e97..fe67f27 |
 | 21 | Orders Complete | IB 주문, cancel/status UI, Bot P&L 표시 | 73331ee..0704e0b |
 | 22 | Notifications + Alert System | `lib/alert-storage.ts`, `lib/api.ts` alert 함수, `/alerts` 페이지, threading.Lock dedup | 826e248..e792843 (FE) / c6ed03c..6a7515a (BE) |
+| 23 | Risk Dashboard | `components/risk/DrawdownChart.tsx`, `app/risk/page.tsx`, D3 drawdown + Rolling Beta chart | f3fb048..e557c62 (FE) |
 
 ---
 

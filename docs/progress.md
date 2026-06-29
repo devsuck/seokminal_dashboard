@@ -1,3 +1,27 @@
+## Phase 23 — Risk Dashboard (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- Frontend: `components/risk/DrawdownChart.tsx` — D3 두 패널 SVG (상: 누적수익률 + 벤치마크, 하: 드로다운 area)
+- Frontend: `app/risk/page.tsx` — 3탭 Risk Dashboard (Metrics 12 KPI cards / Drawdown / Rolling Beta)
+- Frontend: 4개 병렬 fetch (`getRisk`, `getBeta`, `getTimeSeries`, `getRollingBeta`) + AbortController
+- Frontend: NavBar Analyze 그룹에 Risk 추가 (Factor와 Data Quality 사이)
+- Fix: drawdown Y축 `d3.max` → `d3.min` (백엔드 drawdown ≤ 0)
+- Fix: AbortController `finally` guard (`if (!ctrl.signal.aborted) setLoading(false)`)
+- Fix: 범례 스와치 인라인 스타일 (D3 하드코딩 색상 매칭)
+
+### 변경된 파일
+**Frontend (f3fb048..e557c62):** `components/risk/DrawdownChart.tsx` (신규), `app/risk/page.tsx` (신규), `components/NavBar.tsx`
+
+### 테스트
+- Frontend: 155/155 passed
+- TypeScript: 0 errors
+
+### 다음 할 일
+- Phase 24: Backtesting UI v2 (멀티 전략 비교, 파라미터 스윕, 결과 저장/불러오기)
+- Cleanup: D3 타입 (CorrelationNetwork.tsx:120), quant.tsx 디자인 토큰, ai-trader 플레이스홀더
+
+---
+
 ## Phase 22 — Notifications + Alert System (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
