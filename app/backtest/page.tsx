@@ -173,6 +173,11 @@ export default function BacktestPage() {
       ]);
       setBars(barsRes.bars);
       setResult(btRes);
+      updateWorkflow({
+        backtestSharpe: btRes.sharpe_ratio ?? null,
+        backtestPnlPct: btRes.total_pnl_pct ?? null,
+        strategyId: strategy,
+      });
       const singleLabel =
         strategyType === "macd"
           ? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal} ${start}→${end}`
