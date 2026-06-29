@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import {
@@ -346,11 +347,19 @@ export default function BotsPage() {
                 <span className={`text-xs ${selectedId === bot.id ? "text-text-1" : "text-text-2"}`}>
                   {bot.name}
                 </span>
-                <button
-                  onClick={e => { e.stopPropagation(); handleDelete(bot.id); }}
-                  className="text-neg text-xs px-1 cursor-pointer bg-transparent border-0 hover:opacity-70">
-                  ✕
-                </button>
+                <div className="flex items-center gap-1">
+                  <Link
+                    href={`/bots/${bot.id}`}
+                    onClick={e => e.stopPropagation()}
+                    className="text-accent text-xs hover:underline px-1">
+                    Detail
+                  </Link>
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDelete(bot.id); }}
+                    className="text-neg text-xs px-1 cursor-pointer bg-transparent border-0 hover:opacity-70">
+                    ✕
+                  </button>
+                </div>
               </div>
               <div className={`text-xs mt-0.5 ${
                 bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"
