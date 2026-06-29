@@ -18,7 +18,7 @@ export type MAType        = typeof MA_TYPES[number];
 export type BBBand        = typeof BB_BANDS[number];
 export type CompOp        = typeof OPS[number];
 export type Combinator    = "AND" | "OR";
-export type Mode          = "single" | "composite";
+export type Mode          = "single" | "composite" | "portfolio";
 
 export interface IndicatorOp {
   indicator:   IndicatorType;

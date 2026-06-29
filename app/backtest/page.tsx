@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { updateWorkflow } from "@/lib/workflow-storage";
-import { ApiError, getBars, getBacktest, runBacktestOptimize, type BarOut, type BacktestResponse, type OptimizeResponse } from "@/lib/api";
+import { ApiError, getBars, getBacktest, runBacktestOptimize, runPortfolioBacktest, type BarOut, type BacktestResponse, type OptimizeResponse, type PortfolioBacktestResponse } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
 import { saveBacktestResult } from "@/lib/backtest-result-storage";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
 import type { StrategyParams } from "@/lib/strategy-storage";
+import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 
 export default function BacktestPage() {
   const [mode, setMode]               = useState<Mode>("single");
@@ -69,16 +70,25 @@ export default function BacktestPage() {
   const [optimizeResult, setOptimizeResult]   = useState<OptimizeResponse | null>(null);
   const optimizeCtrlRef = useRef<AbortController | null>(null);
 
+  // Portfolio state
+  const [portfolioInstruments, setPortfolioInstruments] = useState("AAPL.NASDAQ,SPY.ARCA");
+  const [portfolioResult, setPortfolioResult]           = useState<PortfolioBacktestResponse | null>(null);
+  const [portfolioLoading, setPortfolioLoading]         = useState(false);
+  const [portfolioError, setPortfolioError]             = useState<string | null>(null);
+  const portfolioCtrlRef = useRef<AbortController | null>(null);
+
   // Unmount cleanup
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
       if (optimizeCtrlRef.current) optimizeCtrlRef.current.abort();
+      portfolioCtrlRef.current?.abort();
     };
   }, []);
 
   // ── Business logic ───────────────────────────────────────────────
   async function run() {
+    if (mode === "portfolio") return;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -183,6 +193,48 @@ export default function BacktestPage() {
       if (e instanceof Error && e.name === "AbortError") return;
     } finally {
       if (!ctrl.signal.aborted) setOptimizing(false);
+    }
+  }
+
+  async function runPortfolio() {
+    portfolioCtrlRef.current?.abort();
+    const ctrl = new AbortController();
+    portfolioCtrlRef.current = ctrl;
+    setPortfolioLoading(true);
+    setPortfolioError(null);
+    setPortfolioResult(null);
+
+    const ids = portfolioInstruments.split(",").map(s => s.trim()).filter(Boolean);
+    if (ids.length === 0) {
+      setPortfolioError("Enter at least one instrument ID");
+      if (!ctrl.signal.aborted) setPortfolioLoading(false);
+      return;
+    }
+
+    const params: Record<string, string> = {};
+    if (strategyType === "macd") {
+      params.fast = String(macdFast);
+      params.slow = String(macdSlow);
+      params.signal_period = String(macdSignal);
+    } else if (strategyType === "rsi") {
+      params.period = String(rsiPeriod);
+      params.oversold = String(rsiOversold);
+      params.overbought = String(rsiOverbought);
+    } else {
+      params.fast = String(fast);
+      params.slow = String(slow);
+    }
+
+    try {
+      const res = await runPortfolioBacktest(ids, start, end, strategyType, params, ctrl.signal);
+      if (!ctrl.signal.aborted) setPortfolioResult(res);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      if (!ctrl.signal.aborted) {
+        setPortfolioError(err instanceof ApiError ? err.message : "Portfolio backtest failed");
+      }
+    } finally {
+      if (!ctrl.signal.aborted) setPortfolioLoading(false);
     }
   }
 
@@ -385,6 +437,183 @@ export default function BacktestPage() {
           {mode === "composite" && (
             <CompositeStrategyBuilder rules={rules} instrumentId={instrumentId} onChange={setRules} />
           )}
+          {mode === "portfolio" && (
+            <div className="space-y-4">
+              {/* Instruments */}
+              <div className="flex flex-col gap-1">
+                <label className="text-text-3 text-xs">Instrument IDs (comma-separated)</label>
+                <input
+                  value={portfolioInstruments}
+                  onChange={e => setPortfolioInstruments(e.target.value)}
+                  className="bg-panel border border-border rounded px-2 py-1 text-text-1 text-sm w-full"
+                  placeholder="AAPL.NASDAQ,SPY.ARCA"
+                />
+              </div>
+
+              {/* Strategy type selector */}
+              <div className="flex gap-2">
+                {(["ema_cross", "macd", "rsi"] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStrategyType(s)}
+                    className={[
+                      "px-3 py-1 text-xs rounded border transition-colors cursor-pointer",
+                      strategyType === s
+                        ? "border-accent text-accent bg-accent/10"
+                        : "border-border text-text-3 hover:text-text-2",
+                    ].join(" ")}
+                  >
+                    {s === "ema_cross" ? "EMA Cross" : s.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Strategy params */}
+              {strategyType === "macd" && (
+                <div className="flex gap-3 items-center flex-wrap">
+                  <label className="text-text-3 text-xs">Fast</label>
+                  <input type="number" value={macdFast} onChange={e => setMacdFast(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                  <label className="text-text-3 text-xs">Slow</label>
+                  <input type="number" value={macdSlow} onChange={e => setMacdSlow(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                  <label className="text-text-3 text-xs">Signal</label>
+                  <input type="number" value={macdSignal} onChange={e => setMacdSignal(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                </div>
+              )}
+              {strategyType === "rsi" && (
+                <div className="flex gap-3 items-center flex-wrap">
+                  <label className="text-text-3 text-xs">Period</label>
+                  <input type="number" value={rsiPeriod} onChange={e => setRsiPeriod(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                  <label className="text-text-3 text-xs">Oversold</label>
+                  <input type="number" value={rsiOversold} onChange={e => setRsiOversold(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                  <label className="text-text-3 text-xs">Overbought</label>
+                  <input type="number" value={rsiOverbought} onChange={e => setRsiOverbought(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                </div>
+              )}
+              {strategyType === "ema_cross" && (
+                <div className="flex gap-3 items-center flex-wrap">
+                  <label className="text-text-3 text-xs">Fast</label>
+                  <input type="number" value={fast} onChange={e => setFast(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                  <label className="text-text-3 text-xs">Slow</label>
+                  <input type="number" value={slow} onChange={e => setSlow(Number(e.target.value))}
+                    className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
+                </div>
+              )}
+
+              {/* Run button */}
+              <button
+                onClick={runPortfolio}
+                disabled={portfolioLoading}
+                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {portfolioLoading ? "Running…" : "Run Portfolio Backtest"}
+              </button>
+
+              {portfolioError && (
+                <p className="text-neg text-sm">{portfolioError}</p>
+              )}
+
+              {/* Results */}
+              {portfolioResult && (
+                <div className="space-y-4 mt-4">
+                  {/* Portfolio stats */}
+                  <div className="flex gap-6 flex-wrap">
+                    <div>
+                      <p className="text-text-3 text-xs">Total PnL</p>
+                      <p className="text-text-1 text-sm font-medium">
+                        {portfolioResult.portfolio_total_pnl != null
+                          ? `$${portfolioResult.portfolio_total_pnl.toFixed(2)}`
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-text-3 text-xs">Max Drawdown</p>
+                      <p className="text-neg text-sm font-medium">
+                        {portfolioResult.portfolio_max_drawdown != null
+                          ? `${(portfolioResult.portfolio_max_drawdown * 100).toFixed(2)}%`
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-text-3 text-xs">Sharpe</p>
+                      <p className="text-text-1 text-sm font-medium">
+                        {portfolioResult.portfolio_sharpe != null
+                          ? portfolioResult.portfolio_sharpe.toFixed(2)
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Equity curve */}
+                  <div className="bg-panel border border-border rounded-lg p-3">
+                    <p className="text-text-3 text-xs mb-2">Portfolio Equity Curve</p>
+                    <div style={{ height: "200px" }}>
+                      <RollingChart
+                        series={[{
+                          label: "Portfolio Equity",
+                          color: "#22C55E",
+                          points: portfolioResult.portfolio_equity.map(ep => ({
+                            ts_ns: ep.ts_ns,
+                            value: ep.equity,
+                          })),
+                        }]}
+                        yFormat={v => `$${v.toFixed(2)}`}
+                        height={200}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Per-instrument summary table */}
+                  <div className="bg-panel border border-border rounded-lg overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-text-3 text-xs">
+                          <th className="px-3 py-2 text-left">Instrument</th>
+                          <th className="px-3 py-2 text-right">Sharpe</th>
+                          <th className="px-3 py-2 text-right">Total PnL</th>
+                          <th className="px-3 py-2 text-right">PnL%</th>
+                          <th className="px-3 py-2 text-right">Max DD</th>
+                          <th className="px-3 py-2 text-right">Win Rate</th>
+                          <th className="px-3 py-2 text-right">Trades</th>
+                          <th className="px-3 py-2 text-right">Bars</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {portfolioResult.results.map(r => (
+                          <tr key={r.instrument_id} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2 text-text-1">{r.instrument_id}</td>
+                            <td className="px-3 py-2 text-right text-text-2">
+                              {r.sharpe_ratio != null ? r.sharpe_ratio.toFixed(2) : "—"}
+                            </td>
+                            <td className={`px-3 py-2 text-right ${r.total_pnl != null && r.total_pnl >= 0 ? "text-pos" : "text-neg"}`}>
+                              {r.total_pnl != null ? `$${r.total_pnl.toFixed(2)}` : "—"}
+                            </td>
+                            <td className={`px-3 py-2 text-right ${r.total_pnl_pct != null && r.total_pnl_pct >= 0 ? "text-pos" : "text-neg"}`}>
+                              {r.total_pnl_pct != null ? `${(r.total_pnl_pct * 100).toFixed(2)}%` : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-right text-neg">
+                              {r.max_drawdown != null ? `${(r.max_drawdown * 100).toFixed(2)}%` : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-right text-text-2">
+                              {r.win_rate != null ? `${(r.win_rate * 100).toFixed(1)}%` : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-right text-text-2">{r.trade_count}</td>
+                            <td className="px-3 py-2 text-right text-text-2">{r.bar_count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </StrategyControlPanel>
       </div>
 
@@ -413,7 +642,7 @@ export default function BacktestPage() {
           emaSlow={mode === "single" ? slow : undefined}
           symbol={instrumentId}
           timeframe={timeframe}
-          mode={mode}
+          mode={mode !== "portfolio" ? mode : undefined}
         />
 
         {/* Right: Stats + Trade Log */}
