@@ -5,6 +5,7 @@ import { WatchlistSidebar } from "@/components/market/WatchlistSidebar";
 import { ChartTab } from "@/components/market/ChartTab";
 import { ComparisonTab } from "@/components/market/ComparisonTab";
 import { EventsTab } from "@/components/market/EventsTab";
+import { KRMarketsTab } from "@/components/market/KRMarketsTab";
 import {
   getWatchlist,
   addToWatchlist,
@@ -12,12 +13,13 @@ import {
   DEFAULT_SYMBOLS,
 } from "@/lib/watchlist-storage";
 
-type Tab = "chart" | "compare" | "events";
+type Tab = "chart" | "compare" | "events" | "kr";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "chart",   label: "Chart" },
   { id: "compare", label: "Compare" },
   { id: "events",  label: "Events" },
+  { id: "kr",      label: "KR" },
 ];
 
 export function MarketWorkspace() {
@@ -89,6 +91,7 @@ export function MarketWorkspace() {
           {activeTab === "chart"   && <ChartTab symbol={activeSymbol} />}
           {activeTab === "compare" && <ComparisonTab symbols={watchlist} />}
           {activeTab === "events"  && <EventsTab />}
+          {activeTab === "kr"      && <KRMarketsTab />}
         </div>
       </div>
     </div>
