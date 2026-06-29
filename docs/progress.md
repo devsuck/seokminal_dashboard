@@ -1,3 +1,17 @@
+## Phase 35 — Walk-Forward Backtest (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `api_server/main.py` — `ns_to_date()` 헬퍼, `WalkForwardWindow/Summary/Response` 모델, `GET /backtest/walk-forward` 엔드포인트 (macd/rsi/xgb/ema_cross 지원, n_windows 2~20)
+- `tests/test_walk_forward.py` — 6개 테스트 (macd/rsi/xgb/ema_cross 기본, invalid strategy, insufficient bars)
+- `lib/api.ts` — `WalkForwardWindow/Summary/Response` 인터페이스 + `getWalkForward()` 함수
+- `components/backtest/WalkForwardPanel.tsx` — 윈도우 수 선택, 실행 버튼, 요약 통계, 테이블 (최고 Sharpe 행 하이라이트)
+- `app/backtest/page.tsx` — WalkForwardPanel import + single 모드 result 존재 시 렌더링
+
+### 개념
+Walk-Forward: 전체 기간을 N개 구간으로 분할 → 각 구간에서 같은 전략/파라미터로 백테스트 → 구간별 성과 차이가 크면 오버피팅 의심
+
+---
+
 ## Phase 34 — AI Advisor XGBoost Support (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
