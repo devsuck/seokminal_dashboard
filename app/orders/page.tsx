@@ -94,17 +94,19 @@ export default function OrdersPage() {
   const [hlLimitPx, setHlLimitPx] = useState("");
   const [hlSide, setHlSide] = useState<"BUY" | "SELL">("BUY");
   const [hlReduceOnly, setHlReduceOnly] = useState(false);
+  const [hlPaper, setHlPaper] = useState(true); // default: paper trading
+  const [hlConfirm, setHlConfirm] = useState(false); // live order confirm modal
   const [hlSubmitting, setHlSubmitting] = useState(false);
   const [hlSubmitMsg, setHlSubmitMsg] = useState<string | null>(null);
   const hlAbortRef = useRef<AbortController | null>(null);
 
-  async function loadHLPositions() {
+  async function loadHLPositions(paper = hlPaper) {
     hlAbortRef.current?.abort();
     const ctrl = new AbortController();
     hlAbortRef.current = ctrl;
     setHlLoading(true); setHlError(null);
     try {
-      const res = await getHLPositions(ctrl.signal);
+      const res = await getHLPositions(paper, ctrl.signal);
       if (!ctrl.signal.aborted) setHlPositions(res);
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return;
@@ -116,6 +118,7 @@ export default function OrdersPage() {
   }
 
   async function submitHLOrder() {
+    setHlConfirm(false);
     setHlSubmitting(true); setHlSubmitMsg(null);
     try {
       await placeHLOrder({
@@ -125,8 +128,9 @@ export default function OrdersPage() {
         order_type: hlOrderType,
         limit_px: hlOrderType === "limit" && hlLimitPx ? parseFloat(hlLimitPx) : undefined,
         reduce_only: hlReduceOnly,
+        paper: hlPaper,
       });
-      setHlSubmitMsg("주문 완료");
+      setHlSubmitMsg(hlPaper ? "[Paper] 주문 완료" : "주문 완료");
       loadHLPositions();
     } catch (e: unknown) {
       setHlSubmitMsg(e instanceof Error ? e.message : "주문 실패");
@@ -137,14 +141,14 @@ export default function OrdersPage() {
 
   async function handleHLCancel(order: HLOpenOrder) {
     try {
-      await cancelHLOrder(order.coin, order.oid);
+      await cancelHLOrder(order.coin, order.oid, hlPaper);
       loadHLPositions();
     } catch { /* ignore */ }
   }
 
   async function handleHLClose(pos: HLAssetPosition) {
     try {
-      await closeHLPosition(pos.position.coin);
+      await closeHLPosition(pos.position.coin, undefined, 0.05, hlPaper);
       loadHLPositions();
     } catch { /* ignore */ }
   }
@@ -325,7 +329,7 @@ export default function OrdersPage() {
                       ? "border-accent text-accent bg-accent/10"
                       : "bg-panel-2 text-text-2 hover:bg-panel"
                   }`}
-                  onClick={() => { setVenue(v); setSubmitResult(null); setSubmitError(null); if (v === "HL") loadHLPositions(); }}
+                  onClick={() => { setVenue(v); setSubmitResult(null); setSubmitError(null); if (v === "HL") loadHLPositions(hlPaper); }}
                 >
                   {v}
                 </button>
@@ -395,22 +399,87 @@ export default function OrdersPage() {
                   <input type="checkbox" checked={hlReduceOnly} onChange={e => setHlReduceOnly(e.target.checked)}
                     className="w-4 h-4 accent-accent" />
                 </div>
+
+                {/* Paper / Live 토글 */}
+                <div className="flex items-center gap-3 pt-1">
+                  <label className="text-sm text-text-2 w-24 shrink-0">Mode</label>
+                  <div className="flex rounded overflow-hidden border border-border">
+                    <button
+                      onClick={() => { setHlPaper(true); loadHLPositions(true); }}
+                      className={`px-4 py-1 text-xs font-medium ${hlPaper ? "bg-info/20 border-r border-border text-info" : "bg-panel-2 border-r border-border text-text-3"}`}
+                    >Paper</button>
+                    <button
+                      onClick={() => { setHlPaper(false); loadHLPositions(false); }}
+                      className={`px-4 py-1 text-xs font-medium ${!hlPaper ? "bg-warn/20 text-warn" : "bg-panel-2 text-text-3"}`}
+                    >Live</button>
+                  </div>
+                  {!hlPaper && (
+                    <span className="text-warn text-xs font-medium">실거래 모드</span>
+                  )}
+                </div>
+
                 <button
-                  onClick={submitHLOrder}
+                  onClick={() => hlPaper ? submitHLOrder() : setHlConfirm(true)}
                   disabled={hlSubmitting}
-                  className="w-full bg-accent text-black py-2 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                  className={`w-full py-2 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50 ${
+                    hlPaper ? "bg-info/20 border border-info text-info" : "bg-accent text-black"
+                  }`}
                 >
-                  {hlSubmitting ? "주문 중…" : `${hlSide} ${hlCoin}`}
+                  {hlSubmitting ? "주문 중…" : hlPaper ? `[Paper] ${hlSide} ${hlCoin}` : `${hlSide} ${hlCoin}`}
                 </button>
                 {hlSubmitMsg && (
                   <p className={`text-sm ${hlSubmitMsg.includes("완료") ? "text-pos" : "text-neg"}`}>{hlSubmitMsg}</p>
+                )}
+
+                {/* 실거래 확인 모달 */}
+                {hlConfirm && (
+                  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-panel border border-warn rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
+                      <h3 className="text-warn font-semibold text-base">실거래 주문 확인</h3>
+                      <div className="bg-panel-2 rounded p-3 text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-text-3">종목</span>
+                          <span className="font-data text-text-1">{hlCoin.toUpperCase()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-3">방향</span>
+                          <span className={`font-medium ${hlSide === "BUY" ? "text-pos" : "text-neg"}`}>{hlSide}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-3">수량</span>
+                          <span className="font-data text-text-1">{hlSize}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-3">유형</span>
+                          <span className="font-data text-text-1">{hlOrderType}</span>
+                        </div>
+                        {hlOrderType === "limit" && hlLimitPx && (
+                          <div className="flex justify-between">
+                            <span className="text-text-3">지정가</span>
+                            <span className="font-data text-text-1">${hlLimitPx}</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-warn text-xs">실제 USDC가 사용됩니다. 계속하시겠습니까?</p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setHlConfirm(false)}
+                          className="flex-1 border border-border text-text-2 py-2 rounded text-sm hover:bg-panel-2"
+                        >취소</button>
+                        <button
+                          onClick={submitHLOrder}
+                          className="flex-1 bg-accent text-black py-2 rounded text-sm font-semibold hover:opacity-90"
+                        >확인 · 주문</button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Positions */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-text-3 text-xs uppercase tracking-wider">포지션</span>
-                    <button onClick={loadHLPositions} disabled={hlLoading}
+                    <button onClick={() => loadHLPositions(hlPaper)} disabled={hlLoading}
                       className="text-text-3 text-xs hover:text-text-1 disabled:opacity-40">
                       {hlLoading ? "…" : "↻"}
                     </button>

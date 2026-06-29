@@ -1764,14 +1764,15 @@ export interface HLOrderRequest {
   limit_px?: number;
   reduce_only?: boolean;
   slippage?: number;
+  paper?: boolean;
 }
 
-export async function getHLPositions(signal?: AbortSignal): Promise<HLPositionsResponse> {
-  const r = await fetch(`${API_URL}/hl/positions`, { signal });
+export async function getHLPositions(paper = false, signal?: AbortSignal): Promise<HLPositionsResponse> {
+  const r = await fetch(`${API_URL}/hl/positions?paper=${paper}`, { signal });
   return handleResponse<HLPositionsResponse>(r);
 }
 
-export async function placeHLOrder(req: HLOrderRequest, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
+export async function placeHLOrder(req: HLOrderRequest, signal?: AbortSignal): Promise<{ status: string; paper: boolean; result: unknown }> {
   const r = await fetch(`${API_URL}/hl/order`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1781,21 +1782,21 @@ export async function placeHLOrder(req: HLOrderRequest, signal?: AbortSignal): P
   return handleResponse(r);
 }
 
-export async function cancelHLOrder(coin: string, oid: number, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
+export async function cancelHLOrder(coin: string, oid: number, paper = false, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
   const r = await fetch(`${API_URL}/hl/order/cancel`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ coin, oid }),
+    body: JSON.stringify({ coin, oid, paper }),
     signal,
   });
   return handleResponse(r);
 }
 
-export async function closeHLPosition(coin: string, size?: number, slippage = 0.05, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
+export async function closeHLPosition(coin: string, size?: number, slippage = 0.05, paper = false, signal?: AbortSignal): Promise<{ status: string; result: unknown }> {
   const r = await fetch(`${API_URL}/hl/order/close`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ coin, size: size ?? null, slippage }),
+    body: JSON.stringify({ coin, size: size ?? null, slippage, paper }),
     signal,
   });
   return handleResponse(r);
