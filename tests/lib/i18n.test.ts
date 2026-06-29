@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -11,7 +11,7 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
-import { getLangFromStorage, saveLangToStorage, getTranslation, TRANSLATIONS } from "../../lib/i18n";
+import { getLangFromStorage, saveLangToStorage, getTranslation, TRANSLATIONS } from "../../lib/i18n-utils";
 
 beforeEach(() => localStorageMock.clear());
 

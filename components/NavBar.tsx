@@ -3,67 +3,69 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/lib/i18n";
 
 interface NavItem { href: string; label: string; }
 interface NavGroup { label: string; href?: string; items?: NavItem[]; }
-
-const NAV_GROUPS: NavGroup[] = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Market",    href: "/market" },
-  { label: "Workflow",  href: "/workflow" },
-  {
-    label: "Research",
-    items: [
-      { href: "/search",      label: "Search" },
-      { href: "/notebooks",   label: "Notebooks" },
-      { href: "/strategies",  label: "Strategies" },
-      { href: "/experiments", label: "Experiments" },
-      { href: "/quant",       label: "Quant" },
-      { href: "/options",     label: "Options" },
-      { href: "/futures",     label: "Futures" },
-      { href: "/forex",       label: "Forex" },
-      { href: "/crypto",      label: "Crypto" },
-      { href: "/ib",          label: "IB Data" },
-      { href: "/report",      label: "Report" },
-    ],
-  },
-  {
-    label: "Analyze",
-    items: [
-      { href: "/correlation",  label: "Correlation" },
-      { href: "/event-study",  label: "Event Study" },
-      { href: "/rolling",      label: "Rolling" },
-      { href: "/factor",       label: "Factor" },
-      { href: "/risk",         label: "Risk" },
-      { href: "/data-quality", label: "Data Quality" },
-    ],
-  },
-  {
-    label: "Trade",
-    items: [
-      { href: "/backtest",         label: "Backtest" },
-      { href: "/backtest/compare", label: "Compare" },
-      { href: "/replay",           label: "Replay" },
-      { href: "/portfolio",        label: "Portfolio" },
-      { href: "/universe",         label: "Universe" },
-    ],
-  },
-  {
-    label: "Live",
-    items: [
-      { href: "/spawner",   label: "Spawner" },
-      { href: "/bots",      label: "Bots" },
-      { href: "/orders",    label: "Orders" },
-      { href: "/alerts",    label: "Alerts" },
-      { href: "/ai-trader", label: "AI Trader" },
-    ],
-  },
-];
 
 export function NavBar() {
   const pathname = usePathname();
   const [open, setOpen] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
+  const { t } = useLanguage();
+
+  const NAV_GROUPS: NavGroup[] = [
+    { label: t("nav.dashboard"), href: "/dashboard" },
+    { label: t("nav.market"),    href: "/market" },
+    { label: t("nav.workflow"),  href: "/workflow" },
+    {
+      label: t("nav.research"),
+      items: [
+        { href: "/search",      label: t("nav.search") },
+        { href: "/notebooks",   label: t("nav.notebooks") },
+        { href: "/strategies",  label: t("nav.strategies") },
+        { href: "/experiments", label: t("nav.experiments") },
+        { href: "/quant",       label: t("nav.quant") },
+        { href: "/options",     label: t("nav.options") },
+        { href: "/futures",     label: t("nav.futures") },
+        { href: "/forex",       label: t("nav.forex") },
+        { href: "/crypto",      label: t("nav.crypto") },
+        { href: "/ib",          label: t("nav.ib") },
+        { href: "/report",      label: t("nav.report") },
+      ],
+    },
+    {
+      label: t("nav.analyze"),
+      items: [
+        { href: "/correlation",  label: t("nav.correlation") },
+        { href: "/event-study",  label: t("nav.event-study") },
+        { href: "/rolling",      label: t("nav.rolling") },
+        { href: "/factor",       label: t("nav.factor") },
+        { href: "/risk",         label: t("nav.risk") },
+        { href: "/data-quality", label: t("nav.data-quality") },
+      ],
+    },
+    {
+      label: t("nav.trade"),
+      items: [
+        { href: "/backtest",         label: t("nav.backtest") },
+        { href: "/backtest/compare", label: t("nav.compare") },
+        { href: "/replay",           label: t("nav.replay") },
+        { href: "/portfolio",        label: t("nav.portfolio") },
+        { href: "/universe",         label: t("nav.universe") },
+      ],
+    },
+    {
+      label: t("nav.live"),
+      items: [
+        { href: "/spawner",   label: t("nav.spawner") },
+        { href: "/bots",      label: t("nav.bots") },
+        { href: "/orders",    label: t("nav.orders") },
+        { href: "/alerts",    label: t("nav.alerts") },
+        { href: "/ai-trader", label: t("nav.ai-trader") },
+      ],
+    },
+  ];
 
   function isGroupActive(group: NavGroup): boolean {
     if (group.href) return pathname.startsWith(group.href);

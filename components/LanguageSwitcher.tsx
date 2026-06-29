@@ -16,9 +16,9 @@ export function LanguageSwitcher() {
         <button
           key={code}
           onClick={() => setLang(code)}
-          className={`px-2 py-1 text-[11px] font-semibold rounded transition-colors duration-150 bg-transparent border-0 cursor-pointer ${
+          className={`px-2 py-1 text-[11px] font-semibold rounded transition-colors duration-150 bg-transparent cursor-pointer ${
             lang === code
-              ? "text-accent bg-accent/10"
+              ? "border border-accent text-accent bg-accent/10"
               : "text-text-3 hover:text-text-1"
           }`}
         >
