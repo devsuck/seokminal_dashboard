@@ -33,6 +33,7 @@ import { StrategyComparePanel } from "@/components/backtest/StrategyComparePanel
 import { WalkForwardPanel } from "@/components/backtest/WalkForwardPanel";
 import { PositionSizingPanel } from "@/components/backtest/PositionSizingPanel";
 import { MonteCarloPanel } from "@/components/backtest/MonteCarloPanel";
+import { TradeAnalyticsPanel } from "@/components/backtest/TradeAnalyticsPanel";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { PageBanner } from "@/components/PageBanner";
 
@@ -847,6 +848,11 @@ function BacktestPageInner() {
 
           {/* Trade Log */}
           <TradeLogTable trades={result?.trades ?? []} />
+
+          {/* Trade Analytics */}
+          {mode === "single" && result !== null && (
+            <TradeAnalyticsPanel trades={result.trades} />
+          )}
 
           {/* Strategy Comparison */}
           {mode === "single" && (
