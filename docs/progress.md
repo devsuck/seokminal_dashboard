@@ -1,3 +1,98 @@
+## Phase 31 — Workflow Pipeline Connection (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `app/ai-trader/page.tsx` — `buildBacktestUrl(strategy, params)` 헬퍼 추가; "Open Backtest →" 링크가 URL 쿼리 파라미터로 전략+파라미터 전달
+- `app/backtest/page.tsx` — `useSearchParams()` 마운트 시 읽어 폼 자동 채움 (macd/rsi/ema_cross/xgb 4가지 전략 지원); 백테스트 실행 후 `updateWorkflow()` 자동 호출 (backtestSharpe, backtestPnlPct, strategyId 저장)
+
+### 변경된 파일
+- `seokminal-dashboard/app/ai-trader/page.tsx`
+- `seokminal-dashboard/app/backtest/page.tsx`
+
+### 다음 할 일
+- IB WebSocket 실시간 연결 (플레이스홀더 완성됨)
+- 워크플로우 페이지 시각적 개선
+
+---
+
+## Phase 30 — XGBoost ML Strategy (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `xgb_strategy/features.py` — RSI14, MACD diff, EMA12/26 ratio, mom5/10 피처 엔지니어링
+- `xgb_strategy/model.py` — XGBClassifier 학습 (train_ratio 분할), >0.6→BUY / <0.4→SELL / else→HOLD
+- `xgb_strategy/runner.py` — `generate_xgb_signals(bars, params)` → list[str]; 학습 구간은 HOLD (선행 편향 없음)
+- `backtest_runner/simple_runner.py` — xgb 전략 dispatch 추가; `num_trades` 필드 추가
+- `api_server/main.py` — `SUPPORTED_STRATEGIES`에 "xgb" 추가; `/backtest` 엔드포인트에 xgb 파라미터 4개 추가
+- `tests/test_xgb_strategy.py` — 8개 테스트 (피처, 모델, 신호, 백테스트 통합)
+- `app/backtest/page.tsx` — XGBoost (ML) 전략 선택기 + 파라미터 패널 (Train Ratio, Trees, Max Depth, Learning Rate)
+- `lib/experiment-storage.ts`, `lib/backtest-result-storage.ts` — xgb 타입 추가
+
+### 변경된 파일
+- `seokminal-multi-venue/xgb_strategy/` (신규 모듈 4파일)
+- `seokminal-multi-venue/backtest_runner/simple_runner.py`
+- `seokminal-multi-venue/api_server/main.py`
+- `seokminal-multi-venue/tests/test_xgb_strategy.py`
+- `seokminal-dashboard/app/backtest/page.tsx`
+- `seokminal-dashboard/lib/experiment-storage.ts`
+- `seokminal-dashboard/lib/backtest-result-storage.ts`
+
+---
+
+## Phase 29 — i18n + PageBanner + IB Placeholder (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `lib/i18n-utils.ts` — KO/EN/DE 번역 (nav 34개 + page 21개 title/desc), localStorage 저장
+- `lib/i18n.tsx` — LanguageProvider, useLanguage() 훅
+- `components/LanguageSwitcher.tsx` — 한/EN/DE 버튼 (active: border-accent)
+- `app/layout.tsx` — LanguageProvider 래핑, LanguageSwitcher 헤더 추가
+- `components/NavBar.tsx` — t("nav.*") 번역 적용
+- `components/PageBanner.tsx` — 페이지별 교육용 설명 배너
+- 21개 페이지 — PageBanner 추가
+- `components/live/IbRealtimeWidget.tsx` — IB 실시간 플레이스홀더 위젯
+- `app/dashboard/page.tsx` — Row1과 Row2 사이에 IbRealtimeWidget 추가
+
+---
+
+## Phase 28 — AI Trader MVP (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `ai_strategy/advisor.py` — Claude Haiku 기반 `recommend_strategy(bars, instrument_id)` — 가격 통계 분석 후 strategy/params/reasoning 반환
+- `api_server/main.py` — `GET /ai/strategy-recommend` 엔드포인트 + `AiRecommendResponse` 모델
+- `tests/test_ai_advisor.py` — 4개 테스트 (happy path, empty bars, endpoint 200/400)
+- `lib/api.ts` — `AiRecommendation` 타입 + `getAiRecommendation()` 함수
+- `app/ai-trader/page.tsx` — placeholder → AI Strategy Advisor UI (instrument 입력, 날짜 범위, Claude 추천 결과 표시)
+
+### 다음 할 일
+- Phase 29 이후: LangGraph multi-agent, 자율 주문 실행, AI Journal 등 planned features 구현
+
+---
+
+## Phase 27 — Portfolio Backtest (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `backtest_runner/simple_runner.py` — `_ema_signals()` 추가; `run_simple_backtest` ema_cross 지원
+- `api_server/main.py` — `GET /backtest/portfolio` 엔드포인트 (instrument_ids 콤마구분); per-instrument 결과 + 포트폴리오 equity curve 반환
+- `tests/test_portfolio_backtest.py` — 5개 테스트
+- `lib/api.ts` — `PortfolioInstrumentResult`, `EquityPoint`, `PortfolioBacktestResponse` 타입 + `runPortfolioBacktest()` 함수
+- `tests/lib/api-portfolio-backtest.test.ts` — 4개 테스트
+- `lib/backtest-types.ts` — `Mode` 타입에 `"portfolio"` 추가
+- `components/ui/StrategyModeTabs.tsx` — Portfolio 탭 추가
+- `app/backtest/page.tsx` — Portfolio 모드: instruments 입력, 전략 선택, RollingChart equity curve, per-instrument 요약 테이블
+
+---
+
+## Phase 26 — Backtest v3 MACD/RSI (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `backtest_runner/simple_runner.py` — MACD/RSI 순수-Python 백테스터 (`_simulate_trades` LONG→SHORT 무조건 오픈)
+- `api_server/main.py` — `"macd"`, `"rsi"` SUPPORTED_STRATEGIES 추가; `GET /backtest/optimize` (fast<slow grid); MACD/RSI 라우팅
+- `tests/test_simple_runner.py` — 11개 테스트
+- `tests/test_backtest_optimize.py` — 4개 테스트
+- `lib/api.ts` — `OptimizeResponse` + `runBacktestOptimize()` + `PortfolioBacktestResponse` 타입
+- `lib/experiment-storage.ts`, `lib/backtest-result-storage.ts` — macd/rsi 전략 타입 추가
+- `app/backtest/page.tsx` — 전략 타입 선택기(EMA/MACD/RSI), MACD/RSI 파라미터 입력, Optimize 버튼 + Apply
+
+---
+
 ## Phase 25 — Live Strategy Monitor (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
