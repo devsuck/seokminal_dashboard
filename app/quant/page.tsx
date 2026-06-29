@@ -153,7 +153,7 @@ function FactorTab() {
         <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         <span className="text-accent text-[13px]">WINDOW</span>
-        <input type="number" value={window} onChange={e => setWindow(Number(e.target.value))} style={{ width: 48 }} min={5} />
+        <input type="number" value={window} onChange={e => setWindow(Number(e.target.value))} className="w-12" min={5} />
         <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "COMPUTING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
@@ -286,9 +286,9 @@ function CorpFinancePanel() {
           </>
         )}
         <span className="text-accent text-[13px]">연도</span>
-        <input type="number" value={startYear} onChange={e => setStartYear(Number(e.target.value))} style={{ width: 55 }} />
+        <input type="number" value={startYear} onChange={e => setStartYear(Number(e.target.value))} className="w-14" />
         <span className="text-text-3/50">~</span>
-        <input type="number" value={endYear} onChange={e => setEndYear(Number(e.target.value))} style={{ width: 55 }} />
+        <input type="number" value={endYear} onChange={e => setEndYear(Number(e.target.value))} className="w-14" />
         <span className="text-accent text-[13px]">재무제표</span>
         <select value={fnclDcd} onChange={e => setFnclDcd(e.target.value)}>
           <option value="110">연결</option>
@@ -1209,10 +1209,10 @@ function EdgarPanel() {
           placeholder="커스텀 (예: NFLX)" className="w-[90px]" />
         <span className="text-accent text-[13px]">YEAR</span>
         <input type="number" value={startYear} onChange={e => setStartYear(Number(e.target.value))}
-          style={{ width: 54 }} />
+          className="w-14" />
         <span className="text-text-3 text-[13px]">~</span>
         <input type="number" value={endYear} onChange={e => setEndYear(Number(e.target.value))}
-          style={{ width: 54 }} />
+          className="w-14" />
         <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "FETCHING..." : "FETCH"}</button>
         {result && <span className="text-text-3/50 text-sm">CIK: {result.cik}</span>}
       </div>
@@ -1313,10 +1313,10 @@ function MonteCarloTab() {
         <span className="text-accent text-[13px]">TRAIN DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         <span className="text-accent text-[13px]">HORIZON</span>
-        <input type="number" value={horizon} onChange={e => setHorizon(Number(e.target.value))} style={{ width: 52 }} min={20} max={1260} />
+        <input type="number" value={horizon} onChange={e => setHorizon(Number(e.target.value))} className="w-14" min={20} max={1260} />
         <span className="text-text-3 text-[13px]">days</span>
         <span className="text-accent text-[13px]">SIMS</span>
-        <input type="number" value={nSim} onChange={e => setNSim(Number(e.target.value))} style={{ width: 60 }} min={100} max={5000} step={100} />
+        <input type="number" value={nSim} onChange={e => setNSim(Number(e.target.value))} className="w-16" min={100} max={5000} step={100} />
         <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "SIMULATING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
@@ -1418,9 +1418,9 @@ function RegimeTab() {
         <span className="text-accent text-[13px]">DATE</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         <span className="text-accent text-[13px]">SMA</span>
-        <input type="number" value={smaPeriod} onChange={e => setSmaPeriod(Number(e.target.value))} style={{ width: 48 }} min={5} max={200} />
+        <input type="number" value={smaPeriod} onChange={e => setSmaPeriod(Number(e.target.value))} className="w-12" min={5} max={200} />
         <span className="text-accent text-[13px]">VOL</span>
-        <input type="number" value={volPeriod} onChange={e => setVolPeriod(Number(e.target.value))} style={{ width: 48 }} min={5} max={60} />
+        <input type="number" value={volPeriod} onChange={e => setVolPeriod(Number(e.target.value))} className="w-12" min={5} max={60} />
         <button className="px-5 py-1.5 text-[13px] font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0" onClick={run}>{loading ? "DETECTING..." : "RUN"}</button>
       </div>
       <Err msg={error} />
