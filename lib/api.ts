@@ -170,6 +170,30 @@ export async function getBacktest(
   return handleResponse<BacktestResponse>(response);
 }
 
+export interface OptimizeResponse {
+  best_params: Record<string, number>;
+  best_sharpe: number | null;
+  combinations_tested: number;
+}
+
+export async function runBacktestOptimize(
+  instrumentId: string,
+  start: string,
+  end: string,
+  strategy: "macd" | "rsi",
+  signal?: AbortSignal,
+): Promise<OptimizeResponse> {
+  const params = new URLSearchParams({
+    instrument_id: instrumentId,
+    start,
+    end,
+    strategy,
+  });
+  return handleResponse<OptimizeResponse>(
+    await fetch(`${API_URL}/backtest/optimize?${params.toString()}`, { signal })
+  );
+}
+
 export async function getBeta(
   instrumentId: string,
   benchmarkId: string,
