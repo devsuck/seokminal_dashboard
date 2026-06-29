@@ -57,6 +57,16 @@ describe("fetchBotTrades", () => {
     expect(result.trades[0].pnl).toBe(50.0);
     expect(result.trades[0].side).toBe("LONG");
   });
+
+  it("passes abort signal to fetch", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ bot_id: BOT_ID, trades: [] }),
+    } as Response);
+    const ctrl = new AbortController();
+    await fetchBotTrades(BOT_ID, ctrl.signal);
+    expect(fetchSpy.mock.calls[0][1]).toMatchObject({ signal: ctrl.signal });
+  });
 });
 
 describe("fetchBotSignals", () => {
