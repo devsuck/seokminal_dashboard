@@ -10,7 +10,7 @@ export interface SavedBacktestResult {
   instrumentId: string;
   start: string;
   end: string;
-  strategy: "ema_cross" | "gated" | "macd" | "rsi";
+  strategy: "ema_cross" | "gated" | "macd" | "rsi" | "xgb";
   fast?: number;
   slow?: number;
   macdFast?: number;

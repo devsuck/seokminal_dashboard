@@ -54,7 +54,7 @@ export default function BacktestPage() {
   const router = useRouter();
 
   // Strategy type selector
-  const [strategyType, setStrategyType] = useState<"ema_cross" | "macd" | "rsi">("ema_cross");
+  const [strategyType, setStrategyType] = useState<"ema_cross" | "macd" | "rsi" | "xgb">("ema_cross");
 
   // MACD params
   const [macdFast, setMacdFast]     = useState(12);
@@ -65,6 +65,12 @@ export default function BacktestPage() {
   const [rsiPeriod, setRsiPeriod]         = useState(14);
   const [rsiOversold, setRsiOversold]     = useState(30);
   const [rsiOverbought, setRsiOverbought] = useState(70);
+
+  // XGBoost params
+  const [xgbTrainRatio, setXgbTrainRatio]     = useState(0.7);
+  const [xgbNEstimators, setXgbNEstimators]   = useState(100);
+  const [xgbMaxDepth, setXgbMaxDepth]         = useState(4);
+  const [xgbLearningRate, setXgbLearningRate] = useState(0.1);
 
   // Optimize state
   const [optimizing, setOptimizing]           = useState(false);
@@ -104,6 +110,14 @@ export default function BacktestPage() {
         } else if (strategyType === "rsi") {
           strategy = "rsi";
           strategyParams = { period: String(rsiPeriod), oversold: String(rsiOversold), overbought: String(rsiOverbought) };
+        } else if (strategyType === "xgb") {
+          strategy = "xgb";
+          strategyParams = {
+            xgb_train_ratio: String(xgbTrainRatio),
+            xgb_n_estimators: String(xgbNEstimators),
+            xgb_max_depth: String(xgbMaxDepth),
+            xgb_learning_rate: String(xgbLearningRate),
+          };
         } else {
           strategy = "ema_cross";
           strategyParams = { fast: String(fast), slow: String(slow) };
@@ -124,6 +138,8 @@ export default function BacktestPage() {
           ? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal} ${start}→${end}`
           : strategyType === "rsi"
           ? `${instrumentId} RSI(${rsiPeriod}) ${start}→${end}`
+          : strategyType === "xgb"
+          ? `${instrumentId} XGBoost ${xgbTrainRatio}/${xgbNEstimators}/${xgbMaxDepth} ${start}→${end}`
           : `${instrumentId} EMA ${fast}/${slow} ${start}→${end}`;
       setSaveLabel(
         mode === "single"
@@ -138,6 +154,8 @@ export default function BacktestPage() {
               ? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal}`
               : strategyType === "rsi"
               ? `${instrumentId} RSI(${rsiPeriod})`
+              : strategyType === "xgb"
+              ? `${instrumentId} XGBoost`
               : `${instrumentId} EMA ${fast}/${slow}`)
           : `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`;
       logActivity({
@@ -151,6 +169,8 @@ export default function BacktestPage() {
             ? { strategy: "macd" as ExperimentStrategy, instrumentId, macdFast, macdSlow, macdSignal }
             : strategyType === "rsi"
             ? { strategy: "rsi" as ExperimentStrategy, instrumentId, rsiPeriod }
+            : strategyType === "xgb"
+            ? { strategy: "xgb" as ExperimentStrategy, instrumentId, xgbTrainRatio, xgbNEstimators, xgbMaxDepth }
             : { strategy: "ema_cross" as ExperimentStrategy, instrumentId, fast, slow }
           : { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length };
       const experimentParams: Record<string, any> =
@@ -159,6 +179,8 @@ export default function BacktestPage() {
             ? { macdFast, macdSlow, macdSignal }
             : strategyType === "rsi"
             ? { rsiPeriod, rsiOversold, rsiOverbought }
+            : strategyType === "xgb"
+            ? { xgbTrainRatio, xgbNEstimators, xgbMaxDepth, xgbLearningRate }
             : { fast, slow }
           : { rulesCount: rules.length };
       saveExperiment({
@@ -320,6 +342,16 @@ export default function BacktestPage() {
                     {type === "ema_cross" ? "EMA Cross" : type === "macd" ? "MACD" : "RSI"}
                   </button>
                 ))}
+                <button
+                  onClick={() => { setStrategyType("xgb"); setOptimizeResult(null); }}
+                  className={`px-3 py-1 text-xs rounded transition-colors cursor-pointer ${
+                    strategyType === "xgb"
+                      ? "bg-accent/10 text-accent border border-accent"
+                      : "text-text-3 hover:text-text-1 border border-transparent"
+                  }`}
+                >
+                  XGBoost (ML)
+                </button>
               </div>
 
               {/* EMA Cross params */}
@@ -404,6 +436,60 @@ export default function BacktestPage() {
                   >
                     {optimizing ? "Optimizing…" : "Optimize"}
                   </button>
+                </div>
+              )}
+
+              {/* XGBoost params */}
+              {strategyType === "xgb" && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div>
+                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Train Ratio</label>
+                    <input
+                      type="number"
+                      min="0.5"
+                      max="0.9"
+                      step="0.05"
+                      value={xgbTrainRatio}
+                      onChange={e => setXgbTrainRatio(parseFloat(e.target.value))}
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Trees</label>
+                    <input
+                      type="number"
+                      min="10"
+                      max="500"
+                      step="10"
+                      value={xgbNEstimators}
+                      onChange={e => setXgbNEstimators(parseInt(e.target.value))}
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Max Depth</label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="10"
+                      step="1"
+                      value={xgbMaxDepth}
+                      onChange={e => setXgbMaxDepth(parseInt(e.target.value))}
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Learning Rate</label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      max="0.5"
+                      step="0.01"
+                      value={xgbLearningRate}
+                      onChange={e => setXgbLearningRate(parseFloat(e.target.value))}
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -688,7 +774,7 @@ export default function BacktestPage() {
                         instrumentId,
                         start,
                         end,
-                        strategy: (mode === "single" ? strategyType : "gated") as "ema_cross" | "gated" | "macd" | "rsi",
+                        strategy: (mode === "single" ? strategyType : "gated") as "ema_cross" | "gated" | "macd" | "rsi" | "xgb",
                         ...resultParams,
                         result,
                       });
