@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { getCorrelation, ApiError, type CorrelationPair } from "@/lib/api";
 import { CorrelationNetwork } from "@/components/network/CorrelationNetwork";
+import { PageBanner } from "@/components/PageBanner";
 
 const DEFAULT_INSTRUMENTS = [
   "AAPL.NASDAQ",
@@ -64,14 +65,7 @@ export default function CorrelationPage() {
     <div className="p-6 space-y-4 max-w-[1400px]">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-text-1 text-lg font-semibold tracking-tight">
-            Correlation Network
-          </h1>
-          <p className="text-text-3 text-sm mt-0.5">
-            Pairwise return correlations as a force-directed graph. Drag nodes to explore.
-          </p>
-        </div>
+        <PageBanner pageKey="correlation" />
         <Link
           href="/quant"
           className="text-text-3 hover:text-accent text-xs no-underline transition-colors"

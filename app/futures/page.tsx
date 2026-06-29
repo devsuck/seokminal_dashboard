@@ -8,6 +8,7 @@ import {
   type FuturesPriceResponse, type FuturesRollResponse, type FuturesRollRow,
   type FuturesCalendarResponse,
 } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 type Tab = "pricer" | "curve" | "roll";
 
@@ -437,12 +438,7 @@ export default function FuturesPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Futures Analytics</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Cost-of-carry pricing, term structure curve, and rollover cost analysis.
-        </p>
-      </div>
+      <PageBanner pageKey="futures" />
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

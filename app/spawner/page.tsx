@@ -13,6 +13,7 @@ import {
   deleteRule,
   type SavedSpawnRule,
 } from "@/lib/spawner-storage";
+import { PageBanner } from "@/components/PageBanner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -388,7 +389,7 @@ export default function SpawnerPage() {
 
   return (
     <main className="min-h-screen bg-bg text-text-1 p-6">
-      <h1 className="text-xl font-bold mb-6">Strategy Spawner</h1>
+      <PageBanner pageKey="spawner" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Left: Condition Builder ── */}

@@ -10,6 +10,7 @@ import {
   type BotRecord, type BotConfig, type BarOut, type BacktestResponse,
   type LiveBotStatus,
 } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
@@ -311,6 +312,8 @@ export default function BotsPage() {
   const selectedBot = bots.find(b => b.id === selectedId) ?? null;
 
   return (
+    <div>
+      <PageBanner pageKey="bots" />
     <div className="flex h-[calc(100vh-37px)] overflow-hidden">
 
       {/* ── Sidebar ── */}
@@ -455,6 +458,7 @@ export default function BotsPage() {
           <BotDetail bot={selectedBot} onUpdate={handleBotUpdate} />
         )}
       </div>
+    </div>
     </div>
   );
 }

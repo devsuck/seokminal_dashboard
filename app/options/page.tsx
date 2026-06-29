@@ -8,6 +8,7 @@ import {
   type OptionsGreeksResponse, type OptionsChainResponse, type OptionsChainRow,
   type OptionsIvSurfaceResponse,
 } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 type Tab = "greeks" | "chain" | "surface";
 
@@ -498,12 +499,7 @@ export default function OptionsPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1200px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Options Analytics</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Black-Scholes pricing, Greeks, option chain, and implied volatility surface.
-        </p>
-      </div>
+      <PageBanner pageKey="options" />
 
       {/* Tab bar */}
       <div className="flex border-b border-border">

@@ -11,6 +11,7 @@ import {
   getTriggeredAlerts,
 } from "@/lib/api";
 import { mergeTriggered, getCachedTriggered, clearCachedTriggered } from "@/lib/alert-storage";
+import { PageBanner } from "@/components/PageBanner";
 
 const CONDITION_LABELS: Record<AlertConditionType, string> = {
   price_above: "Price Above",
@@ -133,7 +134,7 @@ export default function AlertsPage() {
 
   return (
     <div className="min-h-screen bg-bg p-6">
-      <h1 className="text-text-1 text-2xl font-semibold mb-6">Alerts</h1>
+      <PageBanner pageKey="alerts" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Rules Panel ── */}

@@ -9,6 +9,7 @@ import {
   type CryptoAssetsResponse, type CryptoCandlesResponse,
   type CryptoBookResponse, type BookLevel,
 } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 type Tab = "markets" | "chart" | "book";
 
@@ -497,12 +498,7 @@ export default function CryptoPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1200px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Crypto Analytics</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Live perpetual futures data from Hyperliquid — no authentication required.
-        </p>
-      </div>
+      <PageBanner pageKey="crypto" />
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

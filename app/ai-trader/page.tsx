@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getAiRecommendation, type AiRecommendation } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 const STRATEGY_LABELS: Record<string, string> = {
   ema_cross: "EMA Cross",
@@ -54,12 +55,7 @@ export default function AITraderPage() {
 
   return (
     <div className="p-6 space-y-5 max-w-[760px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">AI Strategy Advisor</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Claude analyzes price data and recommends the best strategy and parameters.
-        </p>
-      </div>
+      <PageBanner pageKey="ai-trader" />
 
       {/* Input form */}
       <div className="bg-panel border border-border rounded-lg p-4 space-y-3">

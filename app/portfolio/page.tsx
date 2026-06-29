@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import { computeAttribution, type AttributionInput, type PortfolioAttribution } from "@/lib/portfolio-utils";
 import { EfficientFrontierChart } from "@/components/portfolio/EfficientFrontierChart";
+import { PageBanner } from "@/components/PageBanner";
 
 type Tab = "optimizer" | "attribution";
 
@@ -168,12 +169,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1200px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Portfolio Lab</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Markowitz mean-variance optimization and performance attribution.
-        </p>
-      </div>
+      <PageBanner pageKey="portfolio" />
 
       {/* Tab selector */}
       <div className="flex gap-1">

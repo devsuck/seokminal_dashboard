@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "lightweight-charts";
 import { ApiError, getIBBars, type IBBarsResponse } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 type AssetTab = "stock" | "forex" | "future" | "option" | "crypto";
 
@@ -341,12 +342,7 @@ export default function IBPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">IB Market Data</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Historical OHLCV bars from Interactive Brokers — requires TWS or IB Gateway running locally.
-        </p>
-      </div>
+      <PageBanner pageKey="ib" />
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

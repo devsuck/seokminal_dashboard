@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { getTimeSeries, getRollingBeta, ApiError } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 import {
   computeRollingVolatility,
   zipRollingPoints,
@@ -147,12 +148,7 @@ export default function RollingPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1200px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Rolling Analytics</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Time-varying risk metrics. Window size controls the rolling lookback period.
-        </p>
-      </div>
+      <PageBanner pageKey="rolling" />
 
       {/* Controls */}
       <div className="bg-panel border border-border rounded-lg p-4 space-y-3">

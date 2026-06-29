@@ -17,6 +17,7 @@ import { DrawdownChart } from "@/components/risk/DrawdownChart";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { PageBanner } from "@/components/PageBanner";
 
 const BENCHMARKS = [
   { value: "SPY.ARCA", label: "SPY" },
@@ -105,7 +106,7 @@ export default function RiskPage() {
 
   return (
     <div className="min-h-screen bg-bg p-6">
-      <h1 className="text-text-1 text-2xl font-semibold mb-4">Risk Dashboard</h1>
+      <PageBanner pageKey="risk" />
 
       {/* Config panel */}
       <div className="bg-panel border border-border rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-center">

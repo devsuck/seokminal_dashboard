@@ -19,6 +19,7 @@ import {
   clearOrderLog,
   type OrderLogEntry,
 } from "@/lib/order-storage";
+import { PageBanner } from "@/components/PageBanner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -235,7 +236,7 @@ export default function OrdersPage() {
 
   return (
     <main className="min-h-screen bg-bg text-text-1 p-6">
-      <h1 className="text-xl font-bold mb-6">Live Order Dashboard</h1>
+      <PageBanner pageKey="orders" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Left: Order Form + Log ── */}

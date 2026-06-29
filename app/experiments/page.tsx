@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageBanner } from "@/components/PageBanner";
 import { ExperimentTable } from "@/components/experiments/ExperimentTable";
 import { ExperimentCompare } from "@/components/experiments/ExperimentCompare";
 import {
@@ -56,12 +57,7 @@ export default function ExperimentsPage() {
     <div className="p-6 space-y-4 max-w-[1400px]">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-text-1 text-lg font-semibold tracking-tight">Experiments</h1>
-          <p className="text-text-3 text-sm mt-0.5">
-            Every backtest run is saved automatically. Select two to compare.
-          </p>
-        </div>
+        <PageBanner pageKey="experiments" />
         <div className="flex items-center gap-3">
           <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
             ← Backtest

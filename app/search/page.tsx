@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, UTCTimestamp } from "lightweight-charts";
+import { PageBanner } from "@/components/PageBanner";
 import {
   searchKR, searchUS, getKRBars, getIBBars,
   KRSearchResult, USSearchResult, KRBar, KISTick,
@@ -179,10 +180,7 @@ export default function SearchPage() {
 
   return (
     <div className="p-6 space-y-5 max-w-[900px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Search</h1>
-        <p className="text-text-3 text-sm mt-0.5">Search any KR/US listed instrument and load OHLCV chart.</p>
-      </div>
+      <PageBanner pageKey="search" />
 
       {/* Market toggle + search bar */}
       <div className="flex gap-2">

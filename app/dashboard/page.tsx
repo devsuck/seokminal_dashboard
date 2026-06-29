@@ -1,16 +1,16 @@
+"use client";
+
 import { MarketOverviewWidget }    from "@/components/dashboard/MarketOverviewWidget";
 import { SystemStatusWidget }      from "@/components/dashboard/SystemStatusWidget";
 import { TodayEventsWidget }       from "@/components/dashboard/TodayEventsWidget";
 import { ResearchActivityWidget }  from "@/components/dashboard/ResearchActivityWidget";
 import { PortfolioSnapshotWidget } from "@/components/dashboard/PortfolioSnapshotWidget";
+import { PageBanner } from "@/components/PageBanner";
 
 export default function DashboardPage() {
   return (
     <div className="p-6 space-y-4 max-w-[1600px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-text-3 text-sm mt-0.5">Institutional Quant Research Terminal</p>
-      </div>
+      <PageBanner pageKey="dashboard" />
 
       {/* Row 1: Market Overview + System Status */}
       <div className="grid grid-cols-3 gap-4">

@@ -7,6 +7,7 @@ import {
   getForexForward, getForexCarry, getForexCurve,
   type ForexForwardResponse, type ForexCarryResponse, type ForexCurveResponse,
 } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 type Tab = "forward" | "curve" | "carry";
 
@@ -443,12 +444,7 @@ export default function ForexPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Forex Analytics</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          Covered Interest Rate Parity pricing, forward curve, and carry trade analysis.
-        </p>
-      </div>
+      <PageBanner pageKey="forex" />
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

@@ -30,6 +30,7 @@ import {
 import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
 import type { StrategyParams } from "@/lib/strategy-storage";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
+import { PageBanner } from "@/components/PageBanner";
 
 export default function BacktestPage() {
   const [mode, setMode]               = useState<Mode>("single");
@@ -272,10 +273,7 @@ export default function BacktestPage() {
     <div className="p-6 space-y-4 max-w-[1600px]">
       {/* Page title */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-text-1 text-lg font-semibold tracking-tight">Strategy Backtest</h1>
-          <p className="text-text-3 text-sm mt-0.5">Run and analyze EMA cross strategies with optional gating conditions</p>
-        </div>
+        <PageBanner pageKey="backtest" />
         <div className="flex gap-4 text-xs pt-1">
           <Link href="/experiments" className="text-text-3 hover:text-accent no-underline transition-colors">
             Experiments →

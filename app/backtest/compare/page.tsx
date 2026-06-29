@@ -9,6 +9,7 @@ import {
 } from "@/lib/backtest-result-storage";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import type { TradeRecord } from "@/lib/api";
+import { PageBanner } from "@/components/PageBanner";
 
 const SERIES_COLORS = ["#FF9F1C", "#60A5FA", "#34D399", "#F472B6"] as const;
 const MAX_SELECTED = 4;
@@ -150,8 +151,8 @@ export default function BacktestComparePage() {
 
   return (
     <div className="min-h-screen bg-bg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-text-1 text-2xl font-semibold">Compare Results</h1>
+      <div className="flex items-start justify-between mb-4">
+        <PageBanner pageKey="compare" />
         <Link
           href="/backtest"
           className="text-text-3 hover:text-accent text-sm transition-colors no-underline"

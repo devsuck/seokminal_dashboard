@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getBacktest, type BacktestResponse } from "@/lib/api";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { PageBanner } from "@/components/PageBanner";
 
 type HeatmapMetric = "sharpe" | "sortino" | "maxDrawdown" | "winRate";
 
@@ -184,12 +185,7 @@ export default function HeatmapPage() {
     <div className="p-6 space-y-4 max-w-[1400px]">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-text-1 text-lg font-semibold tracking-tight">Parameter Heatmap</h1>
-          <p className="text-text-3 text-sm mt-0.5">
-            Sweep EMA parameters to find robust configurations
-          </p>
-        </div>
+        <PageBanner pageKey="heatmap" />
         <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
           ← Backtest
         </Link>
