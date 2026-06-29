@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { updateWorkflow } from "@/lib/workflow-storage";
@@ -32,7 +32,7 @@ import type { StrategyParams } from "@/lib/strategy-storage";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { PageBanner } from "@/components/PageBanner";
 
-export default function BacktestPage() {
+function BacktestPageInner() {
   const [mode, setMode]               = useState<Mode>("single");
   const [instrumentId, setInstrumentId] = useState("AAPL.NASDAQ");
   const [start, setStart]             = useState("2025-06-25");
@@ -861,5 +861,13 @@ export default function BacktestPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BacktestPage() {
+  return (
+    <Suspense>
+      <BacktestPageInner />
+    </Suspense>
   );
 }
