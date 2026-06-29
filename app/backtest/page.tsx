@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { updateWorkflow } from "@/lib/workflow-storage";
 import { ApiError, getBars, getBacktest, runBacktestOptimize, runPortfolioBacktest, type BarOut, type BacktestResponse, type OptimizeResponse, type PortfolioBacktestResponse } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
@@ -52,6 +52,7 @@ export default function BacktestPage() {
   const [showSaveStrategy, setShowSaveStrategy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Strategy type selector
   const [strategyType, setStrategyType] = useState<"ema_cross" | "macd" | "rsi" | "xgb">("ema_cross");
@@ -92,6 +93,45 @@ export default function BacktestPage() {
       portfolioCtrlRef.current?.abort();
     };
   }, []);
+
+  // Pre-fill from URL query params (e.g. from AI Trader "Open Backtest →" link)
+  useEffect(() => {
+    const strategy = searchParams.get("strategy");
+    if (!strategy) return;
+    if (strategy === "macd") {
+      setStrategyType("macd");
+      const fast = searchParams.get("fast");
+      const slow = searchParams.get("slow");
+      const signal = searchParams.get("signal_period");
+      if (fast) setMacdFast(parseInt(fast));
+      if (slow) setMacdSlow(parseInt(slow));
+      if (signal) setMacdSignal(parseInt(signal));
+    } else if (strategy === "rsi") {
+      setStrategyType("rsi");
+      const period = searchParams.get("period");
+      const oversold = searchParams.get("oversold");
+      const overbought = searchParams.get("overbought");
+      if (period) setRsiPeriod(parseInt(period));
+      if (oversold) setRsiOversold(parseFloat(oversold));
+      if (overbought) setRsiOverbought(parseFloat(overbought));
+    } else if (strategy === "ema_cross") {
+      setStrategyType("ema_cross");
+      const fast = searchParams.get("fast");
+      const slow = searchParams.get("slow");
+      if (fast) setFast(parseInt(fast));
+      if (slow) setSlow(parseInt(slow));
+    } else if (strategy === "xgb") {
+      setStrategyType("xgb");
+      const trainRatio = searchParams.get("xgb_train_ratio");
+      const nEstimators = searchParams.get("xgb_n_estimators");
+      const maxDepth = searchParams.get("xgb_max_depth");
+      const learningRate = searchParams.get("xgb_learning_rate");
+      if (trainRatio) setXgbTrainRatio(parseFloat(trainRatio));
+      if (nEstimators) setXgbNEstimators(parseInt(nEstimators));
+      if (maxDepth) setXgbMaxDepth(parseInt(maxDepth));
+      if (learningRate) setXgbLearningRate(parseFloat(learningRate));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Business logic ───────────────────────────────────────────────
   async function run() {

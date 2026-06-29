@@ -4,6 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, getAiRecommendation, type AiRecommendation } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 
+function buildBacktestUrl(strategy: string, params: Record<string, unknown>): string {
+  const q = new URLSearchParams({ strategy });
+  for (const [k, v] of Object.entries(params)) {
+    q.set(k, String(v));
+  }
+  return `/backtest?${q.toString()}`;
+}
+
 const STRATEGY_LABELS: Record<string, string> = {
   ema_cross: "EMA Cross",
   macd: "MACD",
@@ -133,7 +141,7 @@ export default function AITraderPage() {
 
           {/* Link to backtest */}
           <a
-            href={`/backtest`}
+            href={buildBacktestUrl(result.strategy, result.params)}
             className="inline-flex text-accent text-xs border border-accent/30 rounded px-3 py-1.5 hover:bg-accent/10 transition-colors"
           >
             Open Backtest →
