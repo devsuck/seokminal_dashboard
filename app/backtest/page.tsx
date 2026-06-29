@@ -7,6 +7,7 @@ import { updateWorkflow } from "@/lib/workflow-storage";
 import { ApiError, getBars, getBacktest, runBacktestOptimize, runPortfolioBacktest, type BarOut, type BacktestResponse, type OptimizeResponse, type PortfolioBacktestResponse } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
 import { saveBacktestResult } from "@/lib/backtest-result-storage";
+import { toast } from "@/lib/toast";
 import {
   buildSpawnRules,
   newRule,
@@ -178,6 +179,9 @@ function BacktestPageInner() {
       ]);
       setBars(barsRes.bars);
       setResult(btRes);
+      const sharpeStr = btRes.sharpe_ratio != null ? ` | Sharpe ${btRes.sharpe_ratio.toFixed(2)}` : "";
+      const pnlStr = btRes.total_pnl_pct != null ? ` | PnL ${btRes.total_pnl_pct >= 0 ? "+" : ""}${btRes.total_pnl_pct.toFixed(1)}%` : "";
+      toast.show(`백테스트 완료 ${sharpeStr}${pnlStr}`, "success");
       updateWorkflow({
         backtestSharpe: btRes.sharpe_ratio ?? null,
         backtestPnlPct: btRes.total_pnl_pct ?? null,
@@ -248,7 +252,9 @@ function BacktestPageInner() {
       });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      const msg = e instanceof ApiError ? e.message : "백테스트 실패";
+      setError(msg);
+      toast.show(msg, "error");
       setBars([]); setResult(null);
     } finally { setLoading(false); }
   }
