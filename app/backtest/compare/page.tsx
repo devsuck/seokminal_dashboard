@@ -151,8 +151,8 @@ export default function BacktestComparePage() {
 
   return (
     <div className="min-h-screen bg-bg p-6">
-      <div className="flex items-start justify-between mb-4">
-        <PageBanner pageKey="compare" />
+      <PageBanner pageKey="compare" />
+      <div className="flex justify-end mb-2">
         <Link
           href="/backtest"
           className="text-text-3 hover:text-accent text-sm transition-colors no-underline"

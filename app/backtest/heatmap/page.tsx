@@ -183,9 +183,9 @@ export default function HeatmapPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1400px]">
+      <PageBanner pageKey="heatmap" />
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <PageBanner pageKey="heatmap" />
+      <div className="flex justify-end mb-2">
         <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
           ← Backtest
         </Link>

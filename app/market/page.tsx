@@ -5,7 +5,7 @@ import { PageBanner } from "@/components/PageBanner";
 
 export default function MarketPage() {
   return (
-    <div>
+    <div className="p-6">
       <PageBanner pageKey="market" />
       <MarketWorkspace />
     </div>

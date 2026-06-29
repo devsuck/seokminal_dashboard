@@ -312,9 +312,9 @@ export default function BotsPage() {
   const selectedBot = bots.find(b => b.id === selectedId) ?? null;
 
   return (
-    <div>
+    <div className="flex flex-col h-[calc(100vh-48px)] overflow-hidden">
       <PageBanner pageKey="bots" />
-    <div className="flex h-[calc(100vh-37px)] overflow-hidden">
+    <div className="flex flex-1 overflow-hidden">
 
       {/* ── Sidebar ── */}
       <div className="w-56 border-r border-border bg-bg flex flex-col shrink-0">

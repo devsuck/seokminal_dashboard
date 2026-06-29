@@ -55,34 +55,32 @@ export default function ExperimentsPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1400px]">
+      <PageBanner pageKey="experiments" />
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <PageBanner pageKey="experiments" />
-        <div className="flex items-center gap-3">
-          <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
-            ← Backtest
-          </Link>
-          {experiments.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className={`text-xs px-3 h-7 rounded border cursor-pointer transition-colors bg-transparent ${
-                confirmClear
-                  ? "text-neg border-neg hover:bg-neg/10"
-                  : "text-text-3 border-border hover:text-neg"
-              }`}
-            >
-              {confirmClear ? "Confirm clear all" : "Clear all"}
-            </button>
-          )}
-          {confirmClear && (
-            <button
-              onClick={() => setConfirmClear(false)}
-              className="text-xs text-text-3 hover:text-text-1 cursor-pointer bg-transparent border-0 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+      <div className="flex justify-end items-center gap-3">
+        <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
+          ← Backtest
+        </Link>
+        {experiments.length > 0 && (
+          <button
+            onClick={handleClearAll}
+            className={`text-xs px-3 h-7 rounded border cursor-pointer transition-colors bg-transparent ${
+              confirmClear
+                ? "text-neg border-neg hover:bg-neg/10"
+                : "text-text-3 border-border hover:text-neg"
+            }`}
+          >
+            {confirmClear ? "Confirm clear all" : "Clear all"}
+          </button>
+        )}
+        {confirmClear && (
+          <button
+            onClick={() => setConfirmClear(false)}
+            className="text-xs text-text-3 hover:text-text-1 cursor-pointer bg-transparent border-0 transition-colors"
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
       {/* Compare panel */}

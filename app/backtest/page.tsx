@@ -271,23 +271,21 @@ export default function BacktestPage() {
   // ── Layout ───────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-4 max-w-[1600px]">
+      <PageBanner pageKey="backtest" />
       {/* Page title */}
-      <div className="flex items-start justify-between">
-        <PageBanner pageKey="backtest" />
-        <div className="flex gap-4 text-xs pt-1">
-          <Link href="/experiments" className="text-text-3 hover:text-accent no-underline transition-colors">
-            Experiments →
-          </Link>
-          <Link href="/backtest/heatmap" className="text-text-3 hover:text-accent no-underline transition-colors">
-            Heatmap →
-          </Link>
-          <button
-            onClick={() => setShowSaveStrategy(v => !v)}
-            className="text-text-3 hover:text-accent text-xs bg-transparent border-0 cursor-pointer transition-colors"
-          >
-            Save Strategy
-          </button>
-        </div>
+      <div className="flex justify-end gap-4 text-xs">
+        <Link href="/experiments" className="text-text-3 hover:text-accent no-underline transition-colors">
+          Experiments →
+        </Link>
+        <Link href="/backtest/heatmap" className="text-text-3 hover:text-accent no-underline transition-colors">
+          Heatmap →
+        </Link>
+        <button
+          onClick={() => setShowSaveStrategy(v => !v)}
+          className="text-text-3 hover:text-accent text-xs bg-transparent border-0 cursor-pointer transition-colors"
+        >
+          Save Strategy
+        </button>
       </div>
 
       {/* ── Top Control Panel ─────────────────────────────────────── */}
