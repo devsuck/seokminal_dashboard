@@ -16,12 +16,14 @@ const STRATEGY_LABELS: Record<string, string> = {
   ema_cross: "EMA Cross",
   macd: "MACD",
   rsi: "RSI",
+  xgb: "XGBoost (ML)",
 };
 
 const STRATEGY_PARAMS_LABELS: Record<string, Record<string, string>> = {
   ema_cross: { fast: "Fast Period", slow: "Slow Period" },
   macd: { fast: "Fast Period", slow: "Slow Period", signal_period: "Signal Period" },
   rsi: { period: "Period", oversold: "Oversold", overbought: "Overbought" },
+  xgb: { train_ratio: "Train Ratio", n_estimators: "Trees", max_depth: "Max Depth", learning_rate: "Learning Rate" },
 };
 
 export default function AITraderPage() {
