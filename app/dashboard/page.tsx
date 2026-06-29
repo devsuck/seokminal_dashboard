@@ -5,7 +5,8 @@ import { SystemStatusWidget }      from "@/components/dashboard/SystemStatusWidg
 import { TodayEventsWidget }       from "@/components/dashboard/TodayEventsWidget";
 import { ResearchActivityWidget }  from "@/components/dashboard/ResearchActivityWidget";
 import { PortfolioSnapshotWidget } from "@/components/dashboard/PortfolioSnapshotWidget";
-import { PageBanner } from "@/components/PageBanner";
+import { IbRealtimeWidget }        from "@/components/live/IbRealtimeWidget";
+import { PageBanner }              from "@/components/PageBanner";
 
 export default function DashboardPage() {
   return (
@@ -19,6 +20,9 @@ export default function DashboardPage() {
         </div>
         <SystemStatusWidget />
       </div>
+
+      {/* IB Real-time placeholder */}
+      <IbRealtimeWidget />
 
       {/* Row 2: Today's Events + Research Activity + Portfolio Snapshot */}
       <div className="grid grid-cols-3 gap-4">
