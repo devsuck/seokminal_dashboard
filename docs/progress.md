@@ -1,3 +1,28 @@
+## Phase 34 — AI Advisor XGBoost Support (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `ai_strategy/advisor.py` — XGBoost를 추천 전략에 추가; 프롬프트에 trend_strength, volatility_pct 분석 추가; 각 전략 선택 기준 명확화
+- `app/ai-trader/page.tsx` — `STRATEGY_LABELS["xgb"] = "XGBoost (ML)"`, `STRATEGY_PARAMS_LABELS["xgb"]` 추가
+
+---
+
+## Phase 33 — Multi-Strategy Compare Panel (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `components/backtest/StrategyComparePanel.tsx` — EMA/MACD/RSI/XGBoost 4전략 동시 실행 (Promise.allSettled), Sharpe 기준 정렬, 최고 Sharpe 행 하이라이트
+- `app/backtest/page.tsx` — single 모드에서 비교 패널 렌더링
+
+---
+
+## Phase 32 — KRX Market Tab + Build Fix (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `components/market/KRMarketsTab.tsx` — KOSPI/KOSDAQ/KRX 지수 일별 데이터 테이블 (날짜 선택, AbortController, 등락률 컬러링)
+- `components/market/MarketWorkspace.tsx` — "KR" 탭 추가
+- `app/backtest/page.tsx` — `useSearchParams()` Suspense 래핑 (프로덕션 빌드 fix)
+
+---
+
 ## Phase 31 — Workflow Pipeline Connection (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
