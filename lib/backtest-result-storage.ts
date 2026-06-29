@@ -10,9 +10,15 @@ export interface SavedBacktestResult {
   instrumentId: string;
   start: string;
   end: string;
-  strategy: "ema_cross" | "gated";
+  strategy: "ema_cross" | "gated" | "macd" | "rsi";
   fast?: number;
   slow?: number;
+  macdFast?: number;
+  macdSlow?: number;
+  macdSignal?: number;
+  rsiPeriod?: number;
+  rsiOversold?: number;
+  rsiOverbought?: number;
   result: BacktestResponse;
 }
 

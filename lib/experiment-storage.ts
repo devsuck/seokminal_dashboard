@@ -3,7 +3,7 @@ import type { BacktestResponse } from "@/lib/api";
 const STORAGE_KEY = "seokminal:experiments";
 const MAX_EXPERIMENTS = 200;
 
-export type ExperimentStrategy = "ema_cross" | "gated";
+export type ExperimentStrategy = "ema_cross" | "gated" | "macd" | "rsi";
 
 export interface ExperimentParams {
   strategy: ExperimentStrategy;
@@ -15,6 +15,12 @@ export interface ExperimentParams {
   fast?: number;
   slow?: number;
   rulesCount?: number;
+  macdFast?: number;
+  macdSlow?: number;
+  macdSignal?: number;
+  rsiPeriod?: number;
+  rsiOversold?: number;
+  rsiOverbought?: number;
 }
 
 export interface ExperimentMetrics {
@@ -37,10 +43,16 @@ export interface Experiment {
 }
 
 export function makeExperimentLabel(
-  params: Pick<ExperimentParams, "strategy" | "instrumentId" | "fast" | "slow" | "rulesCount">
+  params: Pick<ExperimentParams, "strategy" | "instrumentId" | "fast" | "slow" | "rulesCount" | "macdFast" | "macdSlow" | "macdSignal" | "rsiPeriod">
 ): string {
   if (params.strategy === "ema_cross") {
     return `${params.instrumentId} EMA ${params.fast ?? "?"}/${params.slow ?? "?"}`;
+  }
+  if (params.strategy === "macd") {
+    return `${params.instrumentId} MACD ${params.macdFast ?? "?"}/${params.macdSlow ?? "?"}/${params.macdSignal ?? "?"}`;
+  }
+  if (params.strategy === "rsi") {
+    return `${params.instrumentId} RSI(${params.rsiPeriod ?? "?"})`;
   }
   return `${params.instrumentId} Gated (${params.rulesCount ?? 0} rules)`;
 }

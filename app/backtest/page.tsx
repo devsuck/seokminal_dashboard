@@ -134,12 +134,24 @@ export default function BacktestPage() {
         label: activityLabel,
         href: "/backtest",
       });
+      const experimentLabel =
+        mode === "single"
+          ? strategyType === "macd"
+            ? { strategy: "macd" as ExperimentStrategy, instrumentId, macdFast, macdSlow, macdSignal }
+            : strategyType === "rsi"
+            ? { strategy: "rsi" as ExperimentStrategy, instrumentId, rsiPeriod }
+            : { strategy: "ema_cross" as ExperimentStrategy, instrumentId, fast, slow }
+          : { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length };
+      const experimentParams: Record<string, any> =
+        mode === "single"
+          ? strategyType === "macd"
+            ? { macdFast, macdSlow, macdSignal }
+            : strategyType === "rsi"
+            ? { rsiPeriod, rsiOversold, rsiOverbought }
+            : { fast, slow }
+          : { rulesCount: rules.length };
       saveExperiment({
-        label: makeExperimentLabel(
-          mode === "single"
-            ? { strategy: "ema_cross" as ExperimentStrategy, instrumentId, fast, slow }
-            : { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length }
-        ),
+        label: makeExperimentLabel(experimentLabel),
         params: {
           strategy: (mode === "single" ? strategyType : "gated") as ExperimentStrategy,
           instrumentId,
@@ -147,7 +159,7 @@ export default function BacktestPage() {
           end,
           timeframe,
           benchmarkId,
-          ...(mode === "single" ? { fast, slow } : { rulesCount: rules.length }),
+          ...experimentParams,
         },
         metrics: extractMetrics(btRes),
       });
@@ -438,13 +450,21 @@ export default function BacktestPage() {
                   />
                   <button
                     onClick={() => {
+                      const resultParams: Record<string, any> =
+                        mode === "single"
+                          ? strategyType === "macd"
+                            ? { macdFast, macdSlow, macdSignal }
+                            : strategyType === "rsi"
+                            ? { rsiPeriod, rsiOversold, rsiOverbought }
+                            : { fast, slow }
+                          : {};
                       const saved = saveBacktestResult({
                         label: saveLabel.trim() || `${instrumentId} ${start}`,
                         instrumentId,
                         start,
                         end,
-                        strategy: (mode === "single" ? "ema_cross" : "gated") as "ema_cross" | "gated",
-                        ...(mode === "single" && strategyType === "ema_cross" ? { fast, slow } : {}),
+                        strategy: (mode === "single" ? strategyType : "gated") as "ema_cross" | "gated" | "macd" | "rsi",
+                        ...resultParams,
                         result,
                       });
                       setShowSaveResult(false);
