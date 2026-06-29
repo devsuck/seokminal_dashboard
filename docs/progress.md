@@ -1,3 +1,23 @@
+## Phase 25 — Live Strategy Monitor (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `live_engine/engine.py` — `_BotRunState`에 `entry_ts_ns`, `closed_trades` (cap 200), `signal_log` (cap 100) 추가; EMA 루프에서 포지션 플립 시 거래 기록 (order 성공 후), 신호 변화 시 signal_log 기록
+- `api_server/main.py` — `ClosedTrade`, `SignalEntry`, `BotTradeLogResponse`, `BotSignalLogResponse` 모델; `GET /bots/{bot_id}`, `GET /bots/{bot_id}/trades`, `GET /bots/{bot_id}/signals` 엔드포인트 추가; mutating 엔드포인트에 `global bots` 추가
+- `tests/test_bot_trade_log.py` — 8개 테스트 신규 (포지션 플립 기록, signal_log, 엔드포인트 404/200)
+- `lib/api.ts` — `ClosedTrade`, `SignalEntry`, `BotTradeLogResponse`, `BotSignalLogResponse` 타입; `getBot()`, `fetchBotTrades()`, `fetchBotSignals()` 함수 추가
+- `tests/lib/api-bots.test.ts` — 6개 테스트 신규 (AbortSignal 전달 포함)
+- `app/bots/[id]/page.tsx` — 봇 상세 페이지: 라이브 상태 카드, 3탭 (Trade Log/Equity Curve/Signal Log), 5초 폴링
+- `app/bots/page.tsx` — 봇 목록에 "Detail" 링크 추가
+
+### 변경된 파일
+Backend: `live_engine/engine.py`, `api_server/main.py`, `tests/test_bot_trade_log.py` (6a7515a→31c1c44)
+Frontend: `lib/api.ts`, `tests/lib/api-bots.test.ts`, `app/bots/[id]/page.tsx`, `app/bots/page.tsx` (7e53b0c→66092e0)
+
+### 다음 할 일
+Phase 26 — Backtest v3 (전략 타입 추가: MACD, RSI + 파라미터 최적화)
+
+---
+
 ## Cleanup (2026-06-29) ✅ DONE
 
 ### 완료된 작업
