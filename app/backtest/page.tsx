@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
 import type { StrategyParams } from "@/lib/strategy-storage";
+import { StrategyComparePanel } from "@/components/backtest/StrategyComparePanel";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { PageBanner } from "@/components/PageBanner";
 
@@ -843,6 +844,15 @@ function BacktestPageInner() {
 
           {/* Trade Log */}
           <TradeLogTable trades={result?.trades ?? []} />
+
+          {/* Strategy Comparison */}
+          {mode === "single" && (
+            <StrategyComparePanel
+              instrumentId={instrumentId}
+              start={start}
+              end={end}
+            />
+          )}
         </div>
       </div>
 
