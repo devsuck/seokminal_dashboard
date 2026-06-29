@@ -1,3 +1,25 @@
+## Phase 24 — Backtesting UI v2 (2026-06-29) ✅ SHIPPED
+
+### 완료된 작업
+- `lib/backtest-result-storage.ts` — 전체 BacktestResponse localStorage 저장 (저장/불러오기/삭제, cap 50)
+- `app/backtest/page.tsx` — Save Result 버튼 (인라인 라벨 입력 → Saved ✓, 저장 실패 시 미표시)
+- `app/backtest/compare/page.tsx` — 저장 결과 최대 4개 선택 비교: 지표 테이블(9행, best=green/worst=red) + 누적 PnL 차트
+- `components/NavBar.tsx` — Trade 그룹에 Compare 추가 (Backtest 바로 다음)
+- Fix: max_drawdown higherBetter: false → true (음수값이므로 Math.max가 최솟값 선택)
+- Fix: saveBacktestResult 반환 타입 `| null` + 저장 실패 시 Saved ✓ 미표시
+
+### 변경된 파일
+**Frontend (5db769f..9c50b70):** `lib/backtest-result-storage.ts` (신규), `tests/lib/backtest-result-storage.test.ts` (신규), `app/backtest/page.tsx`, `app/backtest/compare/page.tsx` (신규), `components/NavBar.tsx`
+
+### 테스트
+- Frontend: 163/163 passed (+8 신규)
+- TypeScript: 0 errors
+
+### 다음 할 일
+- Cleanup: D3 타입 (CorrelationNetwork.tsx:120), quant.tsx 디자인 토큰, ai-trader 플레이스홀더
+
+---
+
 ## Phase 23 — Risk Dashboard (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업
