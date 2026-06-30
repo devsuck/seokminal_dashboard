@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getEconomicCalendar, type EconomicEvent } from "@/lib/api";
+import { GroqSummaryPanel } from "@/components/GroqSummaryPanel";
 
 type Week = "this" | "next";
 type ImpactFilter = "all" | "High" | "Medium" | "Low";
@@ -79,16 +80,19 @@ export default function CalendarPage() {
     setError(null);
     setEvents([]);
 
-    getEconomicCalendar(week, ctrl.signal)
-      .then(data => { if (!ctrl.signal.aborted) setEvents(data); })
-      .catch(err => {
-        if (err instanceof Error && err.name === "AbortError") return;
-        if (!ctrl.signal.aborted)
-          setError(err instanceof ApiError ? err.message : "캘린더 로드 실패");
-      })
-      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    const load = () =>
+      getEconomicCalendar(week, ctrl.signal)
+        .then(data => { if (!ctrl.signal.aborted) setEvents(data); })
+        .catch(err => {
+          if (err instanceof Error && err.name === "AbortError") return;
+          if (!ctrl.signal.aborted)
+            setError(err instanceof ApiError ? err.message : "캘린더 로드 실패");
+        })
+        .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
 
-    return () => ctrl.abort();
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => { ctrl.abort(); clearInterval(timer); };
   }, [week]);
 
   useEffect(() => () => ctrlRef.current?.abort(), []);
@@ -112,13 +116,23 @@ export default function CalendarPage() {
   const highCount   = filtered.filter(e => e.impact === "High").length;
   const mediumCount = filtered.filter(e => e.impact === "Medium").length;
 
+  function getCalendarContent(): string {
+    return filtered
+      .filter(e => e.impact === "High" || e.impact === "Medium")
+      .map(e => `[${e.impact}] ${e.country} ${e.date} ${e.title} 이전:${e.previous ?? "?"} 예측:${e.forecast ?? "?"} 실제:${e.actual ?? "미발표"}`)
+      .join("\n");
+  }
+
   return (
-    <div className="p-4 space-y-4 max-w-[900px]">
+    <div className="p-4 max-w-[1300px]">
+      <div className="flex gap-4 items-start">
+      {/* Left: calendar */}
+      <div className="flex-1 min-w-0 space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-text-1 text-lg font-semibold">경제 캘린더</h1>
         <p className="text-text-3 text-xs mt-0.5">
-          ForexFactory 경제지표 일정 · 미국 동부 시간 기준 · 10분 캐시
+          ForexFactory 경제지표 일정 · 미국 동부 시간 기준 · 60초 캐시
         </p>
       </div>
 
@@ -271,6 +285,13 @@ export default function CalendarPage() {
           </div>
         );
       })}
+      </div>{/* end left */}
+
+      {/* Right: Groq summary */}
+      <div className="pt-9">
+        <GroqSummaryPanel mode="calendar" getContent={getCalendarContent} />
+      </div>
+      </div>{/* end flex row */}
     </div>
   );
 }

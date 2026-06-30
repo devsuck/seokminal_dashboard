@@ -10,7 +10,7 @@ function todayKrx(): string {
 }
 
 const CHECKS = [
-  { label: "API Server", url: () => `${API_URL}/bars?instrument_id=AAPL.NASDAQ&start=2025-01-01&end=2025-01-02` },
+  { label: "API Server", url: () => `${API_URL}/health` },
   { label: "KRX Data",   url: () => `${API_URL}/krx/index?bas_dd=${todayKrx()}&index_type=KOSPI` },
   { label: "FRED/Macro", url: () => `${API_URL}/fred/catalog` },
   { label: "Bot Engine", url: () => `${API_URL}/bots` },

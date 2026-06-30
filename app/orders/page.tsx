@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import {
   placeKROrder,
   cancelKROrder,
@@ -58,6 +60,12 @@ function toKRDate(isoStr: string): string {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
+  return <Suspense><OrdersPageInner /></Suspense>;
+}
+
+function OrdersPageInner() {
+  const searchParams = useSearchParams();
+
   // Venue tab
   const [venue, setVenue] = useState<Venue>("KR");
 
@@ -165,6 +173,22 @@ export default function OrdersPage() {
   useEffect(() => {
     setOrderLog(getOrderLog());
   }, []);
+
+  // Pre-fill symbol from URL param (e.g. from backtest "주문하기 →")
+  useEffect(() => {
+    const sym = searchParams.get("symbol");
+    if (!sym) return;
+    if (/^\d{6}(\.KRX|\.XKRX)?$/.test(sym)) {
+      setVenue("KR");
+      setKrCode(sym.replace(/\.\w+$/, ""));
+    } else if (/[A-Z]/.test(sym) && !sym.includes(".")) {
+      setVenue("US");
+      setUsSymbol(sym.toUpperCase());
+    } else {
+      setVenue("US");
+      setUsSymbol(sym.split(".")[0].toUpperCase());
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => {
     submitAbortRef.current?.abort();

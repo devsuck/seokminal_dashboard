@@ -6,6 +6,7 @@ import { ChartTab } from "@/components/market/ChartTab";
 import { ComparisonTab } from "@/components/market/ComparisonTab";
 import { EventsTab } from "@/components/market/EventsTab";
 import { KRMarketsTab } from "@/components/market/KRMarketsTab";
+import { SearchTab } from "@/components/market/SearchTab";
 import {
   getWatchlist,
   addToWatchlist,
@@ -13,24 +14,36 @@ import {
   DEFAULT_SYMBOLS,
 } from "@/lib/watchlist-storage";
 
-type Tab = "chart" | "compare" | "events" | "kr";
+type Tab = "chart" | "compare" | "events" | "kr" | "search";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "search",  label: "🔍 검색" },
   { id: "chart",   label: "Chart" },
   { id: "compare", label: "Compare" },
   { id: "events",  label: "Events" },
   { id: "kr",      label: "KR" },
 ];
 
-export function MarketWorkspace() {
+export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
   const [watchlist, setWatchlist] = useState<string[]>(DEFAULT_SYMBOLS);
-  const [activeSymbol, setActiveSymbol] = useState(DEFAULT_SYMBOLS[0]);
+  const [activeSymbol, setActiveSymbol] = useState(initialSymbol ?? DEFAULT_SYMBOLS[0]);
   const [activeTab, setActiveTab] = useState<Tab>("chart");
 
   useEffect(() => {
     const list = getWatchlist();
-    setWatchlist(list);
-    setActiveSymbol(list[0] ?? DEFAULT_SYMBOLS[0]);
+    if (initialSymbol) {
+      if (!list.includes(initialSymbol)) {
+        addToWatchlist(initialSymbol);
+        setWatchlist(getWatchlist());
+      } else {
+        setWatchlist(list);
+      }
+      setActiveSymbol(initialSymbol);
+    } else {
+      setWatchlist(list);
+      setActiveSymbol(list[0] ?? DEFAULT_SYMBOLS[0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleSymbolSelect(symbol: string) {
@@ -43,6 +56,13 @@ export function MarketWorkspace() {
     setWatchlist(getWatchlist());
   }
 
+  function handleGoToChart(symbol: string) {
+    addToWatchlist(symbol);
+    setWatchlist(getWatchlist());
+    setActiveSymbol(symbol);
+    setActiveTab("chart");
+  }
+
   function handleRemove(symbol: string) {
     removeFromWatchlist(symbol);
     const updated = getWatchlist();
@@ -53,7 +73,7 @@ export function MarketWorkspace() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-48px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-96px)] overflow-hidden">
       {/* Left: Watchlist sidebar */}
       <WatchlistSidebar
         symbols={watchlist}
@@ -88,7 +108,14 @@ export function MarketWorkspace() {
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto bg-bg">
-          {activeTab === "chart"   && <ChartTab symbol={activeSymbol} />}
+          {activeTab === "search"  && <SearchTab onGoToChart={handleGoToChart} />}
+          {activeTab === "chart"   && (
+            <ChartTab
+              symbol={activeSymbol}
+              onAddToWatchlist={handleAdd}
+              isInWatchlist={watchlist.includes(activeSymbol)}
+            />
+          )}
           {activeTab === "compare" && <ComparisonTab symbols={watchlist} />}
           {activeTab === "events"  && <EventsTab />}
           {activeTab === "kr"      && <KRMarketsTab />}

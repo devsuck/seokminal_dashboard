@@ -84,6 +84,8 @@ export default function WorkflowPage() {
     return "pending";
   }
 
+  const progressPct = Math.round((currentIdx / (STEP_DEFS.length - 1)) * 100);
+
   return (
     <div className="p-6 space-y-6 max-w-[760px]">
       <div className="flex items-start justify-between gap-4">
@@ -99,6 +101,65 @@ export default function WorkflowPage() {
         >
           Reset
         </button>
+      </div>
+
+      {/* Horizontal progress stepper */}
+      <div className="bg-panel border border-border rounded-lg p-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-text-3 text-[10px] uppercase tracking-wider">진행률</span>
+          <span className="text-accent text-xs font-data font-semibold">{progressPct}%</span>
+        </div>
+        {/* Progress bar */}
+        <div className="h-1.5 bg-panel-2 rounded-full overflow-hidden mb-5">
+          <div
+            className="h-full bg-accent rounded-full transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        {/* Step nodes + connectors */}
+        <div className="flex items-center">
+          {STEP_DEFS.map((def, idx) => {
+            const status = stepStatus(idx);
+            const isLast = idx === STEP_DEFS.length - 1;
+            return (
+              <div key={idx} className="flex items-center flex-1 last:flex-none">
+                <Link
+                  href={def.href}
+                  className="flex flex-col items-center gap-1.5 no-underline group shrink-0"
+                  title={def.label}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-colors ${
+                      status === "done"
+                        ? "bg-pos/20 text-pos border-pos/40"
+                        : status === "current"
+                        ? "bg-accent/20 text-accent border-accent group-hover:bg-accent/30"
+                        : "bg-panel-2 text-text-3 border-border group-hover:border-text-3"
+                    }`}
+                  >
+                    {status === "done" ? "✓" : idx + 1}
+                  </div>
+                  <span
+                    className={`text-[9px] whitespace-nowrap transition-colors ${
+                      status === "current" ? "text-accent font-semibold"
+                      : status === "done" ? "text-text-2"
+                      : "text-text-3 group-hover:text-text-2"
+                    }`}
+                  >
+                    {def.label.replace(/^\d+\.\s*/, "")}
+                  </span>
+                </Link>
+                {!isLast && (
+                  <div className="flex-1 h-0.5 mx-1 -mt-5 rounded-full overflow-hidden bg-panel-2">
+                    <div
+                      className={`h-full transition-colors ${idx < currentIdx ? "bg-pos/40" : "bg-transparent"}`}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Current state summary */}
@@ -128,30 +189,37 @@ export default function WorkflowPage() {
       )}
 
       {/* Steps */}
-      <div className="space-y-2">
+      <div className="space-y-0">
         {STEP_DEFS.map((def, idx) => {
           const status = stepStatus(idx);
+          const isLast = idx === STEP_DEFS.length - 1;
           return (
-            <div
-              key={idx}
-              className={`bg-panel border rounded-lg p-4 transition-colors ${
-                status === "current" ? "border-accent/40" : "border-border"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                {/* Status indicator */}
+            <div key={idx} className="flex gap-3">
+              {/* Timeline rail */}
+              <div className="flex flex-col items-center shrink-0 pt-4">
                 <div
-                  className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
                     status === "done"
-                      ? "bg-pos/20 text-pos"
+                      ? "bg-pos/20 text-pos border-pos/40"
                       : status === "current"
-                      ? "bg-accent/20 text-accent"
-                      : "bg-panel-2 text-text-3"
+                      ? "bg-accent/20 text-accent border-accent"
+                      : "bg-panel-2 text-text-3 border-border"
                   }`}
                 >
                   {status === "done" ? "✓" : idx + 1}
                 </div>
+                {!isLast && (
+                  <div className={`w-0.5 flex-1 my-1 ${idx < currentIdx ? "bg-pos/30" : "bg-border"}`} />
+                )}
+              </div>
 
+              {/* Card */}
+              <div
+                className={`flex-1 mb-2 bg-panel border rounded-lg p-4 transition-colors ${
+                  status === "current" ? "border-accent/40" : "border-border"
+                }`}
+              >
+              <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-sm font-medium ${status === "pending" ? "text-text-3" : "text-text-1"}`}>
@@ -177,6 +245,7 @@ export default function WorkflowPage() {
                 >
                   {def.actionLabel}
                 </Link>
+              </div>
               </div>
             </div>
           );

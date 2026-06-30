@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import {
   ApiError,
-  getForexForward, getForexCarry, getForexCurve,
-  type ForexForwardResponse, type ForexCarryResponse, type ForexCurveResponse,
+  getForexForward, getForexCarry, getForexCurve, getForexOverview,
+  type ForexForwardResponse, type ForexCarryResponse, type ForexCurveResponse, type FxRate,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 
-type Tab = "forward" | "curve" | "carry";
+type Tab = "live" | "forward" | "curve" | "carry";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -433,14 +433,105 @@ function CurveTab() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// ── Live Rates Heatmap ────────────────────────────────────────────────────────
+
+const PAIR_GROUPS = [
+  { label: "Majors",  pairs: ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD"] },
+  { label: "Asian",   pairs: ["USD/KRW", "USD/CNY", "EUR/JPY", "GBP/JPY"] },
+];
+
+function heatColor(pct: number | null): string {
+  if (pct == null) return "bg-panel-2";
+  if (pct >  1.0) return "bg-pos/30";
+  if (pct >  0.3) return "bg-pos/15";
+  if (pct >  0.0) return "bg-pos/8";
+  if (pct < -1.0) return "bg-neg/30";
+  if (pct < -0.3) return "bg-neg/15";
+  if (pct <  0.0) return "bg-neg/8";
+  return "bg-panel-2";
+}
+
+function fmtRate(pair: string, rate: number | null): string {
+  if (rate == null) return "—";
+  const decimals = pair.includes("JPY") || pair.includes("KRW") || pair.includes("CNY") ? 2 : 4;
+  return rate.toFixed(decimals);
+}
+
+function LiveRatesTab() {
+  const [rates, setRates] = useState<Record<string, FxRate>>({});
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const load = () =>
+      getForexOverview(ctrl.signal)
+        .then(d => { if (!ctrl.signal.aborted) { setRates(d); setLastUpdate(new Date()); setLoading(false); } })
+        .catch(() => { if (!ctrl.signal.aborted) setLoading(false); });
+
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => { ctrl.abort(); clearInterval(timer); };
+  }, []);
+
+  if (loading) return <p className="text-text-3 text-sm py-8">환율 로딩 중…</p>;
+
+  return (
+    <div className="space-y-6">
+      {lastUpdate && (
+        <p className="text-text-3 text-[10px]">
+          업데이트: {lastUpdate.toLocaleTimeString("ko-KR")} · 1분 자동 갱신
+        </p>
+      )}
+      {PAIR_GROUPS.map(group => (
+        <div key={group.label}>
+          <h3 className="text-text-3 text-[11px] uppercase tracking-wider mb-3">{group.label}</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {group.pairs.map(pair => {
+              const d = rates[pair];
+              const pct = d?.change_pct ?? null;
+              const pct5d = d?.change_5d ?? null;
+              const isPos = (pct ?? 0) >= 0;
+              return (
+                <div
+                  key={pair}
+                  className={`${heatColor(pct)} border border-border rounded-lg p-3 transition-colors`}
+                >
+                  <div className="text-text-3 text-[11px] font-medium mb-1">{pair}</div>
+                  <div className="text-text-1 text-lg font-data font-bold leading-none">
+                    {fmtRate(pair, d?.rate ?? null)}
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={`text-xs font-data font-semibold ${isPos ? "text-pos" : "text-neg"}`}>
+                      {pct != null ? `${pct >= 0 ? "+" : ""}${pct.toFixed(3)}%` : "—"}
+                    </span>
+                    {pct5d != null && (
+                      <span className="text-[10px] text-text-3 font-data">
+                        5d {pct5d >= 0 ? "+" : ""}{pct5d.toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 const TABS: { id: Tab; label: string }[] = [
+  { id: "live",    label: "Live Rates" },
   { id: "forward", label: "Forward" },
   { id: "curve",   label: "Curve" },
   { id: "carry",   label: "Carry" },
 ];
 
 export default function ForexPage() {
-  const [tab, setTab] = useState<Tab>("forward");
+  const [tab, setTab] = useState<Tab>("live");
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
@@ -462,6 +553,7 @@ export default function ForexPage() {
         ))}
       </div>
 
+      {tab === "live"    && <LiveRatesTab />}
       {tab === "forward" && <ForwardTab />}
       {tab === "carry"   && <CarryTab />}
       {tab === "curve"   && <CurveTab />}

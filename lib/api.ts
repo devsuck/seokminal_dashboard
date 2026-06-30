@@ -1029,6 +1029,18 @@ export async function getForexCarry(
   );
 }
 
+export interface FxRate {
+  rate: number | null;
+  change_pct: number | null;
+  change_5d: number | null;
+}
+
+export async function getForexOverview(signal?: AbortSignal): Promise<Record<string, FxRate>> {
+  return handleResponse<Record<string, FxRate>>(
+    await fetch(`${API_URL}/forex/overview`, { signal })
+  );
+}
+
 // ── Crypto (Hyperliquid) ──────────────────────────────────────────────────────
 
 export interface CryptoAsset {
@@ -1599,10 +1611,18 @@ export interface DartCompany {
   stock_code: string;
 }
 
+export type InsiderTradeType =
+  | "BUY" | "SELL"
+  | "RIGHTS_ISSUE"   // 무상증자
+  | "PAID_IN"        // 유상증자
+  | "CANCELLATION"   // 주식소각
+  | "HOLD_REPORT"    // 보유변동 없는 보고
+  | "OTHER";
+
 export interface InsiderTrade {
   trade_date: string;
   reporter: string;
-  trade_type: "BUY" | "SELL" | "OTHER";
+  trade_type: InsiderTradeType;
   shares_change?: number | null;
   shares?: number | null;
   price_per_share?: number | null;
@@ -1614,6 +1634,9 @@ export interface InsiderTrade {
   corp_name?: string | null;
   ticker?: string | null;
   issuer?: string | null;
+  role?: string | null;         // KR: 직책
+  event_cause?: string | null;  // KR: 증감원인
+  dart_url?: string | null;     // KR: 공시 원문 링크
 }
 
 export async function searchDartCompany(q: string, signal?: AbortSignal): Promise<DartCompany[]> {
@@ -1809,4 +1832,317 @@ export async function closeHLPosition(coin: string, size?: number, slippage = 0.
     signal,
   });
   return handleResponse(r);
+}
+
+// ── CVaR / Expected Shortfall ─────────────────────────────────────────────────
+export interface CVaRResponse {
+  var_95: number; cvar_95: number;
+  var_99: number; cvar_99: number;
+}
+export async function getCVaR(instrumentId: string, start: string, end: string, signal?: AbortSignal): Promise<CVaRResponse> {
+  const r = await fetch(`${API_URL}/cvar?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Hurst Exponent ────────────────────────────────────────────────────────────
+export interface HurstResponse {
+  hurst: number; interpretation: string; lags: number[]; rs_values: number[];
+}
+export async function getHurst(instrumentId: string, start: string, end: string, signal?: AbortSignal): Promise<HurstResponse> {
+  const r = await fetch(`${API_URL}/hurst?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Statistical Tests ─────────────────────────────────────────────────────────
+export interface StatTestsResponse {
+  adf: { statistic: number; pvalue: number; is_stationary: boolean; critical_values: Record<string, number>; interpretation: string };
+  ljung_box: { statistic: number; pvalue: number; lags: number; is_autocorrelated: boolean; interpretation: string };
+  jarque_bera: { statistic: number; pvalue: number; is_normal: boolean; skewness: number; excess_kurtosis: number; interpretation: string };
+}
+export async function getStatTests(instrumentId: string, start: string, end: string, signal?: AbortSignal): Promise<StatTestsResponse> {
+  const r = await fetch(`${API_URL}/stat-tests?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Kelly Criterion ───────────────────────────────────────────────────────────
+export interface KellyResponse {
+  kelly_full: number; kelly_half: number; kelly_quarter: number;
+  win_rate: number; avg_win: number; avg_loss: number;
+  win_loss_ratio: number; expected_value: number;
+}
+export async function getKelly(instrumentId: string, start: string, end: string, signal?: AbortSignal): Promise<KellyResponse> {
+  const r = await fetch(`${API_URL}/kelly?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── VWAP / TWAP ───────────────────────────────────────────────────────────────
+export interface VWAPResponse {
+  vwap: number; twap: number; current_price: number;
+  vwap_deviation_pct: number; twap_deviation_pct: number;
+  total_volume: number; n_bars: number;
+}
+export async function getVWAP(instrumentId: string, start: string, end: string, signal?: AbortSignal): Promise<VWAPResponse> {
+  const r = await fetch(`${API_URL}/vwap?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── GBM Monte Carlo ───────────────────────────────────────────────────────────
+export interface GBMResponse {
+  model: string; day_indices: number[];
+  paths: { p5: number[]; p25: number[]; p50: number[]; p75: number[]; p95: number[] };
+  prob_profit: number; prob_loss_20pct: number;
+  terminal_p5: number; terminal_p25: number; terminal_median: number;
+  terminal_p75: number; terminal_p95: number;
+  ann_return_mean: number; ann_return_p5: number; ann_return_p95: number;
+  mu_daily: number; sigma_daily: number; ito_drift_correction: number;
+}
+export async function getGBMMonteCarlo(instrumentId: string, start: string, end: string, horizonDays = 252, nSimulations = 1000, signal?: AbortSignal): Promise<GBMResponse> {
+  const r = await fetch(`${API_URL}/monte-carlo-gbm?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}&horizon_days=${horizonDays}&n_simulations=${nSimulations}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── HMM Regime ────────────────────────────────────────────────────────────────
+export interface HMMRegimeResponse {
+  method: string; current_regime: string; n_components: number;
+  regime_distribution: Record<string, number>;
+  transition_matrix: number[][];
+  state_means: number[]; state_vols: number[];
+}
+export async function getHMMRegime(instrumentId: string, start: string, end: string, nComponents = 2, signal?: AbortSignal): Promise<HMMRegimeResponse> {
+  const r = await fetch(`${API_URL}/regime-hmm?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}&n_components=${nComponents}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Pairs Trading / Cointegration ─────────────────────────────────────────────
+export interface PairsResponse {
+  cointegrated: boolean; eg_pvalue: number; eg_tstat: number;
+  johansen_trace_stat: number; johansen_crit_95: number; johansen_cointegrated: boolean;
+  hedge_ratio: number; intercept: number; half_life_days: number;
+  spread: number[]; zscore: number[]; signals: string[];
+  spread_mean: number; spread_std: number;
+  n_buy_signals: number; n_sell_signals: number;
+}
+export async function getPairsTrading(instrumentA: string, instrumentB: string, start: string, end: string, signal?: AbortSignal): Promise<PairsResponse> {
+  const r = await fetch(`${API_URL}/pairs?instrument_a=${encodeURIComponent(instrumentA)}&instrument_b=${encodeURIComponent(instrumentB)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Stress Testing ────────────────────────────────────────────────────────────
+export interface StressScenario {
+  name: string; period: string; description: string;
+  market_return: number; portfolio_impact: number; var_stressed: number; vol_spike_factor: number;
+}
+export interface StressTestResponse {
+  beta_used: number; current_vol_ann: number; current_var95_daily: number;
+  scenarios: StressScenario[];
+}
+export async function getStressTest(instrumentId: string, start: string, end: string, beta = 1.0, signal?: AbortSignal): Promise<StressTestResponse> {
+  const r = await fetch(`${API_URL}/stress-test?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}&beta=${beta}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Risk Parity ───────────────────────────────────────────────────────────────
+export interface RiskParityResponse {
+  weights: Record<string, number>; risk_contribution: Record<string, number>;
+  expected_return: number; expected_vol: number; sharpe: number; converged: boolean;
+}
+export async function getRiskParity(instrumentIds: string[], start: string, end: string, signal?: AbortSignal): Promise<RiskParityResponse> {
+  const r = await fetch(`${API_URL}/risk-parity?instrument_ids=${encodeURIComponent(instrumentIds.join(","))}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Black-Litterman ───────────────────────────────────────────────────────────
+export interface BLView { instrument: string; expected_return: number; confidence: number; }
+export interface BlackLittermanResponse {
+  model: string;
+  weights: Record<string, number>;
+  expected_return: number; expected_vol: number; sharpe: number; converged: boolean;
+  prior_returns?: Record<string, number>; posterior_returns?: Record<string, number>;
+}
+export async function getBlackLitterman(instrumentIds: string[], start: string, end: string, views: BLView[], tau = 0.05, riskAversion = 2.5, signal?: AbortSignal): Promise<BlackLittermanResponse> {
+  const r = await fetch(`${API_URL}/black-litterman`, {
+    method: "POST", signal,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ instrument_ids: instrumentIds, start, end, views, tau, risk_aversion: riskAversion }),
+  });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Fama-French Factor Attribution ────────────────────────────────────────────
+export interface FactorAttributionResponse {
+  model: string; alpha: number | null; alpha_pvalue: number | null;
+  mkt_rf: number | null; mkt_rf_pvalue: number | null;
+  smb: number | null; smb_pvalue: number | null;
+  hml: number | null; hml_pvalue: number | null;
+  r_squared: number | null; obs: number | null;
+  dates?: string[]; factor_contributions?: Record<string, number[]>;
+  error?: string;
+}
+export async function getFactorAttribution(instrumentId: string, start: string, end: string, signal?: AbortSignal): Promise<FactorAttributionResponse> {
+  const r = await fetch(`${API_URL}/factor-attribution?instrument_id=${encodeURIComponent(instrumentId)}&start=${start}&end=${end}`, { signal });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
+// ── Alpaca Autopilot ─────────────────────────────────────────────────────────
+export interface AlpacaAccount {
+  equity: number;
+  buying_power: number;
+  cash: number;
+  portfolio_value: number;
+  paper: boolean;
+}
+
+export interface AlpacaPosition {
+  symbol: string;
+  qty: number;
+  avg_entry_price: number;
+  current_price: number;
+  unrealized_pl: number;
+  unrealized_plpc: number;
+  market_value: number;
+  side: string;
+}
+
+export interface AlpacaOrder {
+  id: string;
+  symbol: string;
+  side: string;
+  qty: number;
+  filled_qty: number;
+  status: string;
+  filled_avg_price: number | null;
+  created_at: string;
+}
+
+export interface AlpacaContext {
+  symbol: string;
+  timestamp: string;
+  price: { current: number; open: number; high: number; low: number };
+  technicals: { rsi_14: number; macd: number; macd_signal: number; macd_hist: number; volume_ratio: number };
+  bars_5min: { t: string; o: number; h: number; l: number; c: number; v: number }[];
+  news: { headline: string; summary: string; datetime: string; source: string }[];
+  position: { qty: number; avg_price: number; unrealized_pl: number; unrealized_plpc: number } | null;
+  account: { equity: number; buying_power: number; cash: number };
+}
+
+export async function getAlpacaAccount(signal?: AbortSignal): Promise<AlpacaAccount> {
+  return handleResponse<AlpacaAccount>(await fetch(`${API_URL}/alpaca/account`, { signal }));
+}
+
+export async function getAlpacaPositions(signal?: AbortSignal): Promise<AlpacaPosition[]> {
+  return handleResponse<AlpacaPosition[]>(await fetch(`${API_URL}/alpaca/positions`, { signal }));
+}
+
+export async function getAlpacaOrders(signal?: AbortSignal): Promise<AlpacaOrder[]> {
+  return handleResponse<AlpacaOrder[]>(await fetch(`${API_URL}/alpaca/orders`, { signal }));
+}
+
+export async function getAlpacaContext(symbol: string, signal?: AbortSignal): Promise<AlpacaContext> {
+  return handleResponse<AlpacaContext>(await fetch(`${API_URL}/alpaca/context/${encodeURIComponent(symbol)}`, { signal }));
+}
+
+export async function placeAlpacaOrder(params: { symbol: string; side: "buy" | "sell"; qty: number; paper?: boolean }, signal?: AbortSignal): Promise<AlpacaOrder> {
+  return handleResponse<AlpacaOrder>(await fetch(`${API_URL}/alpaca/order`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+    signal,
+  }));
+}
+
+export async function cancelAlpacaOrder(orderId: string, signal?: AbortSignal): Promise<void> {
+  await handleResponse<void>(await fetch(`${API_URL}/alpaca/order/${orderId}`, { method: "DELETE", signal }));
+}
+
+export async function startAutopilotTerminal(signal?: AbortSignal): Promise<{ status: string; tmux_session: string; ttyd_port: number }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/terminal/start`, { method: "POST", signal }));
+}
+
+export async function getTerminalStatus(signal?: AbortSignal): Promise<{ ttyd_running: boolean; tmux_session: boolean }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/terminal/status`, { signal }));
+}
+
+export interface MarketOverviewData {
+  sp500:  { value: number | null; change_pct: number | null };
+  nasdaq: { value: number | null; change_pct: number | null };
+  usdkrw: { value: number | null; change_pct: number | null };
+  btcusd: { value: number | null; change_pct: number | null };
+  vix:    { value: number | null; change_pct: number | null };
+  gold:   { value: number | null; change_pct: number | null };
+}
+
+export async function getMarketOverview(signal?: AbortSignal): Promise<MarketOverviewData> {
+  return handleResponse<MarketOverviewData>(await fetch(`${API_URL}/market-overview`, { signal }));
+}
+
+export interface ChatPaneResult { lines: string[]; total: number; }
+
+export async function sendChatMessage(message: string, signal?: AbortSignal): Promise<{ status: string }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/chat/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+    signal,
+  }));
+}
+
+export async function getChatPane(signal?: AbortSignal): Promise<ChatPaneResult> {
+  return handleResponse<ChatPaneResult>(await fetch(`${API_URL}/alpaca/chat/pane`, { signal }));
+}
+
+export async function initiateShutdown(signal?: AbortSignal): Promise<{ status: string }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/shutdown/initiate`, { method: "POST", signal }));
+}
+
+export async function getShutdownStatus(signal?: AbortSignal): Promise<{ done: boolean; recent_lines: string[] }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/shutdown/status`, { signal }));
+}
+
+export async function executeShutdown(signal?: AbortSignal): Promise<{ status: string }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/shutdown/execute`, { method: "POST", signal }));
+}
+
+export interface FGMarket { value: number; classification: string; }
+export interface FGMarketsResponse { crypto: FGMarket; us: FGMarket; kr: FGMarket; }
+
+export async function getFGMarkets(signal?: AbortSignal): Promise<FGMarketsResponse> {
+  return handleResponse<FGMarketsResponse>(await fetch(`${API_URL}/macro/fear-greed/markets`, { signal }));
+}
+
+export interface ClaudeUsagePeriod { input: number; output: number; total: number; }
+export interface ClaudeUsageResponse { daily: ClaudeUsagePeriod; weekly: ClaudeUsagePeriod; daily_cap: number; weekly_cap: number; }
+
+export async function getClaudeUsage(signal?: AbortSignal): Promise<ClaudeUsageResponse> {
+  return handleResponse<ClaudeUsageResponse>(await fetch(`${API_URL}/claude/usage`, { signal }));
+}
+
+
+export interface GroqStockPick { symbol: string; direction: "up" | "down"; }
+export interface GroqSummaryResult { summary: string; picks: GroqStockPick[]; }
+
+export async function getGroqSummary(
+  content: string,
+  mode: "news" | "calendar",
+  signal?: AbortSignal,
+): Promise<GroqSummaryResult> {
+  return handleResponse<GroqSummaryResult>(
+    await fetch(`${API_URL}/groq/summarize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, mode }),
+      signal,
+    }),
+  );
 }

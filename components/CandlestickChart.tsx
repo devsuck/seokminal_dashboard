@@ -17,6 +17,33 @@ interface CandlestickChartProps {
   trades?: TradeRecord[];
   emaFast?: number;
   emaSlow?: number;
+  sma?: number;
+  bollingerPeriod?: number;
+  bollingerStd?: number;
+}
+
+function computeSMA(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
+  return bars.map((b, i) => {
+    if (i < period - 1) return null;
+    const sum = bars.slice(i - period + 1, i + 1).reduce((s, x) => s + x.close, 0);
+    return { time: Math.floor(b.ts_event / 1e9) as UTCTimestamp, value: sum / period };
+  }).filter(Boolean) as { time: UTCTimestamp; value: number }[];
+}
+
+function computeBollingerBands(bars: BarOut[], period: number, stdMult: number) {
+  const smaData = computeSMA(bars, period);
+  return smaData.map((pt, i) => {
+    const slice = bars.slice(i, i + period);
+    const mean = pt.value;
+    const variance = slice.reduce((s, b) => s + Math.pow(b.close - mean, 2), 0) / period;
+    const sd = Math.sqrt(variance);
+    return {
+      time: pt.time,
+      upper: mean + stdMult * sd,
+      middle: mean,
+      lower: mean - stdMult * sd,
+    };
+  });
 }
 
 function computeEMA(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
@@ -32,7 +59,7 @@ function computeEMA(bars: BarOut[], period: number): { time: UTCTimestamp; value
   return result;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
@@ -118,8 +145,28 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow }: Candle
       }
     }
 
+    if (sma && sma > 0) {
+      const smaData = computeSMA(bars, sma);
+      if (smaData.length) {
+        const s = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        s.setData(smaData);
+      }
+    }
+
+    if (bollingerPeriod && bollingerPeriod > 0 && bollingerStd && bollingerStd > 0) {
+      const bbData = computeBollingerBands(bars, bollingerPeriod, bollingerStd);
+      if (bbData.length) {
+        const upperSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        upperSeries.setData(bbData.map(d => ({ time: d.time, value: d.upper })));
+        const middleSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        middleSeries.setData(bbData.map(d => ({ time: d.time, value: d.middle })));
+        const lowerSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        lowerSeries.setData(bbData.map(d => ({ time: d.time, value: d.lower })));
+      }
+    }
+
     return () => { chart.remove(); chartRef.current = null; };
-  }, [bars, trades, emaFast, emaSlow]);
+  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd]);
 
   return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }

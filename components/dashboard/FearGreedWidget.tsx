@@ -1,82 +1,101 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getFearGreed, type FearGreedResponse } from "@/lib/api";
+import { getFGMarkets, type FGMarketsResponse } from "@/lib/api";
 
 const ZONES = [
-  { label: "Extreme Fear",  min: 0,  max: 24, color: "text-neg",  bg: "bg-neg/10"  },
-  { label: "Fear",          min: 25, max: 44, color: "text-warn", bg: "bg-warn/10" },
-  { label: "Neutral",       min: 45, max: 55, color: "text-text-2", bg: "bg-panel-2" },
-  { label: "Greed",         min: 56, max: 74, color: "text-pos",  bg: "bg-pos/10"  },
-  { label: "Extreme Greed", min: 75, max: 100, color: "text-pos", bg: "bg-pos/15"  },
-] as const;
+  { label: "Extreme Fear",  min: 0,  max: 24, color: "#ef4444" },
+  { label: "Fear",          min: 25, max: 44, color: "#f59e0b" },
+  { label: "Neutral",       min: 45, max: 55, color: "#6b7280" },
+  { label: "Greed",         min: 56, max: 74, color: "#22c55e" },
+  { label: "Extreme Greed", min: 75, max: 100, color: "#16a34a" },
+];
 
-function zone(v: number) {
-  return ZONES.find(z => v >= z.min && v <= z.max) ?? ZONES[2];
+function zoneColor(v: number) {
+  return ZONES.find(z => v >= z.min && v <= z.max)?.color ?? "#6b7280";
 }
 
-function Arc({ value }: { value: number }) {
-  const r = 42;
-  const cx = 60, cy = 60;
-  const startAngle = Math.PI;
-  const endAngle = 2 * Math.PI;
-  const pct = value / 100;
-  const angle = startAngle + pct * Math.PI;
-  const x = cx + r * Math.cos(angle);
-  const y = cy + r * Math.sin(angle);
-  const trackPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
-  const fillEnd = angle > Math.PI ? 1 : 0;
-  const fillPath = `M ${cx - r} ${cy} A ${r} ${r} 0 ${fillEnd} 1 ${x} ${y}`;
+function zoneLabel(cls: string) {
+  return cls;
+}
 
-  const z = zone(value);
-  const strokeColor =
-    z.label.includes("Fear") ? "#ef4444" :
-    z.label === "Neutral"    ? "#6b7280" :
-    "#22c55e";
+function MiniArc({ value, color }: { value: number; color: string }) {
+  const r = 28, cx = 36, cy = 36;
+  const circ = Math.PI * r;
+  const pct = value / 100;
+  const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+  const angle = Math.PI + pct * Math.PI;
+  const nx = cx + r * Math.cos(angle);
+  const ny = cy + r * Math.sin(angle);
+  const fill = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${nx} ${ny}`;
 
   return (
-    <svg width="120" height="70" viewBox="0 0 120 70">
-      <path d={trackPath} fill="none" stroke="var(--color-border, #1f2937)" strokeWidth="8" strokeLinecap="round" />
+    <svg width="72" height="44" viewBox="0 0 72 44" className="overflow-visible">
+      <path d={track} fill="none" stroke="var(--color-border)" strokeWidth="6" strokeLinecap="round" />
       {value > 0 && (
-        <path d={fillPath} fill="none" stroke={strokeColor} strokeWidth="8" strokeLinecap="round" />
+        <path d={fill} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+          style={{ filter: `drop-shadow(0 0 4px ${color}55)` }} />
       )}
-      <circle cx={x} cy={y} r={4} fill={strokeColor} />
+      <circle cx={nx} cy={ny} r={3.5} fill={color} />
+      <text x="36" y="38" textAnchor="middle" fill={color} fontSize="11"
+        fontFamily="'IBM Plex Mono', monospace" fontWeight="700">{value}</text>
     </svg>
   );
 }
 
+function MarketGauge({ label, market, note }: {
+  label: string;
+  market: { value: number; classification: string } | null;
+  note?: string;
+}) {
+  const color = market ? zoneColor(market.value) : "#6b7280";
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[10px] text-text-3 font-semibold uppercase tracking-wider">{label}</span>
+      {market ? (
+        <>
+          <MiniArc value={market.value} color={color} />
+          <span className="text-[10px] font-medium" style={{ color }}>{zoneLabel(market.classification)}</span>
+          {note && <span className="text-[9px] text-text-3 italic">{note}</span>}
+        </>
+      ) : (
+        <div className="h-10 flex items-center justify-center text-text-3 text-xs">—</div>
+      )}
+    </div>
+  );
+}
+
 export function FearGreedWidget() {
-  const [data, setData] = useState<FearGreedResponse | null>(null);
+  const [data, setData] = useState<FGMarketsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getFearGreed()
+    getFGMarkets()
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const z = data ? zone(data.value) : null;
-
   return (
-    <div className="bg-panel border border-border rounded-lg p-4 flex flex-col items-center justify-center gap-1">
-      <span className="text-text-3 text-[11px] uppercase tracking-wider font-semibold w-full">
-        Fear & Greed
-      </span>
+    <div className="bg-panel border border-border rounded-lg p-4 flex flex-col gap-3">
+      <span className="text-text-3 text-[11px] uppercase tracking-wider font-semibold">Fear & Greed</span>
 
       {loading ? (
-        <div className="h-16 flex items-center justify-center text-text-3 text-xs">Loading…</div>
+        <div className="flex items-center justify-center h-20 text-text-3 text-xs">Loading…</div>
       ) : !data ? (
-        <div className="h-16 flex items-center justify-center text-text-3 text-xs">—</div>
+        <div className="flex items-center justify-center h-20 text-text-3 text-xs">—</div>
       ) : (
-        <>
-          <Arc value={data.value} />
-          <span className={`text-2xl font-data font-bold ${z?.color}`}>{data.value}</span>
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${z?.bg} ${z?.color}`}>
-            {data.classification}
-          </span>
-          <span className="text-text-3 text-[9px] mt-0.5">Crypto Market</span>
-        </>
+        <div className="grid grid-cols-3 gap-2 divide-x divide-border">
+          <MarketGauge label="US" market={data.us} />
+          <div className="flex flex-col items-center gap-0.5 pl-2">
+            <span className="text-[10px] text-text-3 font-semibold uppercase tracking-wider">Crypto</span>
+            <MiniArc value={data.crypto.value} color={zoneColor(data.crypto.value)} />
+            <span className="text-[10px] font-medium" style={{ color: zoneColor(data.crypto.value) }}>
+              {data.crypto.classification}
+            </span>
+          </div>
+          <MarketGauge label="KR" market={data.kr} note="KOSPI proxy" />
+        </div>
       )}
     </div>
   );

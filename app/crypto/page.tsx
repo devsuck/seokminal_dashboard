@@ -7,11 +7,8 @@ import {
   ApiError,
   getCryptoAssets, getCryptoCandles, getCryptoBook,
   type CryptoAssetsResponse, type CryptoCandlesResponse,
-  type CryptoBookResponse, type BookLevel,
+  type CryptoBookResponse,
 } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
-
-type Tab = "markets" | "chart" | "book";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,90 +33,334 @@ function fundingCls(v: number): string {
   return v > 0 ? "text-warn" : v < 0 ? "text-info" : "text-text-3";
 }
 
-function Err({ msg }: { msg: string | null }) {
-  return msg ? <p className="text-neg text-sm mb-3">ERR: {msg}</p> : null;
+type AssetRow = CryptoAssetsResponse["assets"][number];
+
+// ── Watchlist Storage ──────────────────────────────────────────────────────────
+
+const CRYPTO_KEY = "seokminal:crypto-watchlist";
+const DEFAULT_COINS = ["BTC", "ETH", "SOL"];
+
+function getCryptoWatchlist(): string[] {
+  try {
+    const raw = localStorage.getItem(CRYPTO_KEY);
+    if (!raw) return [...DEFAULT_COINS];
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DEFAULT_COINS];
+  } catch {
+    return [...DEFAULT_COINS];
+  }
 }
 
-// ── Markets Tab ───────────────────────────────────────────────────────────────
+function addCryptoToWatchlist(coin: string): void {
+  const list = getCryptoWatchlist();
+  if (list.includes(coin)) return;
+  localStorage.setItem(CRYPTO_KEY, JSON.stringify([...list, coin]));
+}
 
-function MarketsTab() {
-  const [result, setResult]   = useState<CryptoAssetsResponse | null>(null);
-  const [error, setError]     = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const abortRef              = useRef<AbortController | null>(null);
+function removeCryptoFromWatchlist(coin: string): void {
+  localStorage.setItem(CRYPTO_KEY, JSON.stringify(getCryptoWatchlist().filter(c => c !== coin)));
+}
 
-  async function load() {
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+
+function CryptoSidebar({
+  coins, activeCoin, assetMap, onSelect, onRemove,
+}: {
+  coins: string[];
+  activeCoin: string;
+  assetMap: Record<string, AssetRow>;
+  onSelect: (c: string) => void;
+  onRemove: (c: string) => void;
+}) {
+  return (
+    <aside className="w-52 shrink-0 border-r border-border flex flex-col bg-panel h-full">
+      <div className="px-3 py-2.5 border-b border-border shrink-0">
+        <span className="text-text-3 text-[10px] uppercase tracking-wider font-semibold">Watchlist</span>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {coins.length === 0 && (
+          <p className="text-text-3 text-xs text-center py-6 px-2">검색에서 코인 추가</p>
+        )}
+        {coins.map(coin => {
+          const d = assetMap[coin];
+          const isActive = coin === activeCoin;
+          const pos = (d?.day_change_pct ?? 0) >= 0;
+          return (
+            <div
+              key={coin}
+              onClick={() => onSelect(coin)}
+              className={`px-3 py-2 border-b border-border/40 cursor-pointer group ${
+                isActive ? "bg-panel-2" : "hover:bg-panel-2/50"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-0.5">
+                <span className={`text-xs font-semibold ${isActive ? "text-text-1" : "text-text-2"}`}>
+                  {coin}
+                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); onRemove(coin); }}
+                  className="text-text-3 hover:text-neg text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-0 cursor-pointer p-0 leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-text-3 font-data">
+                  {d ? fmtPrice(d.mid_price) : "…"}
+                </span>
+                {d && (
+                  <span className={`text-[10px] font-data ${pos ? "text-pos" : "text-neg"}`}>
+                    {pos ? "+" : ""}{d.day_change_pct.toFixed(2)}%
+                  </span>
+                )}
+              </div>
+              {d && (
+                <div className="mt-0.5">
+                  <span className={`text-[9px] font-data ${fundingCls(d.funding_rate_8h)}`}>
+                    F {d.funding_rate_8h >= 0 ? "+" : ""}{d.funding_rate_8h.toFixed(4)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+// ── Chart Panel ────────────────────────────────────────────────────────────────
+
+const INTERVALS = ["1d", "4h", "1h", "15m"] as const;
+
+function CoinChartPanel({ coin }: { coin: string }) {
+  const [interval, setInterval] = useState<typeof INTERVALS[number]>("1d");
+  const [result, setResult]     = useState<CryptoCandlesResponse | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const abortRef                = useRef<AbortController | null>(null);
+  const chartRef                = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    setLoading(true); setError(null);
-    try {
-      setResult(await getCryptoAssets(ctrl.signal));
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed to fetch markets");
-      setResult(null);
-    } finally {
-      if (!ctrl.signal.aborted) setLoading(false);
-    }
-  }
+    setLoading(true); setError(null); setResult(null);
+    getCryptoCandles(coin, interval, 90, ctrl.signal)
+      .then(r => { if (!ctrl.signal.aborted) setResult(r); })
+      .catch(e => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError(e instanceof ApiError ? e.message : "Failed");
+      })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => ctrl.abort();
+  }, [coin, interval]);
 
   useEffect(() => {
-    load();
-    return () => { abortRef.current?.abort(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!result || !chartRef.current) return;
+    const chart = createChart(chartRef.current, {
+      layout: { background: { type: ColorType.Solid, color: "transparent" }, textColor: "#9AA4B2" },
+      grid: { vertLines: { color: "#2a3040" }, horzLines: { color: "#2a3040" } },
+      width: chartRef.current.clientWidth,
+      height: chartRef.current.clientHeight,
+    });
+    const series = chart.addSeries(CandlestickSeries, {
+      upColor: "#44cc88", downColor: "#ff4444",
+      borderVisible: false, wickUpColor: "#44cc88", wickDownColor: "#ff4444",
+    });
+    series.setData(result.candles.map(c => ({
+      time: Math.floor(c.time_ms / 1000) as UTCTimestamp,
+      open: c.open, high: c.high, low: c.low, close: c.close,
+    })));
+    chart.timeScale().fitContent();
+    return () => chart.remove();
+  }, [result]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-text-3 text-xs uppercase tracking-wider">
-          {result ? `${result.count} markets · Hyperliquid Perps` : "Hyperliquid Perps"}
-        </span>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="h-7 px-4 bg-panel border border-border text-text-2 text-xs rounded cursor-pointer hover:text-text-1 disabled:opacity-50 transition-colors"
-        >
-          {loading ? "Loading…" : "Refresh"}
-        </button>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
+        <span className="text-text-2 text-xs font-semibold">{coin}/USDT</span>
+        <div className="ml-auto flex gap-1">
+          {INTERVALS.map(iv => (
+            <button key={iv} onClick={() => setInterval(iv)}
+              className={`px-2 py-0.5 text-[11px] rounded border-0 cursor-pointer transition-colors ${
+                interval === iv ? "bg-accent/10 text-accent border border-accent/30" : "bg-transparent text-text-3 hover:text-text-1"
+              }`}>
+              {iv}
+            </button>
+          ))}
+        </div>
       </div>
-      <Err msg={error} />
-      {loading && !result && (
-        <div className="text-center py-16 text-text-3 text-sm">Loading markets…</div>
-      )}
-      {result && (
+      {error && <p className="text-neg text-[11px] px-3 py-1">{error}</p>}
+      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">Loading…</div>}
+      <div ref={chartRef} style={{ height: "100%" }} className={`flex-1 ${loading ? "invisible" : ""}`} />
+    </div>
+  );
+}
+
+// ── Book Panel ─────────────────────────────────────────────────────────────────
+
+function CoinBookPanel({ coin }: { coin: string }) {
+  const [result, setResult] = useState<CryptoBookResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+  const abortRef             = useRef<AbortController | null>(null);
+  const svgRef               = useRef<SVGSVGElement | null>(null);
+
+  useEffect(() => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true); setError(null); setResult(null);
+    getCryptoBook(coin, ctrl.signal)
+      .then(r => { if (!ctrl.signal.aborted) setResult(r); })
+      .catch(e => { if (e instanceof DOMException && e.name === "AbortError") return; setError(e instanceof ApiError ? e.message : "Failed"); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => ctrl.abort();
+  }, [coin]);
+
+  useEffect(() => {
+    if (!result || !svgRef.current) return;
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+    if (!result.bids.length || !result.asks.length) return;
+    const el = svgRef.current.parentElement;
+    const W = el ? el.clientWidth - 8 : 400;
+    const H = 160;
+    const margin = { top: 16, right: 16, bottom: 28, left: 60 };
+    const iW = W - margin.left - margin.right;
+    const iH = H - margin.top - margin.bottom;
+    const g = svg.attr("width", W).attr("height", H)
+      .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    const N = 15;
+    const bids = result.bids.slice(0, N);
+    const asks = result.asks.slice(0, N);
+    const bidCum: { price: number; cumSize: number }[] = [];
+    bids.forEach((l, i) => bidCum.push({ price: l.price, cumSize: (bidCum[i-1]?.cumSize ?? 0) + l.size }));
+    const askCum: { price: number; cumSize: number }[] = [];
+    asks.forEach((l, i) => askCum.push({ price: l.price, cumSize: (askCum[i-1]?.cumSize ?? 0) + l.size }));
+    const allPrices = [...bidCum.map(d => d.price), ...askCum.map(d => d.price)];
+    const maxCum = Math.max(...bidCum.map(d => d.cumSize), ...askCum.map(d => d.cumSize));
+    const xScale = d3.scaleLinear().domain([d3.min(allPrices)! * 0.9995, d3.max(allPrices)! * 1.0005]).range([0, iW]);
+    const yScale = d3.scaleLinear().domain([0, maxCum * 1.05]).range([iH, 0]);
+    const bidArea = d3.area<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y0(iH).y1(d => yScale(d.cumSize)).curve(d3.curveStepAfter);
+    const askArea = d3.area<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y0(iH).y1(d => yScale(d.cumSize)).curve(d3.curveStepBefore);
+    g.append("path").datum([...bidCum].reverse()).attr("d", bidArea).attr("fill", "#44cc88").attr("opacity", 0.3);
+    g.append("path").datum([...bidCum].reverse()).attr("d", d3.line<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y(d => yScale(d.cumSize)).curve(d3.curveStepAfter)).attr("fill", "none").attr("stroke", "#44cc88").attr("stroke-width", 1.5);
+    g.append("path").datum(askCum).attr("d", askArea).attr("fill", "#ff4444").attr("opacity", 0.3);
+    g.append("path").datum(askCum).attr("d", d3.line<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y(d => yScale(d.cumSize)).curve(d3.curveStepBefore)).attr("fill", "none").attr("stroke", "#ff4444").attr("stroke-width", 1.5);
+    g.append("line").attr("x1", xScale(result.mid_price)).attr("x2", xScale(result.mid_price)).attr("y1", 0).attr("y2", iH).attr("stroke", "#9AA4B2").attr("stroke-width", 1).attr("stroke-dasharray", "4 4");
+    g.append("g").attr("transform", `translate(0,${iH})`).call(d3.axisBottom(xScale).ticks(5).tickFormat(d => String(+d))).call(ax => ax.select(".domain").remove()).call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 9)).call(ax => ax.selectAll(".tick line").remove());
+    g.append("g").call(d3.axisLeft(yScale).ticks(4)).call(ax => ax.select(".domain").remove()).call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 9)).call(ax => ax.selectAll(".tick line").attr("stroke", "#2a3040").attr("x2", iW));
+  }, [result]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-3 px-3 py-1.5 border-b border-border shrink-0">
+        <span className="text-text-3 text-[10px] uppercase tracking-wider">오더북 뎁스</span>
+        {result && (
+          <span className="text-text-3 text-[11px]">
+            Spread: <span className="text-text-1 font-data">{result.spread.toFixed(4)}</span>
+            {" "}(<span className="text-text-1 font-data">{result.spread_pct.toFixed(4)}%</span>)
+          </span>
+        )}
+      </div>
+      {error && <p className="text-neg text-[11px] px-3 py-1">{error}</p>}
+      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">Loading…</div>}
+      <div className="flex-1 overflow-hidden px-1 pt-1">
+        <svg ref={svgRef} className="block" />
+      </div>
+    </div>
+  );
+}
+
+// ── Search Tab ─────────────────────────────────────────────────────────────────
+
+function SearchTab({
+  watchlist,
+  onAdd,
+}: {
+  watchlist: string[];
+  onAdd: (coin: string) => void;
+}) {
+  const [assets, setAssets]   = useState<CryptoAssetsResponse | null>(null);
+  const [query, setQuery]     = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    setLoading(true);
+    getCryptoAssets(ctrl.signal)
+      .then(r => { if (!ctrl.signal.aborted) setAssets(r); })
+      .catch(() => {})
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => ctrl.abort();
+  }, []);
+
+  const filtered = (assets?.assets ?? []).filter(a =>
+    a.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value.toUpperCase())}
+          placeholder="코인 검색…"
+          autoFocus
+          className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-48 focus:border-accent outline-none"
+        />
+        {assets && (
+          <span className="text-text-3 text-xs">{assets.count}개 마켓 · Hyperliquid Perps</span>
+        )}
+      </div>
+      {loading && <p className="text-text-3 text-sm">Loading…</p>}
+      {!loading && (
         <div className="overflow-x-auto">
-          <table className="border-collapse w-full text-xs font-data">
+          <table className="w-full text-xs border-collapse font-data">
             <thead>
-              <tr className="border-b border-border text-text-3">
-                <th className="px-3 py-2 text-left font-medium">Coin</th>
-                <th className="px-3 py-2 text-right font-medium">Mid Price</th>
-                <th className="px-3 py-2 text-right font-medium">24h Change</th>
-                <th className="px-3 py-2 text-right font-medium">Funding 8h %</th>
-                <th className="px-3 py-2 text-right font-medium">Funding Ann %</th>
+              <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
+                <th className="px-3 py-2 text-left font-medium">코인</th>
+                <th className="px-3 py-2 text-right font-medium">가격</th>
+                <th className="px-3 py-2 text-right font-medium">24h%</th>
+                <th className="px-3 py-2 text-right font-medium">펀딩(8h)</th>
                 <th className="px-3 py-2 text-right font-medium">OI</th>
-                <th className="px-3 py-2 text-right font-medium">24h Vol</th>
+                <th className="px-3 py-2 text-right font-medium">거래량</th>
+                <th className="px-3 py-2 text-center font-medium w-16"></th>
               </tr>
             </thead>
             <tbody>
-              {result.assets.map(asset => (
-                <tr key={asset.name} className="border-b border-border hover:bg-panel-2">
-                  <td className="px-3 py-1.5 text-accent font-semibold">{asset.name}</td>
-                  <td className="px-3 py-1.5 text-right text-text-1">{fmtPrice(asset.mid_price)}</td>
-                  <td className={`px-3 py-1.5 text-right font-bold ${changeCls(asset.day_change_pct)}`}>
-                    {asset.day_change_pct >= 0 ? "+" : ""}{fmt2(asset.day_change_pct)}%
-                  </td>
-                  <td className={`px-3 py-1.5 text-right ${fundingCls(asset.funding_rate_8h)}`}>
-                    {asset.funding_rate_8h >= 0 ? "+" : ""}{fmt4(asset.funding_rate_8h)}%
-                  </td>
-                  <td className={`px-3 py-1.5 text-right ${fundingCls(asset.funding_rate)}`}>
-                    {asset.funding_rate >= 0 ? "+" : ""}{fmt2(asset.funding_rate)}%
-                  </td>
-                  <td className="px-3 py-1.5 text-right text-text-2">{fmt2(asset.open_interest)}</td>
-                  <td className="px-3 py-1.5 text-right text-text-3">{fmtVolume(asset.day_volume)}</td>
-                </tr>
-              ))}
+              {filtered.map(a => {
+                const inList = watchlist.includes(a.name);
+                return (
+                  <tr key={a.name} className="border-t border-border/50 hover:bg-panel-2 transition-colors">
+                    <td className="px-3 py-1.5 font-bold text-accent">{a.name}</td>
+                    <td className="px-3 py-1.5 text-right text-text-1">{fmtPrice(a.mid_price)}</td>
+                    <td className={`px-3 py-1.5 text-right font-semibold ${changeCls(a.day_change_pct)}`}>
+                      {a.day_change_pct >= 0 ? "+" : ""}{fmt2(a.day_change_pct)}%
+                    </td>
+                    <td className={`px-3 py-1.5 text-right ${fundingCls(a.funding_rate_8h)}`}>
+                      {a.funding_rate_8h >= 0 ? "+" : ""}{fmt4(a.funding_rate_8h)}%
+                    </td>
+                    <td className="px-3 py-1.5 text-right text-text-2">{fmt2(a.open_interest)}</td>
+                    <td className="px-3 py-1.5 text-right text-text-3">{fmtVolume(a.day_volume)}</td>
+                    <td className="px-3 py-1.5 text-center">
+                      <button
+                        onClick={() => onAdd(a.name)}
+                        disabled={inList}
+                        className={`text-[10px] px-2 py-0.5 rounded border cursor-pointer transition-colors ${
+                          inList
+                            ? "border-border text-text-3 cursor-not-allowed"
+                            : "border-accent text-accent hover:bg-accent/10"
+                        }`}
+                      >
+                        {inList ? "추가됨" : "+ 추가"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -128,397 +369,171 @@ function MarketsTab() {
   );
 }
 
-// ── Chart Tab ─────────────────────────────────────────────────────────────────
+// ── Stats Tab ──────────────────────────────────────────────────────────────────
 
-const INTERVALS = ["1d", "4h", "1h", "15m"] as const;
+function StatsTab({
+  watchlist,
+  assetMap,
+}: {
+  watchlist: string[];
+  assetMap: Record<string, AssetRow>;
+}) {
+  const coins = watchlist.map(c => assetMap[c]).filter(Boolean);
 
-function ChartTab() {
-  const [coin, setCoin]       = useState("BTC");
-  const [interval, setInterval] = useState<typeof INTERVALS[number]>("1d");
-  const [days, setDays]       = useState("90");
-  const [result, setResult]   = useState<CryptoCandlesResponse | null>(null);
-  const [error, setError]     = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const abortRef              = useRef<AbortController | null>(null);
-  const chartRef              = useRef<HTMLDivElement | null>(null);
-
-  async function load() {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true); setError(null);
-    try {
-      setResult(await getCryptoCandles(
-        coin.toUpperCase(), interval, parseInt(days, 10), ctrl.signal
-      ));
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
-      setResult(null);
-    } finally {
-      if (!ctrl.signal.aborted) setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!result || !chartRef.current) return;
-
-    const chart = createChart(chartRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#9AA4B2",
-      },
-      grid: {
-        vertLines: { color: "#2a3040" },
-        horzLines: { color: "#2a3040" },
-      },
-      width: chartRef.current.clientWidth,
-      height: 320,
-    });
-
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#44cc88",
-      downColor: "#ff4444",
-      borderVisible: false,
-      wickUpColor: "#44cc88",
-      wickDownColor: "#ff4444",
-    });
-
-    series.setData(
-      result.candles.map(c => ({
-        time: Math.floor(c.time_ms / 1000) as UTCTimestamp,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }))
+  if (coins.length === 0) {
+    return (
+      <div className="p-6 text-text-3 text-sm text-center py-16">
+        워치리스트가 비어 있음
+      </div>
     );
-
-    chart.timeScale().fitContent();
-
-    return () => { chart.remove(); };
-  }, [result]);
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <div className="flex gap-3 flex-wrap items-end">
-          <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Coin</label>
-            <input
-              type="text"
-              value={coin}
-              onChange={e => setCoin(e.target.value.toUpperCase())}
-              placeholder="BTC"
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-20 uppercase"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Interval</label>
-            <select
-              value={interval}
-              onChange={e => setInterval(e.target.value as typeof INTERVALS[number])}
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent cursor-pointer"
-            >
-              {INTERVALS.map(i => <option key={i} value={i}>{i}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Days</label>
-            <input
-              type="number"
-              value={days}
-              onChange={e => setDays(e.target.value)}
-              min={1}
-              max={365}
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-20"
-            />
-          </div>
-          <button
-            onClick={load}
-            disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-          >
-            {loading ? "Loading…" : "Load"}
-          </button>
-        </div>
-      </div>
-      <Err msg={error} />
-      {result && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">
-              {result.coin} · {result.interval} · {result.candles.length} candles
-            </span>
-          </div>
-          <div className="p-3">
-            <div ref={chartRef} style={{ height: "320px" }} />
-          </div>
-        </div>
-      )}
-      {!result && !loading && !error && (
-        <div className="text-center py-16 text-text-3 text-sm">
-          Enter a coin and click Load to view the chart.
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Book Tab ──────────────────────────────────────────────────────────────────
-
-function BookTab() {
-  const [coin, setCoin]       = useState("BTC");
-  const [result, setResult]   = useState<CryptoBookResponse | null>(null);
-  const [error, setError]     = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const abortRef              = useRef<AbortController | null>(null);
-  const svgRef                = useRef<SVGSVGElement | null>(null);
-
-  async function load() {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true); setError(null);
-    try {
-      setResult(await getCryptoBook(coin.toUpperCase(), ctrl.signal));
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
-      setResult(null);
-    } finally {
-      if (!ctrl.signal.aborted) setLoading(false);
-    }
   }
 
-  useEffect(() => {
-    if (!result || !svgRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-
-    if (!result.bids.length || !result.asks.length) return;
-
-    const W = 600, H = 280;
-    const margin = { top: 20, right: 30, bottom: 40, left: 80 };
-    const innerW = W - margin.left - margin.right;
-    const innerH = H - margin.top - margin.bottom;
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const N = 15;
-    const bids = result.bids.slice(0, N);
-    const asks = result.asks.slice(0, N);
-
-    // Cumulative bid depth (bids sorted best=highest first → cumulate left to right)
-    const bidCum: { price: number; cumSize: number }[] = [];
-    bids.forEach((l, i) => {
-      bidCum.push({ price: l.price, cumSize: (bidCum[i - 1]?.cumSize ?? 0) + l.size });
-    });
-
-    // Cumulative ask depth (asks sorted best=lowest first → cumulate left to right)
-    const askCum: { price: number; cumSize: number }[] = [];
-    asks.forEach((l, i) => {
-      askCum.push({ price: l.price, cumSize: (askCum[i - 1]?.cumSize ?? 0) + l.size });
-    });
-
-    const allPrices = [...bidCum.map(d => d.price), ...askCum.map(d => d.price)];
-    const maxCum = Math.max(...bidCum.map(d => d.cumSize), ...askCum.map(d => d.cumSize));
-
-    const xScale = d3.scaleLinear()
-      .domain([d3.min(allPrices)! * 0.9995, d3.max(allPrices)! * 1.0005])
-      .range([0, innerW]);
-
-    const yScale = d3.scaleLinear()
-      .domain([0, maxCum * 1.05])
-      .range([innerH, 0]);
-
-    // Bid area (green, prices from worst to best = left to right)
-    const bidArea = d3.area<{ price: number; cumSize: number }>()
-      .x(d => xScale(d.price))
-      .y0(innerH)
-      .y1(d => yScale(d.cumSize))
-      .curve(d3.curveStepAfter);
-
-    g.append("path")
-      .datum([...bidCum].reverse())   // worst bid first for step chart
-      .attr("d", bidArea)
-      .attr("fill", "#44cc88")
-      .attr("opacity", 0.3);
-
-    g.append("path")
-      .datum([...bidCum].reverse())
-      .attr("d",
-        d3.line<{ price: number; cumSize: number }>()
-          .x(d => xScale(d.price))
-          .y(d => yScale(d.cumSize))
-          .curve(d3.curveStepAfter)
-      )
-      .attr("fill", "none")
-      .attr("stroke", "#44cc88")
-      .attr("stroke-width", 1.5);
-
-    // Ask area (red, prices from best to worst = left to right)
-    const askArea = d3.area<{ price: number; cumSize: number }>()
-      .x(d => xScale(d.price))
-      .y0(innerH)
-      .y1(d => yScale(d.cumSize))
-      .curve(d3.curveStepBefore);
-
-    g.append("path")
-      .datum(askCum)
-      .attr("d", askArea)
-      .attr("fill", "#ff4444")
-      .attr("opacity", 0.3);
-
-    g.append("path")
-      .datum(askCum)
-      .attr("d",
-        d3.line<{ price: number; cumSize: number }>()
-          .x(d => xScale(d.price))
-          .y(d => yScale(d.cumSize))
-          .curve(d3.curveStepBefore)
-      )
-      .attr("fill", "none")
-      .attr("stroke", "#ff4444")
-      .attr("stroke-width", 1.5);
-
-    // Mid price vertical dashed line
-    g.append("line")
-      .attr("x1", xScale(result.mid_price)).attr("x2", xScale(result.mid_price))
-      .attr("y1", 0).attr("y2", innerH)
-      .attr("stroke", "#9AA4B2")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "4 4");
-
-    g.append("text")
-      .attr("x", xScale(result.mid_price))
-      .attr("y", -6)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#9AA4B2")
-      .attr("font-size", 10)
-      .text(`Mid ${result.mid_price.toFixed(2)}`);
-
-    // Axes
-    g.append("g")
-      .attr("transform", `translate(0,${innerH})`)
-      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d => String(+d)))
-      .call(ax => ax.select(".domain").remove())
-      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 10))
-      .call(ax => ax.selectAll(".tick line").remove());
-
-    g.append("g")
-      .call(d3.axisLeft(yScale).ticks(5))
-      .call(ax => ax.select(".domain").remove())
-      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 10))
-      .call(ax => ax.selectAll(".tick line").attr("stroke", "#2a3040").attr("x2", innerW));
-
-    // Axis labels
-    g.append("text")
-      .attr("x", innerW / 2).attr("y", innerH + 32)
-      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
-      .text("Price");
-
-    g.append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -innerH / 2).attr("y", -62)
-      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
-      .text("Cumulative Size");
-
-  }, [result]);
-
   return (
-    <div className="space-y-4">
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <div className="flex gap-3 items-end">
-          <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Coin</label>
-            <input
-              type="text"
-              value={coin}
-              onChange={e => setCoin(e.target.value.toUpperCase())}
-              placeholder="BTC"
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-20 uppercase"
-            />
-          </div>
-          <button
-            onClick={load}
-            disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-          >
-            {loading ? "Loading…" : "Load"}
-          </button>
-        </div>
-      </div>
-      <Err msg={error} />
-      {result && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-4">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">
-              {result.coin} · Order Book Depth
-            </span>
-            <span className="text-text-2 text-[11px]">
-              Spread: <span className="text-text-1 font-data">{result.spread.toFixed(4)}</span>
-              {" "}(<span className="text-text-1 font-data">{result.spread_pct.toFixed(4)}%</span>)
-            </span>
-          </div>
-          <div className="p-4">
-            <svg ref={svgRef} width={600} height={280} className="block" />
-          </div>
-          <div className="px-4 pb-3 flex gap-6 text-[11px] text-text-3">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#44cc88", opacity: 0.7 }} />
-              Bids
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: "#ff4444", opacity: 0.7 }} />
-              Asks
-            </span>
-          </div>
-        </div>
-      )}
-      {!result && !loading && !error && (
-        <div className="text-center py-16 text-text-3 text-sm">
-          Enter a coin and click Load to view the order book depth.
-        </div>
-      )}
+    <div className="p-4">
+      <table className="w-full text-xs border-collapse font-data">
+        <thead>
+          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
+            <th className="px-3 py-2 text-left font-medium">코인</th>
+            <th className="px-3 py-2 text-right font-medium">가격</th>
+            <th className="px-3 py-2 text-right font-medium">24h%</th>
+            <th className="px-3 py-2 text-right font-medium">펀딩 8h%</th>
+            <th className="px-3 py-2 text-right font-medium">펀딩 연환산%</th>
+            <th className="px-3 py-2 text-right font-medium">OI</th>
+            <th className="px-3 py-2 text-right font-medium">24h 거래량</th>
+          </tr>
+        </thead>
+        <tbody>
+          {coins.map(a => (
+            <tr key={a.name} className="border-t border-border hover:bg-panel-2 transition-colors">
+              <td className="px-3 py-2 font-bold text-accent">{a.name}</td>
+              <td className="px-3 py-2 text-right text-text-1">{fmtPrice(a.mid_price)}</td>
+              <td className={`px-3 py-2 text-right font-semibold ${changeCls(a.day_change_pct)}`}>
+                {a.day_change_pct >= 0 ? "+" : ""}{fmt2(a.day_change_pct)}%
+              </td>
+              <td className={`px-3 py-2 text-right ${fundingCls(a.funding_rate_8h)}`}>
+                {a.funding_rate_8h >= 0 ? "+" : ""}{fmt4(a.funding_rate_8h)}%
+              </td>
+              <td className={`px-3 py-2 text-right font-semibold ${fundingCls(a.funding_rate)}`}>
+                {a.funding_rate >= 0 ? "+" : ""}{fmt2(a.funding_rate)}%
+              </td>
+              <td className="px-3 py-2 text-right text-text-2">{fmt2(a.open_interest)}</td>
+              <td className="px-3 py-2 text-right text-text-3">{fmtVolume(a.day_volume)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+type Tab = "search" | "workspace" | "stats";
+
 const TABS: { id: Tab; label: string }[] = [
-  { id: "markets", label: "Markets" },
-  { id: "chart",   label: "Chart" },
-  { id: "book",    label: "Book" },
+  { id: "search",    label: "🔍 검색" },
+  { id: "workspace", label: "워크스페이스" },
+  { id: "stats",     label: "통계" },
 ];
 
 export default function CryptoPage() {
-  const [tab, setTab] = useState<Tab>("markets");
+  const [watchlist, setWatchlist]   = useState<string[]>(DEFAULT_COINS);
+  const [activeCoin, setActiveCoin] = useState("BTC");
+  const [tab, setTab]               = useState<Tab>("workspace");
+  const [assetMap, setAssetMap]     = useState<Record<string, AssetRow>>({});
+
+  useEffect(() => {
+    const list = getCryptoWatchlist();
+    setWatchlist(list);
+    setActiveCoin(list[0] ?? "BTC");
+  }, []);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    getCryptoAssets(ctrl.signal)
+      .then(r => {
+        if (ctrl.signal.aborted) return;
+        const map: Record<string, AssetRow> = {};
+        for (const a of r.assets) map[a.name] = a;
+        setAssetMap(map);
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
+  function handleAdd(coin: string) {
+    addCryptoToWatchlist(coin);
+    const updated = getCryptoWatchlist();
+    setWatchlist(updated);
+    setActiveCoin(coin);
+    setTab("workspace");
+  }
+
+  function handleRemove(coin: string) {
+    removeCryptoFromWatchlist(coin);
+    const updated = getCryptoWatchlist();
+    setWatchlist(updated);
+    if (activeCoin === coin) setActiveCoin(updated[0] ?? "BTC");
+  }
+
+  function handleSelect(coin: string) {
+    setActiveCoin(coin);
+    setTab("workspace");
+  }
 
   return (
-    <div className="p-6 space-y-4 max-w-[1200px]">
-      <PageBanner pageKey="crypto" />
+    <div className="flex h-[calc(100vh-96px)] overflow-hidden">
+      <CryptoSidebar
+        coins={watchlist}
+        activeCoin={activeCoin}
+        assetMap={assetMap}
+        onSelect={handleSelect}
+        onRemove={handleRemove}
+      />
 
-      <div className="flex border-b border-border">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-5 py-1.5 text-sm cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
-              tab === t.id
-                ? "border-accent text-accent font-bold"
-                : "border-transparent text-text-3 font-normal hover:text-text-1"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex items-center border-b border-border px-4 bg-panel shrink-0">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2.5 text-sm border-b-2 transition-colors cursor-pointer bg-transparent border-l-0 border-r-0 border-t-0 ${
+                tab === t.id
+                  ? "border-accent text-accent font-medium"
+                  : "border-transparent text-text-3 hover:text-text-1"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+          {tab === "workspace" && (
+            <span className="ml-auto text-text-3 text-xs font-data">{activeCoin}/USDT · Hyperliquid</span>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-hidden bg-bg">
+          {tab === "search" && (
+            <div className="h-full overflow-y-auto">
+              <SearchTab watchlist={watchlist} onAdd={handleAdd} />
+            </div>
+          )}
+          {tab === "workspace" && (
+            <div className="flex flex-col h-full">
+              <div className="flex-1 min-h-0 border-b border-border">
+                <CoinChartPanel coin={activeCoin} />
+              </div>
+              <div className="h-52 shrink-0">
+                <CoinBookPanel coin={activeCoin} />
+              </div>
+            </div>
+          )}
+          {tab === "stats" && (
+            <div className="h-full overflow-y-auto">
+              <StatsTab watchlist={watchlist} assetMap={assetMap} />
+            </div>
+          )}
+        </div>
       </div>
-
-      {tab === "markets" && <MarketsTab />}
-      {tab === "chart"   && <ChartTab />}
-      {tab === "book"    && <BookTab />}
     </div>
   );
 }

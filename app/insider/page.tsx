@@ -4,16 +4,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
   getInsiderKR,
+  getInsiderKRRecent,
   getInsiderUS,
+  getInsiderUSRecent,
   searchDartCompany,
   type DartCompany,
   type InsiderTrade,
+  type InsiderTradeType,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 
 type Market = "us" | "kr";
-type TradeFilter = "all" | "BUY" | "SELL";
+type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
 type MinValue = 0 | 10_000 | 50_000 | 100_000 | 500_000 | 1_000_000;
+
+const KR_TRADE_FILTER_OPTS: { value: TradeFilter; label: string }[] = [
+  { value: "all",         label: "전체" },
+  { value: "BUY",         label: "매수" },
+  { value: "SELL",        label: "매도" },
+  { value: "CORP_ACTION", label: "기업행위" },  // 무상증자/유상증자/소각
+  { value: "HOLD_REPORT", label: "보유보고" },  // 변동없는 보고
+];
 
 const MIN_VALUE_OPTS: { label: string; value: MinValue }[] = [
   { label: "제한없음", value: 0 },
@@ -44,24 +55,27 @@ function fmtShares(v: number | null | undefined): string {
   return v.toLocaleString();
 }
 
+const BADGE_CONFIG: Record<string, { label: string; cls: string }> = {
+  BUY:          { label: "매수",   cls: "bg-pos/15 text-pos border-pos/25" },
+  SELL:         { label: "매도",   cls: "bg-neg/15 text-neg border-neg/25" },
+  RIGHTS_ISSUE: { label: "무상증자", cls: "bg-warn/15 text-warn border-warn/25" },
+  PAID_IN:      { label: "유상증자", cls: "bg-info/15 text-info border-info/25" },
+  CANCELLATION: { label: "주식소각", cls: "bg-accent/15 text-accent border-accent/25" },
+  HOLD_REPORT:  { label: "보유보고", cls: "bg-panel-2 text-text-3 border-border" },
+  OTHER:        { label: "기타",   cls: "bg-panel-2 text-text-3 border-border" },
+};
+
 function Badge({ type }: { type: string }) {
-  if (type === "BUY")
-    return (
-      <span className="inline-block w-10 text-center text-[10px] font-bold rounded px-1 py-0.5 bg-pos/15 text-pos border border-pos/25">
-        BUY
-      </span>
-    );
-  if (type === "SELL")
-    return (
-      <span className="inline-block w-10 text-center text-[10px] font-bold rounded px-1 py-0.5 bg-neg/15 text-neg border border-neg/25">
-        SELL
-      </span>
-    );
+  const cfg = BADGE_CONFIG[type] ?? BADGE_CONFIG.OTHER;
   return (
-    <span className="inline-block w-10 text-center text-[10px] font-bold rounded px-1 py-0.5 bg-panel-2 text-text-3 border border-border">
-      {type}
+    <span className={`inline-block text-center text-[10px] font-bold rounded px-1.5 py-0.5 border whitespace-nowrap ${cfg.cls}`}>
+      {cfg.label}
     </span>
   );
+}
+
+function isCorporateAction(type: string) {
+  return ["RIGHTS_ISSUE", "PAID_IN", "CANCELLATION"].includes(type);
 }
 
 // ── US Table ──────────────────────────────────────────────────────────────────
@@ -73,47 +87,48 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
-            <th className="px-3 py-2 text-left font-medium sticky top-0 bg-panel-2">Filing</th>
-            <th className="px-3 py-2 text-left font-medium sticky top-0 bg-panel-2">Trade</th>
-            <th className="px-3 py-2 text-left font-medium sticky top-0 bg-panel-2">Ticker</th>
-            <th className="px-3 py-2 text-left font-medium sticky top-0 bg-panel-2">Company</th>
-            <th className="px-3 py-2 text-left font-medium sticky top-0 bg-panel-2">Insider</th>
-            <th className="px-3 py-2 text-center font-medium sticky top-0 bg-panel-2">Type</th>
-            <th className="px-3 py-2 text-right font-medium sticky top-0 bg-panel-2">Price</th>
-            <th className="px-3 py-2 text-right font-medium sticky top-0 bg-panel-2">Qty</th>
-            <th className="px-3 py-2 text-right font-medium sticky top-0 bg-panel-2">Value</th>
-            <th className="px-3 py-2 text-right font-medium sticky top-0 bg-panel-2">Owned After</th>
+          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
+            <th className="px-3 py-2 text-left font-medium">날짜</th>
+            <th className="px-3 py-2 text-left font-medium">티커</th>
+            <th className="px-3 py-2 text-left font-medium">회사</th>
+            <th className="px-3 py-2 text-left font-medium">내부자</th>
+            <th className="px-3 py-2 text-center font-medium">구분</th>
+            <th className="px-3 py-2 text-right font-medium">가격</th>
+            <th className="px-3 py-2 text-right font-medium">주수</th>
+            <th className="px-3 py-2 text-right font-medium">거래금액</th>
+            <th className="px-3 py-2 text-right font-medium">보유후</th>
           </tr>
         </thead>
         <tbody>
           {trades.map((t, i) => {
-            const isBuy = t.trade_type === "BUY";
+            const isBuy  = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
+            const valClass = isBuy ? "text-pos" : isSell ? "text-neg" : "text-text-2";
             return (
               <tr
                 key={i}
-                className={`border-t border-border transition-colors ${
+                className={`border-t border-border/50 transition-colors ${
                   isBuy ? "hover:bg-pos/5" : isSell ? "hover:bg-neg/5" : "hover:bg-panel-2"
                 }`}
               >
-                <td className="px-3 py-1.5 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
-                <td className="px-3 py-1.5 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
-                <td className="px-3 py-1.5 font-data font-semibold text-accent whitespace-nowrap">
-                  {t.ticker ?? "—"}
+                <td className="px-3 py-1.5 text-text-3 font-data whitespace-nowrap text-[11px]">
+                  {t.trade_date}
                 </td>
-                <td className="px-3 py-1.5 text-text-2 max-w-[160px] truncate">{t.issuer ?? "—"}</td>
-                <td className="px-3 py-1.5 text-text-1 max-w-[140px] truncate">{t.reporter}</td>
+                <td className="px-3 py-1.5 whitespace-nowrap">
+                  <span className="font-data font-bold text-accent text-sm">{t.ticker ?? "—"}</span>
+                </td>
+                <td className="px-3 py-1.5 text-text-2 max-w-[180px] truncate">{t.issuer ?? "—"}</td>
+                <td className="px-3 py-1.5 text-text-1 max-w-[160px] truncate">{t.reporter}</td>
                 <td className="px-3 py-1.5 text-center">
                   <Badge type={t.trade_type} />
                 </td>
                 <td className="px-3 py-1.5 text-right font-data text-text-2 whitespace-nowrap">
                   {t.price_per_share != null ? `$${t.price_per_share.toFixed(2)}` : "—"}
                 </td>
-                <td className={`px-3 py-1.5 text-right font-data whitespace-nowrap ${isBuy ? "text-pos" : isSell ? "text-neg" : "text-text-2"}`}>
+                <td className={`px-3 py-1.5 text-right font-data whitespace-nowrap ${valClass}`}>
                   {fmtShares(t.shares)}
                 </td>
-                <td className={`px-3 py-1.5 text-right font-data font-medium whitespace-nowrap ${isBuy ? "text-pos" : isSell ? "text-neg" : "text-text-2"}`}>
+                <td className={`px-3 py-1.5 text-right font-data font-bold whitespace-nowrap text-sm ${valClass}`}>
                   {fmt$(t.value_usd)}
                 </td>
                 <td className="px-3 py-1.5 text-right font-data text-text-3 whitespace-nowrap">
@@ -139,45 +154,67 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
         <thead>
           <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
             <th className="px-3 py-2 text-left font-medium">접수일</th>
-            <th className="px-3 py-2 text-left font-medium">종목코드</th>
+            <th className="px-3 py-2 text-left font-medium">종목</th>
             <th className="px-3 py-2 text-left font-medium">회사명</th>
-            <th className="px-3 py-2 text-left font-medium">보고자</th>
+            <th className="px-3 py-2 text-left font-medium">보고자 (직책)</th>
             <th className="px-3 py-2 text-center font-medium">구분</th>
-            <th className="px-3 py-2 text-right font-medium">증감 주식수</th>
-            <th className="px-3 py-2 text-right font-medium">총 보유주식</th>
-            <th className="px-3 py-2 text-right font-medium">지분율</th>
-            <th className="px-3 py-2 text-left font-medium">보고구분</th>
+            <th className="px-3 py-2 text-left font-medium">증감원인</th>
+            <th className="px-3 py-2 text-right font-medium">증감주식수</th>
+            <th className="px-3 py-2 text-right font-medium">보유비율</th>
+            <th className="px-3 py-2 text-center font-medium">원문</th>
           </tr>
         </thead>
         <tbody>
           {trades.map((t, i) => {
             const isBuy = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
+            const isCorpAction = isCorporateAction(t.trade_type);
             const chg = t.shares_change ?? 0;
+            const rowHover = isBuy ? "hover:bg-pos/5"
+              : isSell ? "hover:bg-neg/5"
+              : isCorpAction ? "hover:bg-warn/5"
+              : "hover:bg-panel-2";
             return (
-              <tr
-                key={i}
-                className={`border-t border-border transition-colors ${
-                  isBuy ? "hover:bg-pos/5" : isSell ? "hover:bg-neg/5" : "hover:bg-panel-2"
-                }`}
-              >
-                <td className="px-3 py-1.5 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
-                <td className="px-3 py-1.5 font-data font-semibold text-accent">{t.ticker ?? "—"}</td>
-                <td className="px-3 py-1.5 text-text-2 max-w-[140px] truncate">{t.corp_name ?? "—"}</td>
-                <td className="px-3 py-1.5 text-text-1 max-w-[120px] truncate">{t.reporter}</td>
-                <td className="px-3 py-1.5 text-center">
+              <tr key={i} className={`border-t border-border transition-colors ${rowHover}`}>
+                <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
+                <td className="px-3 py-2 font-data font-semibold text-accent whitespace-nowrap">
+                  {t.ticker ?? "—"}
+                </td>
+                <td className="px-3 py-2 text-text-2 max-w-[140px] truncate">{t.corp_name ?? "—"}</td>
+                <td className="px-3 py-2 max-w-[160px]">
+                  <span className="text-text-1 truncate block">{t.reporter}</span>
+                  {t.role && (
+                    <span className="text-text-3 text-[10px]">{t.role}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-center">
                   <Badge type={t.trade_type} />
                 </td>
-                <td className={`px-3 py-1.5 text-right font-data font-medium whitespace-nowrap ${isBuy ? "text-pos" : isSell ? "text-neg" : "text-text-3"}`}>
+                <td className="px-3 py-2 text-text-3 text-[11px] max-w-[140px] truncate">
+                  {t.event_cause || t.report_type || "—"}
+                </td>
+                <td className={`px-3 py-2 text-right font-data font-medium whitespace-nowrap ${
+                  isBuy ? "text-pos" : isSell ? "text-neg" : isCorpAction ? "text-warn" : "text-text-3"
+                }`}>
                   {chg !== 0 ? `${chg > 0 ? "+" : ""}${chg.toLocaleString()}` : "—"}
                 </td>
-                <td className="px-3 py-1.5 text-right font-data text-text-2 whitespace-nowrap">
-                  {fmtShares(t.shares_total)}
+                <td className="px-3 py-2 text-right font-data text-text-2">
+                  {t.ownership_pct != null && t.ownership_pct > 0
+                    ? `${t.ownership_pct.toFixed(2)}%`
+                    : "—"}
                 </td>
-                <td className="px-3 py-1.5 text-right font-data text-text-2">
-                  {t.ownership_pct != null ? `${t.ownership_pct.toFixed(2)}%` : "—"}
+                <td className="px-3 py-2 text-center">
+                  {t.dart_url ? (
+                    <a
+                      href={t.dart_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-accent hover:underline whitespace-nowrap"
+                    >
+                      공시↗
+                    </a>
+                  ) : "—"}
                 </td>
-                <td className="px-3 py-1.5 text-text-3 text-[10px]">{t.report_type ?? "—"}</td>
               </tr>
             );
           })}
@@ -345,10 +382,60 @@ export default function InsiderPage() {
     }
   }, []);
 
+  const fetchUSRecent = useCallback(async (d: number) => {
+    usCtrl.current?.abort();
+    const ctrl = new AbortController();
+    usCtrl.current = ctrl;
+    setUsLoading(true); setUsError(null); setUsData([]);
+    try {
+      const res = await getInsiderUSRecent(d, 30, ctrl.signal);
+      if (!ctrl.signal.aborted) setUsData(res);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted) setUsError(e instanceof ApiError ? e.message : "조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setUsLoading(false);
+    }
+  }, []);
+
+  const fetchKRRecent = useCallback(async (d: number) => {
+    krCtrl.current?.abort();
+    const ctrl = new AbortController();
+    krCtrl.current = ctrl;
+    setKrLoading(true); setKrError(null); setKrData([]);
+    try {
+      const res = await getInsiderKRRecent(d, 20, ctrl.signal);
+      if (!ctrl.signal.aborted) setKrData(res);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted) setKrError(e instanceof ApiError ? e.message : "조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setKrLoading(false);
+    }
+  }, []);
+
+  // Auto-load recent data when market or days changes
+  useEffect(() => {
+    if (market === "us") {
+      fetchUSRecent(days);
+    } else {
+      fetchKRRecent(days);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market, days]);
+
   // Filter logic
   const rawData = market === "us" ? usData : krData;
   const filtered = rawData.filter(t => {
-    if (tradeFilter !== "all" && t.trade_type !== tradeFilter) return false;
+    if (tradeFilter !== "all") {
+      if (tradeFilter === "CORP_ACTION") {
+        if (!isCorporateAction(t.trade_type)) return false;
+      } else if (tradeFilter === "HOLD_REPORT") {
+        if (t.trade_type !== "HOLD_REPORT") return false;
+      } else {
+        if (t.trade_type !== tradeFilter) return false;
+      }
+    }
     if (market === "us" && minValue > 0 && (t.value_usd ?? 0) < minValue) return false;
     if (tickerSearch) {
       const needle = tickerSearch.toUpperCase();
@@ -395,8 +482,13 @@ export default function InsiderPage() {
               key={d}
               onClick={() => {
                 setDays(d);
-                if (market === "us" && usTicker) fetchUS(usTicker, d);
-                if (market === "kr" && krCorp) fetchKR(krCorp, d);
+                if (market === "us") {
+                  if (usTicker) fetchUS(usTicker, d);
+                  else fetchUSRecent(d);
+                } else {
+                  if (krCorp) fetchKR(krCorp, d);
+                  else fetchKRRecent(d);
+                }
               }}
               className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
                 days === d
@@ -412,20 +504,25 @@ export default function InsiderPage() {
         <div className="h-4 w-px bg-border mx-1" />
 
         {/* Trade type */}
-        <div className="flex gap-0.5">
-          {(["all", "BUY", "SELL"] as TradeFilter[]).map(f => (
+        <div className="flex gap-0.5 flex-wrap">
+          {(market === "kr" ? KR_TRADE_FILTER_OPTS : [
+            { value: "all" as TradeFilter, label: "전체" },
+            { value: "BUY" as TradeFilter, label: "BUY" },
+            { value: "SELL" as TradeFilter, label: "SELL" },
+          ]).map(f => (
             <button
-              key={f}
-              onClick={() => setTradeFilter(f)}
+              key={f.value}
+              onClick={() => setTradeFilter(f.value)}
               className={`px-2.5 py-0.5 text-[11px] rounded font-medium transition-colors ${
-                tradeFilter === f
-                  ? f === "BUY" ? "bg-pos/20 text-pos border border-pos/30"
-                  : f === "SELL" ? "bg-neg/20 text-neg border border-neg/30"
+                tradeFilter === f.value
+                  ? f.value === "BUY" ? "bg-pos/20 text-pos border border-pos/30"
+                  : f.value === "SELL" ? "bg-neg/20 text-neg border border-neg/30"
+                  : f.value === "CORP_ACTION" ? "bg-warn/20 text-warn border border-warn/30"
                   : "border border-accent text-accent bg-accent/10"
-                  : "text-text-3 hover:text-text-1 border border-transparent"
+                  : "text-text-3 hover:text-text-1 border border-border"
               }`}
             >
-              {f === "all" ? "전체" : f}
+              {f.label}
             </button>
           ))}
         </div>
@@ -463,24 +560,32 @@ export default function InsiderPage() {
       <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3">
         {market === "us" ? (
           <>
-            <span className="text-text-3 text-xs shrink-0">티커 입력:</span>
+            <span className="text-text-3 text-xs shrink-0">티커 검색:</span>
             <input
               value={usTicker}
               onChange={e => setUsTicker(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === "Enter" && usTicker && fetchUS(usTicker, days)}
-              placeholder="AAPL, MSFT, NVDA…"
-              className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-36 focus:border-accent outline-none"
+              onKeyDown={e => { if (e.key === "Enter" && usTicker) fetchUS(usTicker, days); }}
+              placeholder="AAPL…  (비워두면 전체 Recent)"
+              className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-52 focus:border-accent outline-none"
             />
-            <button
-              onClick={() => usTicker && fetchUS(usTicker, days)}
-              disabled={usLoading || !usTicker}
-              className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50"
-            >
-              {usLoading ? "조회 중…" : "조회"}
-            </button>
-            <p className="text-text-3 text-xs ml-auto">
-              SEC EDGAR Form 4 · 공개시장 매수(P)/매도(S)만 표시
-            </p>
+            {usTicker && (
+              <button
+                onClick={() => fetchUS(usTicker, days)}
+                disabled={usLoading}
+                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {usLoading ? "…" : "조회"}
+              </button>
+            )}
+            {usTicker && (
+              <button
+                onClick={() => { setUsTicker(""); fetchUSRecent(days); }}
+                className="text-text-3 text-xs hover:text-text-1 border border-border rounded px-2 py-1.5"
+              >
+                전체보기
+              </button>
+            )}
+            <span className="text-text-3 text-xs ml-auto">SEC EDGAR Form 4</span>
           </>
         ) : (
           <>
@@ -532,14 +637,7 @@ export default function InsiderPage() {
       ) : (
         !usLoading && !krLoading && (rawData.length === 0) && (
           <div className="bg-panel border border-border rounded-lg p-12 text-center">
-            <p className="text-text-3 text-sm">
-              {market === "us" ? "티커를 입력하고 조회 버튼을 누르세요." : "회사명을 검색하고 선택하세요."}
-            </p>
-            <p className="text-text-3 text-xs mt-1">
-              {market === "us"
-                ? "예: AAPL, MSFT, NVDA, TSLA"
-                : "예: 삼성전자, SK하이닉스, LG에너지솔루션"}
-            </p>
+            <p className="text-text-3 text-sm">데이터 없음</p>
           </div>
         )
       )}

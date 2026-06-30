@@ -44,19 +44,34 @@ export function TodayEventsWidget() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { begin, end } = getWindow();
-    Promise.allSettled([
-      getKSDRightsSchedule(undefined, begin, end),
-      getEconomicCalendar("this"),
-    ]).then(([rightsRes, econRes]) => {
-      if (rightsRes.status === "fulfilled") setRights(rightsRes.value.rows.slice(0, 6));
-      if (econRes.status === "fulfilled") {
-        const upcomingHigh = econRes.value
-          .filter(e => (e.impact === "High" || e.impact === "Medium") && isTodayOrFuture(e.date))
-          .slice(0, 5);
-        setEconEvents(upcomingHigh);
-      }
-    }).finally(() => setLoading(false));
+    const load = () => {
+      const { begin, end } = getWindow();
+      Promise.allSettled([
+        getKSDRightsSchedule(undefined, begin, end),
+        getEconomicCalendar("this"),
+      ]).then(([rightsRes, econRes]) => {
+        if (rightsRes.status === "fulfilled") {
+          const seen = new Set<string>();
+          const deduped = rightsRes.value.rows.filter(r => {
+            const key = r.stck_issu_cmpy_nm ?? r.crno ?? "";
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setRights(deduped.slice(0, 6));
+        }
+        if (econRes.status === "fulfilled") {
+          const upcomingHigh = econRes.value
+            .filter(e => (e.impact === "High" || e.impact === "Medium") && isTodayOrFuture(e.date))
+            .slice(0, 5);
+          setEconEvents(upcomingHigh);
+        }
+      }).finally(() => setLoading(false));
+    };
+
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   return (

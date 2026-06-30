@@ -31,8 +31,6 @@ export function WatchlistSidebar({
   symbols, activeSymbol, onSymbolSelect, onCompare, onAdd, onRemove,
 }: WatchlistSidebarProps) {
   const [prices, setPrices] = useState<Record<string, SymbolPrice>>({});
-  const [addInput, setAddInput] = useState("");
-  const [addError, setAddError] = useState<string | null>(null);
 
   useEffect(() => {
     if (symbols.length === 0) return;
@@ -77,18 +75,6 @@ export function WatchlistSidebar({
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols]);
-
-  function handleAdd() {
-    const sym = addInput.trim().toUpperCase();
-    if (!sym) return;
-    if (!/^[A-Z0-9]+\.[A-Z]+$/.test(sym)) {
-      setAddError("Format: SYMBOL.VENUE");
-      return;
-    }
-    onAdd(sym);
-    setAddInput("");
-    setAddError(null);
-  }
 
   return (
     <aside className="w-52 shrink-0 border-r border-border flex flex-col bg-panel h-full">
@@ -161,26 +147,6 @@ export function WatchlistSidebar({
         })}
       </div>
 
-      {/* Add symbol input */}
-      <div className="p-3 border-t border-border shrink-0">
-        <div className="flex gap-1">
-          <input
-            type="text"
-            value={addInput}
-            onChange={e => { setAddInput(e.target.value.toUpperCase()); setAddError(null); }}
-            onKeyDown={e => e.key === "Enter" && handleAdd()}
-            placeholder="AAPL.NASDAQ"
-            className="flex-1 h-7 text-[11px] px-2 bg-panel-2 border border-border rounded-md text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-          />
-          <button
-            onClick={handleAdd}
-            className="h-7 px-2.5 text-sm bg-accent text-black font-bold rounded-md hover:brightness-110 border-0 cursor-pointer"
-          >
-            +
-          </button>
-        </div>
-        {addError && <p className="text-neg text-[10px] mt-1">{addError}</p>}
-      </div>
     </aside>
   );
 }

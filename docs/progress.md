@@ -1,3 +1,24 @@
+## Phase 41 — Groq 요약 + UX 정비 (2026-06-30) ✅ SHIPPED
+
+### 완료된 작업
+- `api_server/main.py` — `POST /groq/summarize` (mode=news|calendar), 매크로 전략가 프롬프트(· 항목 형식, 마크다운 금지), `STOCKS: TICKER↑/↓` 라인 파싱 → `picks[]` 반환
+- `components/GroqSummaryPanel.tsx` (신규) — AI 분석 버튼, 상승/하락 키워드 색상, localStorage 캐시(mode별, 페이지 이동해도 유지), 종목 카드(차트 바로가기 `/market?symbol=X.NASDAQ`)
+- `lib/api.ts` — `getGroqSummary()`, GroqStockPick/GroqSummaryResult
+- `app/news/page.tsx` + `app/calendar/page.tsx` — 2컬럼 레이아웃 + 우측 요약 패널
+- `components/news/NewsPanel.tsx` — `onHeadlinesLoaded` 콜백
+- `app/forex/page.tsx` — Live Rates 탭(12쌍 히트맵, 60초 갱신, `/forex/overview`)
+- `app/crypto/page.tsx` — 주식 페이지식 재구성: 검색/워크스페이스(차트+북)/통계 탭, 워치리스트 사이드바(localStorage), Markets/Chart/Book 탭 제거
+- `app/insider/page.tsx` — US 자동 Recent 로드, KR 기업행위(무상/유상/소각) 분류 + DART 원문 링크
+- `app/market/page.tsx` + `MarketWorkspace.tsx` — p-6 제거, 높이 100vh-96px (꽉 찬 레이아웃)
+- `app/workflow/page.tsx` — 가로 진행 스테퍼 + 진행률 바 + 세로 타임라인 커넥터
+- `autopilot/agent_loop.sh` — sleep 30분→4시간(장중)/2시간(장외), Claude 출력 한 문장 강제(헤더/표/이모지 금지)
+
+### 미완료 (외부 의존성/거대 범위)
+- IB WebSocket 실시간 (TWS 게이트웨이 필요)
+- LangGraph 멀티에이전트 자율주문 (새 백엔드 인프라)
+
+---
+
 ## Phase 40 — Hyperliquid Trading UI (2026-06-29) ✅ SHIPPED
 
 ### 완료된 작업

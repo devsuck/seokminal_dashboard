@@ -12,45 +12,72 @@ function timeAgo(ts: number): string {
 }
 
 function NewsCard({ item }: { item: NewsItem }) {
+  const [open, setOpen] = useState(false);
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block border-t border-border py-2.5 hover:bg-panel-2 px-1 -mx-1 rounded transition-colors no-underline group"
-    >
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-text-1 text-xs leading-snug group-hover:text-accent transition-colors line-clamp-2">
-            {item.headline}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-text-3 text-[10px]">{item.source}</span>
-            <span className="text-text-3 text-[10px]">·</span>
-            <span className="text-text-3 text-[10px] font-data">{timeAgo(item.datetime)}</span>
-            {item.related && (
-              <>
-                <span className="text-text-3 text-[10px]">·</span>
-                <span className="text-accent text-[10px] font-data">{item.related}</span>
-              </>
-            )}
+    <div className="border-t border-border py-2.5 px-1 -mx-1 rounded">
+      {/* Clickable header row */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-left cursor-pointer bg-transparent border-0 p-0 group"
+      >
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs leading-snug transition-colors line-clamp-2 ${open ? "text-accent" : "text-text-1 group-hover:text-accent"}`}>
+              {item.headline}
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-text-3 text-[10px]">{item.source}</span>
+              <span className="text-text-3 text-[10px]">·</span>
+              <span className="text-text-3 text-[10px] font-data">{timeAgo(item.datetime)}</span>
+              {item.related && (
+                <>
+                  <span className="text-text-3 text-[10px]">·</span>
+                  <span className="text-accent text-[10px] font-data">{item.related}</span>
+                </>
+              )}
+              <span className="ml-auto text-text-3 text-[10px]">{open ? "▲" : "▼"}</span>
+            </div>
           </div>
+          {item.image && !open && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.image} alt="" className="w-12 h-12 object-cover rounded shrink-0 opacity-80" />
+          )}
         </div>
-        {item.image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image} alt="" className="w-12 h-12 object-cover rounded shrink-0 opacity-80" />
-        )}
-      </div>
-    </a>
+      </button>
+
+      {/* Expanded content */}
+      {open && (
+        <div className="mt-2 bg-panel-2 rounded p-3">
+          {item.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.image} alt="" className="w-full max-h-40 object-cover rounded mb-2 opacity-90" />
+          )}
+          {item.summary ? (
+            <p className="text-text-2 text-xs leading-relaxed">{item.summary}</p>
+          ) : (
+            <p className="text-text-3 text-xs italic">요약 없음</p>
+          )}
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-2 text-[11px] text-accent hover:underline no-underline"
+          >
+            원문 보기 →
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
 interface NewsPanelProps {
-  ticker?: string;   // if set: company news mode
+  ticker?: string;
   maxItems?: number;
+  onHeadlinesLoaded?: (headlines: string[]) => void;
 }
 
-export function NewsPanel({ ticker, maxItems = 15 }: NewsPanelProps) {
+export function NewsPanel({ ticker, maxItems = 15, onHeadlinesLoaded }: NewsPanelProps) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +92,11 @@ export function NewsPanel({ ticker, maxItems = 15 }: NewsPanelProps) {
       const data = t
         ? await getCompanyNews(t, 7, ctrl.signal)
         : await getMarketNews("general", ctrl.signal);
-      if (!ctrl.signal.aborted) setNews(data.slice(0, maxItems));
+      if (!ctrl.signal.aborted) {
+        const sliced = data.slice(0, maxItems);
+        setNews(sliced);
+        onHeadlinesLoaded?.(sliced.map(n => n.headline));
+      }
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       if (!ctrl.signal.aborted)
@@ -73,7 +104,7 @@ export function NewsPanel({ ticker, maxItems = 15 }: NewsPanelProps) {
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
-  }, [maxItems]);
+  }, [maxItems, onHeadlinesLoaded]);
 
   useEffect(() => {
     fetch_(ticker);
