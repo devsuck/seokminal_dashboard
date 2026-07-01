@@ -64,6 +64,7 @@ export function NavBar() {
         { href: "/workflow",  label: t("nav.workflow") },
         { href: "/agents",    label: t("nav.agents") },
         { href: "/copytrade", label: "카피트레이드" },
+        { href: "/dart-auto", label: "DART 자동매매" },
       ],
     },
   ];

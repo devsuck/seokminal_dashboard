@@ -1915,6 +1915,34 @@ export interface CopyPosition {
   market_value: number; unrealized_pl: number; unrealized_plpc: number;
 }
 
+// ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────
+
+export interface DartSignal {
+  corp_name: string; ticker?: string | null;
+  action_type: string; action_label: string;
+  verdict: string; note: string; date: string; dart_url?: string | null;
+}
+export interface DartPosition {
+  code: string; name: string; qty: number;
+  avg_price: number; current: number; return_pct?: number | null;
+}
+
+export async function getDartSignals(days = 14, signal?: AbortSignal): Promise<DartSignal[]> {
+  const r = await fetch(`${API_URL}/dart/signals?days=${days}`, { signal });
+  return handleResponse<DartSignal[]>(r);
+}
+export async function getDartPositions(signal?: AbortSignal): Promise<DartPosition[]> {
+  const r = await fetch(`${API_URL}/dart/positions`, { signal });
+  return handleResponse<DartPosition[]>(r);
+}
+export async function mirrorDart(code: string, krw: number): Promise<{ code: string; qty: number; price: number; status: string }> {
+  const r = await fetch(`${API_URL}/dart/mirror`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, krw }),
+  });
+  return handleResponse(r);
+}
+
 export interface TraderHolding {
   ticker: string; date: string;
   entry?: number | null; current?: number | null; return_pct?: number | null;
