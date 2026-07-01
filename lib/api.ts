@@ -1283,7 +1283,7 @@ export async function getTradingMode(signal?: AbortSignal): Promise<TradingMode>
 
 // ── AI agents (multi-agent trading) ───────────────────────────────────────────
 
-export type AgentType = "swing" | "daytrade" | "hl_daytrade" | "kr_daytrade";
+export type AgentType = "swing" | "longterm" | "daytrade" | "hl_daytrade" | "kr_daytrade";
 
 export interface TradingAgent {
   id: string;

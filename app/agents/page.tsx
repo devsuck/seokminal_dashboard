@@ -22,14 +22,63 @@ import {
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 
-function pnlColor(v: number | null | undefined): string {
-  if (v == null) return "text-text-3";
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
+type Style = "swing" | "daytrade" | "longterm";
+type Mkt = "KR" | "US" | "CRYPTO";
+
+const STYLE_LABEL: Record<Style, string> = { swing: "스윙", daytrade: "단타", longterm: "장투" };
+const MKT_LABEL: Record<Mkt, string> = { KR: "한국주식", US: "미국주식", CRYPTO: "가상화폐" };
+
+function ccyOfMkt(m: Mkt): string {
+  return m === "KR" ? "KRW" : m === "CRYPTO" ? "USDC" : "USD";
+}
+
+/** 기존 에이전트의 표시 통화 (type+market에서 유추). */
+function agentCcy(a: TradingAgent): string {
+  if (a.type === "hl_daytrade") return "USDC";
+  if (a.type === "kr_daytrade" || a.market === "KR") return "KRW";
+  return "USD";
+}
+
+function agentStyleLabel(a: TradingAgent): string {
+  return a.type === "longterm" ? "장투" : a.type === "swing" ? "스윙" : "단타";
+}
+function agentMktLabel(a: TradingAgent): string {
+  if (a.type === "hl_daytrade") return "크립토";
+  if (a.type === "kr_daytrade" || a.market === "KR") return "한국";
+  if (a.market === "MIXED") return "혼합";
+  return "미국";
+}
+
+/** 스타일+시장 → 백엔드 (type, market). */
+function toBackend(style: Style, m: Mkt): { type: AgentType; market: "US" | "KR" | "MIXED" } {
+  if (style === "daytrade") {
+    if (m === "KR") return { type: "kr_daytrade", market: "KR" };
+    if (m === "CRYPTO") return { type: "hl_daytrade", market: "US" };
+    return { type: "daytrade", market: "US" };
+  }
+  const type: AgentType = style === "longterm" ? "longterm" : "swing";
+  return { type, market: m === "KR" ? "KR" : "US" };
+}
+
+function ccySym(ccy: string): string {
+  return ccy === "KRW" ? "₩" : ccy === "USDC" ? "" : ccy === "EUR" ? "€" : "$";
+}
+
+function moneyCcy(v: number, ccy: string, signed = false): string {
+  const sign = signed && v > 0 ? "+" : "";
+  const suffix = ccy === "USDC" ? " USDC" : "";
+  const digits = ccy === "KRW" ? 0 : 2;
+  return `${sign}${ccySym(ccy)}${v.toLocaleString(undefined, { maximumFractionDigits: digits })}${suffix}`;
 }
 
 function fmtMoney(v: number): string {
   const sign = v > 0 ? "+" : "";
   return `${sign}$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+function pnlColor(v: number | null | undefined): string {
+  if (v == null) return "text-text-3";
+  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
 }
 
 const DECISION_STYLE: Record<string, string> = {
@@ -301,17 +350,22 @@ export default function AgentsPage() {
   const [balances, setBalances] = useState<AccountBalances | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Create form
+  // Create form — 스타일(스윙/단타/장투) × 시장(한국/미국/가상화폐) 두 축.
   const [name, setName] = useState("");
-  const [type, setType] = useState<AgentType>("swing");
-  const [alloc, setAlloc] = useState("100000");
+  const [style, setStyle] = useState<Style>("daytrade");
+  const [mkt, setMkt] = useState<Mkt>("US");
+  const [alloc, setAlloc] = useState("");
   const [paper, setPaper] = useState(true);
   const [autonomy, setAutonomy] = useState(2);
-  const [market, setMarket] = useState<"US" | "KR" | "MIXED">("US");
   const [creating, setCreating] = useState(false);
 
-  // Autonomy only applies to the LLM swing agent; day-trade is always rules-based.
-  const isDeterministic = type === "daytrade" || type === "hl_daytrade" || type === "kr_daytrade";
+  // 스타일별 허용 시장 (스윙·장투는 크립토 미지원).
+  const allowedMkts: Mkt[] = style === "daytrade" ? ["KR", "US", "CRYPTO"] : ["KR", "US"];
+  useEffect(() => { if (!allowedMkts.includes(mkt)) setMkt("US"); /* eslint-disable-next-line */ }, [style]);
+
+  // 단타는 규칙기반(결정론), 스윙·장투는 LLM(자율성 레벨 적용).
+  const isDeterministic = style === "daytrade";
+  const ccy = ccyOfMkt(mkt);
 
   const cyclePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const perfPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -390,11 +444,14 @@ export default function AgentsPage() {
 
   async function handleCreate() {
     if (!name.trim()) { setError("이름 입력"); return; }
+    const amt = parseFloat(alloc);
+    if (!amt || amt <= 0) { setError(`배정 금액 입력 (${ccy})`); return; }
     if (!paper && !confirm("⚠️ LIVE 모드 — 실제 자금이 집행됩니다. 계속?")) return;
     setCreating(true); setError(null);
     try {
-      await createAgent(name.trim(), type, parseFloat(alloc) || 100000, paper, isDeterministic ? 1 : autonomy, type === "swing" ? market : "US");
-      setName("");
+      const { type, market } = toBackend(style, mkt);
+      await createAgent(name.trim(), type, amt, paper, isDeterministic ? 1 : autonomy, market);
+      setName(""); setAlloc("");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -438,37 +495,50 @@ export default function AgentsPage() {
               value={name} onChange={e => setName(e.target.value)} placeholder="이름 (예: 모멘텀 단타봇)"
               className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent"
             />
-            <div className="grid grid-cols-2 gap-2">
-              {(["swing", "daytrade", "kr_daytrade", "hl_daytrade"] as AgentType[]).map(t => (
-                <button key={t} onClick={() => setType(t)}
-                  className={`text-[11px] py-1.5 rounded border ${type === t ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>
-                  {t === "swing" ? "스윙" : t === "daytrade" ? "단타(미국)" : t === "kr_daytrade" ? "단타(한국)" : "단타(HL)"}
-                </button>
-              ))}
-            </div>
-            {/* Market scope (swing only) */}
-            {type === "swing" && (
-              <div className="space-y-1">
-                <p className="text-text-3 text-[10px] uppercase tracking-wider">시장 범위</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["US", "KR", "MIXED"] as const).map(m => (
-                    <button key={m} onClick={() => setMarket(m)}
-                      className={`text-[11px] py-1.5 rounded border ${market === m ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>
-                      {m === "US" ? "미국" : m === "KR" ? "한국" : "혼합"}
-                    </button>
-                  ))}
-                </div>
-                {market !== "US" && (
-                  <p className="text-text-3 text-[10px] leading-snug">
-                    {market === "KR" ? "한국주식(KIS 모의). 대형주 스크리닝." : "미국(Alpaca)+한국(KIS) 동시 운용. 각 장 시간에 거래."}
-                  </p>
-                )}
+            {/* 투자 스타일 */}
+            <div className="space-y-1">
+              <p className="text-text-3 text-[10px] uppercase tracking-wider">투자 스타일</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["daytrade", "swing", "longterm"] as Style[]).map(s => (
+                  <button key={s} onClick={() => setStyle(s)}
+                    className={`text-xs py-1.5 rounded border ${style === s ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+                    {STYLE_LABEL[s]}
+                  </button>
+                ))}
               </div>
-            )}
-            <input
-              value={alloc} onChange={e => setAlloc(e.target.value)} placeholder="배정 자본 ($)"
-              className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent"
-            />
+            </div>
+            {/* 시장 */}
+            <div className="space-y-1">
+              <p className="text-text-3 text-[10px] uppercase tracking-wider">시장</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["KR", "US", "CRYPTO"] as Mkt[]).map(m => {
+                  const ok = allowedMkts.includes(m);
+                  return (
+                    <button key={m} disabled={!ok} onClick={() => setMkt(m)}
+                      className={`text-xs py-1.5 rounded border ${
+                        !ok ? "border-border/50 text-text-3/40 cursor-not-allowed"
+                        : mkt === m ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+                      {MKT_LABEL[m]}
+                    </button>
+                  );
+                })}
+              </div>
+              {style !== "daytrade" && (
+                <p className="text-text-3 text-[10px] leading-snug">스윙·장투는 주식만 (크립토는 단타).</p>
+              )}
+            </div>
+            {/* 배정 금액 (시장 통화 자동) */}
+            <div className="space-y-1">
+              <p className="text-text-3 text-[10px] uppercase tracking-wider">배정 금액 · {ccy}</p>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">{ccySym(ccy) || "USDC"}</span>
+                <input
+                  value={alloc} onChange={e => setAlloc(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"
+                  placeholder={mkt === "KR" ? "1000000" : mkt === "CRYPTO" ? "1000" : "10000"}
+                  className="w-full bg-panel-2 border border-border rounded pl-8 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent"
+                />
+              </div>
+            </div>
             {/* Paper / Live toggle */}
             <div className="flex gap-2">
               {[true, false].map(p => (
@@ -485,7 +555,7 @@ export default function AgentsPage() {
             {!paper && (
               <p className="text-neg text-[10px] leading-snug">⚠️ 실제 자금 집행. 되돌릴 수 없음.</p>
             )}
-            {type === "hl_daytrade" && paper && (
+            {mkt === "CRYPTO" && paper && (
               <p className="text-text-3 text-[10px] leading-snug">
                 ℹ️ 페이퍼는 크립토만 (테스트넷 TradFi 무거래). 주식·금·지수는 LIVE 필요.
               </p>
@@ -527,33 +597,26 @@ export default function AgentsPage() {
               <div key={a.id}
                 onClick={() => setSelected(a.id)}
                 className={`bg-panel border rounded-lg p-3 cursor-pointer transition-colors ${selected === a.id ? "border-accent/50" : "border-border hover:border-text-3"}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-text-1 text-sm font-medium">{a.name}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-panel-2 text-text-3 border border-border">
-                      {a.type === "swing" ? "스윙" : a.type === "hl_daytrade" ? "단타·HL" : a.type === "kr_daytrade" ? "단타·KR" : "단타"}
-                    </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${a.paper ? "bg-pos/10 text-pos border-pos/30" : "bg-neg/15 text-neg border-neg/40"}`}>
-                      {a.paper ? "PAPER" : "● LIVE"}
-                    </span>
-                    {a.type === "swing" && (
-                      <>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded border border-border text-text-3">
-                          Lv{a.autonomy}
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded border border-border text-text-3">
-                          {a.market === "KR" ? "한국" : a.market === "MIXED" ? "혼합" : "미국"}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <span className={`flex items-center gap-1 text-[10px] ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-text-1 text-sm font-medium truncate min-w-0">{a.name}</span>
+                  <span className={`flex items-center gap-1 text-[10px] shrink-0 ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${a.status === "running" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
                     {a.status === "running" ? "가동" : "정지"}
                   </span>
                 </div>
+                <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-panel-2 text-text-2 border border-border">
+                    {agentStyleLabel(a)} · {agentMktLabel(a)}
+                  </span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded border ${a.paper ? "bg-pos/10 text-pos border-pos/30" : "bg-neg/15 text-neg border-neg/40"}`}>
+                    {a.paper ? "PAPER" : "● LIVE"}
+                  </span>
+                  {(a.type === "swing" || a.type === "longterm") && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-border text-text-3">Lv{a.autonomy}</span>
+                  )}
+                </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-text-3 text-[10px] font-data">자본 ${a.account_alloc.toLocaleString()}</span>
+                  <span className="text-text-3 text-[10px] font-data">자본 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
                   <div className="flex gap-1.5">
                     <button onClick={e => { e.stopPropagation(); toggle(a); }}
                       className={`text-[10px] px-2 py-0.5 rounded border ${a.status === "running" ? "border-warn/40 text-warn" : "border-pos/40 text-pos"}`}>
