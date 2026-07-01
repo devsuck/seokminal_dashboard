@@ -24,6 +24,28 @@
 
 ---
 
+## Phase 85 — 현실 백테스트: 거래비용 (발전 #2/4) (2026-07-02) ✅ SHIPPED
+
+"백테스트 좋은데 실전 마이너스" 함정 방지 = 현실 비용 반영.
+
+### 완료된 작업
+- `backtest_runner/simple_runner.py` `_simulate_trades(..., cost_bps=0.0)`: 체결 1회당 슬리피지+수수료(bps), **왕복 진입+청산 2회 차감**. `run_simple_backtest` params.cost_bps(기본 5bps)
+- `/backtest` `cost_bps` 쿼리파라미터(0~100) → simple_params 주입. single/optimize/portfolio/**walk-forward** 전부 통과(모두 run_simple_backtest 경유)
+- 검증: AAPL MACD 0/5/20bps → total_pnl $441/$402/$284 (비용 정확 차감)
+- `app/backtest/page.tsx`: macd/rsi/xgb에 **거래비용(bps) 입력**(기본 5), cost_bps 주입 → 결과가 비용 순(net)
+- 워크포워드는 기존 `/backtest/walk-forward`(롤링 OOS 윈도우 + 일관성 요약) 존재 → 이제 비용 반영
+
+### 발전 로드맵
+- [x] #1 성과 추적 (Phase 84)
+- [x] #2 현실 백테스트 (이 Phase — 거래비용 + 기존 워크포워드)
+- [ ] #3 더 똑똑한 시그널 (팩터·레짐·Kelly)
+- [ ] #4 리스크 강화
+
+### 검증
+- 백엔드 import OK, 비용 차감 라이브. 백테스트 관련 31 passed(+ pre-existing 1). FE tsc/빌드 OK
+
+---
+
 ## Phase 84 — 성과 추적 대시보드 (발전 #1/4) (2026-07-02) ✅ SHIPPED
 
 "매매 에이전트 발전" — 모델교체 아닌 시스템. 사용자 "전부 다" → 순차. **#1 성과추적**(나머지 판단 근거) 먼저.
