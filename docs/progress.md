@@ -24,6 +24,27 @@
 
 ---
 
+## Phase 84 — 성과 추적 대시보드 (발전 #1/4) (2026-07-02) ✅ SHIPPED
+
+"매매 에이전트 발전" — 모델교체 아닌 시스템. 사용자 "전부 다" → 순차. **#1 성과추적**(나머지 판단 근거) 먼저.
+
+### 완료된 작업
+- `/performance/portfolio`: Alpaca 페이퍼 portfolio history → 수익률·MDD·Sharpe(일간 연율화) + **SPY 매수보유 벤치마크**(정규화) + 초과수익. 라이브 확인(SPY +0.64%, 계좌 매매 전이라 전략 0%)
+- `lib/api.ts`: PerfPoint/PerfSummary + getPerformance
+- `app/performance/page.tsx` (신규): 메트릭 카드(수익률/MDD/Sharpe/vs SPY 초과) + **의존성 없는 SVG equity 곡선**(전략 vs SPY 점선) + 기간 토글(1주/1개월/3개월/1년)
+- 나브: Sidebar+NavBar 트레이딩에 "성과 추적"
+
+### 발전 로드맵 ("전부 다" 순차 진행)
+- [x] #1 성과 추적 (이 Phase)
+- [ ] #2 현실 백테스트 (슬리피지·수수료·워크포워드) — backtest 강화
+- [ ] #3 더 똑똑한 시그널 (팩터 결합·레짐 HMM·Kelly 사이징) — risk_analysis/regime 모듈 활용
+- [ ] #4 리스크 강화 (drawdown 킬스위치·분산·한도)
+
+### 검증
+- 백엔드 /performance 라이브. FE tsc/빌드(/performance)/방문확인(메트릭·곡선·나브)
+
+---
+
 ## Phase 83 — 시장>주식 차트에서 매매/알림 직접 + Events/KR 탭 제거 (2026-07-02) ✅ SHIPPED
 
 사용자: 차트에서 바로 매매·알림 하고 싶음. Events/KR 탭 의미없음.
