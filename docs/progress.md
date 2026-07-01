@@ -24,6 +24,28 @@
 
 ---
 
+## Phase 80 — DART 기업행위 오토파일럿 (페이퍼/KIS 모의) (2026-07-02) ✅ SHIPPED
+
+"기업행위만" 자동매매. 개인 내부자 매매는 **법정 5영업일 지연**이라 엣지 없어 제외(사용자 확정). 장외 공시가 개인에 유리(장중은 알고 경쟁).
+
+### 완료된 작업
+- 백엔드 `api_server/main.py`:
+  - `/dart/signals`: `_dart_corp_actions` 분류 → **BUYBACK/CANCELLATION=매수(호재)**, **PAID_IN(유상증자)=회피(악재)**, DISPOSAL=회피, RIGHTS_ISSUE(무상)=중립. 최신순. 라이브 12건 확인
+  - `/dart/mirror`: KIS **모의** 시장가 매수 (원화예산÷현재가(yfinance .KS)=주식수)
+  - `/dart/positions`: KIS 모의 보유 + 수익률
+- `lib/api.ts`: DartSignal/DartPosition + getDartSignals/mirrorDart/getDartPositions
+- `app/dart-auto/page.tsx` (신규): 공시 테이블(기업/종목/공시/**판정 태그**(매수 green/회피 red/중립)/접수일/DART링크), BUY 신호에 모의매수 버튼, **자동매수 토글**(신규 자사주 취득·소각만, 사이클당 ≤5), KIS 모의 보유 P&L
+- 나브: Sidebar + NavBar 트레이딩에 "DART 자동매매"
+
+### 정보 속도 정리 (사용자 질의)
+- 개인 내부자(소유상황보고) = 거래 후 5영업일 신고 → DART엔 이미 늦음. 미국 Form4도 2영업일. **속도 엣지 없음**
+- 기업행위 = 공시=이벤트 당일. 우리 폴링은 접수 후 초~분. **장중은 알고가 밀리초 반영**(뒷북), **장 마감후/개장전 공시가 개인 기회**
+
+### 검증
+- 백엔드 import OK, /dart/signals 라이브 12건 분류 정확. FE tsc/빌드(/dart-auto)/방문확인(판정태그·나브 정상)
+
+---
+
 ## Phase 79 — 카피트레이드 트레이더 카드 UI (Autopilot 스타일) (2026-07-02) ✅ SHIPPED
 
 신호 리스트 → **매수자별 카드 + 수익률**로 재설계 (Autopilot 앱처럼). 왼쪽 나브에 카피트레이드 노출.
