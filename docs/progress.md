@@ -24,6 +24,24 @@
 
 ---
 
+## Phase 86 — 스마트 시그널: 레짐+모멘텀+Kelly (발전 #3/4) (2026-07-02) ✅ SHIPPED
+
+기존 분석 모듈(HMM 레짐, Kelly, 팩터)이 개별 엔드포인트로만 존재 → **매매 판단으로 결합**.
+
+### 완료된 작업
+- `/signal/smart?instrument_id=`: catalog 일봉 → 레짐(detect_regime_hmm) 게이트(bear_high_vol=회피) + 모멘텀(60일 + SMA50 대비) + Kelly½ 사이징(상한 25%, 레짐배율). → BUY/HOLD/AVOID + 제안 비중% + 근거. 라이브(AAPL 관망: 모멘텀+18% but 약세레짐 게이트)
+- `lib/api.ts`: SmartSignal + getSmartSignal
+- `app/signal/page.tsx` (신규): 판정 카드(매수/관망/회피) + 레짐/모멘텀/SMA50/Kelly½ 메트릭 + 근거 리스트, 심볼 입력·프리셋
+- 나브: 분석 그룹에 "스마트 시그널" (Sidebar+NavBar)
+
+### 발전 로드맵
+- [x] #1 성과 추적 / [x] #2 현실 백테스트 / [x] #3 스마트 시그널(이 Phase) / [ ] #4 리스크 강화
+
+### 검증
+- 백엔드 라이브(AAPL/삼성 판정). FE tsc/빌드(/signal)/방문확인
+
+---
+
 ## Phase 85 — 현실 백테스트: 거래비용 (발전 #2/4) (2026-07-02) ✅ SHIPPED
 
 "백테스트 좋은데 실전 마이너스" 함정 방지 = 현실 비용 반영.
