@@ -54,6 +54,7 @@ export function NavBar() {
         { href: "/backtest",         label: t("nav.backtest") },
         { href: "/backtest/compare", label: t("nav.compare") },
         { href: "/universe",         label: t("nav.universe") },
+        { href: "/pairs",            label: "페어(공적분)" },
         { href: "/portfolio",        label: t("nav.portfolio") },
       ],
     },

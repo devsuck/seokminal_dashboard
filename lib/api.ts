@@ -1915,6 +1915,20 @@ export interface CopyPosition {
   market_value: number; unrealized_pl: number; unrealized_plpc: number;
 }
 
+// ── 페어 트레이딩 (시장중립) ─────────────────────────────────────────────────────
+
+export interface PairsResult {
+  instrument_a: string; instrument_b: string;
+  cointegrated: boolean; eg_pvalue: number; hedge_ratio: number; half_life_days: number;
+  total_return_pct?: number | null; sharpe_ratio?: number | null; max_drawdown_pct?: number | null;
+  num_trades: number; win_rate?: number | null; zscore: number[]; tradeable: boolean; note: string;
+}
+export async function getPairsBacktest(a: string, b: string, costBps = 5, signal?: AbortSignal): Promise<PairsResult> {
+  const p = new URLSearchParams({ a, b, cost_bps: String(costBps) });
+  const r = await fetch(`${API_URL}/pairs/backtest?${p.toString()}`, { signal });
+  return handleResponse<PairsResult>(r);
+}
+
 // ── 리스크 (킬스위치 + drawdown) ─────────────────────────────────────────────────
 
 export interface RiskStatus {
