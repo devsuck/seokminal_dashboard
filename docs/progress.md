@@ -24,6 +24,26 @@
 
 ---
 
+## Phase 87 — 리스크 강화: 킬스위치 + MDD 자동차단 (발전 #4/4) (2026-07-02) ✅ SHIPPED
+
+발전 로드맵 마지막. 기존 risk_guard(RiskConfig 주문한도)에 **런타임 킬스위치 + drawdown 자동차단** 추가.
+
+### 완료된 작업
+- `api_server/risk_state.py` (신규): 파일 영속 킬스위치(`data/risk_kill.json`, 재시작·브라우저 무관) + `is_killed()` + **MDD 자동킬**(Alpaca equity peak 대비 낙폭 > `MAX_DRAWDOWN_PCT`(기본15%) → 자동 engage). `/risk/status`(한도+낙폭+킬), `/risk/kill`
+- `main.py`: risk 라우터 등록
+- `dart_autobot.tick`: **killed면 매수 중단** (수동/자동 킬 존중)
+- `lib/api.ts`: RiskStatus + getRiskStatus/setKillSwitch
+- `app/risk-guard/page.tsx` (신규): 킬스위치 토글(긴급정지/해제, 확인모달) + **MDD 게이지**(현재 vs 한도, 초과 시 자동킬 경고) + 주문한도 표
+- 나브: Sidebar+NavBar 트레이딩에 "리스크 관리"
+
+### 발전 로드맵 — 전부 완료 ✅
+- [x] #1 성과 추적 / [x] #2 현실 백테스트 / [x] #3 스마트 시그널 / [x] #4 리스크 강화
+
+### 검증
+- 백엔드 라이브(status: kill off, dd 0%, 한도 15%, 주문한도). FE tsc/빌드(/risk-guard)/방문확인(킬토글·게이지·한도표)
+
+---
+
 ## Phase 86 — 스마트 시그널: 레짐+모멘텀+Kelly (발전 #3/4) (2026-07-02) ✅ SHIPPED
 
 기존 분석 모듈(HMM 레짐, Kelly, 팩터)이 개별 엔드포인트로만 존재 → **매매 판단으로 결합**.
