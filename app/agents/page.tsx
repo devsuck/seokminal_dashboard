@@ -341,6 +341,8 @@ function Overview({ ov, onSelect }: { ov: AgentsOverview; onSelect: (id: string)
 export default function AgentsPage() {
   const [agents, setAgents] = useState<TradingAgent[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [confirmDel, setConfirmDel] = useState<TradingAgent | null>(null);
+  const [confirmName, setConfirmName] = useState("");
   const [cycles, setCycles] = useState<AgentCycle[]>([]);
   const [perf, setPerf] = useState<AgentPerformance | null>(null);
   const [tab, setTab] = useState<"dashboard" | "cycles">("dashboard");
@@ -470,9 +472,13 @@ export default function AgentsPage() {
     }
   }
 
-  async function remove(a: TradingAgent) {
-    try { await deleteAgent(a.id); if (selected === a.id) setSelected(null); await refresh(); }
+  async function remove(a: TradingAgent, confirm?: string) {
+    try { await deleteAgent(a.id, confirm); if (selected === a.id) setSelected(null); setConfirmDel(null); await refresh(); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+  }
+  function onDelete(a: TradingAgent) {
+    if (a.protected) { setConfirmDel(a); setConfirmName(""); }  // 잠금 → 이름 확인 모달
+    else remove(a);                                             // 일반 → 즉시
   }
 
   return (
@@ -617,6 +623,9 @@ export default function AgentsPage() {
                   {(a.type === "swing" || a.type === "longterm") && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded border border-border text-text-3">Lv{a.autonomy}</span>
                   )}
+                  {a.protected && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10" title="잠금 — 삭제하려면 이름 확인 필요">🔒 잠금</span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-text-3 text-[10px] font-data">자본 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
@@ -625,9 +634,9 @@ export default function AgentsPage() {
                       className={`text-[10px] px-2 py-0.5 rounded border ${a.status === "running" ? "border-warn/40 text-warn" : "border-pos/40 text-pos"}`}>
                       {a.status === "running" ? "정지" : "시작"}
                     </button>
-                    <button onClick={e => { e.stopPropagation(); remove(a); }}
-                      className="text-[10px] px-2 py-0.5 rounded border border-border text-text-3 hover:text-neg hover:border-neg/40">
-                      삭제
+                    <button onClick={e => { e.stopPropagation(); onDelete(a); }}
+                      className={`text-[10px] px-2 py-0.5 rounded border ${a.protected ? "border-border text-text-3/60 hover:text-neg" : "border-border text-text-3 hover:text-neg hover:border-neg/40"}`}>
+                      {a.protected ? "🔒 삭제" : "삭제"}
                     </button>
                   </div>
                 </div>
@@ -708,6 +717,25 @@ export default function AgentsPage() {
           )}
         </div>
       </div>
+
+      {/* 잠긴 에이전트 삭제 확인 (이름 타이핑) */}
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDel(null)}>
+          <div className="bg-panel border border-border rounded-lg p-5 w-[360px] space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-text-1 font-semibold">🔒 잠긴 에이전트 삭제</h3>
+            <p className="text-text-2 text-sm leading-snug">
+              <span className="text-neg font-medium">{confirmDel.name}</span> 은(는) 잠금 상태입니다. 실수 방지를 위해 이름을 정확히 입력해야 삭제됩니다.
+            </p>
+            <input value={confirmName} onChange={e => setConfirmName(e.target.value)} placeholder={confirmDel.name} autoFocus
+              className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent" />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setConfirmDel(null)} className="text-sm text-text-2 border border-border rounded px-4 py-1.5">취소</button>
+              <button onClick={() => remove(confirmDel, confirmName)} disabled={confirmName !== confirmDel.name}
+                className="text-sm font-medium rounded px-4 py-1.5 bg-neg text-black disabled:opacity-30">삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

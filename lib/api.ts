@@ -1295,6 +1295,7 @@ export interface TradingAgent {
   autonomy: number; // 1=fixed rules, 2=AI strategist, 3=full autonomy
   market: "US" | "KR" | "MIXED";
   created_at: string;
+  protected?: boolean;  // 잠금 — 삭제 시 이름 확인 필요
   profile: { label?: string; cadence_seconds?: number; buy_score_threshold?: number; venue?: string };
   session_live?: boolean;
 }
@@ -1340,8 +1341,15 @@ export async function stopAgent(id: string): Promise<{ status: string }> {
   return r.json();
 }
 
-export async function deleteAgent(id: string): Promise<{ status: string }> {
-  const r = await fetch(`${API_URL}/agents/${id}`, { method: "DELETE" });
+export async function deleteAgent(id: string, confirm?: string): Promise<{ status: string }> {
+  const q = confirm ? `?confirm=${encodeURIComponent(confirm)}` : "";
+  const r = await fetch(`${API_URL}/agents/${id}${q}`, { method: "DELETE" });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function protectAgent(id: string, protectedFlag: boolean): Promise<{ protected: boolean }> {
+  const r = await fetch(`${API_URL}/agents/${id}/protect?protected=${protectedFlag}`, { method: "POST" });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
