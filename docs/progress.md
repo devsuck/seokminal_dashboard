@@ -15,6 +15,13 @@
 ### 검증
 - IB+HL 테스트 18 passed. HL 테스트넷 잔액 라이브 998 확인
 
+### 후속 (라이브 디버깅으로 6/6 계좌 전부 연동 완료)
+- **KIS 실계좌 CANO 오류**: `.env` KIS_CANO=50098567(엉뚱) → 실제 69095206으로 교정 → 41,596원 조회됨
+- **IB €100 연동**: `reqAccountSummaryAsync`=0행, 명시 `reqAccountUpdatesAsync`=행 → **ib_async 자동구독 `accountValues` 읽기**로 교체(`get_account_summary` 재작성). 통화(EUR) 반환→패널 반영, money()에 € 심볼, ib_live ccy 동적
+- **IB 엔드포인트 무한행 방지**: account_balances IB 호출 `asyncio.wait_for(6s)` 가드 (패널 블랭크 방지)
+- **KIS 간헐 오류**: rt_cd=2(빈msg)/RemoteDisconnected 잦음 → get_balance 최대 4회 재시도, 모의·실전 독립 처리
+- 최종: Alpaca $100k / KIS모의 1천만원 / KIS실계좌 41,596원 / IB €100 / HL테스트넷 998.97 / HL메인넷 127.2 USDC — **6/6 표시**
+
 ---
 
 ## Phase 74 — 뉴스 요약 정확도: summary 블러브 AI 전달 (2026-07-01) ✅ SHIPPED
