@@ -49,6 +49,7 @@ function BacktestPageInner() {
   const [fast, setFast]               = useState(10);
   const [slow, setSlow]               = useState(20);
   const [benchmarkId, setBenchmarkId] = useState("");
+  const [costBps, setCostBps]         = useState("5");  // 현실 거래비용 (체결당 bps)
   const [rules, setRules]             = useState<SpawnRuleState[]>([newRule()]);
   const [bars, setBars]               = useState<BarOut[]>([]);
   const [result, setResult]           = useState<BacktestResponse | null>(null);
@@ -181,6 +182,10 @@ function BacktestPageInner() {
         if (rules.length === 0) { setError("최소 1개 이상의 Rule 필요"); setLoading(false); return; }
         strategy = "gated";
         strategyParams = { spawn_rules: JSON.stringify(buildSpawnRules(rules, instrumentId)) };
+      }
+      // 현실 거래비용(슬리피지+수수료) — macd/rsi/xgb 심플 러너에 반영
+      if (["macd", "rsi", "xgb"].includes(strategy)) {
+        strategyParams.cost_bps = String(parseFloat(costBps) || 0);
       }
       const [barsRes, btRes] = await Promise.all([
         getBars(instrumentId, start, end, timeframe, ctrl.signal),
@@ -418,6 +423,17 @@ function BacktestPageInner() {
                   XGBoost (ML)
                 </button>
               </div>
+
+              {/* 현실 거래비용 (macd/rsi/xgb 반영) */}
+              {strategyType !== "ema_cross" && (
+                <div className="flex items-center gap-2">
+                  <label className="text-text-3 text-xs">거래비용</label>
+                  <input value={costBps} onChange={e => setCostBps(e.target.value.replace(/[^0-9.]/g, ""))}
+                    inputMode="decimal"
+                    className="w-16 bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data text-center outline-none focus:border-accent" />
+                  <span className="text-text-3 text-[10px]">bps/체결 (슬리피지+수수료, 왕복 2회). 실전 함정 방지</span>
+                </div>
+              )}
 
               {/* EMA Cross params */}
               {strategyType === "ema_cross" && (
