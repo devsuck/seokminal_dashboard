@@ -1915,6 +1915,20 @@ export interface CopyPosition {
   market_value: number; unrealized_pl: number; unrealized_plpc: number;
 }
 
+export interface TraderHolding {
+  ticker: string; date: string;
+  entry?: number | null; current?: number | null; return_pct?: number | null;
+}
+export interface TraderCard {
+  source: string; name: string; role?: string | null; initials: string;
+  num_buys: number; avg_return_pct?: number | null; holdings: TraderHolding[];
+}
+
+export async function getCopyTraders(limit = 120, signal?: AbortSignal): Promise<TraderCard[]> {
+  const r = await fetch(`${API_URL}/copytrade/traders?limit=${limit}`, { signal });
+  return handleResponse<TraderCard[]>(r);
+}
+
 export async function getCopySignals(limit = 60, signal?: AbortSignal): Promise<CopySignal[]> {
   const r = await fetch(`${API_URL}/copytrade/signals?limit=${limit}`, { signal });
   return handleResponse<CopySignal[]>(r);

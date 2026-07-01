@@ -2,96 +2,91 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ApiError, getCopySignals, getCopyPositions, mirrorCopyTrade,
-  type CopySignal, type CopyPosition,
+  ApiError, getCopyTraders, getCopyPositions, mirrorCopyTrade,
+  type TraderCard, type CopyPosition,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
 
-const MIRRORED_KEY = "copytrade-mirrored";   // 이미 미러한 신호 키 집합 (자동추종 중복 방지)
-const AUTO_KEY = "copytrade-auto";
 const NOTIONAL_KEY = "copytrade-notional";
 
-function sigKey(s: CopySignal): string {
-  return `${s.source}:${s.name}:${s.ticker}:${s.date}`;
+// 이름 → 안정적 색상 (아바타 배경)
+const AVATAR_COLORS = [
+  "bg-info/20 text-info", "bg-pos/20 text-pos", "bg-accent/20 text-accent",
+  "bg-warn/20 text-warn", "bg-neg/20 text-neg",
+];
+function colorFor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-function loadSet(key: string): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); } catch { return new Set(); }
+function retCls(v: number | null | undefined): string {
+  if (v == null) return "text-text-3";
+  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
+}
+function retStr(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
 export default function CopyTradePage() {
-  const [signals, setSignals] = useState<CopySignal[]>([]);
+  const [traders, setTraders] = useState<TraderCard[]>([]);
   const [positions, setPositions] = useState<CopyPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notional, setNotional] = useState("500");
-  const [auto, setAuto] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const sigCtrl = useRef<AbortController | null>(null);
-  const posCtrl = useRef<AbortController | null>(null);
+  const tCtrl = useRef<AbortController | null>(null);
+  const pCtrl = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    setAuto(localStorage.getItem(AUTO_KEY) === "1");
-    const n = localStorage.getItem(NOTIONAL_KEY); if (n) setNotional(n);
-  }, []);
+  useEffect(() => { const n = localStorage.getItem(NOTIONAL_KEY); if (n) setNotional(n); }, []);
 
   const loadPositions = useCallback(() => {
-    posCtrl.current?.abort();
-    const ctrl = new AbortController(); posCtrl.current = ctrl;
+    pCtrl.current?.abort();
+    const ctrl = new AbortController(); pCtrl.current = ctrl;
     getCopyPositions(ctrl.signal)
       .then(p => { if (!ctrl.signal.aborted) setPositions(p); })
-      .catch(() => { /* paper 계좌 없으면 무시 */ });
+      .catch(() => { /* 페이퍼 계좌 없으면 무시 */ });
   }, []);
 
-  async function mirror(s: CopySignal, silent = false) {
-    const amt = parseFloat(notional) || 500;
-    if (!silent) setBusy(sigKey(s));
-    try {
-      await mirrorCopyTrade(s.ticker, amt);
-      const set = loadSet(MIRRORED_KEY); set.add(sigKey(s));
-      localStorage.setItem(MIRRORED_KEY, JSON.stringify([...set]));
-      if (!silent) { setToast(`페이퍼 미러: ${s.ticker} $${amt}`); setTimeout(() => setToast(null), 2500); }
-      loadPositions();
-    } catch (e) {
-      if (!silent) { setToast(`실패: ${e instanceof ApiError ? e.message : String(e)}`); setTimeout(() => setToast(null), 3500); }
-    } finally {
-      if (!silent) setBusy(null);
-    }
-  }
-
-  const loadSignals = useCallback(() => {
-    sigCtrl.current?.abort();
-    const ctrl = new AbortController(); sigCtrl.current = ctrl;
+  const loadTraders = useCallback(() => {
+    tCtrl.current?.abort();
+    const ctrl = new AbortController(); tCtrl.current = ctrl;
     setError(null);
-    getCopySignals(60, ctrl.signal)
-      .then(async data => {
-        if (ctrl.signal.aborted) return;
-        setSignals(data); setLoading(false);
-        // 자동추종: 아직 안 미러한 신호를 페이퍼로 (사이클당 최대 5건, 폭주 방지)
-        if (localStorage.getItem(AUTO_KEY) === "1") {
-          const done = loadSet(MIRRORED_KEY);
-          const fresh = data.filter(s => !done.has(sigKey(s))).slice(0, 5);
-          for (const s of fresh) await mirror(s, true);
-        }
-      })
-      .catch(e => {
-        if (ctrl.signal.aborted) return;
-        setError(e instanceof ApiError ? e.message : String(e)); setLoading(false);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notional]);
+    getCopyTraders(120, ctrl.signal)
+      .then(d => { if (!ctrl.signal.aborted) { setTraders(d); setLoading(false); } })
+      .catch(e => { if (!ctrl.signal.aborted) { setError(e instanceof ApiError ? e.message : String(e)); setLoading(false); } });
+  }, []);
 
   useEffect(() => {
-    loadSignals(); loadPositions();
-    const iv = setInterval(() => { loadSignals(); loadPositions(); }, 60_000);
-    return () => { clearInterval(iv); sigCtrl.current?.abort(); posCtrl.current?.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadTraders(); loadPositions();
+    const iv = setInterval(loadPositions, 60_000);
+    return () => { clearInterval(iv); tCtrl.current?.abort(); pCtrl.current?.abort(); };
+  }, [loadTraders, loadPositions]);
 
-  function toggleAuto() {
-    const next = !auto; setAuto(next);
-    localStorage.setItem(AUTO_KEY, next ? "1" : "0");
+  function flash(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2800); }
+
+  // 트레이더 포트폴리오 전체를 페이퍼로 팔로우 (보유 종목 각각 미러)
+  async function follow(t: TraderCard) {
+    const amt = parseFloat(notional) || 500;
+    setBusy(t.source + t.name);
+    let ok = 0;
+    for (const h of t.holdings) {
+      try { await mirrorCopyTrade(h.ticker, amt); ok++; } catch { /* skip */ }
+    }
+    setBusy(null);
+    flash(`${t.name} 팔로우 — ${ok}/${t.holdings.length}종목 페이퍼 매수 ($${amt}씩)`);
+    loadPositions();
+  }
+
+  async function mirrorOne(ticker: string) {
+    const amt = parseFloat(notional) || 500;
+    setBusy(ticker);
+    try { await mirrorCopyTrade(ticker, amt); flash(`${ticker} $${amt} 페이퍼 매수`); loadPositions(); }
+    catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+    finally { setBusy(null); }
   }
 
   const totalPl = positions.reduce((a, p) => a + p.unrealized_pl, 0);
@@ -101,13 +96,12 @@ export default function CopyTradePage() {
       <div>
         <h1 className="text-text-1 text-lg font-semibold">카피트레이드 오토파일럿</h1>
         <p className="text-text-3 text-sm mt-0.5">
-          의회·내부자 <span className="text-text-2">공개 매수 신고</span>를 페이퍼 계좌에 미러링. AI 예측 아님 — 스마트머니 추종(규칙 기반). 공시 지연 있으니 엣지는 제한적, <span className="text-warn">검증용 페이퍼</span>.
+          의회·내부자의 <span className="text-text-2">공개 매수</span>를 매수자별로 묶어 트랙레코드 표시. 거래일 종가로 진입했다 가정한 현재 수익률. 팔로우하면 그 포트폴리오를 <span className="text-warn">페이퍼</span>로 복제. <span className="text-text-3">(공시 지연 有 — 검증용)</span>
         </p>
       </div>
 
-      {/* 컨트롤 */}
       <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
-        <label className="text-text-3 text-xs">미러 금액</label>
+        <label className="text-text-3 text-xs">종목당 미러 금액</label>
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">$</span>
           <input value={notional}
@@ -115,73 +109,87 @@ export default function CopyTradePage() {
             inputMode="decimal"
             className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
         </div>
-        <button onClick={toggleAuto}
-          className={`text-xs px-3 py-1.5 rounded border ${auto ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
-          {auto ? "● 자동 추종 ON (페이퍼)" : "자동 추종 OFF"}
-        </button>
-        <span className="text-text-3 text-[11px]">신규 매수 신고 자동 미러 (사이클당 최대 5건)</span>
+        <span className="text-text-3 text-[11px]">팔로우 = 해당 인물 보유 종목 각각 이 금액만큼 페이퍼 매수</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
-        {/* 신호 */}
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">매수 신호 (의회·내부자)</span>
-            <span className="text-text-3 text-[11px]">{signals.length}건 · 1분 갱신</span>
-          </div>
-          {error ? <div className="p-2"><EmptyState message="신호 로드 실패" hint={error} /></div>
-            : loading ? <LoadingState message="신호 로딩 중…" />
-            : signals.length === 0 ? <EmptyState message="매수 신호 없음" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+        {/* 트레이더 카드 그리드 */}
+        <div>
+          {error ? <EmptyState message="트레이더 로드 실패" hint={error} />
+            : loading ? <LoadingState message="수익률 계산 중… (거래일 종가 조회)" />
+            : traders.length === 0 ? <EmptyState message="트레이더 없음" />
             : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-text-3 text-[11px] border-b border-border">
-                    <th className="text-left font-medium px-3 py-2">소스</th>
-                    <th className="text-left font-medium px-3 py-2">이름</th>
-                    <th className="text-left font-medium px-3 py-2">종목</th>
-                    <th className="text-left font-medium px-3 py-2">거래일</th>
-                    <th className="text-right font-medium px-3 py-2">금액</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {signals.map(s => {
-                    const k = sigKey(s);
-                    return (
-                      <tr key={k} className="border-b border-border/50 hover:bg-panel-2">
-                        <td className="px-3 py-2">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${s.source === "congress" ? "text-info border-info/40 bg-info/10" : "text-accent border-accent/40 bg-accent/10"}`}>
-                            {s.source === "congress" ? "🏛 의회" : "👤 내부자"}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-text-2 truncate max-w-[140px]">{s.name}</td>
-                        <td className="px-3 py-2 font-data text-text-1 font-semibold">{s.ticker}</td>
-                        <td className="px-3 py-2 text-text-3 font-data text-xs">{s.date}</td>
-                        <td className="px-3 py-2 text-right text-text-3 text-xs">{s.amount ?? "—"}</td>
-                        <td className="px-3 py-2 text-right">
-                          <button onClick={() => mirror(s)} disabled={busy === k}
-                            className="text-[11px] px-2 py-1 rounded border border-pos/40 text-pos hover:bg-pos/10 disabled:opacity-40">
-                            {busy === k ? "…" : "미러 매수"}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {traders.map(t => {
+                  const key = t.source + t.name;
+                  const isOpen = expanded === key;
+                  return (
+                    <div key={key} className="bg-panel border border-border rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-semibold font-data shrink-0 ${colorFor(t.name)}`}>
+                          {t.initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-text-1 text-sm font-medium truncate">{t.name}</span>
+                            <span className="text-[9px] px-1 py-0.5 rounded border border-border text-text-3 shrink-0">
+                              {t.source === "congress" ? "🏛 의회" : "👤 내부자"}
+                            </span>
+                          </div>
+                          <div className="text-text-3 text-[11px] truncate">{t.role ?? "—"}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className={`text-lg font-data font-bold leading-none ${retCls(t.avg_return_pct)}`}>{retStr(t.avg_return_pct)}</div>
+                          <div className="text-text-3 text-[10px] mt-0.5">{t.num_buys}종목</div>
+                        </div>
+                      </div>
+
+                      {/* 보유 종목 (최대 3개, 펼치면 전체) */}
+                      <div className="mt-3 space-y-1">
+                        {(isOpen ? t.holdings : t.holdings.slice(0, 3)).map(h => (
+                          <div key={h.ticker} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-data text-text-1 font-semibold w-14 shrink-0">{h.ticker}</span>
+                              <span className="text-text-3 font-data text-[10px]">{h.date}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`font-data ${retCls(h.return_pct)}`}>{retStr(h.return_pct)}</span>
+                              <button onClick={() => mirrorOne(h.ticker)} disabled={busy === h.ticker}
+                                className="text-[10px] px-1.5 py-0.5 rounded border border-border text-text-3 hover:text-pos hover:border-pos/40 disabled:opacity-40">
+                                미러
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {t.holdings.length > 3 && (
+                          <button onClick={() => setExpanded(isOpen ? null : key)}
+                            className="text-text-3 text-[10px] hover:text-text-2">
+                            {isOpen ? "접기" : `+${t.holdings.length - 3}개 더`}
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        )}
+                      </div>
+
+                      <button onClick={() => follow(t)} disabled={busy === key}
+                        className="w-full mt-3 text-xs font-medium rounded py-1.5 bg-accent text-black disabled:opacity-40">
+                        {busy === key ? "팔로우 중…" : `팔로우 (${t.num_buys}종목 페이퍼 복제)`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
         </div>
 
-        {/* 미러 포지션 */}
+        {/* 내 페이퍼 포트폴리오 */}
         <div className="bg-panel border border-border rounded-lg overflow-hidden h-fit">
           <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">페이퍼 보유</span>
+            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">내 페이퍼 포트폴리오</span>
             <span className={`text-xs font-data ${totalPl >= 0 ? "text-pos" : "text-neg"}`}>
               {totalPl >= 0 ? "+" : ""}${totalPl.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </div>
           {positions.length === 0 ? (
-            <div className="p-6"><EmptyState message="보유 없음" hint="신호를 미러하면 여기 표시" /></div>
+            <div className="p-6"><EmptyState message="보유 없음" hint="트레이더를 팔로우하면 여기 표시" /></div>
           ) : (
             <div className="divide-y divide-border/50">
               {positions.map(p => (
