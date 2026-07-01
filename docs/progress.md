@@ -24,6 +24,26 @@
 
 ---
 
+## Phase 76 — AI 에이전트 폼 재설계 + 통화 인지 배정 (2026-07-01) ✅ SHIPPED
+
+문제: 배정에 통화 개념 없어 KR 스윙봇에 1,000,000(원 의도)이 USD로 취급돼 $20k 주문. 폼 혼란(단타(한국)/단타(HL) 등 혼합 4버튼). 카드 UI 정리 요청.
+
+### 완료된 작업
+- **폼 재설계** `app/agents/page.tsx`: **투자 스타일(단타/스윙/장투) × 시장(한국/미국/가상화폐)** 2축. `toBackend(style,mkt)`로 백엔드 type+market 매핑(단타+KR→kr_daytrade, +CRYPTO→hl_daytrade, +US→daytrade / 스윙·장투→swing·longterm). 스윙·장투 크립토 미지원 게이팅
+- **통화 자동**: `ccyOfMkt`(KR→₩KRW/US→$USD/CRYPTO→USDC). 배정 입력 라벨·프리픽스·플레이스홀더 통화별. `agentCcy(a)`로 카드 자본 통화 표시(더는 전부 $ 아님), `moneyCcy` 헬퍼
+- **카드 정리**: 이름 truncate + 상태, 스타일·시장 뱃지(전 타입), PAPER/LIVE, Lv, flex-wrap
+- **장투(longterm)** 백엔드 프로필 추가(agent_store, 스윙 계열 주 단위 cadence). lib/api AgentType에 longterm
+- 라이브 확인: 한국주식 선택 시 "배정 금액·KRW ₩" 전환됨
+
+### 미해결/주의 (실돈)
+- **$20k 근본 = 스윙(LLM) 실행 라우팅**: 스윙 자동주문은 FastAPI 아닌 **CLI 봇/스포너 루프**에서 → market=KR이어도 Alpaca(USD)로 갈 수 있음. 폼 입력 통화는 고쳤으나 **스윙-KR 실행이 KIS(KRW)로 가는지 미검증**. 권장: KR은 **단타(한국)** 사용(KIS 통화 일관 확인됨). 스윙-KR 라우팅은 후속
+- Overview 총계는 혼합통화 합산($ 표기) — FX 미변환(사용자 선택), 개별 카드는 정확
+
+### 검증
+- FE tsc/빌드/방문확인 OK. 백엔드 26 passed(agent_store/agents_api)
+
+---
+
 ## Phase 74 — 뉴스 요약 정확도: summary 블러브 AI 전달 (2026-07-01) ✅ SHIPPED
 
 사용자 지적: AI가 **헤드라인만** 받아 요약 → 실내용과 다르게 해석 위험. Finnhub는 본문 없음(URL 링크), yahoo도 본문 없음.
