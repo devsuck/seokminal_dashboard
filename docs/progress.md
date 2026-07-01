@@ -24,6 +24,25 @@
 
 ---
 
+## Phase 78 — 카피트레이드 오토파일럿 (페이퍼) + 크립토 입력 버그 (2026-07-01) ✅ SHIPPED
+
+"AI가 알아서 돈 벌어줌" 논의 → autopilot류 앱 실체(=스마트머니 복제/패시브 자동화, AI예측 아님) 설명 후, **정직한 버전**으로 의회·내부자 copy-trade 오토파일럿 구축. 페이퍼 전용, AI 메뉴 아닌 트레이딩 하단.
+
+### 완료된 작업
+- 백엔드 `api_server/main.py`: `/copytrade/signals`(의회 FMP + 미국 내부자 EDGAR **매수**만, US 티커, 최신순), `/copytrade/mirror`(Alpaca **페이퍼** notional 시장가 매수), `/copytrade/positions`(페이퍼 보유). 라이브 36건 확인(NVDA/WFC/UBS 등)
+- `lib/api.ts`: CopySignal/CopyPosition + getCopySignals/mirrorCopyTrade/getCopyPositions
+- `app/copytrade/page.tsx` (신규): 신호 테이블(🏛의회/👤내부자·이름·종목·거래일·금액·미러버튼), 미러 금액($) 설정, **자동 추종 토글**(localStorage, 신규 신고 사이클당 최대 5건 페이퍼 미러, 중복키 방지), 페이퍼 보유 실시간 P&L
+- `NavBar.tsx`: 트레이딩 그룹 하단에 "카피트레이드"
+- **크립토 배정 입력 버그**: USDC는 심볼 없어 좌측 프리픽스에 "USDC"가 숫자와 겹침 → 심볼(₩/$)만 좌측, 통화코드 우측 라벨 (`app/agents/page.tsx`)
+
+### 정직한 기대치 (사용자에게 명시)
+- copy-trade는 공시 지연(의원 최대 45일)으로 엣지 제한적. AI 알파 아님. 페이퍼 검증용. 보장 수익 없음
+
+### 검증
+- FE tsc/빌드(/copytrade 라우트)/방문확인. 백엔드 import OK, signals 라이브 36건. (미러 주문=실 페이퍼 체결이라 자동 실행 안 함, 배선만)
+
+---
+
 ## Phase 77 — 스윙-KR 실행 라우팅/통화 사이징 수정 ($20k 근본) (2026-07-01) ✅ SHIPPED
 
 $20k 근본 원인 규명: 스윙(LLM)은 `autopilot/agent_loop.sh`에서 실행되고 **주문 사이징을 "계좌 equity×10%"(공유 Alpaca USD equity) 기준**으로 함 → KR봇에 ₩1,000,000 배정해도 Alpaca 계좌 $100k의 10% ≈ $20k USD 주문. 라우팅(kr_order.sh=KIS)은 됐으나 금액 기준이 USD·계좌전체.
