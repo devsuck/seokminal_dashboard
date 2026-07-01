@@ -1915,6 +1915,24 @@ export interface CopyPosition {
   market_value: number; unrealized_pl: number; unrealized_plpc: number;
 }
 
+// ── 리스크 (킬스위치 + drawdown) ─────────────────────────────────────────────────
+
+export interface RiskStatus {
+  kill_engaged: boolean; kill_reason: string; kill_ts?: string | null;
+  current_drawdown_pct?: number | null; max_drawdown_limit_pct: number; drawdown_breached: boolean;
+  limits: { max_order_qty: number; max_order_notional: number; max_position_qty: number; daily_loss_limit: number };
+}
+export async function getRiskStatus(signal?: AbortSignal): Promise<RiskStatus> {
+  const r = await fetch(`${API_URL}/risk/status`, { signal });
+  return handleResponse<RiskStatus>(r);
+}
+export async function setKillSwitch(engaged: boolean, reason = "manual"): Promise<{ kill_engaged: boolean }> {
+  const r = await fetch(`${API_URL}/risk/kill`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ engaged, reason }),
+  });
+  return handleResponse(r);
+}
+
 // ── 스마트 시그널 (레짐+모멘텀+Kelly) ────────────────────────────────────────────
 
 export interface SmartSignal {

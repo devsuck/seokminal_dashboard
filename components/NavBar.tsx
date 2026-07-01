@@ -67,6 +67,7 @@ export function NavBar() {
         { href: "/copytrade", label: "카피트레이드" },
         { href: "/dart-auto", label: "DART 자동매매" },
         { href: "/performance", label: "성과 추적" },
+        { href: "/risk-guard", label: "리스크 관리" },
       ],
     },
   ];
