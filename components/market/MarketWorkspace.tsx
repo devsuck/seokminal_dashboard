@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { WatchlistSidebar } from "@/components/market/WatchlistSidebar";
 import { ChartTab } from "@/components/market/ChartTab";
 import { ComparisonTab } from "@/components/market/ComparisonTab";
-import { EventsTab } from "@/components/market/EventsTab";
-import { KRMarketsTab } from "@/components/market/KRMarketsTab";
 import { SearchTab } from "@/components/market/SearchTab";
 import { TradeTab } from "@/components/market/TradeTab";
 import { AlertTab } from "@/components/market/AlertTab";
@@ -16,22 +14,19 @@ import {
   DEFAULT_SYMBOLS,
 } from "@/lib/watchlist-storage";
 
-type Tab = "chart" | "compare" | "events" | "kr" | "search" | "trade" | "alert";
+type Tab = "chart" | "compare" | "search";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "search",  label: "🔍 검색" },
   { id: "chart",   label: "Chart" },
-  { id: "trade",   label: "💵 매매" },
-  { id: "alert",   label: "🔔 알림" },
   { id: "compare", label: "Compare" },
-  { id: "events",  label: "Events" },
-  { id: "kr",      label: "KR" },
 ];
 
 export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
   const [watchlist, setWatchlist] = useState<string[]>(DEFAULT_SYMBOLS);
   const [activeSymbol, setActiveSymbol] = useState(initialSymbol ?? DEFAULT_SYMBOLS[0]);
   const [activeTab, setActiveTab] = useState<Tab>("chart");
+  const [side, setSide] = useState<"trade" | "alert">("trade");
 
   useEffect(() => {
     const list = getWatchlist();
@@ -114,17 +109,34 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
         <div className="flex-1 overflow-y-auto bg-bg">
           {activeTab === "search"  && <SearchTab onGoToChart={handleGoToChart} />}
           {activeTab === "chart"   && (
-            <ChartTab
-              symbol={activeSymbol}
-              onAddToWatchlist={handleAdd}
-              isInWatchlist={watchlist.includes(activeSymbol)}
-            />
+            <div className="flex h-full">
+              {/* 차트 */}
+              <div className="flex-1 overflow-y-auto min-w-0">
+                <ChartTab
+                  symbol={activeSymbol}
+                  onAddToWatchlist={handleAdd}
+                  isInWatchlist={watchlist.includes(activeSymbol)}
+                />
+              </div>
+              {/* 우측: 매매 / 알림 (차트에서 바로) */}
+              <div className="w-[340px] border-l border-border flex flex-col shrink-0">
+                <div className="flex border-b border-border shrink-0">
+                  {([["trade", "💵 매매"], ["alert", "🔔 알림"]] as const).map(([v, label]) => (
+                    <button key={v} onClick={() => setSide(v)}
+                      className={`flex-1 py-2.5 text-sm border-b-2 bg-transparent cursor-pointer transition-colors ${
+                        side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {side === "trade" ? <TradeTab symbol={activeSymbol} /> : <AlertTab symbol={activeSymbol} />}
+                </div>
+              </div>
+            </div>
           )}
-          {activeTab === "trade"   && <TradeTab symbol={activeSymbol} />}
-          {activeTab === "alert"   && <AlertTab symbol={activeSymbol} />}
           {activeTab === "compare" && <ComparisonTab symbols={watchlist} />}
-          {activeTab === "events"  && <EventsTab />}
-          {activeTab === "kr"      && <KRMarketsTab />}
         </div>
       </div>
     </div>
