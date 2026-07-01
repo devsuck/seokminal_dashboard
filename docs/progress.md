@@ -24,6 +24,25 @@
 
 ---
 
+## Phase 82 — DART 봇 비중 조절 (시그널 강도) (2026-07-02) ✅ SHIPPED
+
+"취득/소각 규모에 따라 비중" 요청. 정확한 금액은 공시유형별 상세 OpenDART API 필요+직접취득 희소·취약 → **시그널 강도 배율**로 실용 구현.
+
+### 완료된 작업
+- `insider/dart_client.py` `action_weight(trade_type, report_nm)`: **소각 1.5× / 직접취득 1.0× / 신탁계약 0.6×** (소각=주식수 영구감소 최강, 신탁=실매입 불확실 약함)
+- `/dart/signals`: BUY에 `weight` 필드
+- `dart_autobot.tick`: 매수금액 = budget × weight (기본 budget ₩1,000,000)
+- `app/dart-auto/page.tsx`: BUY 행에 `n.n× · ₩예상금액` 표시, 수동/자동 매수 모두 비중 반영
+
+### 참고
+- 정확한 취득/소각 **금액** 기반은 미구현(공시유형별 API 파편·직접취득 드묾). 원하면 후속(취약성 감수)
+- 기본 예산 100만원 (페이지 입력에서 조절)
+
+### 검증
+- 백엔드 weight 라이브(신원 자사주취득 1.0×). FE tsc/빌드 OK
+
+---
+
 ## Phase 81 — 서버측 DART 자동봇 (브라우저 무관) (2026-07-02) ✅ SHIPPED
 
 Phase 80 자동추종은 클라(탭 열어야 돎) → **서버측 봇**으로. 로컬 uvicorn 프로세스 안 asyncio 루프라 브라우저 꺼도 실행.
