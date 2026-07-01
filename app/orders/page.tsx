@@ -14,12 +14,14 @@ import {
   placeHLOrder,
   cancelHLOrder,
   closeHLPosition,
+  getTradingMode,
   type KROrderResponse,
   type USOrderResponse,
   type BotLiveEntry,
   type HLPositionsResponse,
   type HLOpenOrder,
   type HLAssetPosition,
+  type TradingMode,
 } from "@/lib/api";
 import {
   getOrderLog,
@@ -87,6 +89,13 @@ function OrdersPageInner() {
   const [submitResult, setSubmitResult] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const submitAbortRef = useRef<AbortController | null>(null);
+
+  // KR/US order confirmation modal
+  const [orderConfirm, setOrderConfirm] = useState(false);
+
+  // Trading mode (paper/live badge + live-order guard)
+  const [tradingMode, setTradingMode] = useState<TradingMode | null>(null);
+  const modeAbortRef = useRef<AbortController | null>(null);
 
   // Per-order action state: { [entryId]: { loading, error } }
   const [actionState, setActionState] = useState<Record<string, { loading: boolean; error: string | null }>>({});
@@ -193,13 +202,49 @@ function OrdersPageInner() {
   useEffect(() => () => {
     submitAbortRef.current?.abort();
     botsAbortRef.current?.abort();
+    modeAbortRef.current?.abort();
     cancelAbortRefs.current.forEach(c => c.abort());
     cancelAbortRefs.current.clear();
   }, []);
 
+  // Load trading mode (paper/live) once on mount.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    modeAbortRef.current = ctrl;
+    getTradingMode(ctrl.signal)
+      .then(m => { if (!ctrl.signal.aborted) setTradingMode(m); })
+      .catch(() => { /* badge stays hidden if unavailable */ });
+    return () => ctrl.abort();
+  }, []);
+
+  // Current venue's mode ("live" demands extra confirmation).
+  const venueMode = venue === "KR" ? tradingMode?.venues.KR.mode
+    : venue === "US" ? tradingMode?.venues.US.mode
+    : tradingMode?.venues.HL.mode;
+
   // ── Place order ───────────────────────────────────────────────────────────
 
+  // Validate inputs, then open the confirmation modal instead of firing immediately.
+  function requestPlaceOrder() {
+    setSubmitError(null);
+    const qtyNum = parseInt(qty);
+    if (qtyNum <= 0 || isNaN(qtyNum)) { setSubmitError("Qty must be > 0."); return; }
+    if (venue === "KR") {
+      if (!krCode.trim()) { setSubmitError("Code required."); return; }
+      if (orderType === "LIMIT" && (!krPrice || isNaN(parseInt(krPrice)))) {
+        setSubmitError("Price required for LIMIT."); return;
+      }
+    } else {
+      if (!usSymbol.trim()) { setSubmitError("Symbol required."); return; }
+      if (orderType === "LIMIT" && (!usLimitPrice || isNaN(parseFloat(usLimitPrice)))) {
+        setSubmitError("Limit price required for LIMIT."); return;
+      }
+    }
+    setOrderConfirm(true);
+  }
+
   async function handlePlaceOrder() {
+    setOrderConfirm(false);
     const qtyNum = parseInt(qty);
     if (qtyNum <= 0 || isNaN(qtyNum)) { setSubmitError("Qty must be > 0."); return; }
 
@@ -360,9 +405,29 @@ function OrdersPageInner() {
               ))}
             </div>
 
-            <h2 className="text-sm font-semibold text-text-2 uppercase tracking-wide mb-4">
-              {venue === "KR" ? "KR Manual Order" : venue === "US" ? "US Manual Order" : "Hyperliquid Order"}
-            </h2>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="text-sm font-semibold text-text-2 uppercase tracking-wide">
+                {venue === "KR" ? "KR Manual Order" : venue === "US" ? "US Manual Order" : "Hyperliquid Order"}
+              </h2>
+              {venueMode && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-data uppercase tracking-wider ${
+                    venueMode === "live"
+                      ? "bg-neg/15 text-neg border border-neg/40"
+                      : venueMode === "paper"
+                      ? "bg-pos/10 text-pos border border-pos/30"
+                      : "bg-panel-2 text-text-3 border border-border"
+                  }`}
+                >
+                  {venueMode === "live" ? "● LIVE 실거래" : venueMode === "paper" ? "PAPER 모의" : "UNKNOWN"}
+                </span>
+              )}
+              {tradingMode?.risk.kill_switch && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-data uppercase bg-warn/15 text-warn border border-warn/40">
+                  KILL SWITCH ON
+                </span>
+              )}
+            </div>
 
             {venue === "HL" && (
               <div className="space-y-3">
@@ -672,14 +737,45 @@ function OrdersPageInner() {
             <div className="mt-4 flex items-center gap-3">
               <button
                 className="bg-accent text-black text-sm font-medium rounded px-5 py-2 disabled:opacity-40"
-                onClick={handlePlaceOrder}
+                onClick={requestPlaceOrder}
                 disabled={submitting}
               >
                 {submitting ? "Placing…" : "Place Order"}
               </button>
               {submitResult && <span className="text-sm text-pos font-mono">{submitResult}</span>}
               {submitError && <span className="text-sm text-neg">{submitError}</span>}
-            </div></>
+            </div>
+
+            {/* KR/US order confirmation modal */}
+            {orderConfirm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                <div className="bg-panel border border-border rounded-lg p-5 w-[380px] space-y-4">
+                  <h3 className={`font-semibold text-base ${venueMode === "live" ? "text-neg" : "text-text-1"}`}>
+                    {venueMode === "live" ? "⚠ 실거래 주문 확인" : "주문 확인"}
+                  </h3>
+                  <div className="text-sm text-text-2 space-y-1 font-data">
+                    <div className="flex justify-between"><span className="text-text-3">Venue</span><span>{venue} · {venueMode ?? "?"}</span></div>
+                    <div className="flex justify-between"><span className="text-text-3">Symbol</span><span>{venue === "KR" ? krCode : usSymbol}</span></div>
+                    <div className="flex justify-between"><span className="text-text-3">Side</span><span className={side === "BUY" ? "text-pos" : "text-neg"}>{side}</span></div>
+                    <div className="flex justify-between"><span className="text-text-3">Qty</span><span>{qty}</span></div>
+                    <div className="flex justify-between"><span className="text-text-3">Type</span><span>{orderType}{orderType === "LIMIT" ? ` @ ${venue === "KR" ? krPrice : usLimitPrice}` : ""}</span></div>
+                  </div>
+                  {venueMode === "live" && (
+                    <p className="text-xs text-neg">실제 자금이 집행됩니다. 되돌릴 수 없습니다.</p>
+                  )}
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      className="text-sm text-text-2 border border-border rounded px-4 py-1.5 hover:bg-panel-2"
+                      onClick={() => setOrderConfirm(false)}
+                    >취소</button>
+                    <button
+                      className={`text-sm font-medium rounded px-4 py-1.5 ${venueMode === "live" ? "bg-neg text-black" : "bg-accent text-black"}`}
+                      onClick={handlePlaceOrder}
+                    >확인 · 주문</button>
+                  </div>
+                </div>
+              </div>
+            )}</>
             )}
           </div>
 

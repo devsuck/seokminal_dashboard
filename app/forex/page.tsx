@@ -4,10 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import {
   ApiError,
-  getForexForward, getForexCarry, getForexCurve, getForexOverview,
+  getForexForward, getForexCarry, getForexCurve, getForexOverview, getIBBars,
   type ForexForwardResponse, type ForexCarryResponse, type ForexCurveResponse, type FxRate,
+  type IBBar, type BarOut, type IBBarSize,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { CandlestickChart } from "@/components/CandlestickChart";
+import { EmptyState, LoadingState } from "@/components/ui";
+
+function ibBarToBarOut(b: IBBar): BarOut {
+  return { ts_event: b.ts_ms * 1_000_000, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume };
+}
+
+// "EUR/USD" → "EURUSD" (IB IDEALPRO Forex contract symbol)
+function toIbForexSymbol(pair: string): string {
+  return pair.replace("/", "");
+}
 
 type Tab = "live" | "forward" | "curve" | "carry";
 
@@ -457,10 +469,70 @@ function fmtRate(pair: string, rate: number | null): string {
   return rate.toFixed(decimals);
 }
 
+const FX_BAR_SIZES: IBBarSize[] = ["5 mins", "15 mins", "1 hour", "4 hours", "1 day"];
+const FX_DURATION: Record<string, string> = {
+  "5 mins": "1 D", "15 mins": "2 D", "1 hour": "5 D", "4 hours": "1 M", "1 day": "6 M",
+};
+
+// Real-time FX candlestick via IB IDEALPRO (무료 구독 IDEALPRO FX).
+function ForexChart({ pair }: { pair: string }) {
+  const [barSize, setBarSize] = useState<IBBarSize>("1 hour");
+  const [bars, setBars] = useState<BarOut[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ctrlRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
+    setLoading(true); setError(null); setBars([]);
+    getIBBars(
+      { symbol: toIbForexSymbol(pair), asset_type: "forex",
+        duration: FX_DURATION[barSize], bar_size: barSize },
+      ctrl.signal,
+    )
+      .then(r => { if (!ctrl.signal.aborted) setBars(r.bars.map(ibBarToBarOut)); })
+      .catch(e => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (!ctrl.signal.aborted) setError(e instanceof ApiError ? e.message : String(e));
+      })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => ctrl.abort();
+  }, [pair, barSize]);
+
+  return (
+    <div className="bg-panel border border-border rounded-lg overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3 flex-wrap">
+        <span className="font-data text-sm text-text-1 font-medium">{pair}</span>
+        <span className="text-text-3 text-[11px] uppercase tracking-wider">IB IDEALPRO</span>
+        <div className="ml-auto flex gap-1">
+          {FX_BAR_SIZES.map(bs => (
+            <button key={bs} onClick={() => setBarSize(bs)}
+              className={`text-[11px] px-2 py-1 rounded border ${barSize === bs ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+              {bs}
+            </button>
+          ))}
+        </div>
+      </div>
+      {error ? (
+        <div className="p-2"><EmptyState message={`'${pair}' 차트 로드 실패`} hint={error} /></div>
+      ) : loading ? (
+        <LoadingState message="IB 차트 로딩 중…" />
+      ) : bars.length > 0 ? (
+        <CandlestickChart bars={bars} />
+      ) : (
+        <EmptyState message="데이터 없음" hint="IB TWS/Gateway 연결 필요" />
+      )}
+    </div>
+  );
+}
+
 function LiveRatesTab() {
   const [rates, setRates] = useState<Record<string, FxRate>>({});
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [selectedPair, setSelectedPair] = useState("EUR/USD");
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -478,9 +550,12 @@ function LiveRatesTab() {
 
   return (
     <div className="space-y-6">
+      {/* IB IDEALPRO 실시간 캔들 — 카드 클릭으로 페어 선택 */}
+      <ForexChart pair={selectedPair} />
+
       {lastUpdate && (
         <p className="text-text-3 text-[10px]">
-          업데이트: {lastUpdate.toLocaleTimeString("ko-KR")} · 1분 자동 갱신
+          업데이트: {lastUpdate.toLocaleTimeString("ko-KR")} · 1분 자동 갱신 · 카드 클릭 시 위 차트 변경
         </p>
       )}
       {PAIR_GROUPS.map(group => (
@@ -493,9 +568,10 @@ function LiveRatesTab() {
               const pct5d = d?.change_5d ?? null;
               const isPos = (pct ?? 0) >= 0;
               return (
-                <div
+                <button
                   key={pair}
-                  className={`${heatColor(pct)} border border-border rounded-lg p-3 transition-colors`}
+                  onClick={() => setSelectedPair(pair)}
+                  className={`${heatColor(pct)} border rounded-lg p-3 transition-colors text-left cursor-pointer ${selectedPair === pair ? "border-accent" : "border-border hover:border-text-3"}`}
                 >
                   <div className="text-text-3 text-[11px] font-medium mb-1">{pair}</div>
                   <div className="text-text-1 text-lg font-data font-bold leading-none">
@@ -511,7 +587,7 @@ function LiveRatesTab() {
                       </span>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

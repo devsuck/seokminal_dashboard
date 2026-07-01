@@ -41,7 +41,7 @@ describe("getTranslation", () => {
     expect(getTranslation("nav.dashboard", "ko")).toBe(TRANSLATIONS["nav.dashboard"]["ko"]);
   });
   it("returns en string for known key", () => {
-    expect(getTranslation("nav.research", "en")).toBe(TRANSLATIONS["nav.research"]["en"]);
+    expect(getTranslation("nav.market", "en")).toBe(TRANSLATIONS["nav.market"]["en"]);
   });
   it("returns key itself when key missing", () => {
     expect(getTranslation("nonexistent.key", "ko")).toBe("nonexistent.key");

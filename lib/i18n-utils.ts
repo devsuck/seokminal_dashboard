@@ -45,7 +45,6 @@ export const TRANSLATIONS: Translations = {
   "nav.bots":         { ko: "봇",          en: "Bots",        de: "Bots" },
   "nav.orders":       { ko: "주문",        en: "Orders",      de: "Aufträge" },
   "nav.alerts":       { ko: "알림",        en: "Alerts",      de: "Alarme" },
-  "nav.ai-trader":    { ko: "AI 트레이더", en: "AI Trader",   de: "KI-Händler" },
 
   // Page banners — title
   "page.dashboard.title":       { ko: "대시보드",       en: "Dashboard",       de: "Dashboard" },
@@ -57,7 +56,13 @@ export const TRANSLATIONS: Translations = {
   "page.orders.title":          { ko: "주문 관리",      en: "Orders",          de: "Aufträge" },
   "page.bots.title":            { ko: "트레이딩 봇",    en: "Bots",            de: "Bots" },
   "page.alerts.title":          { ko: "알림 설정",      en: "Alerts",          de: "Alarme" },
-  "page.ai-trader.title":       { ko: "AI 전략 추천",   en: "AI Trader",       de: "KI-Händler" },
+  "nav.agents":                 { ko: "AI 에이전트",    en: "AI Agents",       de: "KI-Agenten" },
+  "page.agents.title":          { ko: "AI 에이전트",    en: "AI Agents",       de: "KI-Agenten" },
+  "page.agents.desc": {
+    ko: "여러 AI 트레이딩 에이전트를 봇처럼 생성·관리합니다. 스윙(중장기)/데이트레이딩 타입, 각 사이클은 구조화 카드로 표시됩니다.",
+    en: "Create and manage multiple AI trading agents like bots. Swing/day-trade types; each cycle is shown as a structured card.",
+    de: "Erstellen und verwalten Sie mehrere KI-Handelsagenten wie Bots. Swing/Daytrade-Typen; jeder Zyklus als strukturierte Karte.",
+  },
   "page.ib.title":              { ko: "IB 시장 데이터", en: "IB Market Data",  de: "IB Marktdaten" },
   "page.correlation.title":     { ko: "상관관계 분석",  en: "Correlation",     de: "Korrelation" },
   "page.portfolio.title":       { ko: "포트폴리오 최적화", en: "Portfolio",    de: "Portfolio" },
@@ -115,11 +120,6 @@ export const TRANSLATIONS: Translations = {
     ko: "가격·기술적 지표 기반 알림 규칙을 설정하면 조건 충족 시 알림을 받습니다.",
     en: "Set alert rules based on price or technical indicators and receive notifications when triggered.",
     de: "Legen Sie Alarmregeln basierend auf Preis oder technischen Indikatoren fest.",
-  },
-  "page.ai-trader.desc": {
-    ko: "AI(Groq LLM)가 시장 데이터를 분석하여 최적 트레이딩 전략과 파라미터를 추천합니다.",
-    en: "AI (Groq LLM) analyzes market data and recommends the best trading strategy and parameters.",
-    de: "KI (Groq LLM) analysiert Marktdaten und empfiehlt die beste Handelsstrategie.",
   },
   "page.ib.desc": {
     ko: "Interactive Brokers TWS를 통해 주식·선물·옵션의 히스토리컬 바 데이터를 조회합니다.",
@@ -190,6 +190,10 @@ export const TRANSLATIONS: Translations = {
   "ib.live.status":      { ko: "연결 대기중",         en: "Awaiting Connection", de: "Verbindung ausstehend" },
   "ib.live.coming_soon": { ko: "준비 중 — 추후 활성화", en: "Coming soon — activate later", de: "Demnächst — später aktivieren" },
   "ib.live.desc":        { ko: "IB TWS 연결 시 실시간 호가·체결 스트림이 여기에 표시됩니다.", en: "When IB TWS is connected, real-time quotes and trade stream will appear here.", de: "Bei IB TWS-Verbindung werden hier Echtzeit-Kurse und Handels-Stream angezeigt." },
+  "ib.live.connected":   { ko: "실시간",              en: "Live",             de: "Live" },
+  "ib.live.connecting":  { ko: "연결 중…",            en: "Connecting…",      de: "Verbinde…" },
+  "ib.live.offline":     { ko: "TWS 미연결",          en: "TWS Offline",      de: "TWS Offline" },
+  "ib.live.waiting_tick": { ko: "체결 대기",           en: "Awaiting trade",   de: "Warte auf Handel" },
 };
 
 export function getLangFromStorage(): Lang {

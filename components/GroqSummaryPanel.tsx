@@ -64,12 +64,14 @@ export function GroqSummaryPanel({ mode, getContent }: Props) {
   const [error, setError]     = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<Date | null>(null);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount; discard stale (older than ~28h → 어제 것까지만).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY(mode));
       if (!raw) return;
       const cached: Cached = JSON.parse(raw);
+      const ageH = (Date.now() - new Date(cached.lastRun).getTime()) / 36e5;
+      if (ageH > 28) { localStorage.removeItem(STORAGE_KEY(mode)); return; }
       setSummary(cached.summary);
       setPicks(cached.picks ?? []);
       setLastRun(new Date(cached.lastRun));

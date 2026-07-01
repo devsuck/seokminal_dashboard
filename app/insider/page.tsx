@@ -7,14 +7,18 @@ import {
   getInsiderKRRecent,
   getInsiderUS,
   getInsiderUSRecent,
+  getInsiderCongress,
+  getGovContracts,
   searchDartCompany,
   type DartCompany,
   type InsiderTrade,
   type InsiderTradeType,
+  type CongressTrade,
+  type GovContract,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 
-type Market = "us" | "kr";
+type Market = "us" | "kr" | "congress" | "gov";
 type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
 type MinValue = 0 | 10_000 | 50_000 | 100_000 | 500_000 | 1_000_000;
 
@@ -61,6 +65,8 @@ const BADGE_CONFIG: Record<string, { label: string; cls: string }> = {
   RIGHTS_ISSUE: { label: "무상증자", cls: "bg-warn/15 text-warn border-warn/25" },
   PAID_IN:      { label: "유상증자", cls: "bg-info/15 text-info border-info/25" },
   CANCELLATION: { label: "주식소각", cls: "bg-accent/15 text-accent border-accent/25" },
+  BUYBACK:      { label: "자사주매수", cls: "bg-pos/15 text-pos border-pos/25" },
+  DISPOSAL:     { label: "자사주처분", cls: "bg-neg/15 text-neg border-neg/25" },
   HOLD_REPORT:  { label: "보유보고", cls: "bg-panel-2 text-text-3 border-border" },
   OTHER:        { label: "기타",   cls: "bg-panel-2 text-text-3 border-border" },
 };
@@ -75,7 +81,7 @@ function Badge({ type }: { type: string }) {
 }
 
 function isCorporateAction(type: string) {
-  return ["RIGHTS_ISSUE", "PAID_IN", "CANCELLATION"].includes(type);
+  return ["RIGHTS_ISSUE", "PAID_IN", "CANCELLATION", "BUYBACK", "DISPOSAL"].includes(type);
 }
 
 // ── US Table ──────────────────────────────────────────────────────────────────
@@ -156,11 +162,8 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
             <th className="px-3 py-2 text-left font-medium">접수일</th>
             <th className="px-3 py-2 text-left font-medium">종목</th>
             <th className="px-3 py-2 text-left font-medium">회사명</th>
-            <th className="px-3 py-2 text-left font-medium">보고자 (직책)</th>
             <th className="px-3 py-2 text-center font-medium">구분</th>
-            <th className="px-3 py-2 text-left font-medium">증감원인</th>
-            <th className="px-3 py-2 text-right font-medium">증감주식수</th>
-            <th className="px-3 py-2 text-right font-medium">보유비율</th>
+            <th className="px-3 py-2 text-left font-medium">공시명</th>
             <th className="px-3 py-2 text-center font-medium">원문</th>
           </tr>
         </thead>
@@ -169,7 +172,6 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
             const isBuy = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
             const isCorpAction = isCorporateAction(t.trade_type);
-            const chg = t.shares_change ?? 0;
             const rowHover = isBuy ? "hover:bg-pos/5"
               : isSell ? "hover:bg-neg/5"
               : isCorpAction ? "hover:bg-warn/5"
@@ -180,44 +182,106 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
                 <td className="px-3 py-2 font-data font-semibold text-accent whitespace-nowrap">
                   {t.ticker ?? "—"}
                 </td>
-                <td className="px-3 py-2 text-text-2 max-w-[140px] truncate">{t.corp_name ?? "—"}</td>
-                <td className="px-3 py-2 max-w-[160px]">
-                  <span className="text-text-1 truncate block">{t.reporter}</span>
-                  {t.role && (
-                    <span className="text-text-3 text-[10px]">{t.role}</span>
-                  )}
-                </td>
+                <td className="px-3 py-2 text-text-2 max-w-[160px] truncate">{t.corp_name ?? "—"}</td>
                 <td className="px-3 py-2 text-center">
                   <Badge type={t.trade_type} />
                 </td>
-                <td className="px-3 py-2 text-text-3 text-[11px] max-w-[140px] truncate">
-                  {t.event_cause || t.report_type || "—"}
-                </td>
-                <td className={`px-3 py-2 text-right font-data font-medium whitespace-nowrap ${
-                  isBuy ? "text-pos" : isSell ? "text-neg" : isCorpAction ? "text-warn" : "text-text-3"
-                }`}>
-                  {chg !== 0 ? `${chg > 0 ? "+" : ""}${chg.toLocaleString()}` : "—"}
-                </td>
-                <td className="px-3 py-2 text-right font-data text-text-2">
-                  {t.ownership_pct != null && t.ownership_pct > 0
-                    ? `${t.ownership_pct.toFixed(2)}%`
-                    : "—"}
+                <td className="px-3 py-2 text-text-2 text-[11px] max-w-[280px] truncate">
+                  {t.report_type || t.event_cause || "—"}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {t.dart_url ? (
-                    <a
-                      href={t.dart_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-accent hover:underline whitespace-nowrap"
-                    >
-                      공시↗
-                    </a>
+                    <a href={t.dart_url} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] text-accent hover:underline whitespace-nowrap">공시↗</a>
                   ) : "—"}
                 </td>
               </tr>
             );
           })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Congress Table ──────────────────────────────────────────────────────────
+
+function CongressTable({ trades }: { trades: import("@/lib/api").CongressTrade[] }) {
+  if (trades.length === 0)
+    return <div className="p-8 text-center text-text-3 text-sm">거래 없음</div>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
+            <th className="px-3 py-2 text-left font-medium">신고일</th>
+            <th className="px-3 py-2 text-left font-medium">거래일</th>
+            <th className="px-3 py-2 text-left font-medium">의원</th>
+            <th className="px-3 py-2 text-left font-medium">원</th>
+            <th className="px-3 py-2 text-left font-medium">티커</th>
+            <th className="px-3 py-2 text-center font-medium">구분</th>
+            <th className="px-3 py-2 text-right font-medium">금액</th>
+            <th className="px-3 py-2 text-center font-medium">원문</th>
+          </tr>
+        </thead>
+        <tbody>
+          {trades.map((t, i) => {
+            const isBuy = t.trade_type === "BUY";
+            return (
+              <tr key={i} className={`border-t border-border transition-colors ${isBuy ? "hover:bg-pos/5" : "hover:bg-neg/5"}`}>
+                <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{t.disclosure_date}</td>
+                <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
+                <td className="px-3 py-2 text-text-1 max-w-[160px] truncate">
+                  {t.reporter}{t.owner && t.owner !== "Self" && <span className="text-text-3 text-[10px]"> ({t.owner})</span>}
+                </td>
+                <td className="px-3 py-2 text-text-3 text-[10px]">{t.chamber === "senate" ? "상원" : "하원"} {t.district}</td>
+                <td className="px-3 py-2 font-data font-semibold text-accent whitespace-nowrap">{t.ticker ?? "—"}</td>
+                <td className="px-3 py-2 text-center">
+                  <span className={`text-[10px] font-bold rounded px-1.5 py-0.5 border ${isBuy ? "bg-pos/15 text-pos border-pos/25" : "bg-neg/15 text-neg border-neg/25"}`}>
+                    {isBuy ? "매수" : "매도"}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right font-data text-text-2 whitespace-nowrap text-[11px]">{t.amount}</td>
+                <td className="px-3 py-2 text-center">
+                  {t.link ? <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">공시↗</a> : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Gov Contracts Table ───────────────────────────────────────────────────────
+
+function GovTable({ rows }: { rows: import("@/lib/api").GovContract[] }) {
+  if (rows.length === 0)
+    return <div className="p-8 text-center text-text-3 text-sm">계약 없음</div>;
+  const fmtB = (v: number) => v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${v.toLocaleString()}`;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
+            <th className="px-3 py-2 text-left font-medium">시작일</th>
+            <th className="px-3 py-2 text-left font-medium">수주 기업</th>
+            <th className="px-3 py-2 text-left font-medium">발주 기관</th>
+            <th className="px-3 py-2 text-left font-medium">내용</th>
+            <th className="px-3 py-2 text-right font-medium">계약금액</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((x, i) => (
+            <tr key={i} className="border-t border-border hover:bg-panel-2 transition-colors">
+              <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{x.start_date || "—"}</td>
+              <td className="px-3 py-2 text-text-1 max-w-[200px] truncate font-medium">{x.recipient}</td>
+              <td className="px-3 py-2 text-text-3 max-w-[160px] truncate">{x.agency}</td>
+              <td className="px-3 py-2 text-text-3 text-[11px] max-w-[240px] truncate">{x.description || "—"}</td>
+              <td className="px-3 py-2 text-right font-data font-semibold text-pos whitespace-nowrap">{fmtB(x.amount)}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -328,7 +392,7 @@ export default function InsiderPage() {
   const [market, setMarket] = useState<Market>("us");
   const [tradeFilter, setTradeFilter] = useState<TradeFilter>("all");
   const [minValue, setMinValue] = useState<MinValue>(0);
-  const [days, setDays] = useState(7);
+  const [days] = useState(30);
   const [tickerSearch, setTickerSearch] = useState("");
 
   // US state
@@ -343,10 +407,54 @@ export default function InsiderPage() {
   const [krLoading, setKrLoading] = useState(false);
   const [krError, setKrError] = useState<string | null>(null);
 
+  // Congress state
+  const [congData, setCongData] = useState<CongressTrade[]>([]);
+  const [congLoading, setCongLoading] = useState(false);
+  const [congError, setCongError] = useState<string | null>(null);
+
+  // Gov contracts state
+  const [govData, setGovData] = useState<GovContract[]>([]);
+  const [govLoading, setGovLoading] = useState(false);
+  const [govError, setGovError] = useState<string | null>(null);
+  const govCtrl = useRef<AbortController | null>(null);
+
+  const fetchGov = useCallback(async () => {
+    govCtrl.current?.abort();
+    const ctrl = new AbortController();
+    govCtrl.current = ctrl;
+    setGovLoading(true); setGovError(null); setGovData([]);
+    try {
+      const res = await getGovContracts(30, 40, ctrl.signal);
+      if (!ctrl.signal.aborted) setGovData(res);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted) setGovError(e instanceof ApiError ? e.message : "조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setGovLoading(false);
+    }
+  }, []);
+
   const usCtrl = useRef<AbortController | null>(null);
   const krCtrl = useRef<AbortController | null>(null);
+  const congCtrl = useRef<AbortController | null>(null);
 
-  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); }, []);
+  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); }, []);
+
+  const fetchCongress = useCallback(async () => {
+    congCtrl.current?.abort();
+    const ctrl = new AbortController();
+    congCtrl.current = ctrl;
+    setCongLoading(true); setCongError(null); setCongData([]);
+    try {
+      const res = await getInsiderCongress(80, ctrl.signal);
+      if (!ctrl.signal.aborted) setCongData(res);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted) setCongError(e instanceof ApiError ? e.message : "조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setCongLoading(false);
+    }
+  }, []);
 
   const fetchUS = useCallback(async (ticker: string, d: number) => {
     usCtrl.current?.abort();
@@ -416,11 +524,10 @@ export default function InsiderPage() {
 
   // Auto-load recent data when market or days changes
   useEffect(() => {
-    if (market === "us") {
-      fetchUSRecent(days);
-    } else {
-      fetchKRRecent(days);
-    }
+    if (market === "us") fetchUSRecent(days);
+    else if (market === "kr") fetchKRRecent(days);
+    else if (market === "congress") fetchCongress();
+    else fetchGov();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market, days]);
 
@@ -457,7 +564,7 @@ export default function InsiderPage() {
 
         {/* Market tabs */}
         <div className="flex gap-0.5 mr-2">
-          {(["us", "kr"] as Market[]).map(m => (
+          {(["us", "kr", "congress", "gov"] as Market[]).map(m => (
             <button
               key={m}
               onClick={() => setMarket(m)}
@@ -467,36 +574,7 @@ export default function InsiderPage() {
                   : "text-text-3 hover:text-text-1 border border-border"
               }`}
             >
-              {m === "us" ? "🇺🇸 US" : "🇰🇷 KR"}
-            </button>
-          ))}
-        </div>
-
-        <div className="h-4 w-px bg-border mx-1" />
-
-        {/* Days */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-text-3 text-xs">기간:</span>
-          {DAYS_OPTS.map(d => (
-            <button
-              key={d}
-              onClick={() => {
-                setDays(d);
-                if (market === "us") {
-                  if (usTicker) fetchUS(usTicker, d);
-                  else fetchUSRecent(d);
-                } else {
-                  if (krCorp) fetchKR(krCorp, d);
-                  else fetchKRRecent(d);
-                }
-              }}
-              className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
-                days === d
-                  ? "border border-accent text-accent bg-accent/10"
-                  : "text-text-3 hover:text-text-1"
-              }`}
-            >
-              {d}d
+              {m === "us" ? "🇺🇸 US" : m === "kr" ? "🇰🇷 KR" : m === "congress" ? "🏛 의회" : "🏦 정부계약"}
             </button>
           ))}
         </div>
@@ -556,7 +634,8 @@ export default function InsiderPage() {
         />
       </div>
 
-      {/* ── Search row ───────────────────────────────────────────────── */}
+      {/* ── Search row (US/KR only) ─────────────────────────────────────── */}
+      {(market === "us" || market === "kr") && (
       <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3">
         {market === "us" ? (
           <>
@@ -606,8 +685,35 @@ export default function InsiderPage() {
           </>
         )}
       </div>
+      )}
 
-      {/* ── Error ──────────────────────────────────────────────────────── */}
+      {/* ── Congress ────────────────────────────────────────────────────── */}
+      {market === "congress" && (
+        <>
+          {congError && <p className="text-neg text-sm px-1">{congError}</p>}
+          {congLoading && <p className="text-text-3 text-sm px-1">로딩 중…</p>}
+          {!congLoading && (
+            <div className="bg-panel border border-border rounded-lg overflow-hidden">
+              <CongressTable trades={congData} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Gov contracts ───────────────────────────────────────────────── */}
+      {market === "gov" && (
+        <>
+          {govError && <p className="text-neg text-sm px-1">{govError}</p>}
+          {govLoading && <p className="text-text-3 text-sm px-1">로딩 중… (USASpending)</p>}
+          {!govLoading && (
+            <div className="bg-panel border border-border rounded-lg overflow-hidden">
+              <GovTable rows={govData} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── US/KR Error ─────────────────────────────────────────────────── */}
       {market === "us" && usError && <p className="text-neg text-sm px-1">{usError}</p>}
       {market === "kr" && krError && <p className="text-neg text-sm px-1">{krError}</p>}
 
@@ -619,8 +725,8 @@ export default function InsiderPage() {
         <p className="text-text-3 text-sm px-1">로딩 중…</p>
       )}
 
-      {/* ── Results ────────────────────────────────────────────────────── */}
-      {filtered.length > 0 || rawData.length > 0 ? (
+      {/* ── US/KR Results ───────────────────────────────────────────────── */}
+      {(market === "us" || market === "kr") && (filtered.length > 0 || rawData.length > 0) ? (
         <div className="bg-panel border border-border rounded-lg overflow-hidden">
           <SummaryBar trades={filtered} market={market} />
           {market === "us" ? (
@@ -635,7 +741,7 @@ export default function InsiderPage() {
           )}
         </div>
       ) : (
-        !usLoading && !krLoading && (rawData.length === 0) && (
+        (market === "us" || market === "kr") && !usLoading && !krLoading && (rawData.length === 0) && (
           <div className="bg-panel border border-border rounded-lg p-12 text-center">
             <p className="text-text-3 text-sm">데이터 없음</p>
           </div>

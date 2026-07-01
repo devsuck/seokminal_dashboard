@@ -49,7 +49,7 @@ export function EventsTab() {
           Rights Events (30d)
         </h3>
         {loading ? (
-          <p className="text-text-3 text-xs">Loading…</p>
+          <p className="text-text-3 text-xs">로딩 중…</p>
         ) : rights.length === 0 ? (
           <p className="text-text-3 text-xs">No upcoming rights events</p>
         ) : (
@@ -86,7 +86,7 @@ export function EventsTab() {
           Top Short Interest (KSD Borrow Rank)
         </h3>
         {loading ? (
-          <p className="text-text-3 text-xs">Loading…</p>
+          <p className="text-text-3 text-xs">로딩 중…</p>
         ) : borrows.length === 0 ? (
           <p className="text-text-3 text-xs">No borrow data for today</p>
         ) : (

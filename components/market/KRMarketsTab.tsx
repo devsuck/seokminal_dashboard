@@ -69,7 +69,7 @@ export function KRMarketsTab() {
       {/* Table or status */}
       <div className="bg-panel border border-border rounded-lg overflow-hidden">
         {loading && (
-          <div className="p-4 text-text-3 text-sm">로딩 중...</div>
+          <div className="p-4 text-text-3 text-sm">로딩 중…</div>
         )}
         {!loading && error && (
           <div className="p-4 text-neg text-sm">{error}</div>

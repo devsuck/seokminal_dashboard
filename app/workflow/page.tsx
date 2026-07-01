@@ -25,14 +25,14 @@ const STEP_DEFS: StepDef[] = [
     id: "factor",
     label: "2. Factor Analysis",
     description: "Analyse momentum, volatility, and Spearman IC across instruments. Optional — skip to strategy if ready.",
-    href: "/factor",
+    href: "/quant",
     actionLabel: "Analyse Factors →",
   },
   {
     id: "strategy",
     label: "3. Strategy",
     description: "Select a saved strategy and proceed to backtest it against your universe.",
-    href: "/strategies",
+    href: "/notebooks",
     actionLabel: "Select Strategy →",
   },
   {

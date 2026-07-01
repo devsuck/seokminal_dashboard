@@ -95,7 +95,10 @@ export function NewsPanel({ ticker, maxItems = 15, onHeadlinesLoaded }: NewsPane
       if (!ctrl.signal.aborted) {
         const sliced = data.slice(0, maxItems);
         setNews(sliced);
-        onHeadlinesLoaded?.(sliced.map(n => n.headline));
+        // 제목만 보내면 AI가 오해석할 수 있어 Finnhub summary 블러브까지 함께 전달.
+        onHeadlinesLoaded?.(sliced.map(n =>
+          n.summary?.trim() ? `${n.headline} — ${n.summary.trim()}` : n.headline,
+        ));
       }
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;

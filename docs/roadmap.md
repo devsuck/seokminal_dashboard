@@ -50,8 +50,72 @@
 | 37 | Insider Trading UI | EDGAR Form4 + OpenDART, openinsider 스타일 필터/테이블, `/insider` | — |
 | 38 | Economic Calendar | ForexFactory JSON, `GET /calendar/economic`, `/calendar` 페이지 | — |
 | 39 | Toast + Alert Poller | `lib/toast.ts`, `ToastContainer`, `AlertPoller` 30초 폴링 전역 | — |
+| 40 | Hyperliquid Trading UI | `hyperliquid/trader.py`, `/hl/*` 엔드포인트, orders 페이지 HL 탭 | — |
+| 41 | Groq 요약 + UX 정비 | `POST /groq/summarize`, GroqSummaryPanel, forex/crypto/insider/news/calendar 재정비 | — |
+| 42 | IB WebSocket 실시간 | `/ws/ib/live/{symbol}`, IbRealtimeWidget 실연결, connect timeout + errorEvent 릴레이 | — |
+| 43 | 실매매 안전화 | `risk_guard.py`(공통 pre-trade 가드), order_audit JSONL, 봇 포지션 desync 수정, `/trading/mode`, KR/US 확인 모달 | — |
+| 44 | 멀티 AI 에이전트 + UX 구조화 | `agent_store.py`(레지스트리+사이클), `/agents/*` API, agent_loop 파라미터화+JSON출력, `/agents` 페이지(카드 UX) | — |
+| 45 | 에이전트 대시보드 | `agent_perf.py`(FIFO 원장), `/agents/{id}/performance`, 대시보드 탭(포트폴리오·매매기록+이유·실시간 PnL 5초 폴링) | — |
+| 46 | ai-trader 제거 | 채팅 불필요(자율) → ai-trader 페이지/링크/chat 엔드포인트 삭제, `/agents`가 정식 허브 | — |
+| 47 | 데이트레이딩 분봉 전략 | `intraday_score.py`(VWAP/ORB/RVOL/EMA/ATR 프로급), `/alpaca/intraday/scores`, agent_loop daytrade 분기(고유동성 유니버스+ATR손절+EOD청산) | — |
+| 48 | Mac 24/7 + HL 레버리지 단타 | `deploy/mac/`(launchd+caffeinate+resume), HL set_leverage/get_candles, intraday crypto모드, `/hl/leverage`·`/hl/intraday/scores`, hl_daytrade 프로파일+루프+hl_order.sh | — |
+| 49 | 단타 결정론적 + 스윙 뉴스강화 | `daytrade_logic.py`(순수규칙), `/agents/{id}/daytrade-tick`(LLM 0), post_cycle.py 버그수정, 스윙 뉴스 프리페치 bull/bear | — |
+| 50 | HL 멀티에셋 유니버스 | dex-aware trader(xyz 빌더DEX), 크립토5+xyz TradFi42(주식·금·은·원유·지수·외환, 전부 USDC), _DAYTRADE_UNIVERSE 확장 | — |
+| 51 | 에이전트 페이퍼/라이브 선택 | agents.paper 컬럼, 생성 시 PAPER/LIVE 토글(경고), HL+paper=크립토만/live=TradFi 포함 | — |
+| 52 | AI 도구 접근 | `tools/backtest.sh`(AI 전략검증), 스윙 프롬프트 도구 카탈로그(backtest/quant/news/portfolio/screener/사이트API) | — |
+| 53 | 에이전트 자율성 레벨 | agents.autonomy(1 고정/2 AI전략가·백테스트검증/3 완전자율), 생성 시 선택, 리스크가드 상시 강제 | — |
+| 54 | 전략 증류 | `POST /agents/{id}/distill`(거래로그→규칙전략 증류→백테스트 검증), 대시보드 증류 버튼. Lv3 탐색→검증된 전략 브릿지 | — |
+| 55 | 자본분배 + 전체 오버뷰 | 에이전트 예산 기준 사이징(account_alloc−invested), `/agents/overview/all`, 상단 오버뷰(총합 카드 + 에이전트별 PnL 바 그래프) | — |
+| 56 | 기능 감사 + 네비 정리 | 리다이렉트 스텁 7개 네비 제거(factor/correlation/rolling/replay/experiments/screener/strategies), workflow 링크 수정 | — |
+| 57 | 실계좌 잔액 표시 | `/agents/accounts/balances`(Alpaca+HL testnet/mainnet + venue별 배정합계), 상단 상시 잔액 패널(잔여/초과경고) | — |
+| 58 | IB·KIS 잔액 추가 | KIS get_balance(모의), IB get_account_summary(페이퍼/실), 정규화 accounts 리스트, 6계좌 통합 패널 | — |
+| 59 | 스윙 KR/US/혼합 스코프 | agents.market, kr_order.sh(KIS), agent_loop 시장별 유니버스+실행 라우팅, 생성 시 시장 선택. 혼합=한 에이전트 US+KR | — |
+| 60 | 자동 익절/손절 + KR 실투자 | `stop_exits`(하드 TP/SL, 프로파일별), daytrade-tick 배선, KISOrderClient mock/real 토글 + `/orders/kr` paper 라우팅 | — |
 
 ---
+
+| 61 | KR 단타 + tick 버그수정 | intraday KST 세션, KIS get_holdings, kr_daytrade venue(yfinance 분봉+KIS 실행), daytrade-tick NameError(budget/cycles) 복구 | — |
+
+| 62 | 잔액정리·원그래프·insider수정 | IB페이퍼 제거+한투실계좌, US insider 버그수정(adsh/index.json), DART 기업행위 필터, 포트폴리오 도넛 | — |
+
+| 63 | 매매·알림 시장통합 | TradeTab(시장 매매, 심볼→KIS/Alpaca 라우팅), AlertTab(심볼 가격알림 localStorage+폴링), /orders·/alerts 네비 제거 | — |
+
+| 64 | US 모의=Alpaca/실전=IB | daytrade-tick US 분기(paper→Alpaca/live→IB), /orders/us paper 라우팅, IB get_positions, TradeTab 모의/실계좌 토글 | — |
+| 65 | UX 정리 | 뉴스 빈캐시 버그, insider 기간필터 제거·KR 컬럼 적응, /search 네비 제거, 시장/IB 네비 정리, Groq 요약 sticky/자동삭제 | — |
+| 66 | 미국 의회 매매 | `insider/congress_client.py`(FMP stable senate/house), `/insider/congress`, 🏛 의회 탭 CongressTable | — |
+| 67 | 미국 연방 정부계약 | `insider/gov_spending_client.py`(USASpending), `/insider/gov-contracts`, 🏦 정부계약 탭 GovTable | — |
+| 68 | 차트 실시간 갱신(무료) | `/quote`(Finnhub), ChartTab US 5초 폴링 + KR KIS ws로 마지막 봉 갱신, 실시간/대기 뱃지 | — |
+| 69 | 매매 UI 업그레이드 | TradeTab 실시간 현재가·수량 스테퍼/프리셋·예상금액·현재가 채우기·실계좌 경고 | — |
+| 70 | UI 일관성 | 공용 `LoadingState`/`Spinner`, 로딩문구 "로딩 중…" 통일(9파일), 하드코딩 hex→토큰(accent/info) | — |
+| 71 | quote 캐시+장중 게이팅 | `/quote` 3초 캐시(60/분 한도 보호), `lib/market-hours.ts` isUSMarketOpen, 마감 시 폴링 스킵 | — |
+| 72 | US 라이브 단타 IB 통일 | IBOrderClient `get_intraday_bars`+`wait_fill`/`avg_fill_price`, 라이브=IB 데이터+실행+실체결가 | — |
+| 73 | 외환 IB IDEALPRO | forex 페이지 `ForexChart`(getIBBars forex), bar-size 선택, 카드 클릭 페어 선택 | — |
+| 74 | 뉴스 요약 정확도 | NewsPanel이 headline+summary 블러브 AI 전달, groq 프롬프트 "제목만 속단 금지" | — |
+
+## 다음 청크
+- KR 단타 실투자(paper=false) 라이브 검증 (KIS 실계좌)
+- IB(TWS) 실계좌 라이브 매매 검증 (US 라이브 단타 = IB 데이터+실행 통일됨, Phase 72)
+- /orders(HL·봇P&L) 잔여 기능 시장/봇 페이지로 흡수 검토
+- 차트 US 소스도 IB 실시간 우선 검토 (구독 살아있음 — 현재는 catalog 우선)
+- 뉴스 본문 전문(선택): Jina Reader(`r.jina.ai`) 스크레이핑 → 진짜 본문으로 AI 요약 (지연/파싱 리스크)
+
+## 보류 (비용+난이도 — 학습 후 결정)
+> 사용자 결정(2026-07-01): 옵션/선물은 **추가 구독비 + 난이도** 높아 당장 안 함. 공부하며 알아두고 나중에.
+
+**옵션 (자동매매 부적합, 학습·헤지용):**
+- 데이터: IB **OPRA** 구독 필요 (~$1.5~5/월 Non-Pro). 현재 미구독 → 옵션 페이지는 계산기(BS 그릭스/IV)만
+- 난이도: 그릭스(델타/감마/세타/베가) 다차원 리스크, IV 표면, 만기·행사가 → 현재 방향성 분봉 엔진(intraday_score)으론 부적합. 옵션 전용 엔진 필요
+- 개인 리스크: 세타(시간가치 소멸)로 방치 시 손실, 레버리지·스프레드 큼. 시작 시 커버드콜/현금확보풋/정의된-리스크 스프레드부터
+
+**선물 (방향성 → 현재 엔진 재활용 가능, 중난이도):**
+- 데이터: IB **CME/CBOT/NYMEX** 등 거래소별 구독 (~$5~15/월 each). 현재 미구독 → 선물 페이지는 계산기(cost-of-carry)만
+- 적합성: 방향성 상품이라 현 분봉 점수 엔진(VWAP/ORB/EMA) **재활용 가능**, 크립토 단타와 구조 유사 → AI 단타 확장 자연스러움
+- 시작 시: **마이크로 선물(MES/MNQ)** 소액 — 레버리지 통제. 유동성 큰 ES/NQ 미니 계열
+- 배선 계획(나중): CME 마이크로 구독 → daytrade-tick에 FUT venue 추가 (HL 크립토 분기와 유사 코드)
+
+**IB 마켓데이터 현황(2026-07-01, Non-Pro, 전부 Fee Waived $0):**
+- US Real-Time Non Consolidated Streaming Quotes(주식·비통합), Korea Exchange Stocks, IDEALPRO FX, US Mutual Funds, EU Equities, Bond Quotes
+- 없음: OPRA(옵션), CME 등 선물 → 옵션/선물 실데이터 시 이것들 추가 구독 (구독=안 써도 정액 월과금, US주식 번들은 월커미션 $30↑ 시 면제)
 
 ## 새 세션 시작 방법
 
@@ -85,16 +149,32 @@
 
 ### 알려진 미해결 이슈 (비블로킹)
 
-- `components/network/CorrelationNetwork.tsx:120` — D3 타입 오류 (`BaseType | SVGCircleElement` 불일치), `npm run build` 실패. 기능은 정상 동작. 수정 시 D3 selection 타입 캐스팅 필요.
-- `app/quant/page.tsx` — 아직 레거시 인라인 스타일 (디자인 토큰 미적용)
-- `app/ai-trader/page.tsx` — 개발 예정 플레이스홀더
+- (2026-07-01 검증 완료: 아래 3개 전부 해소 — 로드맵 stale)
+  - ~~CorrelationNetwork D3 타입 오류 / 빌드 실패~~ → `npm run build` 통과 확인
+  - ~~quant 레거시 인라인 스타일~~ → 전부 문서화된 예외(차트 설정/data-driven/범례 스와치), className 헥스 0개
+  - ~~ai-trader 플레이스홀더~~ → 610줄 완전 구현됨 (Claude Haiku advisor + xgb)
 
 ---
 
 ## 다음 Phase 후보
 
-| Phase | 내용 | 범위 |
+### 멀티 에이전트 잔여 (계획: 2026-07-01-multi-agent-trading.md)
+| 작업 | 내용 | 범위 | 우선도 |
+|---|---|---|---|
+| ~~Task 5~~ | ~~가상 계좌 분리~~ → Phase 45에서 **사이클 fill 원장**으로 해결 (client_order_id 태깅 불필요) | — | ✅ |
+| Task 7 | 데이트레이딩 — 분봉 전략 분리 ✅ Phase 47. 남은 것: 장중 5분 사이클 실가동 e2e | Backend | 中 |
+| — | ai-trader(610줄 tmux 덤프) → `/agents` 완전 대체 (사용자 확인 후) | Frontend | 中 |
+
+### 실매매 안전화 후속 (Phase 43 한계 — 실계좌 전환 전 권장)
+| 내용 | 범위 | 우선도 |
 |---|---|---|
-| 40 | IB WebSocket 실시간 | IbRealtimeWidget 실제 연결 (TWS → WS → 대시보드) | Backend + Frontend |
-| 41 | 워크플로우 시각적 개선 | `/workflow` 페이지 스텝 UI 개선 | Frontend |
-| 42 | LangGraph Multi-Agent | 자율 주문 실행 AI | Backend |
+| ~~실 체결가 캡처 — IBOrderClient fill 대기 → `avg_fill_price` 실제값~~ ✅ Phase 72 (wait_fill + US 라이브 IB 데이터 통일) | Backend | ✅ |
+| KIS `get_position` 구현 — KR 봇 reconciliation (현재 flat 시작) | Backend | 中 |
+| 주문 멱등성 + IB 연결 풀링 (매 요청 connect/disconnect 제거) | Backend | 中 |
+| OMS 레이어 — 상태머신 + 부분체결 추적, `/orders/audit` UI 연결 | Backend+Frontend | 中 |
+| 실시간 포지션·PnL 대시보드 — 슬리피지/수수료 반영 실현 PnL | Backend+Frontend | 中 |
+
+### 기타
+| 내용 | 비고 |
+|---|---|
+| LangGraph Multi-Agent (TradingAgents) | **보류** — 무료 TPM 한도로 멀티에이전트 불가, OpenRouter 유료 필요 |

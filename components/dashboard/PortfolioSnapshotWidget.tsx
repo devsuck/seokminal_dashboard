@@ -37,7 +37,7 @@ export function PortfolioSnapshotWidget() {
       </span>
 
       {loading ? (
-        <p className="text-text-3 text-xs">Loading…</p>
+        <p className="text-text-3 text-xs">로딩 중…</p>
       ) : (
         <div className="space-y-2 flex-1">
           <div className="flex items-center justify-between py-1.5 border-b border-border/40">

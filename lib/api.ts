@@ -149,6 +149,19 @@ export async function getBars(
   return handleResponse<BarsResponse>(response);
 }
 
+export interface Quote {
+  symbol: string;
+  price: number;
+  ts: number;
+}
+
+/** 실시간 최신가 (US 주식, Finnhub) — 차트 마지막 봉 라이브 갱신용. */
+export async function getQuote(symbol: string, signal?: AbortSignal): Promise<Quote> {
+  const params = new URLSearchParams({ symbol });
+  const response = await fetch(`${API_URL}/quote?${params.toString()}`, { signal });
+  return handleResponse<Quote>(response);
+}
+
 export async function getBacktest(
   instrumentId: string,
   start: string,
@@ -1233,6 +1246,196 @@ export interface KISTick {
   error?: string;
 }
 
+export interface IBTick {
+  symbol: string;
+  time: number | null; // epoch seconds
+  price: number;
+  size: number;
+  exchange: string;
+  error?: string;
+}
+
+/** ws:// base derived from the HTTP API origin. */
+export const WS_URL = API_URL.replace(/^http/, "ws");
+
+export interface TradingMode {
+  venues: {
+    US: { mode: "paper" | "live" | "unknown"; ib_port: number };
+    KR: { mode: "paper" | "live" };
+    ALPACA: { mode: "paper" | "live" };
+    HL: { mode: "live" };
+  };
+  risk: {
+    max_order_qty: number;
+    max_order_notional: number;
+    max_position_qty: number;
+    daily_loss_limit: number;
+    kill_switch: boolean;
+  };
+  any_live: boolean;
+}
+
+export async function getTradingMode(signal?: AbortSignal): Promise<TradingMode> {
+  const r = await fetch(`${API_URL}/trading/mode`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── AI agents (multi-agent trading) ───────────────────────────────────────────
+
+export type AgentType = "swing" | "daytrade" | "hl_daytrade" | "kr_daytrade";
+
+export interface TradingAgent {
+  id: string;
+  name: string;
+  type: AgentType;
+  account_alloc: number;
+  status: "running" | "stopped";
+  paper: boolean;
+  autonomy: number; // 1=fixed rules, 2=AI strategist, 3=full autonomy
+  market: "US" | "KR" | "MIXED";
+  created_at: string;
+  profile: { label?: string; cadence_seconds?: number; buy_score_threshold?: number; venue?: string };
+  session_live?: boolean;
+}
+
+export interface AgentCycle {
+  cycle: number;
+  ts: string;
+  decision: "WATCH" | "BUY" | "SELL" | "SKIP" | "HOLD";
+  symbol?: string | null;
+  score?: number | null;
+  max_score?: number | null;
+  action?: string | null;
+  next_trigger?: string | null;
+  cash_pct?: number | null;
+  note?: string | null;
+}
+
+export async function listAgents(signal?: AbortSignal): Promise<{ agents: TradingAgent[]; profiles: Record<string, { label: string }> }> {
+  const r = await fetch(`${API_URL}/agents`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function createAgent(name: string, type: AgentType, account_alloc: number, paper: boolean, autonomy: number, market: "US" | "KR" | "MIXED" = "US"): Promise<TradingAgent> {
+  const r = await fetch(`${API_URL}/agents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, type, account_alloc, paper, autonomy, market }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function startAgent(id: string): Promise<{ status: string }> {
+  const r = await fetch(`${API_URL}/agents/${id}/start`, { method: "POST" });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function stopAgent(id: string): Promise<{ status: string }> {
+  const r = await fetch(`${API_URL}/agents/${id}/stop`, { method: "POST" });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function deleteAgent(id: string): Promise<{ status: string }> {
+  const r = await fetch(`${API_URL}/agents/${id}`, { method: "DELETE" });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function getAgentCycles(id: string, limit = 50, signal?: AbortSignal): Promise<{ cycles: AgentCycle[] }> {
+  const r = await fetch(`${API_URL}/agents/${id}/cycles?limit=${limit}`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export interface AgentTrade {
+  ts: string | null;
+  cycle: number | null;
+  symbol: string;
+  side: "buy" | "sell";
+  qty: number;
+  price: number;
+  reason: string;
+  realized_pnl: number | null;
+}
+
+export interface AgentOpenPosition {
+  symbol: string;
+  qty: number;
+  avg_price: number;
+  current_price: number | null;
+  unrealized_pnl: number | null;
+}
+
+export interface AgentPerformance {
+  agent_id: string;
+  alloc: number;
+  cash: number;
+  invested: number;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  total_pnl: number;
+  return_pct: number;
+  open_positions: AgentOpenPosition[];
+  trades: AgentTrade[];
+}
+
+export async function getAgentPerformance(id: string, signal?: AbortSignal): Promise<AgentPerformance> {
+  const r = await fetch(`${API_URL}/agents/${id}/performance`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export interface DistillResult {
+  agent_id: string;
+  proposal: { instrument_id: string; strategy: string; params: Record<string, number>; rationale: string };
+  backtest: { sharpe_ratio?: number | null; total_pnl_pct?: number | null; win_rate?: number | null; error?: string };
+  validated: boolean;
+  verdict: string;
+  trades_analyzed: number;
+}
+
+export async function distillAgent(id: string, signal?: AbortSignal): Promise<DistillResult> {
+  const r = await fetch(`${API_URL}/agents/${id}/distill`, { method: "POST", signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export interface AgentOverviewRow {
+  id: string; name: string; type: AgentType; paper: boolean;
+  status: "running" | "stopped"; autonomy: number;
+  alloc: number; realized_pnl: number; return_pct: number;
+  invested: number; cash: number; open_positions: number; trades: number;
+}
+export interface AgentsOverview {
+  agents: AgentOverviewRow[];
+  totals: { count: number; alloc: number; realized_pnl: number; return_pct: number; running: number };
+}
+
+export async function getAgentsOverview(signal?: AbortSignal): Promise<AgentsOverview> {
+  const r = await fetch(`${API_URL}/agents/overview/all`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export interface AccountRow {
+  venue: string; label: string; ccy: string; mode: string | null;
+  balance: number | null; allocated: number; error?: string | null;
+}
+export interface AccountBalances {
+  accounts: AccountRow[];
+}
+
+export async function getAccountBalances(signal?: AbortSignal): Promise<AccountBalances> {
+  const r = await fetch(`${API_URL}/agents/accounts/balances`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 export async function searchKR(
   q: string,
   signal?: AbortSignal,
@@ -1344,6 +1547,7 @@ export interface KROrderRequest {
   quantity: number;
   order_type: "MARKET" | "LIMIT";
   price?: number;
+  paper?: boolean;  // true=KIS 모의, false=실계좌
 }
 
 export interface KROrderResponse {
@@ -1430,6 +1634,7 @@ export interface USOrderRequest {
   quantity: number;
   order_type: "MARKET" | "LIMIT";
   limit_price?: number;
+  paper?: boolean;  // true=Alpaca 페이퍼, false=IB(TWS) 실계좌
 }
 
 export interface USOrderResponse {
@@ -1662,6 +1867,39 @@ export async function getInsiderUSRecent(days: number, maxFilings: number, signa
 export async function getInsiderKRRecent(days: number, maxCorps: number, signal?: AbortSignal): Promise<InsiderTrade[]> {
   const r = await fetch(`${API_URL}/insider/kr/recent?days=${days}&max_corps=${maxCorps}`, { signal });
   return handleResponse<InsiderTrade[]>(r);
+}
+
+export interface CongressTrade {
+  chamber: "senate" | "house";
+  trade_date: string;
+  disclosure_date: string;
+  reporter: string;
+  district?: string | null;
+  owner?: string | null;
+  ticker?: string | null;
+  asset?: string | null;
+  trade_type: "BUY" | "SELL" | "OTHER";
+  amount?: string | null;
+  link?: string | null;
+}
+
+export async function getInsiderCongress(limit = 80, signal?: AbortSignal): Promise<CongressTrade[]> {
+  const r = await fetch(`${API_URL}/insider/congress?limit=${limit}`, { signal });
+  return handleResponse<CongressTrade[]>(r);
+}
+
+export interface GovContract {
+  recipient: string;
+  amount: number;
+  agency?: string | null;
+  description?: string | null;
+  start_date?: string | null;
+  award_id?: string | null;
+}
+
+export async function getGovContracts(days = 30, limit = 40, signal?: AbortSignal): Promise<GovContract[]> {
+  const r = await fetch(`${API_URL}/insider/gov-contracts?days=${days}&limit=${limit}`, { signal });
+  return handleResponse<GovContract[]>(r);
 }
 
 // ── Economic Calendar ──────────────────────────────────────────────────────────
@@ -2066,14 +2304,6 @@ export async function cancelAlpacaOrder(orderId: string, signal?: AbortSignal): 
   await handleResponse<void>(await fetch(`${API_URL}/alpaca/order/${orderId}`, { method: "DELETE", signal }));
 }
 
-export async function startAutopilotTerminal(signal?: AbortSignal): Promise<{ status: string; tmux_session: string; ttyd_port: number }> {
-  return handleResponse(await fetch(`${API_URL}/alpaca/terminal/start`, { method: "POST", signal }));
-}
-
-export async function getTerminalStatus(signal?: AbortSignal): Promise<{ ttyd_running: boolean; tmux_session: boolean }> {
-  return handleResponse(await fetch(`${API_URL}/alpaca/terminal/status`, { signal }));
-}
-
 export interface MarketOverviewData {
   sp500:  { value: number | null; change_pct: number | null };
   nasdaq: { value: number | null; change_pct: number | null };
@@ -2085,21 +2315,6 @@ export interface MarketOverviewData {
 
 export async function getMarketOverview(signal?: AbortSignal): Promise<MarketOverviewData> {
   return handleResponse<MarketOverviewData>(await fetch(`${API_URL}/market-overview`, { signal }));
-}
-
-export interface ChatPaneResult { lines: string[]; total: number; }
-
-export async function sendChatMessage(message: string, signal?: AbortSignal): Promise<{ status: string }> {
-  return handleResponse(await fetch(`${API_URL}/alpaca/chat/send`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
-    signal,
-  }));
-}
-
-export async function getChatPane(signal?: AbortSignal): Promise<ChatPaneResult> {
-  return handleResponse<ChatPaneResult>(await fetch(`${API_URL}/alpaca/chat/pane`, { signal }));
 }
 
 export async function initiateShutdown(signal?: AbortSignal): Promise<{ status: string }> {
@@ -2120,14 +2335,6 @@ export interface FGMarketsResponse { crypto: FGMarket; us: FGMarket; kr: FGMarke
 export async function getFGMarkets(signal?: AbortSignal): Promise<FGMarketsResponse> {
   return handleResponse<FGMarketsResponse>(await fetch(`${API_URL}/macro/fear-greed/markets`, { signal }));
 }
-
-export interface ClaudeUsagePeriod { input: number; output: number; total: number; }
-export interface ClaudeUsageResponse { daily: ClaudeUsagePeriod; weekly: ClaudeUsagePeriod; daily_cap: number; weekly_cap: number; }
-
-export async function getClaudeUsage(signal?: AbortSignal): Promise<ClaudeUsageResponse> {
-  return handleResponse<ClaudeUsageResponse>(await fetch(`${API_URL}/claude/usage`, { signal }));
-}
-
 
 export interface GroqStockPick { symbol: string; direction: "up" | "down"; }
 export interface GroqSummaryResult { summary: string; picks: GroqStockPick[]; }

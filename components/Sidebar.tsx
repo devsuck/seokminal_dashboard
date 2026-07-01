@@ -106,7 +106,6 @@ export function Sidebar() {
     {
       label: t("nav.discovery"), icon: <IconDiscovery />,
       items: [
-        { href: "/search",   label: t("nav.search") },
         { href: "/insider",  label: t("nav.insider") },
         { href: "/news",     label: t("nav.news") },
         { href: "/calendar", label: t("nav.calendar") },
@@ -139,12 +138,10 @@ export function Sidebar() {
     {
       label: t("nav.trading"), icon: <IconTrading />,
       items: [
-        { href: "/orders",    label: t("nav.orders") },
         { href: "/bots",      label: t("nav.bots") },
         { href: "/spawner",   label: t("nav.spawner") },
         { href: "/workflow",  label: t("nav.workflow") },
-        { href: "/alerts",    label: t("nav.alerts") },
-        { href: "/ai-trader", label: t("nav.ai-trader") },
+        { href: "/agents",    label: t("nav.agents") },
       ],
     },
   ];

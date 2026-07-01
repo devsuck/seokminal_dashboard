@@ -281,15 +281,15 @@ export default function EventStudyPage() {
               Individual events
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-block w-6 h-0.5 bg-[#FF9F1C] shrink-0" />
+              <span className="inline-block w-6 h-0.5 bg-accent shrink-0" />
               Average
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-block w-6 h-0.5 bg-[#3B82F6] shrink-0 opacity-80" style={{backgroundImage: "repeating-linear-gradient(to right, #3B82F6 0px, #3B82F6 5px, transparent 5px, transparent 8px)"}} />
+              <span className="inline-block w-6 h-0.5 bg-info shrink-0 opacity-80" style={{backgroundImage: "repeating-linear-gradient(to right, var(--color-info) 0px, var(--color-info) 5px, transparent 5px, transparent 8px)"}} />
               Median
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-block w-0.5 h-3 bg-[#FF9F1C] opacity-70 shrink-0" />
+              <span className="inline-block w-0.5 h-3 bg-accent opacity-70 shrink-0" />
               Event day (0)
             </div>
           </div>

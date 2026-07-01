@@ -335,7 +335,7 @@ export default function BotsPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && <div className="px-3 py-2 text-text-3 text-xs">Loading…</div>}
+          {loading && <div className="px-3 py-2 text-text-3 text-xs">로딩 중…</div>}
           {bots.length === 0 && !loading && <div className="px-3 py-2 text-text-3 text-xs">No bots</div>}
           {bots.map(bot => (
             <div

@@ -6,9 +6,10 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState } from "@/components/ui";
 import {
-  ApiError, getBars, getKRBars, getIBBars,
+  ApiError, getBars, getKRBars, getIBBars, getQuote, WS_URL,
   type BarOut, type KRBar, type IBBar,
 } from "@/lib/api";
+import { isUSMarketOpen } from "@/lib/market-hours";
 
 function krBarToBarOut(bar: KRBar): BarOut {
   const d = bar.date;
@@ -74,6 +75,7 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
   const [bars, setBars] = useState<BarOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<"off" | "live">("off");
   const abortRef = useRef<AbortController | null>(null);
 
   // Overlay indicators
@@ -192,6 +194,63 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
     return () => { abortRef.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
+
+  // ── Real-time last-candle update (US=Finnhub poll, KR=KIS ws) ─────────────
+  function applyLivePrice(price: number) {
+    if (price <= 0) return;
+    setBars(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      const updated: BarOut = {
+        ...last, close: price,
+        high: Math.max(last.high, price), low: Math.min(last.low, price),
+      };
+      return [...prev.slice(0, -1), updated];
+    });
+  }
+
+  useEffect(() => {
+    if (bars.length === 0) { setLiveStatus("off"); return; }
+    const venue = symbol.split(".").slice(1).join(".");
+
+    if (venue === "XKRX") {
+      const code = symbol.split(".")[0];
+      const ws = new WebSocket(`${WS_URL}/ws/live/${code}`);
+      ws.onopen = () => setLiveStatus("live");
+      ws.onclose = () => setLiveStatus("off");
+      ws.onerror = () => setLiveStatus("off");
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.error) { setLiveStatus("off"); return; }
+          const p = Number(msg.price);
+          if (p > 0) { applyLivePrice(p); setLiveStatus("live"); }
+        } catch { /* ignore malformed frame */ }
+      };
+      return () => ws.close();
+    }
+
+    // US stock → poll Finnhub quote every 5s (장 마감 시엔 첫 1회만, 이후 스킵)
+    const usSymbol = symbol.split(".")[0];
+    let cancelled = false;
+    let fetchedOnce = false;
+    const ctrl = new AbortController();
+    async function poll() {
+      // 마감 + 이미 최신가 있음 → 네트워크·한도 아끼려 스킵
+      if (fetchedOnce && !isUSMarketOpen()) { setLiveStatus("off"); return; }
+      try {
+        const q = await getQuote(usSymbol, ctrl.signal);
+        fetchedOnce = true;
+        if (!cancelled) { applyLivePrice(q.price); setLiveStatus(isUSMarketOpen() ? "live" : "off"); }
+      } catch {
+        if (!cancelled) setLiveStatus("off");
+      }
+    }
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => { cancelled = true; ctrl.abort(); clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol, bars.length]);
 
   const PRESETS = [
     { label: "1M",  months: 1 },
@@ -451,8 +510,19 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
       )}
 
       <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-panel-2">
+        <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
           <span className="font-data text-sm text-text-1 font-medium">{symbol}</span>
+          {bars.length > 0 && (
+            <span className="font-data text-sm text-text-1">
+              {bars[bars.length - 1].close.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+            </span>
+          )}
+          <span className="flex items-center gap-1.5 ml-auto">
+            <span className={`w-1.5 h-1.5 rounded-full ${liveStatus === "live" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+            <span className={`text-[11px] uppercase tracking-wider ${liveStatus === "live" ? "text-pos" : "text-text-3"}`}>
+              {liveStatus === "live" ? "실시간" : "대기"}
+            </span>
+          </span>
         </div>
         {bars.length > 0 ? (
           <>

@@ -19,19 +19,13 @@ export function NavBar() {
     {
       label: t("nav.market"),
       items: [
-        { href: "/market",  label: t("nav.market") },
-        { href: "/ib",      label: t("nav.ib") },
-        { href: "/crypto",  label: t("nav.crypto") },
-        { href: "/forex",   label: t("nav.forex") },
-        { href: "/options", label: t("nav.options") },
-        { href: "/futures", label: t("nav.futures") },
+        { href: "/market",  label: t("nav.market") },   // 주식·암호화폐·외환·선물·옵션·탐색 탭 통합
+        { href: "/ib",      label: t("nav.ib") },        // IB 히스토리컬 바(계약 5종) — 별도 데이터소스
       ],
     },
     {
       label: t("nav.discovery"),
       items: [
-        { href: "/search",   label: t("nav.search") },
-        { href: "/screener", label: t("nav.screener") },
         { href: "/insider",  label: t("nav.insider") },
         { href: "/news",     label: t("nav.news") },
         { href: "/calendar", label: t("nav.calendar") },
@@ -40,10 +34,7 @@ export function NavBar() {
     {
       label: t("nav.analyze"),
       items: [
-        { href: "/correlation",  label: t("nav.correlation") },
         { href: "/event-study",  label: t("nav.event-study") },
-        { href: "/rolling",      label: t("nav.rolling") },
-        { href: "/factor",       label: t("nav.factor") },
         { href: "/risk",         label: t("nav.risk") },
         { href: "/quant",        label: t("nav.quant") },
         { href: "/data-quality", label: t("nav.data-quality") },
@@ -53,8 +44,6 @@ export function NavBar() {
       label: t("nav.strategy"),
       items: [
         { href: "/notebooks",   label: t("nav.notebooks") },
-        { href: "/strategies",  label: t("nav.strategies") },
-        { href: "/experiments", label: t("nav.experiments") },
         { href: "/report",      label: t("nav.report") },
       ],
     },
@@ -63,7 +52,6 @@ export function NavBar() {
       items: [
         { href: "/backtest",         label: t("nav.backtest") },
         { href: "/backtest/compare", label: t("nav.compare") },
-        { href: "/replay",           label: t("nav.replay") },
         { href: "/universe",         label: t("nav.universe") },
         { href: "/portfolio",        label: t("nav.portfolio") },
       ],
@@ -71,12 +59,10 @@ export function NavBar() {
     {
       label: t("nav.trading"),
       items: [
-        { href: "/orders",    label: t("nav.orders") },
         { href: "/bots",      label: t("nav.bots") },
         { href: "/spawner",   label: t("nav.spawner") },
         { href: "/workflow",  label: t("nav.workflow") },
-        { href: "/alerts",    label: t("nav.alerts") },
-        { href: "/ai-trader", label: t("nav.ai-trader") },
+        { href: "/agents",    label: t("nav.agents") },
       ],
     },
   ];

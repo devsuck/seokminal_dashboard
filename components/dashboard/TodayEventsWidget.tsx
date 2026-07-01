@@ -85,7 +85,7 @@ export function TodayEventsWidget() {
         <section>
           <span className="text-[10px] text-text-3 uppercase tracking-wide">Rights Events (14d)</span>
           {loading ? (
-            <p className="text-text-3 text-xs mt-1.5">Loading…</p>
+            <p className="text-text-3 text-xs mt-1.5">로딩 중…</p>
           ) : rights.length === 0 ? (
             <p className="text-text-3 text-xs mt-1.5">No upcoming rights events</p>
           ) : (
@@ -108,7 +108,7 @@ export function TodayEventsWidget() {
         <section>
           <span className="text-[10px] text-text-3 uppercase tracking-wide">Economic Calendar</span>
           {loading ? (
-            <p className="text-text-3 text-xs mt-1.5">Loading…</p>
+            <p className="text-text-3 text-xs mt-1.5">로딩 중…</p>
           ) : econEvents.length === 0 ? (
             <p className="text-[10px] text-text-3 mt-1 italic">No upcoming High/Medium events</p>
           ) : (

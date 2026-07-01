@@ -81,7 +81,7 @@ export function FearGreedWidget() {
       <span className="text-text-3 text-[11px] uppercase tracking-wider font-semibold">Fear & Greed</span>
 
       {loading ? (
-        <div className="flex items-center justify-center h-20 text-text-3 text-xs">Loading…</div>
+        <div className="flex items-center justify-center h-20 text-text-3 text-xs">로딩 중…</div>
       ) : !data ? (
         <div className="flex items-center justify-center h-20 text-text-3 text-xs">—</div>
       ) : (

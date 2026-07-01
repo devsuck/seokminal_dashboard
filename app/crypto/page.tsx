@@ -192,7 +192,7 @@ function CoinChartPanel({ coin }: { coin: string }) {
         </div>
       </div>
       {error && <p className="text-neg text-[11px] px-3 py-1">{error}</p>}
-      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">Loading…</div>}
+      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">로딩 중…</div>}
       <div ref={chartRef} style={{ height: "100%" }} className={`flex-1 ${loading ? "invisible" : ""}`} />
     </div>
   );
@@ -266,7 +266,7 @@ function CoinBookPanel({ coin }: { coin: string }) {
         )}
       </div>
       {error && <p className="text-neg text-[11px] px-3 py-1">{error}</p>}
-      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">Loading…</div>}
+      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">로딩 중…</div>}
       <div className="flex-1 overflow-hidden px-1 pt-1">
         <svg ref={svgRef} className="block" />
       </div>
@@ -315,7 +315,7 @@ function SearchTab({
           <span className="text-text-3 text-xs">{assets.count}개 마켓 · Hyperliquid Perps</span>
         )}
       </div>
-      {loading && <p className="text-text-3 text-sm">Loading…</p>}
+      {loading && <p className="text-text-3 text-sm">로딩 중…</p>}
       {!loading && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse font-data">

@@ -7,6 +7,8 @@ import { ComparisonTab } from "@/components/market/ComparisonTab";
 import { EventsTab } from "@/components/market/EventsTab";
 import { KRMarketsTab } from "@/components/market/KRMarketsTab";
 import { SearchTab } from "@/components/market/SearchTab";
+import { TradeTab } from "@/components/market/TradeTab";
+import { AlertTab } from "@/components/market/AlertTab";
 import {
   getWatchlist,
   addToWatchlist,
@@ -14,11 +16,13 @@ import {
   DEFAULT_SYMBOLS,
 } from "@/lib/watchlist-storage";
 
-type Tab = "chart" | "compare" | "events" | "kr" | "search";
+type Tab = "chart" | "compare" | "events" | "kr" | "search" | "trade" | "alert";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "search",  label: "🔍 검색" },
   { id: "chart",   label: "Chart" },
+  { id: "trade",   label: "💵 매매" },
+  { id: "alert",   label: "🔔 알림" },
   { id: "compare", label: "Compare" },
   { id: "events",  label: "Events" },
   { id: "kr",      label: "KR" },
@@ -116,6 +120,8 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
               isInWatchlist={watchlist.includes(activeSymbol)}
             />
           )}
+          {activeTab === "trade"   && <TradeTab symbol={activeSymbol} />}
+          {activeTab === "alert"   && <AlertTab symbol={activeSymbol} />}
           {activeTab === "compare" && <ComparisonTab symbols={watchlist} />}
           {activeTab === "events"  && <EventsTab />}
           {activeTab === "kr"      && <KRMarketsTab />}

@@ -167,11 +167,11 @@ export function EfficientFrontierChart({
       />
       <div className="flex gap-4 justify-center text-xs text-text-3 mt-2">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6] inline-block shrink-0" />
+          <span className="w-2.5 h-2.5 rounded-full bg-info inline-block shrink-0" />
           Min Variance
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rotate-45 bg-[#FF9F1C] inline-block shrink-0" />
+          <span className="w-2.5 h-2.5 rotate-45 bg-accent inline-block shrink-0" />
           Max Sharpe
         </span>
         <span className="flex items-center gap-1.5">
