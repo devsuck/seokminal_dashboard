@@ -212,7 +212,7 @@ function Dashboard({ perf }: { perf: AgentPerformance | null }) {
 }
 
 function money(n: number, ccy: string): string {
-  const sym = ccy === "KRW" ? "₩" : ccy === "USDC" ? "" : "$";
+  const sym = ccy === "KRW" ? "₩" : ccy === "USDC" ? "" : ccy === "EUR" ? "€" : "$";
   const suffix = ccy === "USDC" ? " USDC" : "";
   return `${sym}${n.toLocaleString(undefined, { maximumFractionDigits: ccy === "KRW" ? 0 : 2 })}${suffix}`;
 }
