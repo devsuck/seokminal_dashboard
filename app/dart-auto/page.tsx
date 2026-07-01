@@ -3,20 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError, getDartSignals, getDartPositions, mirrorDart,
-  type DartSignal, type DartPosition,
+  getDartBotStatus, setDartBotConfig,
+  type DartSignal, type DartPosition, type DartBotStatus,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
-
-const MIRRORED_KEY = "dart-mirrored";
-const AUTO_KEY = "dart-auto";
-const KRW_KEY = "dart-krw";
-
-function sigKey(s: DartSignal): string {
-  return `${s.corp_name}:${s.action_type}:${s.date}`;
-}
-function loadSet(k: string): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(k) || "[]")); } catch { return new Set(); }
-}
 
 const VERDICT: Record<string, string> = {
   BUY: "text-pos border-pos/40 bg-pos/10",
@@ -24,104 +14,113 @@ const VERDICT: Record<string, string> = {
   SKIP: "text-text-3 border-border bg-panel-2",
 };
 
+function fmtTime(iso: string | null): string {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+  catch { return "—"; }
+}
+
 export default function DartAutoPage() {
   const [signals, setSignals] = useState<DartSignal[]>([]);
   const [positions, setPositions] = useState<DartPosition[]>([]);
+  const [bot, setBot] = useState<DartBotStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [krw, setKrw] = useState("1000000");
-  const [auto, setAuto] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const sCtrl = useRef<AbortController | null>(null);
   const pCtrl = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    setAuto(localStorage.getItem(AUTO_KEY) === "1");
-    const v = localStorage.getItem(KRW_KEY); if (v) setKrw(v);
-  }, []);
+  const bCtrl = useRef<AbortController | null>(null);
 
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2800); }
 
   const loadPositions = useCallback(() => {
-    pCtrl.current?.abort();
-    const ctrl = new AbortController(); pCtrl.current = ctrl;
+    pCtrl.current?.abort(); const ctrl = new AbortController(); pCtrl.current = ctrl;
     getDartPositions(ctrl.signal).then(p => { if (!ctrl.signal.aborted) setPositions(p); }).catch(() => {});
   }, []);
 
-  async function buy(s: DartSignal, silent = false) {
-    if (!s.ticker) { if (!silent) flash("종목코드 없음"); return; }
-    const amt = parseFloat(krw) || 1000000;
-    if (!silent) setBusy(sigKey(s));
-    try {
-      const r = await mirrorDart(s.ticker, amt);
-      const set = loadSet(MIRRORED_KEY); set.add(sigKey(s));
-      localStorage.setItem(MIRRORED_KEY, JSON.stringify([...set]));
-      if (!silent) flash(`${s.corp_name} ${r.qty}주 모의 매수 (₩${r.price.toLocaleString()})`);
-      loadPositions();
-    } catch (e) {
-      if (!silent) flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`);
-    } finally {
-      if (!silent) setBusy(null);
-    }
-  }
-
-  const loadSignals = useCallback(() => {
-    sCtrl.current?.abort();
-    const ctrl = new AbortController(); sCtrl.current = ctrl;
-    setError(null);
-    getDartSignals(14, ctrl.signal)
-      .then(async d => {
-        if (ctrl.signal.aborted) return;
-        setSignals(d); setLoading(false);
-        // 자동추종: 신규 BUY(자사주 취득/소각)만 모의 매수 (사이클당 최대 5건)
-        if (localStorage.getItem(AUTO_KEY) === "1") {
-          const done = loadSet(MIRRORED_KEY);
-          const fresh = d.filter(s => s.verdict === "BUY" && s.ticker && !done.has(sigKey(s))).slice(0, 5);
-          for (const s of fresh) await buy(s, true);
-        }
-      })
-      .catch(e => { if (!ctrl.signal.aborted) { setError(e instanceof ApiError ? e.message : String(e)); setLoading(false); } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [krw]);
-
-  useEffect(() => {
-    loadSignals(); loadPositions();
-    const iv = setInterval(() => { loadSignals(); loadPositions(); }, 60_000);
-    return () => { clearInterval(iv); sCtrl.current?.abort(); pCtrl.current?.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadBot = useCallback(() => {
+    bCtrl.current?.abort(); const ctrl = new AbortController(); bCtrl.current = ctrl;
+    getDartBotStatus(ctrl.signal)
+      .then(b => { if (!ctrl.signal.aborted) { setBot(b); setKrw(String(b.budget)); } })
+      .catch(() => {});
   }, []);
 
-  function toggleAuto() { const n = !auto; setAuto(n); localStorage.setItem(AUTO_KEY, n ? "1" : "0"); }
+  const loadSignals = useCallback(() => {
+    sCtrl.current?.abort(); const ctrl = new AbortController(); sCtrl.current = ctrl;
+    setError(null);
+    getDartSignals(14, ctrl.signal)
+      .then(d => { if (!ctrl.signal.aborted) { setSignals(d); setLoading(false); } })
+      .catch(e => { if (!ctrl.signal.aborted) { setError(e instanceof ApiError ? e.message : String(e)); setLoading(false); } });
+  }, []);
+
+  useEffect(() => {
+    loadSignals(); loadPositions(); loadBot();
+    const iv = setInterval(() => { loadSignals(); loadPositions(); loadBot(); }, 60_000);
+    return () => { clearInterval(iv); sCtrl.current?.abort(); pCtrl.current?.abort(); bCtrl.current?.abort(); };
+  }, [loadSignals, loadPositions, loadBot]);
+
+  async function toggleBot() {
+    const next = !(bot?.enabled ?? false);
+    try {
+      await setDartBotConfig({ enabled: next, budget: parseFloat(krw) || 1000000 });
+      flash(next ? "서버 자동봇 ON — 브라우저 꺼도 실행" : "서버 자동봇 OFF");
+      loadBot();
+    } catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+  }
+
+  async function buy(s: DartSignal) {
+    if (!s.ticker) { flash("종목코드 없음"); return; }
+    const amt = parseFloat(krw) || 1000000;
+    const k = `${s.corp_name}:${s.action_type}:${s.date}`;
+    setBusy(k);
+    try { const r = await mirrorDart(s.ticker, amt); flash(`${s.corp_name} ${r.qty}주 모의 매수 (₩${r.price.toLocaleString()})`); loadPositions(); }
+    catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+    finally { setBusy(null); }
+  }
 
   const totalPl = positions.reduce((a, p) => a + (p.current - p.avg_price) * p.qty, 0);
+  const on = bot?.enabled ?? false;
 
   return (
     <div className="p-6 space-y-4">
       <div>
         <h1 className="text-text-1 text-lg font-semibold">DART 기업행위 오토파일럿</h1>
         <p className="text-text-3 text-sm mt-0.5">
-          한국 공시 실시간 감시 → <span className="text-pos">자사주 취득·소각(호재)=매수</span>, <span className="text-neg">유상증자(악재)=회피</span>. 개인 내부자 매매는 5영업일 지연이라 제외. <span className="text-warn">KIS 모의(페이퍼)</span>. 장외 공시가 그나마 개인에 유리(장중은 알고와 경쟁).
+          한국 공시 감시 → <span className="text-pos">자사주 취득·소각=매수</span>, <span className="text-neg">유상증자=회피</span>. 개인 내부자 매매는 5영업일 지연이라 제외. <span className="text-warn">KIS 모의</span>. 서버봇은 <span className="text-text-2">브라우저 꺼도</span> 로컬 서버(uvicorn)만 켜져 있으면 돎.
         </p>
       </div>
 
-      <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
-        <label className="text-text-3 text-xs">매수 예산</label>
-        <div className="relative">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">₩</span>
-          <input value={krw}
-            onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ""); setKrw(v); localStorage.setItem(KRW_KEY, v); }}
-            inputMode="numeric"
-            className="w-36 bg-panel-2 border border-border rounded pl-7 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
-        </div>
-        <button onClick={toggleAuto}
-          className={`text-xs px-3 py-1.5 rounded border ${auto ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
-          {auto ? "● 자동 매수 ON (모의)" : "자동 매수 OFF"}
+      {/* 서버 자동봇 */}
+      <div className="bg-panel border border-border rounded-lg px-4 py-3 flex items-center gap-3 flex-wrap">
+        <button onClick={toggleBot}
+          className={`text-sm font-medium px-4 py-1.5 rounded border ${on ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
+          {on ? "● 서버 자동봇 ON" : "서버 자동봇 OFF"}
         </button>
-        <span className="text-text-3 text-[11px]">신규 자사주 취득/소각 공시 자동 모의매수 (사이클당 최대 5건)</span>
+        <div className="flex items-center gap-1.5">
+          <label className="text-text-3 text-xs">매수 예산</label>
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">₩</span>
+            <input value={krw} onChange={e => setKrw(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric"
+              onBlur={() => on && setDartBotConfig({ budget: parseFloat(krw) || 1000000 })}
+              className="w-32 bg-panel-2 border border-border rounded pl-7 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+          </div>
+        </div>
+        {bot && (
+          <div className="flex items-center gap-3 text-[11px] text-text-3 ml-auto flex-wrap">
+            <span>장 {bot.market_open ? <span className="text-pos">열림</span> : "마감"}</span>
+            <span>마지막 실행 {fmtTime(bot.last_run)}</span>
+            <span>주기 {Math.round(bot.interval_sec / 60)}분</span>
+          </div>
+        )}
       </div>
+      {on && !bot?.market_open && (
+        <p className="text-text-3 text-[11px] px-1">ℹ️ 장 마감 중 — 자사주 신규 공시는 다음 개장 때 매수됨 (7일 내 공시 추적).</p>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+        {/* 공시 */}
         <div className="bg-panel border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
             <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">기업행위 공시 (최근 14일)</span>
@@ -144,7 +143,7 @@ export default function DartAutoPage() {
                 </thead>
                 <tbody>
                   {signals.map(s => {
-                    const k = sigKey(s);
+                    const k = `${s.corp_name}:${s.action_type}:${s.date}`;
                     return (
                       <tr key={k} className="border-b border-border/50 hover:bg-panel-2">
                         <td className="px-3 py-2 text-text-2 truncate max-w-[120px]">{s.corp_name}</td>
@@ -174,30 +173,57 @@ export default function DartAutoPage() {
             )}
         </div>
 
-        <div className="bg-panel border border-border rounded-lg overflow-hidden h-fit">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">모의 보유 (KIS)</span>
-            <span className={`text-xs font-data ${totalPl >= 0 ? "text-pos" : "text-neg"}`}>
-              {totalPl >= 0 ? "+" : ""}₩{Math.round(totalPl).toLocaleString()}
-            </span>
-          </div>
-          {positions.length === 0 ? (
-            <div className="p-6"><EmptyState message="보유 없음" hint="공시를 매수하면 여기 표시" /></div>
-          ) : (
-            <div className="divide-y divide-border/50">
-              {positions.map(p => (
-                <div key={p.code} className="px-4 py-2.5 flex items-center justify-between">
-                  <div>
-                    <div className="font-data text-text-1 text-sm font-semibold">{p.code}</div>
-                    <div className="text-text-3 text-[10px] font-data">{p.qty}주 · 평단 ₩{p.avg_price.toLocaleString()}</div>
-                  </div>
-                  <div className={`text-right font-data text-sm ${(p.return_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
-                    {p.return_pct != null ? `${p.return_pct >= 0 ? "+" : ""}${p.return_pct.toFixed(2)}%` : "—"}
-                  </div>
-                </div>
-              ))}
+        {/* 우측: 보유 + 봇 로그 */}
+        <div className="space-y-4">
+          <div className="bg-panel border border-border rounded-lg overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
+              <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">모의 보유 (KIS)</span>
+              <span className={`text-xs font-data ${totalPl >= 0 ? "text-pos" : "text-neg"}`}>
+                {totalPl >= 0 ? "+" : ""}₩{Math.round(totalPl).toLocaleString()}
+              </span>
             </div>
-          )}
+            {positions.length === 0 ? (
+              <div className="p-5"><EmptyState message="보유 없음" hint="공시를 매수하면 표시" /></div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {positions.map(p => (
+                  <div key={p.code} className="px-4 py-2.5 flex items-center justify-between">
+                    <div>
+                      <div className="font-data text-text-1 text-sm font-semibold">{p.code}</div>
+                      <div className="text-text-3 text-[10px] font-data">{p.qty}주 · 평단 ₩{p.avg_price.toLocaleString()}</div>
+                    </div>
+                    <div className={`text-right font-data text-sm ${(p.return_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
+                      {p.return_pct != null ? `${p.return_pct >= 0 ? "+" : ""}${p.return_pct.toFixed(2)}%` : "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 봇 실행 로그 */}
+          <div className="bg-panel border border-border rounded-lg overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border bg-panel-2">
+              <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">봇 실행 로그</span>
+            </div>
+            {!bot || bot.log.length === 0 ? (
+              <div className="p-5"><EmptyState message="로그 없음" hint="자동봇이 매수하면 기록됨" /></div>
+            ) : (
+              <div className="divide-y divide-border/50 max-h-[320px] overflow-y-auto">
+                {bot.log.map((l, i) => (
+                  <div key={i} className="px-4 py-2 text-xs flex items-start gap-2">
+                    <span className="text-text-3 font-data text-[10px] shrink-0 w-16">{fmtTime(l.ts)}</span>
+                    <span className="min-w-0">
+                      {l.kind === "buy" ? <span className="text-pos">매수 {l.corp} {l.code} {l.qty}주 @₩{l.price?.toLocaleString()}</span>
+                        : l.kind === "fail" ? <span className="text-neg">실패 {l.corp} {l.code} — {l.msg}</span>
+                        : l.kind === "config" ? <span className="text-text-3">설정 변경</span>
+                        : <span className="text-text-3">{l.msg ?? l.kind}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

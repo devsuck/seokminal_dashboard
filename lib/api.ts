@@ -1935,6 +1935,25 @@ export async function getDartPositions(signal?: AbortSignal): Promise<DartPositi
   const r = await fetch(`${API_URL}/dart/positions`, { signal });
   return handleResponse<DartPosition[]>(r);
 }
+export interface DartBotLog {
+  ts: string; kind: string; corp?: string; code?: string;
+  action?: string; qty?: number; price?: number; msg?: string;
+}
+export interface DartBotStatus {
+  enabled: boolean; budget: number; interval_sec: number;
+  last_run: string | null; market_open: boolean; acted_count: number; log: DartBotLog[];
+}
+export async function getDartBotStatus(signal?: AbortSignal): Promise<DartBotStatus> {
+  const r = await fetch(`${API_URL}/dart/auto/status`, { signal });
+  return handleResponse<DartBotStatus>(r);
+}
+export async function setDartBotConfig(cfg: { enabled?: boolean; budget?: number; interval_sec?: number }): Promise<{ ok: boolean }> {
+  const r = await fetch(`${API_URL}/dart/auto/config`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
+  });
+  return handleResponse(r);
+}
+
 export async function mirrorDart(code: string, krw: number): Promise<{ code: string; qty: number; price: number; status: string }> {
   const r = await fetch(`${API_URL}/dart/mirror`, {
     method: "POST", headers: { "Content-Type": "application/json" },
