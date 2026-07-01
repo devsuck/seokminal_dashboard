@@ -531,12 +531,15 @@ export default function AgentsPage() {
             <div className="space-y-1">
               <p className="text-text-3 text-[10px] uppercase tracking-wider">배정 금액 · {ccy}</p>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">{ccySym(ccy) || "USDC"}</span>
+                {ccySym(ccy) && (
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data pointer-events-none">{ccySym(ccy)}</span>
+                )}
                 <input
                   value={alloc} onChange={e => setAlloc(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"
                   placeholder={mkt === "KR" ? "1000000" : mkt === "CRYPTO" ? "1000" : "10000"}
-                  className="w-full bg-panel-2 border border-border rounded pl-8 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent"
+                  className={`w-full bg-panel-2 border border-border rounded ${ccySym(ccy) ? "pl-8" : "pl-2.5"} pr-14 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent`}
                 />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-3 text-[10px] font-data pointer-events-none">{ccy}</span>
               </div>
             </div>
             {/* Paper / Live toggle */}
