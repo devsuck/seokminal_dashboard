@@ -63,6 +63,7 @@ export function NavBar() {
         { href: "/spawner",   label: t("nav.spawner") },
         { href: "/workflow",  label: t("nav.workflow") },
         { href: "/agents",    label: t("nav.agents") },
+        { href: "/copytrade", label: "카피트레이드" },
       ],
     },
   ];

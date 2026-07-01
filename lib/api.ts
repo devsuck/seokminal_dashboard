@@ -1902,6 +1902,37 @@ export async function getGovContracts(days = 30, limit = 40, signal?: AbortSigna
   return handleResponse<GovContract[]>(r);
 }
 
+// ── Copy-Trade Autopilot (페이퍼) ────────────────────────────────────────────────
+
+export interface CopySignal {
+  source: string; name: string; role?: string | null;
+  ticker: string; trade_type: string; date: string;
+  disclosed?: string | null; amount?: string | null; link?: string | null;
+}
+
+export interface CopyPosition {
+  ticker: string; qty: number; avg_price: number; current: number;
+  market_value: number; unrealized_pl: number; unrealized_plpc: number;
+}
+
+export async function getCopySignals(limit = 60, signal?: AbortSignal): Promise<CopySignal[]> {
+  const r = await fetch(`${API_URL}/copytrade/signals?limit=${limit}`, { signal });
+  return handleResponse<CopySignal[]>(r);
+}
+
+export async function getCopyPositions(signal?: AbortSignal): Promise<CopyPosition[]> {
+  const r = await fetch(`${API_URL}/copytrade/positions`, { signal });
+  return handleResponse<CopyPosition[]>(r);
+}
+
+export async function mirrorCopyTrade(ticker: string, notional: number): Promise<{ order_id: string; ticker: string; notional: number; status: string }> {
+  const r = await fetch(`${API_URL}/copytrade/mirror`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticker, notional }),
+  });
+  return handleResponse(r);
+}
+
 // ── Economic Calendar ──────────────────────────────────────────────────────────
 
 export interface EconomicEvent {
