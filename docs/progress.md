@@ -24,6 +24,19 @@
 
 ---
 
+## Phase 83 — 시장>주식 차트에서 매매/알림 직접 + Events/KR 탭 제거 (2026-07-02) ✅ SHIPPED
+
+사용자: 차트에서 바로 매매·알림 하고 싶음. Events/KR 탭 의미없음.
+
+### 완료된 작업
+- `components/market/MarketWorkspace.tsx`: Chart 뷰를 **차트(좌) + 우측 매매/알림 패널**로. 우측 `💵 매매`/`🔔 알림` 서브토글 → TradeTab/AlertTab 인라인 (차트 안 떠나고 매매·알림)
+- 탭 축소: 검색 | Chart | Compare (기존 매매·알림·Events·KR 탭 제거). EventsTab/KRMarketsTab import 제거(컴포넌트는 보존)
+
+### 검증
+- tsc/빌드 OK. 방문확인: 차트+매매(모의/실계좌·매수매도·수량·예상금액), 알림(이상/이하·목표가) 인라인 정상
+
+---
+
 ## Phase 82 — DART 봇 비중 조절 (시그널 강도) (2026-07-02) ✅ SHIPPED
 
 "취득/소각 규모에 따라 비중" 요청. 정확한 금액은 공시유형별 상세 OpenDART API 필요+직접취득 희소·취약 → **시그널 강도 배율**로 실용 구현.
