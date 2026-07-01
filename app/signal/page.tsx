@@ -76,16 +76,29 @@ export default function SmartSignalPage() {
                 <div className="mt-3 text-center">
                   <div className="text-text-3 text-[11px] uppercase tracking-wider">제안 비중</div>
                   <div className="text-2xl font-data font-bold text-text-1">{data.suggested_position_pct}%</div>
+                  {data.sizing_constraint && (
+                    <div className="text-text-3 text-[10px] mt-0.5">
+                      {data.sizing_constraint === "cvar" ? "CVaR(꼬리손실)" : data.sizing_constraint === "cap" ? "상한(25%)" : "Kelly·변동성"} 제약
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* 근거 */}
             <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <div className="bg-panel border border-border rounded-lg p-3">
                   <div className="text-text-3 text-[11px] uppercase tracking-wider">레짐</div>
                   <div className={`text-sm font-semibold mt-1 ${regimeCls(data.current_regime)}`}>{regimeLabel(data.current_regime)}</div>
+                </div>
+                <div className="bg-panel border border-border rounded-lg p-3">
+                  <div className="text-text-3 text-[11px] uppercase tracking-wider">연 변동성</div>
+                  <div className="text-sm font-data font-semibold mt-1 text-text-1">{data.vol_annual_pct != null ? `${data.vol_annual_pct}%` : "—"}</div>
+                </div>
+                <div className="bg-panel border border-border rounded-lg p-3">
+                  <div className="text-text-3 text-[11px] uppercase tracking-wider">CVaR 95 (일간)</div>
+                  <div className="text-sm font-data font-semibold mt-1 text-neg">{data.cvar_95_pct != null ? `${data.cvar_95_pct}%` : "—"}</div>
                 </div>
                 <div className="bg-panel border border-border rounded-lg p-3">
                   <div className="text-text-3 text-[11px] uppercase tracking-wider">모멘텀 60일</div>

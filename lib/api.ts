@@ -1938,7 +1938,9 @@ export async function setKillSwitch(engaged: boolean, reason = "manual"): Promis
 export interface SmartSignal {
   instrument_id: string; verdict: string; current_regime: string;
   momentum_60d_pct?: number | null; price_vs_sma50_pct?: number | null;
-  kelly_half?: number | null; suggested_position_pct: number; notes: string[];
+  kelly_half?: number | null;
+  vol_annual_pct?: number | null; cvar_95_pct?: number | null; sizing_constraint?: string | null;
+  suggested_position_pct: number; notes: string[];
 }
 export async function getSmartSignal(instrumentId: string, signal?: AbortSignal): Promise<SmartSignal> {
   const r = await fetch(`${API_URL}/signal/smart?instrument_id=${encodeURIComponent(instrumentId)}`, { signal });
