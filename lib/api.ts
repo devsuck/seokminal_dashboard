@@ -1915,6 +1915,18 @@ export interface CopyPosition {
   market_value: number; unrealized_pl: number; unrealized_plpc: number;
 }
 
+// ── 스마트 시그널 (레짐+모멘텀+Kelly) ────────────────────────────────────────────
+
+export interface SmartSignal {
+  instrument_id: string; verdict: string; current_regime: string;
+  momentum_60d_pct?: number | null; price_vs_sma50_pct?: number | null;
+  kelly_half?: number | null; suggested_position_pct: number; notes: string[];
+}
+export async function getSmartSignal(instrumentId: string, signal?: AbortSignal): Promise<SmartSignal> {
+  const r = await fetch(`${API_URL}/signal/smart?instrument_id=${encodeURIComponent(instrumentId)}`, { signal });
+  return handleResponse<SmartSignal>(r);
+}
+
 // ── 성과 추적 ────────────────────────────────────────────────────────────────────
 
 export interface PerfPoint { date: string; equity: number; benchmark?: number | null; }

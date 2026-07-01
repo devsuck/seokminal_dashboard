@@ -37,6 +37,7 @@ export function NavBar() {
         { href: "/event-study",  label: t("nav.event-study") },
         { href: "/risk",         label: t("nav.risk") },
         { href: "/quant",        label: t("nav.quant") },
+        { href: "/signal",       label: "스마트 시그널" },
         { href: "/data-quality", label: t("nav.data-quality") },
       ],
     },
