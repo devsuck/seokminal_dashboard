@@ -24,6 +24,26 @@
 
 ---
 
+## Phase 81 — 서버측 DART 자동봇 (브라우저 무관) (2026-07-02) ✅ SHIPPED
+
+Phase 80 자동추종은 클라(탭 열어야 돎) → **서버측 봇**으로. 로컬 uvicorn 프로세스 안 asyncio 루프라 브라우저 꺼도 실행.
+
+### 완료된 작업
+- `api_server/dart_autobot.py` (신규): asyncio `_loop`(startup 등록), `tick()`(신규 자사주 취득·소각 → KIS 모의 매수, **KR 장중만**, 장외 공시는 다음 개장 때 매수, 7일 추적), 파일 영속 config(`data/dart_autobot.json`)+로그(`data/dart_autobot_log.jsonl`), 중복키 방지, 사이클당 ≤5
+- `main.py`: 라우터 등록 + `@app.on_event("startup")` 루프 시작
+- 엔드포인트 `/dart/auto/status|config|run-now`
+- `lib/api.ts`: DartBotStatus/DartBotLog + getDartBotStatus/setDartBotConfig
+- `app/dart-auto/page.tsx`: 클라 자동 제거 → **서버봇 ON/OFF 토글**(브라우저 꺼도 실행), 예산, 장상태·마지막실행·주기, **봇 실행 로그 패널**(매수/실패/설정 이력)
+
+### 서버·가시성 (사용자 질의)
+- "서버" = **로컬 uvicorn**(맥, :8000). 맥+uvicorn 켜져 있으면 탭 꺼도 돎. 맥 끄면 멈춤(24/7은 launchd/클라우드 후속)
+- 진행과정 = DART 자동매매 페이지 봇 로그 패널 + 터미널 uvicorn 로그
+
+### 검증
+- 백엔드 import OK, status 정상(enabled/market_open/log). FE tsc/빌드/190 tests OK
+
+---
+
 ## Phase 80 — DART 기업행위 오토파일럿 (페이퍼/KIS 모의) (2026-07-02) ✅ SHIPPED
 
 "기업행위만" 자동매매. 개인 내부자 매매는 **법정 5영업일 지연**이라 엣지 없어 제외(사용자 확정). 장외 공시가 개인에 유리(장중은 알고 경쟁).
