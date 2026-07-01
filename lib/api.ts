@@ -1920,7 +1920,7 @@ export interface CopyPosition {
 export interface DartSignal {
   corp_name: string; ticker?: string | null;
   action_type: string; action_label: string;
-  verdict: string; note: string; date: string; dart_url?: string | null;
+  verdict: string; note: string; weight: number; date: string; dart_url?: string | null;
 }
 export interface DartPosition {
   code: string; name: string; qty: number;

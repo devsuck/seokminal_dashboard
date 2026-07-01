@@ -72,7 +72,7 @@ export default function DartAutoPage() {
 
   async function buy(s: DartSignal) {
     if (!s.ticker) { flash("종목코드 없음"); return; }
-    const amt = parseFloat(krw) || 1000000;
+    const amt = Math.round((parseFloat(krw) || 1000000) * (s.weight || 1));
     const k = `${s.corp_name}:${s.action_type}:${s.date}`;
     setBusy(k);
     try { const r = await mirrorDart(s.ticker, amt); flash(`${s.corp_name} ${r.qty}주 모의 매수 (₩${r.price.toLocaleString()})`); loadPositions(); }
@@ -157,10 +157,15 @@ export default function DartAutoPage() {
                         <td className="px-3 py-2 text-text-3 font-data text-xs">{s.date}</td>
                         <td className="px-3 py-2 text-right">
                           {s.verdict === "BUY" && s.ticker ? (
-                            <button onClick={() => buy(s)} disabled={busy === k}
-                              className="text-[11px] px-2 py-1 rounded border border-pos/40 text-pos hover:bg-pos/10 disabled:opacity-40">
-                              {busy === k ? "…" : "모의 매수"}
-                            </button>
+                            <div className="flex items-center gap-2 justify-end">
+                              <span className="text-text-3 text-[10px] font-data" title="비중 배율 (소각 1.5×/취득 1×/신탁 0.6×)">
+                                {s.weight}× · ₩{Math.round((parseFloat(krw) || 0) * s.weight).toLocaleString()}
+                              </span>
+                              <button onClick={() => buy(s)} disabled={busy === k}
+                                className="text-[11px] px-2 py-1 rounded border border-pos/40 text-pos hover:bg-pos/10 disabled:opacity-40">
+                                {busy === k ? "…" : "모의 매수"}
+                              </button>
+                            </div>
                           ) : s.dart_url ? (
                             <a href={s.dart_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-text-3 hover:text-accent no-underline">DART ↗</a>
                           ) : null}
