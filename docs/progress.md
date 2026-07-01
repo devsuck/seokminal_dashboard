@@ -24,6 +24,23 @@
 
 ---
 
+## Phase 77 — 스윙-KR 실행 라우팅/통화 사이징 수정 ($20k 근본) (2026-07-01) ✅ SHIPPED
+
+$20k 근본 원인 규명: 스윙(LLM)은 `autopilot/agent_loop.sh`에서 실행되고 **주문 사이징을 "계좌 equity×10%"(공유 Alpaca USD equity) 기준**으로 함 → KR봇에 ₩1,000,000 배정해도 Alpaca 계좌 $100k의 10% ≈ $20k USD 주문. 라우팅(kr_order.sh=KIS)은 됐으나 금액 기준이 USD·계좌전체.
+
+### 완료된 작업
+- `autopilot/agent_loop.sh` (별도 repo, 커밋 113a3c4):
+  - `ALLOC`(5번째 인자) + `CCY`(KR→KRW/₩, US→USD/$) 도입
+  - 사이징 지시 "계좌 equity×10%" → **"배정자본×10%"** (시장 통화 기준), 프롬프트 헤더에 배정자본 명시, "통화·시장 교차 금지"
+- `api_server/router_autopilot.py` (multi-venue, ed7ad27):
+  - `start_agent`이 tmux 루프에 `account_alloc` 전달
+  - `daytrade_tick` venue를 agent.market으로 유추(profile.venue 없을 때) — 스윙·장투 KR이 US로 새던 것 방어 + 회귀 테스트
+
+### 검증
+- zsh 문법 OK. 백엔드 daytrade_tick/agents_api 11 passed (swing_kr_routes_to_kr 포함)
+
+---
+
 ## Phase 76 — AI 에이전트 폼 재설계 + 통화 인지 배정 (2026-07-01) ✅ SHIPPED
 
 문제: 배정에 통화 개념 없어 KR 스윙봇에 1,000,000(원 의도)이 USD로 취급돼 $20k 주문. 폼 혼란(단타(한국)/단타(HL) 등 혼합 4버튼). 카드 UI 정리 요청.
