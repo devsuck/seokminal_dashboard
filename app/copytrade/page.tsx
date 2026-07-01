@@ -35,6 +35,8 @@ export default function CopyTradePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notional, setNotional] = useState("500");
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"return" | "recent">("return");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -91,6 +93,17 @@ export default function CopyTradePage() {
 
   const totalPl = positions.reduce((a, p) => a + p.unrealized_pl, 0);
 
+  const latestDate = (t: TraderCard) =>
+    t.holdings.reduce((m, h) => (h.date > m ? h.date : m), "");
+
+  const shown = traders
+    .filter(t => t.name.toLowerCase().includes(query.trim().toLowerCase()))
+    .sort((a, b) =>
+      sortBy === "recent"
+        ? latestDate(b).localeCompare(latestDate(a))
+        : (b.avg_return_pct ?? -999) - (a.avg_return_pct ?? -999),
+    );
+
   return (
     <div className="p-6 space-y-4">
       <div>
@@ -110,6 +123,21 @@ export default function CopyTradePage() {
             className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
         </div>
         <span className="text-text-3 text-[11px]">팔로우 = 해당 인물 보유 종목 각각 이 금액만큼 페이퍼 매수</span>
+
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {/* 이름 검색 */}
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름 검색 (예: Pelosi)"
+            className="w-44 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-xs outline-none focus:border-accent" />
+          {/* 정렬 */}
+          <div className="flex rounded overflow-hidden border border-border">
+            {([["return", "수익률순"], ["recent", "최신순"]] as const).map(([v, label]) => (
+              <button key={v} onClick={() => setSortBy(v)}
+                className={`px-3 py-1.5 text-xs ${sortBy === v ? "bg-accent/15 text-accent" : "bg-panel-2 text-text-3 hover:text-text-2"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
@@ -118,9 +146,10 @@ export default function CopyTradePage() {
           {error ? <EmptyState message="트레이더 로드 실패" hint={error} />
             : loading ? <LoadingState message="수익률 계산 중… (거래일 종가 조회)" />
             : traders.length === 0 ? <EmptyState message="트레이더 없음" />
+            : shown.length === 0 ? <EmptyState message="검색 결과 없음" hint={`"${query}"`} />
             : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {traders.map(t => {
+                {shown.map(t => {
                   const key = t.source + t.name;
                   const isOpen = expanded === key;
                   return (
