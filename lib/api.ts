@@ -1915,6 +1915,20 @@ export interface CopyPosition {
   market_value: number; unrealized_pl: number; unrealized_plpc: number;
 }
 
+// ── 성과 추적 ────────────────────────────────────────────────────────────────────
+
+export interface PerfPoint { date: string; equity: number; benchmark?: number | null; }
+export interface PerfSummary {
+  points: PerfPoint[];
+  return_pct: number; mdd_pct: number; sharpe: number;
+  benchmark_return_pct?: number | null; excess_pct?: number | null;
+  start_equity: number; end_equity: number;
+}
+export async function getPerformance(period = "1M", signal?: AbortSignal): Promise<PerfSummary> {
+  const r = await fetch(`${API_URL}/performance/portfolio?period=${period}`, { signal });
+  return handleResponse<PerfSummary>(r);
+}
+
 // ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────
 
 export interface DartSignal {
