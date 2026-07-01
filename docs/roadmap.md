@@ -116,6 +116,9 @@
 **IB 마켓데이터 현황(2026-07-01, Non-Pro, 전부 Fee Waived $0):**
 - US Real-Time Non Consolidated Streaming Quotes(주식·비통합), Korea Exchange Stocks, IDEALPRO FX, US Mutual Funds, EU Equities, Bond Quotes
 - 없음: OPRA(옵션), CME 등 선물 → 옵션/선물 실데이터 시 이것들 추가 구독 (구독=안 써도 정액 월과금, US주식 번들은 월커미션 $30↑ 시 면제)
+- **스냅샷 온디맨드 대안**: 월정액 구독 없이 요청당 과금으로 시세 조회 가능(US주식 $0.01, 그외 $0.03/건, 월 첫 $1 무료). 옵션/선물 "가끔만" 볼 땐 구독보다 이게 쌈
+- 옵션/선물 add-on 전제조건 = `US Securities Snapshot & Futures Value Bundle`($10, 커미션 $30↑ 면제). 실거래 본격화 시 이것부터
+- 나중 선물 단타: **CME Real-Time L1**($1.55, 커미션 $20↑ 면제) 하나면 MES/MNQ 커버
 
 ## 새 세션 시작 방법
 

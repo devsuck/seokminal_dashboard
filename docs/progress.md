@@ -1,3 +1,22 @@
+## Phase 75 — 계좌 잔액 연동 버그 진단·수정 (2026-07-01) ✅ SHIPPED
+
+잔액 패널에서 자산이 안 뜬다는 사용자 지적 → 라이브 진단으로 원인별 분리.
+
+### 완료된 작업 (코드 버그)
+- `hyperliquid/trader.py get_positions` — spot USDC 조회가 `if not paper`로 **테스트넷에선 스킵**됨 → 파우셋(spot) 998 USDC가 0으로 표시. 가드 제거(양 네트워크 spot 포함, try/except). **검증: 테스트넷 998.97 USDC 정상 표시**
+- `backends/ib/client.py get_account_summary` — `reqAccountSummaryAsync()`가 간헐적 **0행 반환**(→$0) 확인. 비면 `reqAccountUpdatesAsync`+`accountValues(acct)` 폴백 추가 (라이브 검증은 샌드박스 IB 연결 행으로 미완, 코드/테스트는 통과)
+
+### 진단 결과 (계좌/설정 이슈 — 코드 아님)
+- **HL 테스트넷**: 파우셋 spot USDC가 0x71DC에 있었음(998) → 위 spot 버그였음 ✅ 수정
+- **HL 메인넷**: 127.2 USDC 정상. 패널 "—"는 서버 stale → 재시작 필요
+- **IB**: managed account U20595794 인식, reqAccountSummaryAsync 0행 → 폴백. 입금 정산/TWS 확인 병행
+- **KIS 모의**: `INVALID_CHECK_ACNO` 지속. 토큰은 통과(키 유효) → 계좌번호만 거부 = CANO가 이 모의 앱에 미등록/비활성(KIS 포털 측). CANO 형식은 정상(8자리+PRDT 01)
+
+### 검증
+- IB+HL 테스트 18 passed. HL 테스트넷 잔액 라이브 998 확인
+
+---
+
 ## Phase 74 — 뉴스 요약 정확도: summary 블러브 AI 전달 (2026-07-01) ✅ SHIPPED
 
 사용자 지적: AI가 **헤드라인만** 받아 요약 → 실내용과 다르게 해석 위험. Finnhub는 본문 없음(URL 링크), yahoo도 본문 없음.
