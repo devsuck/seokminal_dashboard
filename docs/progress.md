@@ -1,3 +1,36 @@
+## Phase 102 — TSMOM 13→32 시장 확장 → 🎯 첫 EDGE 후보 (2026-07-02) ✅ SHIPPED
+
+사용자 판단: TSMOM 트랙 폐기 말고 **데이터 확장**(튜닝 아님). TSMOM 핵심=넓은 분산, 13시장은 작음.
+
+### 데이터 확장 (audit→pull)
+- futures_audit 넓은 후보 32개 → **전부 IB 구독없이 반환**(소프트 KC/SB/CT/CC·축산 LE/HE 포함, NYBOT/ICE도 됨)
+- futures_loader BASKET 32시장(7 자산군) + ASSET_CLASS 맵. 깊이 2.5~5년. ⚠️ **20년은 IB 불가**(유료 데이터 필요=별도결정)
+- run_tsmom에 자산군 분해 추가
+
+### 판정: 첫 EDGE 후보 (파라미터 고정, 13→32 확장만)
+```
+TSMOM(32)  SHARPE 0.562  ann_ret 5.1%  maxDD −17%
+buyhold    SHARPE 0.124  ← 압도    cash 0
+vs random  95.5pct  p=0.0498  ← 처음으로 통과
+walk-forward 전반 0.453 / 후반 0.423  ← 둘 다 양수·안정(13시장땐 후반 −0.053)
+비용 스트레스: 2→20bps에서도 sharpe 0.47/99pct = 저비용 아티팩트 아님
+```
+- **11개 만에 첫 사전등록 기준 통과 + 비용 robust.** 13→32 분산이 노이즈 평균내 엣지 안정화
+- 자산군: **softs 1.10 / equity 0.69 / energy 0.38 견인**, metals/livestock 약, grains 0, **rates −0.05(죽음)**
+
+### 상태: paper_candidate (registry). live 금지·paper 배포도 아직
+- 남은 경계: 히스토리 얇음(2.5~5년, WF반쪽 ~1.25년) / p=0.05 딱걸침(보수비용선 더 나음) / softs·equity 집중 / N=200
+- **agentic-roadmap Lv3 진입조건 처음 충족** — 근데 바로 Lv3 아니라 **로버스트니스 먼저**(원본 OOS 성역)
+
+### 다음 (paper 전 로버스트니스, 튜닝 아님)
+1. N=1000 random(p 조이기) 2. lookback 민감도(3/6/12mo 엣지 유지되나) 3. 서브피리어드 안정성 4. (선택)유료 장기데이터
+- 통과 지속 시 → paper forward-test → 그다음에야 Lv3 주변탐색 논의(과적합 가드)
+
+### 검증
+- 백엔드 486 passed / 4 pre-existing. 커밋 c649d45
+
+---
+
 ## Phase 101 — 선물 TSMOM 트랙 (audit→로더→판정, REJECT 최고근접) (2026-07-02) ✅ SHIPPED
 
 로드맵 "다음 알파 #1 선물 TSMOM" 실행. 15m 단타보다 그럴듯한 트랙.
