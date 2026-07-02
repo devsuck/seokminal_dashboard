@@ -13,6 +13,11 @@
 ### 검증
 - FE tsc/빌드/190 tests. 백엔드 490 passed/4 pre-existing. 방문검증(read_page): 실험표 12·상태칩·TSMOM 패널 전부 정상 렌더. 커밋 4915e76/a836fd0
 
+### 후속 — 월간 forward 리포트 첫 실행 + 원장 커밋 전환 (커밋 83b8ba2)
+- `tsmom_forward.py --since` 첫 실행: 최근월 2026-06 −1.46%/2026-07 −0.04% 둘 다 **in_envelope**(P10 −1.9%~P90 +3.3% 안), regime 0.774(트렌딩). ※ 아직 진짜 forward 아님(데이터 오늘까지=백테스트 꼬리), 진짜 forward는 다음 달 pull부터
+- **`tsmom_forward_ledger.jsonl`을 git 추적 대상으로 전환**(`.gitignore`에서 제거) → 월간 리포트 append가 git 히스토리로 forward 증거 영속화. 리포트md는 계속 ignore(재생성물). 원장 = 관찰 시작점 baseline 1줄로 정리
+- 원장 2개 분리: `experiment_registry`(가설 상태) / `tsmom_forward_ledger`(월간 forward 관찰) — 둘 다 추적
+
 ---
 
 ## Phase 103 — TSMOM 로버스트니스 통과 → paper_candidate 확정 + forward-test 인프라 (2026-07-02) ✅ SHIPPED
