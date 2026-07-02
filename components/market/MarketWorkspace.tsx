@@ -27,6 +27,7 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
   const [activeSymbol, setActiveSymbol] = useState(initialSymbol ?? DEFAULT_SYMBOLS[0]);
   const [activeTab, setActiveTab] = useState<Tab>("chart");
   const [side, setSide] = useState<"trade" | "alert">("trade");
+  const [sideOpen, setSideOpen] = useState(true);
 
   useEffect(() => {
     const list = getWatchlist();
@@ -73,20 +74,26 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
 
   return (
     <div className="flex h-[calc(100vh-96px)] overflow-hidden">
-      {/* Left: Watchlist sidebar */}
-      <WatchlistSidebar
-        symbols={watchlist}
-        activeSymbol={activeSymbol}
-        onSymbolSelect={handleSymbolSelect}
-        onCompare={() => setActiveTab("compare")}
-        onAdd={handleAdd}
-        onRemove={handleRemove}
-      />
+      {/* Left: Watchlist sidebar (열었다 닫기) */}
+      {sideOpen && (
+        <WatchlistSidebar
+          symbols={watchlist}
+          activeSymbol={activeSymbol}
+          onSymbolSelect={handleSymbolSelect}
+          onCompare={() => setActiveTab("compare")}
+          onAdd={handleAdd}
+          onRemove={handleRemove}
+        />
+      )}
 
       {/* Right: Tab header + content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Tab navigation */}
         <div className="flex items-center border-b border-border px-4 bg-panel shrink-0">
+          <button onClick={() => setSideOpen(o => !o)} title={sideOpen ? "워치리스트 접기" : "워치리스트 열기"}
+            className="mr-2 w-7 h-7 flex items-center justify-center rounded text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer">
+            {sideOpen ? "◀" : "▶"}
+          </button>
           {TABS.map(tab => (
             <button
               key={tab.id}

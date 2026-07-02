@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DateRangePicker } from "@/components/DateRangePicker";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState } from "@/components/ui";
 import {
@@ -35,6 +34,16 @@ interface ChartTabProps {
   onAddToWatchlist?: (symbol: string) => void;
   isInWatchlist?: boolean;
 }
+
+// 바 간격 타임프레임. US=IB(전부), KR=하루/1달(KIS).
+const TIMEFRAMES = [
+  { id: "1m",  label: "1분",   bar: "1 min" as const,   dur: "2 D" },
+  { id: "15m", label: "15분",  bar: "15 mins" as const, dur: "5 D" },
+  { id: "1h",  label: "1시간", bar: "1 hour" as const,  dur: "1 M" },
+  { id: "4h",  label: "4시간", bar: "4 hours" as const, dur: "3 M" },
+  { id: "1d",  label: "하루",  bar: "1 day" as const,   dur: "2 Y" },
+  { id: "1M",  label: "1달",   bar: "1 month" as const, dur: "10 Y" },
+];
 
 function oneYearAgo(): string {
   const d = new Date();
@@ -76,6 +85,7 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [liveStatus, setLiveStatus] = useState<"off" | "live">("off");
+  const [tf, setTf] = useState("1d");
   const abortRef = useRef<AbortController | null>(null);
 
   // Overlay indicators
@@ -127,73 +137,59 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
     return () => document.removeEventListener("mousedown", handler);
   }, [panelOpen]);
 
-  async function loadBars(overrideStart?: string, overrideEnd?: string) {
+  async function loadBars(tfId: string) {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setLoading(true); setError(null); setBars([]);
 
-    const s = overrideStart ?? start;
-    const e = overrideEnd ?? end;
-
-    // Helper: check if result is "no data"
-    function isNoData(msg: string) {
-      return msg.includes("no bars found") || msg.includes("No bars") || msg.includes("not found");
-    }
-
-    try {
-      // 1st try: local catalog
-      const res = await getBars(symbol, s, e, undefined, ctrl.signal);
-      if (res.bars.length > 0) { setBars(res.bars); return; }
-      // empty result → fall through to live fetch
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      const msg = err instanceof ApiError ? err.message : String(err);
-      if (!isNoData(msg)) { setError(msg); setLoading(false); return; }
-      // "no bars" → fall through to live fetch
-    }
-
-    // 2nd try: live API based on venue
+    const cfg = TIMEFRAMES.find(t => t.id === tfId) ?? TIMEFRAMES[4];
     const venue = symbol.split(".").slice(1).join(".");
+    const isDaily = tfId === "1d";
+    const isIntraday = ["1m", "15m", "1h", "4h"].includes(tfId);
+
     try {
       if (venue === "XKRX") {
-        // KR stock via KIS API
+        // KR: 하루/1달만 (KIS 일봉). 인트라데이 미지원.
+        if (isIntraday) {
+          setError("KR 인트라데이는 아직 미지원 — 하루/1달만 (미국은 IB로 분봉 지원)");
+          setLoading(false); return;
+        }
         const code = symbol.split(".")[0];
-        const dayRange = Math.round((new Date(e).getTime() - new Date(s).getTime()) / 86_400_000);
-        const days = Math.max(dayRange, 365);
-        const res = await getKRBars(code, days, ctrl.signal);
+        const res = await getKRBars(code, tfId === "1M" ? 1800 : 730, ctrl.signal);
         if (res.bars.length === 0) throw new Error("빈 응답");
         setBars(res.bars.map(krBarToBarOut));
-      } else {
-        // US stock via IB
-        const usSymbol = symbol.split(".")[0];
-        const months = Math.round((new Date(e).getTime() - new Date(s).getTime()) / (86_400_000 * 30));
-        const duration = `${Math.max(months, 12)} M`;
-        const res = await getIBBars(
-          { symbol: usSymbol, asset_type: "stock", duration, bar_size: "1 day" },
-          ctrl.signal,
-        );
+      } else if (isDaily) {
+        // US 하루: 로컬 catalog 우선(빠름) → 없으면 IB 일봉
+        try {
+          const res = await getBars(symbol, oneYearAgo(), today(), undefined, ctrl.signal);
+          if (res.bars.length > 0) { setBars(res.bars); return; }
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+        }
+        const res = await getIBBars({ symbol: symbol.split(".")[0], asset_type: "stock", duration: "2 Y", bar_size: "1 day" }, ctrl.signal);
         if (res.bars.length === 0) throw new Error("빈 응답");
+        setBars(res.bars.map(ibBarToBarOut));
+      } else {
+        // US 분봉/월봉: IB
+        const res = await getIBBars({ symbol: symbol.split(".")[0], asset_type: "stock", duration: cfg.dur, bar_size: cfg.bar }, ctrl.signal);
+        if (res.bars.length === 0) throw new Error("빈 응답 (IB 연결·구독 확인)");
         setBars(res.bars.map(ibBarToBarOut));
       }
     } catch (err2) {
       if (err2 instanceof DOMException && err2.name === "AbortError") return;
       const msg2 = err2 instanceof Error ? err2.message : String(err2);
-      setError(`'${symbol}' 데이터 로드 실패: ${msg2}`);
+      setError(`'${symbol}' ${cfg.label} 로드 실패: ${msg2}`);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
   }
 
   useEffect(() => {
-    const fiveYearsAgo = (() => {
-      const d = new Date(); d.setFullYear(d.getFullYear() - 5);
-      return d.toISOString().slice(0, 10);
-    })();
-    loadBars(fiveYearsAgo, today());
+    loadBars(tf);
     return () => { abortRef.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol]);
+  }, [symbol, tf]);
 
   // ── Real-time last-candle update (US=Finnhub poll, KR=KIS ws) ─────────────
   function applyLivePrice(price: number) {
@@ -252,24 +248,6 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, bars.length]);
 
-  const PRESETS = [
-    { label: "1M",  months: 1 },
-    { label: "3M",  months: 3 },
-    { label: "6M",  months: 6 },
-    { label: "1Y",  months: 12 },
-    { label: "3Y",  months: 36 },
-    { label: "5Y",  months: 60 },
-    { label: "ALL", months: 120 },
-  ];
-
-  function applyPreset(months: number) {
-    const e = today();
-    const d = new Date();
-    d.setMonth(d.getMonth() - months);
-    setStart(d.toISOString().slice(0, 10));
-    setEnd(e);
-  }
-
   // Active indicators list for chips
   const activeIndicators = [
     showSma && { key: "sma", label: `SMA ${smaPeriod}`, onRemove: () => setShowSma(false) },
@@ -288,24 +266,18 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      {/* Row 1: Timeframe presets + date range + load + backtest + bar count */}
+      {/* Row 1: 타임프레임(바 간격) + 백테스트 */}
       <div className="flex items-center gap-1 flex-wrap">
-        {PRESETS.map(p => (
+        {TIMEFRAMES.map(t => (
           <button
-            key={p.label}
-            onClick={() => applyPreset(p.months)}
-            className="px-2.5 py-1 text-xs font-medium rounded border border-border text-text-3 hover:text-accent hover:border-accent bg-panel-2 transition-colors"
-          >{p.label}</button>
+            key={t.id}
+            onClick={() => setTf(t.id)}
+            className={`px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+              tf === t.id ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-accent hover:border-accent bg-panel-2"
+            }`}
+          >{t.label}</button>
         ))}
-        <span className="text-border text-xs ml-2">|</span>
-        <span className="text-text-3 text-[11px] uppercase tracking-wider ml-2">Custom</span>
-        <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <button
-          onClick={() => loadBars()}
-          className="px-4 h-7 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0"
-        >
-          {loading ? "…" : "Load"}
-        </button>
+        <span className="text-border text-xs ml-1">|</span>
         <button
           onClick={() => {
             const params = new URLSearchParams({ instrument: symbol, start, end });

@@ -131,7 +131,9 @@ function CryptoSidebar({
 
 // ── Chart Panel ────────────────────────────────────────────────────────────────
 
-const INTERVALS = ["1d", "4h", "1h", "15m"] as const;
+const INTERVALS = ["1m", "15m", "1h", "4h", "1d", "1M"] as const;
+const IV_LABEL: Record<string, string> = { "1m": "1분", "15m": "15분", "1h": "1시간", "4h": "4시간", "1d": "하루", "1M": "1달" };
+const IV_DAYS: Record<string, number> = { "1m": 1, "15m": 5, "1h": 30, "4h": 90, "1d": 180, "1M": 365 };
 
 function CoinChartPanel({ coin }: { coin: string }) {
   const [interval, setInterval] = useState<typeof INTERVALS[number]>("1d");
@@ -146,7 +148,7 @@ function CoinChartPanel({ coin }: { coin: string }) {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setLoading(true); setError(null); setResult(null);
-    getCryptoCandles(coin, interval, 90, ctrl.signal)
+    getCryptoCandles(coin, interval, IV_DAYS[interval] ?? 90, ctrl.signal)
       .then(r => { if (!ctrl.signal.aborted) setResult(r); })
       .catch(e => {
         if (e instanceof DOMException && e.name === "AbortError") return;
@@ -186,7 +188,7 @@ function CoinChartPanel({ coin }: { coin: string }) {
               className={`px-2 py-0.5 text-[11px] rounded border-0 cursor-pointer transition-colors ${
                 interval === iv ? "bg-accent/10 text-accent border border-accent/30" : "bg-transparent text-text-3 hover:text-text-1"
               }`}>
-              {iv}
+              {IV_LABEL[iv] ?? iv}
             </button>
           ))}
         </div>
