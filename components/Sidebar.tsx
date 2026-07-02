@@ -96,11 +96,25 @@ export function Sidebar() {
 
   const NAV_GROUPS: NavGroup[] = [
     { label: t("nav.dashboard"), icon: <IconDashboard />, href: "/dashboard" },
+    // 🔬 검증 = 핵심. 검증 터미널 + 백테스트 도구. 대시보드 바로 다음(최상단).
     {
-      label: t("nav.market"), icon: <IconMarket />,
+      label: "🔬 검증", icon: <IconBacktest />,
       items: [
-        { href: "/market", label: t("nav.market") },
-        { href: "/ib",     label: t("nav.ib") },
+        { href: "/validation",       label: "검증 터미널" },
+        { href: "/backtest",         label: t("nav.backtest") },
+        { href: "/backtest/compare", label: t("nav.compare") },
+        { href: "/universe",         label: t("nav.universe") },
+        { href: "/pairs",            label: "페어(공적분)" },
+        { href: "/portfolio",        label: t("nav.portfolio") },
+      ],
+    },
+    {
+      label: t("nav.analyze"), icon: <IconAnalyze />,
+      items: [
+        { href: "/quant",        label: t("nav.quant") },
+        { href: "/signal",       label: "스마트 시그널" },
+        { href: "/event-study",  label: t("nav.event-study") },
+        { href: "/data-quality", label: t("nav.data-quality") },
       ],
     },
     {
@@ -112,30 +126,10 @@ export function Sidebar() {
       ],
     },
     {
-      label: t("nav.analyze"), icon: <IconAnalyze />,
-      items: [
-        { href: "/quant",        label: t("nav.quant") },
-        { href: "/signal",       label: "스마트 시그널" },
-        { href: "/validation",   label: "검증 터미널" },
-        { href: "/event-study",  label: t("nav.event-study") },
-        { href: "/data-quality", label: t("nav.data-quality") },
-      ],
-    },
-    {
       label: t("nav.strategy"), icon: <IconStrategy />,
       items: [
         { href: "/notebooks", label: t("nav.notebooks") },
         { href: "/report",    label: t("nav.report") },
-      ],
-    },
-    {
-      label: t("nav.backtest-group"), icon: <IconBacktest />,
-      items: [
-        { href: "/backtest",         label: t("nav.backtest") },
-        { href: "/backtest/compare", label: t("nav.compare") },
-        { href: "/universe",         label: t("nav.universe") },
-        { href: "/pairs",            label: "페어(공적분)" },
-        { href: "/portfolio",        label: t("nav.portfolio") },
       ],
     },
     {
@@ -149,6 +143,14 @@ export function Sidebar() {
         { href: "/dart-auto", label: "DART 자동매매" },
         { href: "/performance", label: "성과 추적" },
         { href: "/risk-guard", label: "리스크 관리" },
+      ],
+    },
+    // 📉 차트 = 강등. 재량적 차트 분석은 TradingView가 빠름 → 여기선 보조.
+    {
+      label: "📉 차트 (TV 권장)", icon: <IconMarket />,
+      items: [
+        { href: "/market", label: t("nav.market") },
+        { href: "/ib",     label: t("nav.ib") },
       ],
     },
   ];
