@@ -1,3 +1,29 @@
+## Phase 110 — 자사주 PIT/survivorship-free 검증 → PAPER 후보 (2번째 생존 엣지) (2026-07-02) ✅ SHIPPED
+
+Phase 109 자사주 WATCHLIST를 KRX PIT로 제대로 검증. KOSPI 스냅샷도 pull(486일).
+
+### PIT buyback (전체 코스피+코스닥, survivorship-free)
+- `run_kr_dart_buyback_pit`: KRX 시계열(폐지종목 활동기간 포함)로 포워드수익 재계산, 매칭 random·비용·WF·유상증자 대조
+```
+2906종목 | buyback n=1735 net +1.73% random 97.0pct p=0.032 | 50bps p=0.036
+WF 전반 +1.31/후반 +2.15(양쪽) | 대조 유상증자 +0.10(base)/−0.50(stress)
+```
+- 편향 제거로 FDR p0.002→0.032 약해졌으나 **95pct+p<0.05+WF양쪽+비용스트레스 다 통과**
+- **급등주를 죽인 같은 PIT 테스트에서 자사주는 생존 = 편향 착시 아닌 진짜 엣지.** 전세계 buyback anomaly와 일치
+
+### 결과: 2번째 생존 엣지 (TSMOM 다음)
+- 검증 통과 = TSMOM(선물) + **자사주(KR 공시 이벤트)**. "차트 파동 죽고 공시 이벤트 살아남음" 증명
+- 현황 15가설: REJECT 11 / BLOCKED 1 / 후보 3(TSMOM paper·candidate·**자사주 PIT watchlist→paper**)
+
+### 다음 (paper 전 로버스트니스, TSMOM처럼)
+- holding 민감도(20d 임의?) · N=1000 random · 기간/섹터 집중도 · 관리종목 필터 · 소형주 실비용
+- 통과 지속 시 → paper forward-test 후보 등록
+
+### 검증
+- 백엔드 테스트 유지. 커밋 633aca6
+
+---
+
 ## Phase 109 — KRX 공식 API 통합: 급등주 PIT REJECT 확정 + buyback WATCHLIST (2026-07-02) ✅ SHIPPED
 
 사용자가 `.env`에 KRX_API_KEY 제공했었음(내가 pykrx/FDR 오용, 안 씀). KRX 공식 OpenAPI(data-dbg.krx.co.kr)로 전환.
