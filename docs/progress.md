@@ -1,3 +1,21 @@
+## Phase 105 — Nav 재배치: 검증 터미널 중심, 차트 강등 (2026-07-02) ✅ SHIPPED
+
+방향: 재량적 차트 분석은 TradingView(+MCP)가 빠름 → 경쟁 안 함. 플랫폼 moat = 엣지 검증(random 분포·WF·BH·cost stress, TV 불가). 차트/마켓은 강등, 검증 중심 재배치.
+
+### 변경 (`components/Sidebar.tsx`, NavBar 없음=Sidebar 단일)
+- **🔬 검증 그룹 신설** — 대시보드 바로 다음(최상단권): 검증 터미널(/validation) + 백테스트 도구(backtest/compare/universe/pairs/portfolio 흡수)
+- 분석 그룹에서 validation 이동 / 기존 backtest-group 해체(검증 그룹으로)
+- **📉 차트(TV 권장) 그룹 = 맨 아래 강등**: /market, /ib
+- 방문검증(read_page): 대시보드 다음 첫 그룹=검증(검증터미널 최상단), 차트 최하단
+
+### 검증
+- FE tsc/빌드 OK. 커밋 3a9d1c6
+
+### 포지셔닝 확정
+- TV로 차트 보고(상류) → 여기서 엣지 판정(하류). 차트 속도로 TV 이기려는 경쟁 폐기
+
+---
+
 ## Phase 104 — 검증 터미널 UI (2026-07-02) ✅ SHIPPED
 
 로드맵 제품트랙 Week2. research 산출물을 UI로. "돈 버는 봇" 아니라 "전략 검증 터미널" 포지셔닝 실체화.
