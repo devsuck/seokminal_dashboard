@@ -1,3 +1,31 @@
+## Phase 111 — KR buyback 로버스트니스(N=1000·아웃라이어·forward모듈) (2026-07-02) ✅ SHIPPED
+
+paper_candidate 확정 후 로버스트니스. next_open만 판정근거(ann/next_close는 lookahead/아웃라이어).
+
+### #1 N=1000 + #2 아웃라이어/중앙값
+```
+평균 +1.73%(상위5% 기여 114%=팻테일) | 중앙값 +0.19% | trimmed +0.77% | 승률 51%
+N=1000 평균 p=0.028 | N=1000 중앙값 p=0.001(랜덤중앙 −0.94% 크게 이김)
+```
+- 평균은 아웃라이어 왜곡, but 중앙값도 랜덤 이김 = 엣지는 진짜(착시 아님)
+
+### #4 forward-test 모듈(완결필터=더 정직)
+- `research/paper/buyback_forward` + `buyback_config`(FROZEN): 월 코호트 중앙값 + envelope
+- 완결(20일)만: mean +1.42%(팻테일), **median −0.086%(breakeven)**, 승률 49.7%. 앞 median +0.19%는 부분보유 부풀림
+- **정직한 그림: 엣지는 median 아닌 팻테일 의존, 절대 median 본전이나 랜덤(−0.94%)보다 나음.** 기대치 하향
+
+### 로버스트니스 분해
+- 진입타이밍: next_open +1.73%(frozen) / **delayed_open p=0.156 소멸(타이밍 민감=핵심리스크)**
+- 공시유형(직접+1.97/신탁+1.61)·시장(KOSPI+1.35/KOSDAQ+2.02)·시총(대형+3.3 최강)·issuer 674개 = 다 양수·분산
+
+### 판정: paper_candidate 유지 (노란불)
+- 랜덤 이김 + 경제적근거 진짜 = REJECT 아님. 근데 절대수익 modest(테일의존)·타이밍 민감 = forward-test로 검증
+- config 동결, 분해로 튜닝 금지. 커밋 4b2ea22·90ca267
+
+### 다음: #3 취득금액(OpenDART tsstkAqDcsn) size/marcap/ADV 분해
+
+---
+
 ## Phase 110 — 자사주 PIT/survivorship-free 검증 → PAPER 후보 (2번째 생존 엣지) (2026-07-02) ✅ SHIPPED
 
 Phase 109 자사주 WATCHLIST를 KRX PIT로 제대로 검증. KOSPI 스냅샷도 pull(486일).
