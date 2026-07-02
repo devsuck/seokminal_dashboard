@@ -1,3 +1,28 @@
+## Phase 108 — KR 이벤트윈도우 게이트 → survivorship 편향 폭로, 사실상 REJECT (2026-07-02) ✅ SHIPPED
+
+Phase 107의 delisted 통제 무효(전체평균 게이트가 펌프주 제외) → 게이트를 **20일 롤링평균 최대치**로 교체 → delisted 1→39개 제대로 포함.
+
+### 결과 (survivorship 통제 제대로 작동)
+| | survivor만(편향) | 이벤트윈도우(통제) |
+|---|---|---|
+| 트레이드 | 211 | 250(211+39 delisted) |
+| net base | +2.28% | +1.42% ↓ |
+| vs random | 90.8pct p=0.094 | 86.6pct **p=0.136** ↓ |
+| severe 100bps | +0.68% | **−0.18%(음수)** |
+| delisted net | +13%(n=1) | **−2.99%(n=39)** |
+
+- **폐지종목이 그 순간 유동성 기준으로 들어오니 결과 하락.** delisted 평균 −2.99%(펌프후 죽은 종목 손실) = survivor-only 양수는 상방편향 확증
+- 통제 후 **p=0.136 = 매칭 random과 구분 안 됨.** severe 비용 음수
+
+### 판정: 사실상 REJECT
+- 러너는 86.6pct→"WEAK"이나 정직하겐 REJECT — p=0.136 유의X, 극단비용 음수, delisted −3%가 편향 확증. **KR Liquidity Wave는 제대로 된 survivorship 통제 후 매칭 random 못 이김**
+- 방법론 성공: 편향 잡고→게이트 고치고→정직한 답. survivor-only였으면 WEAK 후보로 착각했을 것
+
+### 검증
+- KR detector 5 유지. 커밋 51bfbf2
+
+---
+
 ## Phase 107 — KR Liquidity Wave survivorship 통제 재검증 (WEAK 유지, 통제 불완전) (2026-07-02) ✅ SHIPPED
 
 survivorship 통제 = 상장폐지 KOSDAQ(2022+) 포함(펌프→폭락→상폐 이벤트로 상방편향 제거).
