@@ -28,6 +28,7 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
   const [activeTab, setActiveTab] = useState<Tab>("chart");
   const [side, setSide] = useState<"trade" | "alert">("trade");
   const [sideOpen, setSideOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   useEffect(() => {
     const list = getWatchlist();
@@ -125,22 +126,31 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
                   isInWatchlist={watchlist.includes(activeSymbol)}
                 />
               </div>
-              {/* 우측: 매매 / 알림 (차트에서 바로) */}
-              <div className="w-[340px] border-l border-border flex flex-col shrink-0">
-                <div className="flex border-b border-border shrink-0">
-                  {([["trade", "💵 매매"], ["alert", "🔔 알림"]] as const).map(([v, label]) => (
-                    <button key={v} onClick={() => setSide(v)}
-                      className={`flex-1 py-2.5 text-sm border-b-2 bg-transparent cursor-pointer transition-colors ${
-                        side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
-                      }`}>
-                      {label}
-                    </button>
-                  ))}
+              {/* 우측: 매매 / 알림 (차트에서 바로, 접었다 펴기) */}
+              {rightOpen ? (
+                <div className="w-[340px] border-l border-border flex flex-col shrink-0">
+                  <div className="flex items-center border-b border-border shrink-0">
+                    {([["trade", "💵 매매"], ["alert", "🔔 알림"]] as const).map(([v, label]) => (
+                      <button key={v} onClick={() => setSide(v)}
+                        className={`flex-1 py-2.5 text-sm border-b-2 bg-transparent cursor-pointer transition-colors ${
+                          side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
+                        }`}>
+                        {label}
+                      </button>
+                    ))}
+                    <button onClick={() => setRightOpen(false)} title="매매/알림 접기"
+                      className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {side === "trade" ? <TradeTab symbol={activeSymbol} /> : <AlertTab symbol={activeSymbol} />}
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                  {side === "trade" ? <TradeTab symbol={activeSymbol} /> : <AlertTab symbol={activeSymbol} />}
-                </div>
-              </div>
+              ) : (
+                <button onClick={() => setRightOpen(true)} title="매매/알림 열기"
+                  className="w-8 border-l border-border shrink-0 flex items-center justify-center text-text-3 hover:text-text-1 bg-panel cursor-pointer border-y-0 border-r-0">
+                  ◀
+                </button>
+              )}
             </div>
           )}
           {activeTab === "compare" && <ComparisonTab symbols={watchlist} />}
