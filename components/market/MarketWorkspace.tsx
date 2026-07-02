@@ -147,8 +147,9 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
                 </div>
               ) : (
                 <button onClick={() => setRightOpen(true)} title="매매/알림 열기"
-                  className="w-8 border-l border-border shrink-0 flex items-center justify-center text-text-3 hover:text-text-1 bg-panel cursor-pointer border-y-0 border-r-0">
-                  ◀
+                  className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
+                  <span className="text-sm">◀</span>
+                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}>💵 매매 · 알림</span>
                 </button>
               )}
             </div>

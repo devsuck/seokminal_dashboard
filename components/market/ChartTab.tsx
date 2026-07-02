@@ -179,7 +179,12 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
     } catch (err2) {
       if (err2 instanceof DOMException && err2.name === "AbortError") return;
       const msg2 = err2 instanceof Error ? err2.message : String(err2);
-      setError(`'${symbol}' ${cfg.label} 로드 실패: ${msg2}`);
+      // 미국 분봉/월봉은 IB(TWS) 필요 — 연결 안 되면 친절히 안내
+      if (!isDaily && venue !== "XKRX") {
+        setError(`미국 ${cfg.label} 차트는 IB(TWS) 연결이 필요합니다. TWS를 켜고 다시 선택하세요. (하루봉은 TWS 없이도 표시)`);
+      } else {
+        setError(`'${symbol}' ${cfg.label} 로드 실패: ${msg2}`);
+      }
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
