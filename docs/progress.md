@@ -1,3 +1,70 @@
+## Phase 100 — 전략 전환: 알파 사냥 중단 → Strategy Validation Terminal (2026-07-02) ✅ SHIPPED
+
+10개 가설 전부 REJECT(검증 엣지 0). 사용자 결정: **1+3 혼합** — 알파 사냥 중단, 검증 프레임워크를 자산으로, 실투자는 패시브/저빈도, 고급 알파원은 학습/제품 한정.
+
+### 완료된 작업 (Week 1: 정리)
+- `research/summarize_registry.py` → `research/reports/VALIDATION_SUMMARY.md`: 10가설 판정 테이블 + 실패기전 분류(signal_dead / cost_killed / indistinguishable_from_random / blocked_by_data) + "검증 엣지 0개" 명시
+- 포지셔닝 전환: research/README "Alpha Validation Framework" → **"Strategy Validation Terminal"** (❌봇 ⭕전략 죽이는 검증터미널)
+- `docs/agentic-roadmap.md` 현재위치 갱신: 알파사냥 중단, Lv3/4/5 보류(엣지 0개), Lv2 검증플랫폼이 핵심 자산
+
+### 실패 기전 (10가설)
+- signal_dead(gross도 음수): ORB, ATR압축
+- cost_killed(gross+, 거래당 엣지<비용): VWAP-MR, 실패돌파, 갭, 섹터, cross-sectional daily
+- indistinguishable_from_random(net+ but <95pct): funding reversal, weekly funding
+- blocked_by_data: delta-neutral carry(메이저 spot 부재)
+
+### 결론
+- **핵심 자산 = 알파 아니라 "알파 없음을 싸게 증명하는 검증 프레임워크".** 대부분 단순 전략은 비용 후 사망 = 엄밀검증의 정상 결과
+- 다음(선택, Week 2): 검증 터미널 UI(기존 /backtest·/performance 대시보드와 연결) — 개인 도구 우선, 제품화는 그다음
+
+### 미커밋 주의
+- multi-venue: summarize_registry + VALIDATION_SUMMARY + README (이번 커밋 예정)
+- dashboard docs: Phase 99·100 + agentic-roadmap 갱신 (미커밋)
+
+---
+
+## Phase 99 — HL funding 트랙: audit + 회계엔진 + 가설 2종 판정 (2026-07-02) ✅ SHIPPED
+
+크립토 전환 — 차트 재탕 아니라 perp funding 구조적 알파. audit 먼저 → 데이터 게이트로 축소.
+
+### 데이터 게이트 (audit)
+- `research/data/hl_audit.py`: 캔들 15m=52일(얇음)/1h=7개월/1d=4년(깊음), fundingHistory=페이지네이션(500/21일), spot=밈코인 위주(메이저 부재)
+- **delta-neutral carry BLOCKED** (메이저 spot 부재) → perp-only funding으로 축소. registry 기록
+
+### 인프라
+- `funding_store` + `hl_funding_loader`(시간당 페이지네이션·재개) → 24코인 2년 funding(각 17501, clean)
+- `hl_candle_loader` → 일봉 4년 24코인
+- `funding_backtester`: funding-aware 롱숏 회계 — **funding_pnl=−side·notional·Σrate**, price/funding/cost **분리**, 시점별 tradable universe(survivorship 방지)
+- `funding_strategies`: extreme_reversal(z>±2/3d) + cross_sectional(하위롱/상위숏 20%/1d) + funding-aware random
+- `cost_model.hl_effective_cost_bps`(taker4.5/maker1.5+유동성버킷). 회계 synthetic 12 테스트(부호 검증)
+
+### 판정 (24코인 2년, HL taker cost, 고정 파라미터)
+| 가설 | price | funding | cost | **net** | vs random | |
+|---|---|---|---|---|---|---|
+| H1 extreme reversal | +2128 | +9356 | 10440 | **+1045** | 61.2pct BH0 | REJECT(구분불가) |
+| H2 cross-sectional | +7309 | +19678 | 69792 | **−42804** | 86.8pct | REJECT(비용압살) |
+
+- **둘 다 REJECT. 근데 주식의 "신호 사망"과 다름:** 분해가 **funding이 진짜 구조적 기여자**임을 보임(H1 net+ funding 견인, H2 랜덤 86.8pct 초과=랭킹 신호 존재)
+- **살인자 = HL 비용 + 빈도.** H2 cost(69792)가 gross(26987) 2.6배 = 일 리밸런스 과잉거래
+- **lead(튜닝 아닌 별도 실험 후보):** 저빈도(주간) 리밸런스 + maker 체결 → H2 신호가 비용 넘을지. 이게 마지막 시도, 실패 시 HL funding 트랙 폐기
+
+### 검증
+- 백엔드 481 passed / 4 pre-existing. funding 회계 12 신규. 커밋 5ab6adf
+
+### B(사전등록 weekly) 실행 → REJECT, 트랙 폐기 (커밋 73b21ab)
+- weekly 리밸런스로 net −42804→**+13622 대반전**(빈도 진단 정확, cost 7배↓, funding 견인). **근데 사전등록 기준 미달:** random 82.6pct(<95)·p=0.18·WF후반 −3315. 골포스트 안 옮기고 REJECT. maker도 95pct 미달
+- **HL funding 트랙 폐기.** funding_strategies에 rebalance_days/cost_bps 파라미터화
+
+### 메타 결론 — 9개 가설 전부 REJECT, 검증엣지 0
+- ORB + 주식5(VWAP-MR·실패돌파·갭·ATR압축·섹터상대) + funding2 + weekly funding = **9/9 REJECT**
+- **Lv3 진입 안 함**(탐색할 엣지 0). 교과서 알파공간(주식 인트라데이 + 크립토 funding)은 리테일·현실비용에서 척박 = 엄밀검증의 예상된 결과
+- 정직한 다음 갈림길(사용자 결정): (1) 엣지 사냥 중단·기존 시스템 활용 (2) 더 큰 인프라 알파원(옵션 vol/온체인/이벤트-실적 정식데이터/크로스거래소) — 큰 투자·불확실 (3) 리테일 현실 수용, 검증 프레임워크 자체를 성과물로
+
+### 미커밋 주의
+- Phase 92~99 코드: multi-venue는 커밋됨(620ae38/1901e10/8ae8fbc/5ab6adf), dashboard docs는 이번 갱신 미커밋
+
+---
+
 ## Phase 98 — 수동 가설 5종 일괄 검증 (전부 REJECT) + 커밋 (2026-07-02) ✅ SHIPPED
 
 agentic-roadmap Phase 2. ORB 이후 엣지 공간 탐색. 제네릭 러너 + 가설 5개, 전부 고정 파라미터.

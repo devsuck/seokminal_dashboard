@@ -9,11 +9,12 @@
 
 ---
 
-## 현재 위치 (냉정)
+## 현재 위치 (냉정, 2026-07-02 갱신)
 
-- **검증된 엣지: 0개.** ORB+RVOL+VWAP 첫 판정 = 광범위 엣지 없음(3/4 손실, TSLA만 약한 positive = 다중검정상 노이즈). 전체 30종목 판정 대기 중.
-- **Lv2(검증 플랫폼) 완성:** `research/validation/*`(cost·random 분포·walk-forward·metrics·샘플가드·리포트) + Triple Barrier + 인트라데이 데이터저장소.
-- **병목 = 에이전트 자율성이 아니라 "검증 가능한 엣지 부재".** 그래서 Lv3 풀에이전트는 시기상조.
+- **검증된 엣지: 0개** (10개 가설 검증: 주식6 + 크립토 funding4). `research/reports/VALIDATION_SUMMARY.md`.
+- **전략 결정: 알파 사냥 중단.** 포지셔닝을 **"AI 트레이딩 봇" → "Strategy Validation Terminal"** 로 전환(1+3 혼합). 실투자=패시브/저빈도. 고급 알파원(이벤트/온체인/옵션)=학습·제품기능 한정.
+- **Lv2(검증 플랫폼) 완성 = 이게 핵심 자산.** `research/validation/*` + funding_backtester + 데이터저장소 + registry.
+- **Lv3/4/5 = 보류.** 검증 엣지 0개 상태에선 자율루프 = 비싼 REJECT 기계. 엣지 하나라도 나오면 그때 재개.
 
 ---
 
