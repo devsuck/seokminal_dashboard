@@ -1,3 +1,20 @@
+## Phase 104 — 검증 터미널 UI (2026-07-02) ✅ SHIPPED
+
+로드맵 제품트랙 Week2. research 산출물을 UI로. "돈 버는 봇" 아니라 "전략 검증 터미널" 포지셔닝 실체화.
+
+### 백엔드
+- `api_server/research_api.py`: `/research/experiments`(registry 최신상태별) + `/research/tsmom`(forward 요약, 60초 캐시). main.py 라우터 등록
+- `tsmom_forward.generate(write=False)` 옵션(엔드포인트용 부작용 없이)
+
+### 프론트
+- `app/validation/page.tsx`: 실험표(12가설, 상태뱃지 rejected/blocked/candidate/paper·지표·판정) + **TSMOM paper_candidate 상세**(Backtest Sharpe·MaxDD·월수익 P10/P90·Trend Regime·cost base/20bps·turnover·자산군 기여 바·forward 월 이탈)
+- `lib/api.ts`: getExperiments/getTsmomForward + 타입. Sidebar 분석그룹 "검증 터미널" 링크
+
+### 검증
+- FE tsc/빌드/190 tests. 백엔드 490 passed/4 pre-existing. 방문검증(read_page): 실험표 12·상태칩·TSMOM 패널 전부 정상 렌더. 커밋 4915e76/a836fd0
+
+---
+
 ## Phase 103 — TSMOM 로버스트니스 통과 → paper_candidate 확정 + forward-test 인프라 (2026-07-02) ✅ SHIPPED
 
 첫 EDGE 후보 로버스트니스 3종 + paper 확정(사용자 A). live 금지, config 동결.
