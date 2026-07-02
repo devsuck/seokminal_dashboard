@@ -1,3 +1,186 @@
+## Phase 98 — 수동 가설 5종 일괄 검증 (전부 REJECT) + 커밋 (2026-07-02) ✅ SHIPPED
+
+agentic-roadmap Phase 2. ORB 이후 엣지 공간 탐색. 제네릭 러너 + 가설 5개, 전부 고정 파라미터.
+
+### 완료된 작업
+- `research/features/indicators.py`: 공용 EMA/RSI
+- `research/hypotheses/runner.py`: **제네릭 유니버스 러너** — signal 함수 받아 event 백테스트 + 동일 opportunity set random + pooled + BH-FDR + OOS 2분할 + 판정. `common_features`(sids/mso/vwap/atr_abs) 재사용
+- `research/hypotheses/strategies.py`: 5종 signal — ①VWAP평균회귀 ②ORB실패돌파반전 ③갭업지속 ④ATR압축돌파 ⑤섹터상대모멘텀(SECTOR_MAP + SPY/ETF ts정렬 aux)
+- `research/run_all_hypotheses.py`: 일괄 드라이버
+- `tests/test_hypotheses.py`: synthetic 5
+
+### 판정: 5종 전부 REJECT (ORB 포함 6/6)
+| 가설 | pooled pnl | pct | 95x | BH |
+|---|---|---|---|---|
+| vwap_mean_reversion | −50,316 | 88.2 | 5/29 | 0 |
+| orb_failed_reversal | −47,360 | 35.8 | 0 | 0 |
+| gap_continuation | −7,647 | 61.0 | 1/29 | 0 |
+| atr_compression | −1,642 | 27.6 | 0 | 0 |
+| sector_relative | −19,315 | 21.8 | 0/19 | 0 |
+
+- **전부 pooled 비용 후 음수, BH 생존 0.** VWAP-MR만 88.2pct/5종목 깜빡이나 pooled −50k = 종목 과적합, 다중검정 통과 0
+- **6개 교과서 인트라데이 가설 = 15m 유동성 대형주 롱온리에서 엣지 없음.** 효율적/차익거래된 공간
+
+### 결정 (agentic-roadmap 정책)
+- **Lv3 자율루프 진입 안 함** (탐색할 생존 엣지 0개). "다 REJECT면 데이터/자산군/타임프레임/실행 재검"
+- **되살리기 튜닝 금지**(pooled −50k를 파라미터로 살리는 건 커브피팅)
+- **다음 방향(재검):** 다른 자산군(크립토 HL 보유·선물), 다른 타임프레임(1h/일봉 스윙), 다른 알파원(이벤트/펀딩/베이시스), 또는 숏 허용. 15m 대형주 모멘텀·반전은 사망
+
+### 커밋
+- multi-venue + dashboard 각각 main 직접 커밋 (Phase 92~98 일괄)
+
+### 검증
+- 백엔드 469 passed / 4 pre-existing. 가설 synthetic 5 신규
+
+---
+
+## Phase 97 — ORB 전체 유니버스 판정(REJECT) + agentic 로드맵 (2026-07-02) ✅ SHIPPED
+
+### 데이터 수집 완료 (A 실행)
+- IB 15m 30종목 백그라운드 수집 완료. **29/30 클린**(각 19456봉 = 3년 RTH, 중복0, 갭583 구조적). XOM만 빈파일(수집오류, 재수집 선택). IB_PORT=7496
+
+### universe-level 집계 machinery
+- `research/validation/multiple_testing.py`: **BH-FDR** 보정 + 우연 거짓양성 확률
+- `research/run_orb_universe.py`: QA → 전체 고정파라미터 → **pooled(전체 거래풀) + pooled random null(런별 종목합)** → 95pct 초과수 → BH-FDR → OOS 2분할 → 판정. md/json 리포트
+- ORB 모듈에 `evaluate_ohlc`(슬라이스) + keep_random 추가. 테스트 BH 5 신규
+
+### 공식 판정: ORB+RVOL+VWAP = REJECT (확정)
+```
+29종목·3년·15m·2004거래 | POOLED pnl=−5402 exp=−2.70 PF=0.64 win=37%
+vs random 24.8pct p=0.75 (랜덤중앙값보다 나쁨) | 95pct초과 2/29(TSLA,XLP, 우연기대0.77)
+BH-FDR 생존 0 | OOS 전반−1.67/후반−3.61
+```
+- **엣지 없음.** pooled 비용후 손실, 랜덤보다 나쁨, 다중검정 생존 0, OOS 악화. TSLA=노이즈 확정
+- **정책대로 폐기.** 레짐/ablation/ML/LLM으로 되살리기 금지(스누핑). 프레임워크가 "엣지없음"을 몇시간에 확정 = 목적 달성
+
+### agentic 로드맵 (사용자+ChatGPT+Claude 융합)
+- `docs/agentic-roadmap.md` (신규): Lv1 룰봇→Lv2 검증플랫폼(현재)→Lv3 자율리서치→Lv4/5. 안전모델(연구자유≫실행자유, live 하드경계)·검증표준·단계게이팅. **Lv3 진입 하드조건=최소1개 전략 생존**. LLM=DSL채우기(자유코드X). 생존자 주변탐색 과적합 가드. 지금 짓지말것 명시
+- roadmap.md에 포인터
+
+### 검증
+- 백엔드 464 passed / 4 pre-existing. BH 5 신규
+
+### 다음 (agentic-roadmap Phase 2)
+- **수동 가설 3~5개**: VWAP평균회귀 / ORB실패돌파반전 / 섹터상대모멘텀 / 갭페이드·지속 / ATR압축돌파. 기존 하네스로, 고정파라미터. 전부 REJECT면 데이터/자산군/타임프레임 재검
+- 엣지 깜빡이면 → Phase 3 안전뼈대(퍼미션가드·스키마·registry) → Phase 4 제한 Lv3
+- (선택) XOM 재수집: `IB_PORT=7496 ... pull_intraday.py --symbols XOM --resume`
+
+### 미커밋 주의
+- Phase 92~97 코드 아직 **커밋 안 됨**
+
+---
+
+## Phase 96 — ORB+RVOL+VWAP dormant 모듈 + 첫 실판정 (2026-07-02) ✅ SHIPPED
+
+알파검증 트랙 ORB. data-aware **dormant** 모듈(알파주장X·최적화X·일봉차단). 분봉 도착 즉시 판정.
+
+### 완료된 작업
+- `research/features/`: session(ET 거래일·개장후경과분), opening_range(세션 OR 고/저·OR구간 플래그), vwap(세션리셋), rvol(같은 슬롯 과거 N세션 대비)
+- `research/backtest/event_backtester.py`: 롱온리 이벤트 백테스트 — ATR 1R 스탑/2R 타겟/8봉 타임스탑/VWAP이탈. 한 포지션·중첩금지·왕복비용
+- `research/strategies/orb_rvol_vwap.py`: 고정임계값(OR30분·RVOL>1.5·VWAP위·EMA상승) 진입, **IntradayDataRequiredError**(일봉 차단), 데이터없음→BLOCKED 리포트. **random 베이스라인=동일 opportunity set(eligible=진입창 봉)** + empirical p-value
+- `tests/test_orb_rvol_vwap.py`: synthetic 15m fixture 8 테스트(세션/OR/VWAP/RVOL/이벤트 stop·target·timestop/가드/BLOCKED/풀런)
+
+### 첫 실판정 (3년 15m, 통계 유효 53~81거래)
+| 종목 | pnl | PF | win | vs random | |
+|---|---|---|---|---|---|
+| AAPL | −203 | 0.64 | 38% | 40.8pct p=.59 | 랜덤보다 나쁨 |
+| MSFT | −517 | 0.40 | 33% | 6.6pct p=.93 | REJECT |
+| NVDA | −228 | 0.40 | 25% | 1.4pct p=.99 | REJECT |
+| TSLA | +277 | 1.25 | 52% | 95.4pct p=.048 | EDGE후보(약함) |
+
+**해석(정직):** ORB 고정임계값 = **광범위 엣지 아님.** 3/4가 비용 후 손실, 대형주에서 stop이 exit 지배(돌파 대부분 실패=효율적 시장). TSLA만 95.4pct 걸치나 **4종목 테스트 중 1개 p<0.05는 우연 확률 ~19%(다중검정)** → 확정 아님, 의심 positive. 전체 유니버스+워크포워드로 재검해야. **하네스가 "일반 ORB 엣지 없음"을 실데이터로 빠르고 정직하게 폭로 = 목적 달성**
+
+### 검증
+- 백엔드 459 passed / 4 pre-existing. ORB synthetic 8 신규
+
+### 다음
+- 수집 완료 후 **ORB를 전체 30종목에 돌려** 95pct 넘는 비율 확인(1~2/30=노이즈, 다수=진짜). 워크포워드 OOS 일관성. TSLA는 축하 금물
+
+### 미커밋 주의
+- Phase 92~96 코드 아직 **커밋 안 됨**
+
+---
+
+## Phase 95 — 인트라데이 데이터저장소 (A) (2026-07-02) ✅ SHIPPED (코드) / ⏳ 수집대기
+
+알파검증 트랙 순서 B→A→ORB 중 A. 분봉이 진짜 블로커(하네스는 완료, 테스트할 데이터가 없음).
+
+### 완료된 작업 (코드)
+- `research/data/intraday_store.py`: 평범한 parquet 저장소(`data/intraday/{SYM}_{tf}.parquet`, Nautilus 카탈로그와 분리). save 병합·중복제거·정렬, `latest_ts`(재개), `quality_report`(봉수/중복/세션내갭/기간), `load_ohlc_lists`(하네스용)
+- `research/data/ib_downloader.py`: `download_symbol` — IB reqHistoricalData 백워드 청킹(endDateTime 과거이동), useRTH=True(정규장), whatToShow=TRADES, formatDate=2(epoch), **페이싱 대기(기본 11s)**, 무진행 감지 중단
+- `research/data/pull_intraday.py`: 수집 CLI(argparse). 기본 유니버스=유동성 20 + SPY + 섹터 SPDR 9. `--tf/--years/--pace/--chunk/--symbols/--test`. 연결 1회 재사용, **심볼별 재개**(기존 latest_ts 이후만), 심볼별 품질리포트
+- `research/README.md`: 실행법·순서·ORB 붙이는 법(신규)
+
+### 상태
+- 저장소 로직 단위테스트 6 passed. 다운로더/CLI는 연결까지 정상 동작 확인
+- **실제 수집 = TWS 필요.** 스모크(`--test`)는 7497 연결거부(TWS 꺼짐)로 깔끔히 실패 → TWS 켜고 재실행 필요
+- 재개가능 → 중단해도 재실행하면 이어받음. IB 페이싱 ~6req/min → 20종목 2년이면 수십분~시간
+
+### 검증
+- 백엔드 451 passed / 4 pre-existing. 저장소 6 테스트 신규
+
+### 다음
+- **사용자: TWS 켜고** `PYTHONPATH=. python3 research/data/pull_intraday.py --tf 15m --years 2` (또는 `--test` 먼저) → 분봉 채우기
+- 그 다음 **ORB+RVOL+VWAP** 가설 구현 → `run_validation.py` signal_fn 교체 → random same-freq 95퍼센타일 못 넘으면 폐기
+
+### 미커밋 주의
+- Phase 92·93·94·95 코드 아직 **커밋 안 됨**
+
+---
+
+## Phase 94 — 알파 검증 하네스 (B) + Triple Barrier 라벨링 (2026-07-02) ✅ SHIPPED
+
+방향 전환: "기능 추가" 멈추고 **엣지 검증 도구**부터. 근거 = 구조≠알파. 순서 결정: B(검증 하네스, 데이터 무관) → A(IB 15m 데이터저장소) → 단일 ORB 가설. B 먼저 완료.
+
+### Triple Barrier 라벨링 (블루프린트 최고 아이디어 볼트온)
+- `xgb_strategy/labeling.py` (신규): `atr_pct` + `triple_barrier_labels`(위/아래 ATR 배리어 중 먼저 닿는 쪽 = 1/0, horizon 타임배리어, 롱온리). "다음 봉 오름?"(노이즈) → "익절/손절 어느 쪽 먼저?"(매매가능)로 ML 타깃 교체
+- `xgb_strategy/model.py`/`runner.py`: `labeling` 파라미터(기본 next_bar → 기존 테스트 유지, triple_barrier 옵션). highs/lows 전달
+- **실험 결과(일봉 250)**: TB가 next_bar 못 이김(3종목 중 2 손해). **근데 표본 무의미(OOS 75봉/거래 7~17) = 판정 불가.** 교훈: 일봉으론 엣지 질문 답 못 함 → 분봉 필요. TB는 마법 아님
+
+### 알파 검증 하네스 (B — 최소 코어, 데이터 무관)
+- `research/validation/cost_model.py`: `effective_cost_bps` = cost+slippage+spread/2 (체결당)
+- `research/validation/engine.py`: 인덱스 기반 롱숏/고정보유 시뮬(왕복 비용, simple_runner 규약 동일)
+- `research/validation/metrics.py`: 거래기반 expectancy/PF/per-trade Sharpe/MDD + **underpowered 가드**(거래<30). ※기존 simple_runner Sharpe는 종목 봉수익률 기반이라 전략비교 부적합 → 여기서 대체
+- `research/validation/baselines.py`: **random_same_frequency**(같은 opportunity set/거래수/holding분포/비용, N=500 시드고정 → net PnL 분포) + naive buy&hold + **empirical_p_value**(=(1+beating)/(N+1), North 2002). eligible_indices 파라미터로 ORB 대비 설계
+- `research/validation/walk_forward.py`: 순수 롤링 윈도우 러너 + consistency
+- `research/reports/alpha_report.py`: md+json, "HARNESS VALIDATION, NOT ALPHA" 배너, 퍼센타일 판정
+- `research/run_validation.py`: 일봉 ema_cross 기니피그로 전 파이프 드라이런
+
+### 드라이런 결과 (하네스 sanity, 알파 아님)
+- ema_cross 일봉 3종목 전부 **UNDERPOWERED**(4~6거래) → 가드 발동 판정보류. AAPL 39퍼센타일(랜덤보다 나쁨)/SPY 26퍼센타일, naive B&H가 2/3 이김, walk-forward consistency 0~0.2. **하네스가 "엣지 아님"을 정확히 폭로 = B 성공**
+
+### 검증
+- 백엔드 445 passed / 4 pre-existing. 하네스 9 + 라벨링 6 테스트 신규. 리포트 md/json 렌더 확인
+
+### 다음 (합의된 순서)
+- **A: IB 15m 분봉 데이터저장소** — 20 유동성 US + SPY + 섹터ETF, 2~3년, parquet. RTH통일/타임존/중복·누락/split/pacing resume. "많이"보다 "깨끗이"
+- 그 다음 **단일 ORB+RVOL+VWAP** → 비용 후 random same-freq 못 이기면 즉시 폐기
+- LLM risk_score(0~100) 만들지 말 것(연극). 이진 플래그만
+
+### 미커밋 주의
+- Phase 92·93·94 코드 아직 **커밋 안 됨**
+
+---
+
+## Phase 93 — 크립토 워크스페이스를 주식과 통일 (2026-07-02) ✅ SHIPPED
+
+사용자 지적: 가상화폐 페이지가 주식과 타임프레임/매매/알림/지표 UI가 다름 → 통일 요청. 크립토는 자체 lightweight-charts + interval 버튼(다른 스타일), 지표·매매·알림 없음, 차트+오더북 레이아웃이었음.
+
+### 완료된 작업
+- **심볼 규약**: 크립토 = `${coin}.HL` → 공유 컴포넌트가 suffix로 라우팅(주식 `.NASDAQ`/`.XKRX`와 동일 방식). 크립토 워치리스트는 여전히 bare coin, 전달 시 `.HL` 부착
+- `ChartTab.tsx`: **크립토(HL) 분기** — `getCryptoCandles(code, tfId, CRYPTO_DAYS)` → BarOut 매핑(volume 포함). 6개 타임프레임 전부 지원(주식 pill과 동일). 실시간=`getCryptoBook` mid 5초 폴링(24/7). catch의 IB/TWS 안내는 HL 제외
+- `TradeTab.tsx`: **크립토 분기** — `placeHLOrder`, 소수 수량(0.01~1 프리셋·step 0.1·decimal 입력), 통화 $, 테스트넷/메인넷 토글(paper), 북 mid 실시간가
+- `AlertTab.tsx`: 크립토 가격 소스 `getCryptoBook` mid
+- `app/crypto/page.tsx`: 워크스페이스를 **주식과 동일 shell**로 재작성 — 좌 ChartTab + 우측 패널(💵매매/🔔알림/📊지표/**📖호가**(크립토 전용) + 활성 지표 뱃지 + 접기/펴기). 기존 CoinChartPanel/INTERVALS 제거. 크립토 전용 사이드바(펀딩/OI/24h%)·검색·통계는 유지, 오더북은 우측 호가 탭으로 이동
+
+### 검증
+- tsc/빌드/190 tests OK. 방문검증(BTC): 타임프레임 pill·181봉 캔들·실시간 뱃지(북폴링, 59852→59873 갱신)·매매(테스트넷/메인넷·소수 프리셋·예상금액)·MACD 서브차트 렌더·지표 뱃지
+
+### 미커밋 주의
+- Phase 92·93 코드 아직 **커밋 안 됨** (main 직접 커밋 컨벤션, 사용자 요청 시)
+
+---
+
 ## Phase 75 — 계좌 잔액 연동 버그 진단·수정 (2026-07-01) ✅ SHIPPED
 
 잔액 패널에서 자산이 안 뜬다는 사용자 지적 → 라이브 진단으로 원인별 분리.
@@ -24,17 +207,23 @@
 
 ---
 
-## Phase 92 — 차트 패널 접기 + 버그수정 (진행중, #3 남음) (2026-07-02)
+## Phase 92 — 차트 패널 접기 + 지표 우측패널 통합 (2026-07-02) ✅ SHIPPED
 
 ### 완료 (✅ 커밋됨)
 - 오른쪽 **매매/알림 패널 접기/펴기**(rightOpen). 접힘 시 세로 "◀ 💵 매매·알림" 버튼으로 다시 열기 (c6e5213, 4c65533)
 - **1분/15분 IB 오류** → 친절 안내("미국 분봉은 IB(TWS) 연결 필요, TWS 켜고 재선택. 하루봉은 TWS 없이도 됨"). 원인: TWS 꺼지면 Connection refused. 미국 분봉 무료 대체 없음(IB 필수), 하루봉은 catalog
 
-### ⏳ 다음 세션 최우선 — #3 지표를 오른쪽 패널로 통합
-사용자 요청: 매매/알림/**지표**를 오른쪽 패널 탭으로 통합, 지표 추가/삭제.
-- 현재 지표(SMA/EMA/BB/RSI/MACD/Stoch/CCI/%R/ADX/ATR/거래량/OBV)는 `components/market/ChartTab.tsx` 내부 상태(showX/period ~26개 useState) + "+지표추가" 드롭다운(panelOpen)
-- **할 일**: 지표 상태를 단일 객체로 묶어 `MarketWorkspace`로 리프트 → `ChartTab`에 prop 전달(차트 렌더용) + 우측 패널에 "📊 지표" 3번째 탭(현 매매/알림 토글에 추가) 만들어 on/off·파라미터·추가삭제 관리
-- 주의: ChartTab 700줄, 지표 참조 많음 → tsc/빌드/방문검증 필수. 차트·실시간오버레이·서브차트(RSI/MACD 등) 안 깨지게
+### #3 지표를 오른쪽 패널로 통합 ✅
+- `lib/indicators.ts` (신규): `IndicatorState`(12지표 단일 객체) + `DEFAULT_INDICATORS` + `activeIndicatorChips`/`activeIndicatorCount` 헬퍼
+- `components/market/IndicatorTab.tsx` (신규): 우측 관리 UI — 섹션별(오버레이/오실레이터/추세·변동성/거래량) 토글+파라미터, "N개 활성"+**모두 끄기** 버튼
+- `ChartTab.tsx`: 지표 useState 26개 **전부 제거** → `indicators`/`setIndicators` prop 수신(렌더 전용). "+지표추가" 드롭다운·panelOpen·IndicatorRow/ParamInput 삭제. Row2는 **활성 칩(✕ 삭제)** 만 유지, 없으면 "우측 📊 지표 탭에서 추가" 안내. 백테스트 EMA 참조도 prop로. 미사용 ApiError import 제거
+- `MarketWorkspace.tsx`: `indicators` 상태 소유(DEFAULT_INDICATORS) → ChartTab+IndicatorTab 공유. 우측 패널 3번째 탭 **📊 지표**(활성 개수 뱃지) 추가. side 타입 `trade|alert|indicators`
+
+### 검증
+- tsc/빌드/190 tests OK. 방문검증: 지표탭 전 섹션 렌더, SMA 오버레이+RSI(14)/MACD(12,26,9) 서브차트 정상, **심볼 전환(KR↔US)에도 지표 상태 유지**(리프트 확인), 탭뱃지/칩/체크박스 동기화
+
+### 미커밋 주의
+- Phase 92 #3 코드는 아직 **커밋 안 됨** (main 직접 커밋 컨벤션, 사용자 요청 시)
 
 ---
 

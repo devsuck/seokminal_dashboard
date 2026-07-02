@@ -1,17 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getBars, getKRBars } from "@/lib/api";
+import { getBars, getKRBars, getCryptoBook } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import {
   getPriceAlerts, addPriceAlert, removePriceAlert, markTriggered, type PriceAlert,
 } from "@/lib/price-alert-storage";
 
-function isKR(sym: string) { return sym.split(".")[1] === "XKRX"; }
+function suffixOf(sym: string) { return sym.split(".")[1]; }
 
 async function latestPrice(symbol: string): Promise<number | null> {
   try {
-    if (isKR(symbol)) {
+    const suffix = suffixOf(symbol);
+    if (suffix === "HL") {
+      const b = await getCryptoBook(symbol.split(".")[0]);
+      return b.mid_price > 0 ? b.mid_price : null;
+    }
+    if (suffix === "XKRX") {
       const r = await getKRBars(symbol.split(".")[0], 5);
       const b = r.bars?.[r.bars.length - 1];
       return b ? b.close : null;

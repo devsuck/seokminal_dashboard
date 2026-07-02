@@ -3,6 +3,8 @@
 **마지막 업데이트:** 2026-06-29  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
+> 🧭 **알파/에이전트 진화 로드맵은 별도:** [`agentic-roadmap.md`](agentic-roadmap.md) — Lv1 룰봇 → Lv2 검증플랫폼(현재) → Lv3 자율리서치 → Lv4/5. 안전모델·검증표준·단계 게이팅. 이 파일(기능 로드맵)과 축이 다름.
+
 ---
 
 ## 완료된 Phase
@@ -108,14 +110,20 @@
 | 89 | 페어 트레이딩(시장중립) | /pairs/backtest 공적분게이트+스프레드백테스트, /pairs | — |
 | 90 | 스윙 페이퍼 검증 + 잠금봇 | 스윙검증-US 봇 가동, protected 에이전트(이름확인 삭제) | — |
 | 91 | 차트 타임프레임+워치접기 | 1분/15분/1시간/4시간/하루/1달, 워치리스트 ◀▶, 크립토 인터벌 | — |
-| 92 | 패널접기+버그수정 | 매매/알림 접기, 1분 IB안내. **#3 지표통합 미완** | ⏳ |
+| 92 | 패널접기+지표통합 | 매매/알림 접기, 1분 IB안내, **#3 지표 우측패널 통합**(lib/indicators.ts + IndicatorTab, ChartTab useState26개→prop, 📊지표 3번째 탭+뱃지) | — |
+| 93 | 크립토↔주식 UI 통일 | 심볼 `${coin}.HL` 규약, ChartTab/TradeTab/AlertTab에 HL 분기, crypto 워크스페이스를 공유 shell(ChartTab+우측 매매/알림/지표/호가)로 재작성 | — |
+| 94 | 알파검증 하네스(B)+Triple Barrier | `research/validation/*`(cost/engine/metrics/baselines/walk_forward) + random same-freq 분포 p-value + `xgb_strategy/labeling.py` TB. 방향전환: 구조→엣지검증. 다음=A(IB 15m 데이터) | — |
+| 95 | 인트라데이 데이터저장소(A) | `research/data/*`(intraday_store parquet + ib_downloader 청크·페이싱·재개 + pull_intraday CLI). IB포트=7496(라이브), 청크 1Y. AAPL 3년 19456봉 수집확인 | — |
+| 96 | ORB dormant 모듈+첫판정 | `research/features/*`(session/OR/vwap/rvol)+`event_backtester`+`strategies/orb_rvol_vwap`(고정임계·일봉차단·동일 opportunity set random). 실판정: ORB 광범위 엣지 없음(3/4 손실, TSLA만 약한 positive) | — |
+| 97 | ORB 유니버스 판정(REJECT)+agentic로드맵 | 15m 30종목 수집완료(29클린), `multiple_testing`(BH-FDR)+`run_orb_universe`(pooled+random null+OOS). **판정: ORB 엣지없음**(2004거래 pooled −5402, 랜덤보다 나쁨, BH생존0). `docs/agentic-roadmap.md`. 다음=수동 가설 3~5개 | — |
+| 98 | 수동 가설 5종(전부 REJECT) | 제네릭 `hypotheses/runner`+5 signal(VWAP-MR/실패돌파/갭/ATR압축/섹터상대). **6/6 REJECT**(전부 pooled 음수·BH생존0). 결론: 15m 대형주 롱온리 교과서 패턴 엣지 없음 → Lv3 진입 안 함, 자산군/타임프레임 재검. main 커밋 | — |
 
 ## 다음 세션 최우선 (채팅 리셋 인수인계)
-1. **[⏳ 진행중] #3 지표를 오른쪽 패널로 통합** — 매매/알림/**지표** 3탭. ChartTab 지표상태 12개(SMA/EMA/BB/RSI/MACD/Stoch/CCI/%R/ADX/ATR/거래량/OBV) → MarketWorkspace로 리프트 → 우측 "📊 지표" 탭에서 추가/삭제·파라미터. tsc/빌드/방문검증 필수 (차트·실시간오버레이·서브차트 안 깨지게). 상세 progress.md Phase 92
-2. **스윙 페이퍼 검증 지속** — 봇 `스윙검증-US`(id 7591f352, 잠금됨) 가동중. 노트북 켤 때 tmux 살아있는지 확인, 죽었으면 /agents에서 재시작. 며칠~몇주 후 성과페이지 SPY 초과수익 확인
-3. KR 단타 실투자(KIS 실계좌) / IB(TWS) 실계좌 라이브 검증
-4. 차트 US 분봉 = IB(TWS) 필요 (무료 대체 없음). 하루봉만 catalog
-5. 뉴스 본문 전문(선택): Jina Reader 스크레이핑
+0. **[알파검증 트랙 — Phase 97 후속] 수동 가설 3~5개** (agentic-roadmap Phase 2) — ORB는 REJECT 확정(pooled −5402, 랜덤보다 나쁨, BH생존0). 기존 하네스(`research/`)로 손으로 다음 검증, 고정파라미터·random 분포·비용·walk-forward: ① VWAP 평균회귀 ② ORB 실패돌파 반전 ③ 섹터상대 모멘텀 ④ 갭 페이드/지속 ⑤ ATR 압축돌파. 하나라도 net>0·95pct·p<.05·WF OOS 유지하면 → Phase 3 안전뼈대(퍼미션가드·스키마·registry) → Phase 4 제한 Lv3. **전부 REJECT면 데이터/자산군/타임프레임 재검(Lv3 아님).** 상세 `docs/agentic-roadmap.md`
+1. **스윙 페이퍼 검증 지속** — 봇 `스윙검증-US`(id 7591f352, 잠금됨) 가동중. 노트북 켤 때 tmux 살아있는지 확인, 죽었으면 /agents에서 재시작. 며칠~몇주 후 성과페이지 SPY 초과수익 확인
+2. KR 단타 실투자(KIS 실계좌) / IB(TWS) 실계좌 라이브 검증
+3. 차트 US 분봉 = IB(TWS) 필요 (무료 대체 없음). 하루봉만 catalog
+4. 뉴스 본문 전문(선택): Jina Reader 스크레이핑
 
 ## 현재 상태 요약 (인수인계)
 - **전략 3축**: 방향성(단타·스윙·장투·스마트시그널) / 이벤트(카피트레이드·DART봇) / 시장중립(페어)

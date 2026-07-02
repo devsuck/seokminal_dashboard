@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState } from "@/components/ui";
 import {
-  ApiError, getBars, getKRBars, getIBBars, getQuote, WS_URL,
-  type BarOut, type KRBar, type IBBar,
+  getBars, getKRBars, getIBBars, getQuote, getCryptoCandles, getCryptoBook, WS_URL,
+  type BarOut, type KRBar, type IBBar, type CryptoCandle,
 } from "@/lib/api";
 import { isUSMarketOpen } from "@/lib/market-hours";
+import { activeIndicatorChips, type IndicatorState } from "@/lib/indicators";
 
 function krBarToBarOut(bar: KRBar): BarOut {
   const d = bar.date;
@@ -19,6 +21,13 @@ function krBarToBarOut(bar: KRBar): BarOut {
 function ibBarToBarOut(bar: IBBar): BarOut {
   return { ts_event: bar.ts_ms * 1_000_000, open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume };
 }
+
+function cryptoCandleToBarOut(c: CryptoCandle): BarOut {
+  return { ts_event: c.time_ms * 1_000_000, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume };
+}
+
+// 크립토 타임프레임별 조회 일수 (crypto 페이지와 동일)
+const CRYPTO_DAYS: Record<string, number> = { "1m": 1, "15m": 5, "1h": 30, "4h": 90, "1d": 180, "1M": 365 };
 import { RSIChart } from "./RSIChart";
 import { MACDChart } from "./MACDChart";
 import { StochasticChart } from "./StochasticChart";
@@ -31,6 +40,8 @@ import { WilliamsRChart } from "./WilliamsRChart";
 
 interface ChartTabProps {
   symbol: string;
+  indicators: IndicatorState;
+  setIndicators: Dispatch<SetStateAction<IndicatorState>>;
   onAddToWatchlist?: (symbol: string) => void;
   isInWatchlist?: boolean;
 }
@@ -55,87 +66,16 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-interface ParamInputProps {
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-  width?: string;
-}
-
-function ParamInput({ value, onChange, min = 1, max = 500, width = "w-12" }: ParamInputProps) {
-  return (
-    <input
-      type="number"
-      value={value}
-      onChange={e => onChange(Number(e.target.value))}
-      min={min}
-      max={max}
-      className={`${width} h-6 text-xs text-center bg-bg border border-border rounded text-text-1 outline-none focus:border-accent font-data`}
-      onClick={e => e.stopPropagation()}
-    />
-  );
-}
-
-export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabProps) {
+export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, isInWatchlist }: ChartTabProps) {
   const router = useRouter();
-  const [start, setStart] = useState(oneYearAgo);
-  const [end, setEnd] = useState(today);
+  const [start] = useState(oneYearAgo);
+  const [end] = useState(today);
   const [bars, setBars] = useState<BarOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [liveStatus, setLiveStatus] = useState<"off" | "live">("off");
   const [tf, setTf] = useState("1d");
   const abortRef = useRef<AbortController | null>(null);
-
-  // Overlay indicators
-  const [showSma, setShowSma] = useState(false);
-  const [smaPeriod, setSmaPeriod] = useState(20);
-  const [showEma, setShowEma] = useState(false);
-  const [emaFast, setEmaFast] = useState(12);
-  const [emaSlow, setEmaSlow] = useState(26);
-  const [showBB, setShowBB] = useState(false);
-  const [bbPeriod, setBbPeriod] = useState(20);
-  const [bbStd, setBbStd] = useState(2);
-
-  // Oscillators
-  const [showRsi, setShowRsi] = useState(false);
-  const [rsiPeriod, setRsiPeriod] = useState(14);
-  const [showMacd, setShowMacd] = useState(false);
-  const [macdFast, setMacdFast] = useState(12);
-  const [macdSlow, setMacdSlow] = useState(26);
-  const [macdSig, setMacdSig] = useState(9);
-  const [showStoch, setShowStoch] = useState(false);
-  const [stochK, setStochK] = useState(14);
-  const [stochD, setStochD] = useState(3);
-  const [showCci, setShowCci] = useState(false);
-  const [cciPeriod, setCciPeriod] = useState(20);
-  const [showWilliamsR, setShowWilliamsR] = useState(false);
-  const [wrPeriod, setWrPeriod] = useState(14);
-
-  // Trend / Volatility
-  const [showAdx, setShowAdx] = useState(false);
-  const [adxPeriod, setAdxPeriod] = useState(14);
-  const [showAtr, setShowAtr] = useState(false);
-  const [atrPeriod, setAtrPeriod] = useState(14);
-
-  // Volume
-  const [showVolume, setShowVolume] = useState(false);
-  const [showObv, setShowObv] = useState(false);
-
-  // Panel
-  const [panelOpen, setPanelOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setPanelOpen(false);
-      }
-    }
-    if (panelOpen) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [panelOpen]);
 
   async function loadBars(tfId: string) {
     abortRef.current?.abort();
@@ -149,7 +89,13 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
     const isIntraday = ["1m", "15m", "1h", "4h"].includes(tfId);
 
     try {
-      if (venue === "XKRX") {
+      if (venue === "HL") {
+        // 크립토: Hyperliquid 캔들 (전 타임프레임 지원)
+        const code = symbol.split(".")[0];
+        const res = await getCryptoCandles(code, tfId, CRYPTO_DAYS[tfId] ?? 90, ctrl.signal);
+        if (res.candles.length === 0) throw new Error("빈 응답");
+        setBars(res.candles.map(cryptoCandleToBarOut));
+      } else if (venue === "XKRX") {
         // KR: 하루/1달만 (KIS 일봉). 인트라데이 미지원.
         if (isIntraday) {
           setError("KR 인트라데이는 아직 미지원 — 하루/1달만 (미국은 IB로 분봉 지원)");
@@ -180,7 +126,7 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
       if (err2 instanceof DOMException && err2.name === "AbortError") return;
       const msg2 = err2 instanceof Error ? err2.message : String(err2);
       // 미국 분봉/월봉은 IB(TWS) 필요 — 연결 안 되면 친절히 안내
-      if (!isDaily && venue !== "XKRX") {
+      if (!isDaily && venue !== "XKRX" && venue !== "HL") {
         setError(`미국 ${cfg.label} 차트는 IB(TWS) 연결이 필요합니다. TWS를 켜고 다시 선택하세요. (하루봉은 TWS 없이도 표시)`);
       } else {
         setError(`'${symbol}' ${cfg.label} 로드 실패: ${msg2}`);
@@ -213,6 +159,24 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
   useEffect(() => {
     if (bars.length === 0) { setLiveStatus("off"); return; }
     const venue = symbol.split(".").slice(1).join(".");
+
+    if (venue === "HL") {
+      // 크립토: Hyperliquid 북 mid 5초 폴링 (24/7 시장)
+      const code = symbol.split(".")[0];
+      let cancelled = false;
+      const ctrl = new AbortController();
+      async function poll() {
+        try {
+          const b = await getCryptoBook(code, ctrl.signal);
+          if (!cancelled && b.mid_price > 0) { applyLivePrice(b.mid_price); setLiveStatus("live"); }
+        } catch {
+          if (!cancelled) setLiveStatus("off");
+        }
+      }
+      poll();
+      const id = setInterval(poll, 5000);
+      return () => { cancelled = true; ctrl.abort(); clearInterval(id); };
+    }
 
     if (venue === "XKRX") {
       const code = symbol.split(".")[0];
@@ -253,21 +217,11 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, bars.length]);
 
-  // Active indicators list for chips
-  const activeIndicators = [
-    showSma && { key: "sma", label: `SMA ${smaPeriod}`, onRemove: () => setShowSma(false) },
-    showEma && { key: "ema", label: `EMA ${emaFast}/${emaSlow}`, onRemove: () => setShowEma(false) },
-    showBB && { key: "bb", label: `BB ${bbPeriod}`, onRemove: () => setShowBB(false) },
-    showRsi && { key: "rsi", label: `RSI ${rsiPeriod}`, onRemove: () => setShowRsi(false) },
-    showMacd && { key: "macd", label: `MACD ${macdFast}/${macdSlow}/${macdSig}`, onRemove: () => setShowMacd(false) },
-    showStoch && { key: "stoch", label: `Stoch ${stochK}/${stochD}`, onRemove: () => setShowStoch(false) },
-    showCci && { key: "cci", label: `CCI ${cciPeriod}`, onRemove: () => setShowCci(false) },
-    showWilliamsR && { key: "wr", label: `%R ${wrPeriod}`, onRemove: () => setShowWilliamsR(false) },
-    showAdx && { key: "adx", label: `ADX ${adxPeriod}`, onRemove: () => setShowAdx(false) },
-    showAtr && { key: "atr", label: `ATR ${atrPeriod}`, onRemove: () => setShowAtr(false) },
-    showVolume && { key: "vol", label: "거래량", onRemove: () => setShowVolume(false) },
-    showObv && { key: "obv", label: "OBV", onRemove: () => setShowObv(false) },
-  ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[];
+  const chips = activeIndicatorChips(indicators);
+
+  function removeIndicator(key: keyof IndicatorState) {
+    setIndicators(prev => ({ ...prev, [key]: { ...prev[key], on: false } }));
+  }
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -286,10 +240,10 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
         <button
           onClick={() => {
             const params = new URLSearchParams({ instrument: symbol, start, end });
-            if (showEma) {
+            if (indicators.ema.on) {
               params.set("strategy", "ema_cross");
-              params.set("fast", String(emaFast));
-              params.set("slow", String(emaSlow));
+              params.set("fast", String(indicators.ema.fast));
+              params.set("slow", String(indicators.ema.slow));
             }
             router.push(`/backtest?${params.toString()}`);
           }}
@@ -316,167 +270,26 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
         )}
       </div>
 
-      {/* Row 2: Active indicator chips + panel toggle */}
-      <div ref={panelRef} className="relative">
-        <div className="flex items-center gap-1.5 flex-wrap min-h-[28px]">
-          {activeIndicators.map(ind => (
+      {/* Row 2: Active indicator chips (관리는 우측 📊 지표 탭) */}
+      <div className="flex items-center gap-1.5 flex-wrap min-h-[28px]">
+        {chips.length > 0 ? (
+          chips.map(ind => (
             <span
               key={ind.key}
               className="px-2 py-0.5 text-xs rounded border border-accent/40 text-accent bg-accent/5 flex items-center gap-1"
             >
               {ind.label}
               <button
-                onClick={ind.onRemove}
+                onClick={() => removeIndicator(ind.key)}
                 className="text-text-3 hover:text-neg cursor-pointer leading-none"
                 aria-label={`Remove ${ind.label}`}
               >
                 ✕
               </button>
             </span>
-          ))}
-          <button
-            onClick={() => setPanelOpen(o => !o)}
-            className={`px-2.5 py-0.5 text-xs rounded border transition-colors cursor-pointer ${
-              panelOpen
-                ? "border-accent text-accent bg-accent/10"
-                : "border-border text-text-3 hover:border-accent hover:text-accent"
-            }`}
-          >
-            + 지표 추가
-          </button>
-        </div>
-
-        {/* Collapsible indicator panel */}
-        {panelOpen && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-panel border border-border rounded-lg shadow-lg p-4 w-[480px] max-h-[440px] overflow-y-auto">
-            {/* 오버레이 */}
-            <div className="mb-4">
-              <p className="text-[10px] text-text-3 uppercase tracking-wider mb-2">오버레이</p>
-              <div className="flex flex-col gap-2">
-                <IndicatorRow
-                  checked={showSma}
-                  onToggle={() => setShowSma(v => !v)}
-                  label="SMA"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={smaPeriod} onChange={setSmaPeriod} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showEma}
-                  onToggle={() => setShowEma(v => !v)}
-                  label="EMA"
-                >
-                  <span className="text-text-3 text-xs">fast:</span>
-                  <ParamInput value={emaFast} onChange={setEmaFast} />
-                  <span className="text-text-3 text-xs">slow:</span>
-                  <ParamInput value={emaSlow} onChange={setEmaSlow} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showBB}
-                  onToggle={() => setShowBB(v => !v)}
-                  label="볼린저밴드"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={bbPeriod} onChange={setBbPeriod} />
-                  <span className="text-text-3 text-xs">std:</span>
-                  <ParamInput value={bbStd} onChange={setBbStd} min={1} max={10} />
-                </IndicatorRow>
-              </div>
-            </div>
-
-            {/* 오실레이터 */}
-            <div className="mb-4">
-              <p className="text-[10px] text-text-3 uppercase tracking-wider mb-2">오실레이터</p>
-              <div className="flex flex-col gap-2">
-                <IndicatorRow
-                  checked={showRsi}
-                  onToggle={() => setShowRsi(v => !v)}
-                  label="RSI"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={rsiPeriod} onChange={setRsiPeriod} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showMacd}
-                  onToggle={() => setShowMacd(v => !v)}
-                  label="MACD"
-                >
-                  <span className="text-text-3 text-xs">fast:</span>
-                  <ParamInput value={macdFast} onChange={setMacdFast} />
-                  <span className="text-text-3 text-xs">slow:</span>
-                  <ParamInput value={macdSlow} onChange={setMacdSlow} />
-                  <span className="text-text-3 text-xs">sig:</span>
-                  <ParamInput value={macdSig} onChange={setMacdSig} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showStoch}
-                  onToggle={() => setShowStoch(v => !v)}
-                  label="스토캐스틱"
-                >
-                  <span className="text-text-3 text-xs">%K:</span>
-                  <ParamInput value={stochK} onChange={setStochK} />
-                  <span className="text-text-3 text-xs">%D:</span>
-                  <ParamInput value={stochD} onChange={setStochD} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showCci}
-                  onToggle={() => setShowCci(v => !v)}
-                  label="CCI"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={cciPeriod} onChange={setCciPeriod} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showWilliamsR}
-                  onToggle={() => setShowWilliamsR(v => !v)}
-                  label="Williams %R"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={wrPeriod} onChange={setWrPeriod} />
-                </IndicatorRow>
-              </div>
-            </div>
-
-            {/* 추세 / 변동성 */}
-            <div className="mb-4">
-              <p className="text-[10px] text-text-3 uppercase tracking-wider mb-2">추세 / 변동성</p>
-              <div className="flex flex-col gap-2">
-                <IndicatorRow
-                  checked={showAdx}
-                  onToggle={() => setShowAdx(v => !v)}
-                  label="ADX"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={adxPeriod} onChange={setAdxPeriod} />
-                </IndicatorRow>
-                <IndicatorRow
-                  checked={showAtr}
-                  onToggle={() => setShowAtr(v => !v)}
-                  label="ATR"
-                >
-                  <span className="text-text-3 text-xs">period:</span>
-                  <ParamInput value={atrPeriod} onChange={setAtrPeriod} />
-                </IndicatorRow>
-              </div>
-            </div>
-
-            {/* 거래량 */}
-            <div>
-              <p className="text-[10px] text-text-3 uppercase tracking-wider mb-2">거래량</p>
-              <div className="flex flex-col gap-2">
-                <IndicatorRow
-                  checked={showVolume}
-                  onToggle={() => setShowVolume(v => !v)}
-                  label="거래량"
-                />
-                <IndicatorRow
-                  checked={showObv}
-                  onToggle={() => setShowObv(v => !v)}
-                  label="OBV"
-                />
-              </div>
-            </div>
-          </div>
+          ))
+        ) : (
+          <span className="text-text-3 text-xs">지표 없음 — 우측 📊 지표 탭에서 추가</span>
         )}
       </div>
 
@@ -505,21 +318,21 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
           <>
             <CandlestickChart
               bars={bars}
-              emaFast={showEma ? emaFast : undefined}
-              emaSlow={showEma ? emaSlow : undefined}
-              sma={showSma ? smaPeriod : undefined}
-              bollingerPeriod={showBB ? bbPeriod : undefined}
-              bollingerStd={showBB ? bbStd : undefined}
+              emaFast={indicators.ema.on ? indicators.ema.fast : undefined}
+              emaSlow={indicators.ema.on ? indicators.ema.slow : undefined}
+              sma={indicators.sma.on ? indicators.sma.period : undefined}
+              bollingerPeriod={indicators.bb.on ? indicators.bb.period : undefined}
+              bollingerStd={indicators.bb.on ? indicators.bb.std : undefined}
             />
-            {showRsi && <RSIChart bars={bars} period={rsiPeriod} />}
-            {showMacd && <MACDChart bars={bars} fast={macdFast} slow={macdSlow} signal={macdSig} />}
-            {showStoch && <StochasticChart bars={bars} kPeriod={stochK} dPeriod={stochD} />}
-            {showCci && <CCIChart bars={bars} period={cciPeriod} />}
-            {showWilliamsR && <WilliamsRChart bars={bars} period={wrPeriod} />}
-            {showAdx && <ADXChart bars={bars} period={adxPeriod} />}
-            {showAtr && <ATRChart bars={bars} period={atrPeriod} />}
-            {showVolume && <VolumeChart bars={bars} />}
-            {showObv && <OBVChart bars={bars} />}
+            {indicators.rsi.on && <RSIChart bars={bars} period={indicators.rsi.period} />}
+            {indicators.macd.on && <MACDChart bars={bars} fast={indicators.macd.fast} slow={indicators.macd.slow} signal={indicators.macd.signal} />}
+            {indicators.stoch.on && <StochasticChart bars={bars} kPeriod={indicators.stoch.k} dPeriod={indicators.stoch.d} />}
+            {indicators.cci.on && <CCIChart bars={bars} period={indicators.cci.period} />}
+            {indicators.wr.on && <WilliamsRChart bars={bars} period={indicators.wr.period} />}
+            {indicators.adx.on && <ADXChart bars={bars} period={indicators.adx.period} />}
+            {indicators.atr.on && <ATRChart bars={bars} period={indicators.atr.period} />}
+            {indicators.volume.on && <VolumeChart bars={bars} />}
+            {indicators.obv.on && <OBVChart bars={bars} />}
           </>
         ) : (
           <div className="h-[480px] flex items-center justify-center">
@@ -528,33 +341,5 @@ export function ChartTab({ symbol, onAddToWatchlist, isInWatchlist }: ChartTabPr
         )}
       </div>
     </div>
-  );
-}
-
-interface IndicatorRowProps {
-  checked: boolean;
-  onToggle: () => void;
-  label: string;
-  children?: React.ReactNode;
-}
-
-function IndicatorRow({ checked, onToggle, label, children }: IndicatorRowProps) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer select-none group">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="w-3.5 h-3.5 accent-accent cursor-pointer"
-      />
-      <span className={`text-xs w-28 shrink-0 ${checked ? "text-accent" : "text-text-2 group-hover:text-text-1"}`}>
-        {label}
-      </span>
-      {children && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {children}
-        </div>
-      )}
-    </label>
   );
 }

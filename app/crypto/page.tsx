@@ -2,13 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "lightweight-charts";
 import {
   ApiError,
-  getCryptoAssets, getCryptoCandles, getCryptoBook,
-  type CryptoAssetsResponse, type CryptoCandlesResponse,
+  getCryptoAssets, getCryptoBook,
+  type CryptoAssetsResponse,
   type CryptoBookResponse,
 } from "@/lib/api";
+import { ChartTab } from "@/components/market/ChartTab";
+import { TradeTab } from "@/components/market/TradeTab";
+import { AlertTab } from "@/components/market/AlertTab";
+import { IndicatorTab } from "@/components/market/IndicatorTab";
+import { DEFAULT_INDICATORS, activeIndicatorCount, type IndicatorState } from "@/lib/indicators";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -126,77 +130,6 @@ function CryptoSidebar({
         })}
       </div>
     </aside>
-  );
-}
-
-// ── Chart Panel ────────────────────────────────────────────────────────────────
-
-const INTERVALS = ["1m", "15m", "1h", "4h", "1d", "1M"] as const;
-const IV_LABEL: Record<string, string> = { "1m": "1분", "15m": "15분", "1h": "1시간", "4h": "4시간", "1d": "하루", "1M": "1달" };
-const IV_DAYS: Record<string, number> = { "1m": 1, "15m": 5, "1h": 30, "4h": 90, "1d": 180, "1M": 365 };
-
-function CoinChartPanel({ coin }: { coin: string }) {
-  const [interval, setInterval] = useState<typeof INTERVALS[number]>("1d");
-  const [result, setResult]     = useState<CryptoCandlesResponse | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const abortRef                = useRef<AbortController | null>(null);
-  const chartRef                = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true); setError(null); setResult(null);
-    getCryptoCandles(coin, interval, IV_DAYS[interval] ?? 90, ctrl.signal)
-      .then(r => { if (!ctrl.signal.aborted) setResult(r); })
-      .catch(e => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        setError(e instanceof ApiError ? e.message : "Failed");
-      })
-      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
-    return () => ctrl.abort();
-  }, [coin, interval]);
-
-  useEffect(() => {
-    if (!result || !chartRef.current) return;
-    const chart = createChart(chartRef.current, {
-      layout: { background: { type: ColorType.Solid, color: "transparent" }, textColor: "#9AA4B2" },
-      grid: { vertLines: { color: "#2a3040" }, horzLines: { color: "#2a3040" } },
-      width: chartRef.current.clientWidth,
-      height: chartRef.current.clientHeight,
-    });
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#44cc88", downColor: "#ff4444",
-      borderVisible: false, wickUpColor: "#44cc88", wickDownColor: "#ff4444",
-    });
-    series.setData(result.candles.map(c => ({
-      time: Math.floor(c.time_ms / 1000) as UTCTimestamp,
-      open: c.open, high: c.high, low: c.low, close: c.close,
-    })));
-    chart.timeScale().fitContent();
-    return () => chart.remove();
-  }, [result]);
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
-        <span className="text-text-2 text-xs font-semibold">{coin}/USDT</span>
-        <div className="ml-auto flex gap-1">
-          {INTERVALS.map(iv => (
-            <button key={iv} onClick={() => setInterval(iv)}
-              className={`px-2 py-0.5 text-[11px] rounded border-0 cursor-pointer transition-colors ${
-                interval === iv ? "bg-accent/10 text-accent border border-accent/30" : "bg-transparent text-text-3 hover:text-text-1"
-              }`}>
-              {IV_LABEL[iv] ?? iv}
-            </button>
-          ))}
-        </div>
-      </div>
-      {error && <p className="text-neg text-[11px] px-3 py-1">{error}</p>}
-      {loading && <div className="flex-1 flex items-center justify-center text-text-3 text-xs">로딩 중…</div>}
-      <div ref={chartRef} style={{ height: "100%" }} className={`flex-1 ${loading ? "invisible" : ""}`} />
-    </div>
   );
 }
 
@@ -438,11 +371,16 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "stats",     label: "통계" },
 ];
 
+type Side = "trade" | "alert" | "indicators" | "book";
+
 export default function CryptoPage() {
   const [watchlist, setWatchlist]   = useState<string[]>(DEFAULT_COINS);
   const [activeCoin, setActiveCoin] = useState("BTC");
   const [tab, setTab]               = useState<Tab>("workspace");
   const [assetMap, setAssetMap]     = useState<Record<string, AssetRow>>({});
+  const [indicators, setIndicators] = useState<IndicatorState>(DEFAULT_INDICATORS);
+  const [side, setSide]             = useState<Side>("trade");
+  const [rightOpen, setRightOpen]   = useState(true);
 
   useEffect(() => {
     const list = getCryptoWatchlist();
@@ -520,13 +458,44 @@ export default function CryptoPage() {
             </div>
           )}
           {tab === "workspace" && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 min-h-0 border-b border-border">
-                <CoinChartPanel coin={activeCoin} />
+            <div className="flex h-full">
+              {/* 차트 (주식과 동일한 ChartTab: 타임프레임·지표) */}
+              <div className="flex-1 overflow-y-auto min-w-0">
+                <ChartTab
+                  symbol={`${activeCoin}.HL`}
+                  indicators={indicators}
+                  setIndicators={setIndicators}
+                />
               </div>
-              <div className="h-52 shrink-0">
-                <CoinBookPanel coin={activeCoin} />
-              </div>
+              {/* 우측: 매매 / 알림 / 지표 / 호가 (주식과 통일) */}
+              {rightOpen ? (
+                <div className="w-[340px] border-l border-border flex flex-col shrink-0">
+                  <div className="flex items-center border-b border-border shrink-0">
+                    {([["trade", "💵 매매"], ["alert", "🔔 알림"], ["indicators", "📊 지표"], ["book", "📖 호가"]] as const).map(([v, label]) => (
+                      <button key={v} onClick={() => setSide(v)}
+                        className={`flex-1 py-2.5 text-[11px] border-b-2 bg-transparent cursor-pointer transition-colors ${
+                          side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
+                        }`}>
+                        {label}{v === "indicators" && activeIndicatorCount(indicators) > 0 ? ` ${activeIndicatorCount(indicators)}` : ""}
+                      </button>
+                    ))}
+                    <button onClick={() => setRightOpen(false)} title="패널 접기"
+                      className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {side === "trade" && <TradeTab symbol={`${activeCoin}.HL`} />}
+                    {side === "alert" && <AlertTab symbol={`${activeCoin}.HL`} />}
+                    {side === "indicators" && <IndicatorTab indicators={indicators} setIndicators={setIndicators} />}
+                    {side === "book" && <div className="h-56"><CoinBookPanel coin={activeCoin} /></div>}
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setRightOpen(true)} title="패널 열기"
+                  className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
+                  <span className="text-sm">◀</span>
+                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}>💵 매매 · 🔔 알림 · 📊 지표 · 📖 호가</span>
+                </button>
+              )}
             </div>
           )}
           {tab === "stats" && (

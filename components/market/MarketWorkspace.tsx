@@ -7,14 +7,17 @@ import { ComparisonTab } from "@/components/market/ComparisonTab";
 import { SearchTab } from "@/components/market/SearchTab";
 import { TradeTab } from "@/components/market/TradeTab";
 import { AlertTab } from "@/components/market/AlertTab";
+import { IndicatorTab } from "@/components/market/IndicatorTab";
 import {
   getWatchlist,
   addToWatchlist,
   removeFromWatchlist,
   DEFAULT_SYMBOLS,
 } from "@/lib/watchlist-storage";
+import { DEFAULT_INDICATORS, activeIndicatorCount, type IndicatorState } from "@/lib/indicators";
 
 type Tab = "chart" | "compare" | "search";
+type Side = "trade" | "alert" | "indicators";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "search",  label: "🔍 검색" },
@@ -26,9 +29,10 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
   const [watchlist, setWatchlist] = useState<string[]>(DEFAULT_SYMBOLS);
   const [activeSymbol, setActiveSymbol] = useState(initialSymbol ?? DEFAULT_SYMBOLS[0]);
   const [activeTab, setActiveTab] = useState<Tab>("chart");
-  const [side, setSide] = useState<"trade" | "alert">("trade");
+  const [side, setSide] = useState<Side>("trade");
   const [sideOpen, setSideOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [indicators, setIndicators] = useState<IndicatorState>(DEFAULT_INDICATORS);
 
   useEffect(() => {
     const list = getWatchlist();
@@ -122,6 +126,8 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
               <div className="flex-1 overflow-y-auto min-w-0">
                 <ChartTab
                   symbol={activeSymbol}
+                  indicators={indicators}
+                  setIndicators={setIndicators}
                   onAddToWatchlist={handleAdd}
                   isInWatchlist={watchlist.includes(activeSymbol)}
                 />
@@ -130,26 +136,28 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
               {rightOpen ? (
                 <div className="w-[340px] border-l border-border flex flex-col shrink-0">
                   <div className="flex items-center border-b border-border shrink-0">
-                    {([["trade", "💵 매매"], ["alert", "🔔 알림"]] as const).map(([v, label]) => (
+                    {([["trade", "💵 매매"], ["alert", "🔔 알림"], ["indicators", "📊 지표"]] as const).map(([v, label]) => (
                       <button key={v} onClick={() => setSide(v)}
-                        className={`flex-1 py-2.5 text-sm border-b-2 bg-transparent cursor-pointer transition-colors ${
+                        className={`flex-1 py-2.5 text-xs border-b-2 bg-transparent cursor-pointer transition-colors ${
                           side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
                         }`}>
-                        {label}
+                        {label}{v === "indicators" && activeIndicatorCount(indicators) > 0 ? ` ${activeIndicatorCount(indicators)}` : ""}
                       </button>
                     ))}
-                    <button onClick={() => setRightOpen(false)} title="매매/알림 접기"
+                    <button onClick={() => setRightOpen(false)} title="패널 접기"
                       className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
                   </div>
                   <div className="flex-1 overflow-y-auto">
-                    {side === "trade" ? <TradeTab symbol={activeSymbol} /> : <AlertTab symbol={activeSymbol} />}
+                    {side === "trade" && <TradeTab symbol={activeSymbol} />}
+                    {side === "alert" && <AlertTab symbol={activeSymbol} />}
+                    {side === "indicators" && <IndicatorTab indicators={indicators} setIndicators={setIndicators} />}
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setRightOpen(true)} title="매매/알림 열기"
+                <button onClick={() => setRightOpen(true)} title="패널 열기"
                   className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
                   <span className="text-sm">◀</span>
-                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}>💵 매매 · 알림</span>
+                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}>💵 매매 · 🔔 알림 · 📊 지표</span>
                 </button>
               )}
             </div>

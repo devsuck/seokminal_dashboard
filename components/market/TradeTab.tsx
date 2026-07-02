@@ -1,23 +1,30 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { placeKROrder, placeUSOrder, getQuote } from "@/lib/api";
+import { placeKROrder, placeUSOrder, placeHLOrder, getQuote, getCryptoBook } from "@/lib/api";
 import { isUSMarketOpen } from "@/lib/market-hours";
 
-// "AAPL.NASDAQ" → US/AAPL, "005930.XKRX" → KR/005930
-function parseSymbol(sym: string): { venue: "KR" | "US"; code: string } {
+type Venue = "KR" | "US" | "CRYPTO";
+
+// "AAPL.NASDAQ" → US/AAPL, "005930.XKRX" → KR/005930, "BTC.HL" → CRYPTO/BTC
+function parseSymbol(sym: string): { venue: Venue; code: string } {
   const [code, suffix] = sym.split(".");
-  return { venue: suffix === "XKRX" ? "KR" : "US", code };
+  const venue: Venue = suffix === "XKRX" ? "KR" : suffix === "HL" ? "CRYPTO" : "US";
+  return { venue, code };
 }
 
 type Side = "BUY" | "SELL";
 type OrderType = "MARKET" | "LIMIT";
 
-const QTY_PRESETS = [1, 5, 10, 50, 100];
+const QTY_PRESETS_STOCK = [1, 5, 10, 50, 100];
+const QTY_PRESETS_CRYPTO = [0.01, 0.1, 0.5, 1];
 
 export function TradeTab({ symbol }: { symbol: string }) {
   const { venue, code } = parseSymbol(symbol);
+  const isCrypto = venue === "CRYPTO";
   const cur = venue === "KR" ? "₩" : "$";
+  const qtyPresets = isCrypto ? QTY_PRESETS_CRYPTO : QTY_PRESETS_STOCK;
+  const qtyStep = isCrypto ? 0.1 : 1;
   const [side, setSide] = useState<Side>("BUY");
   const [qty, setQty] = useState("1");
   const [orderType, setOrderType] = useState<OrderType>("MARKET");
@@ -35,20 +42,22 @@ export function TradeTab({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     setLivePrice(null); setPrevPrice(null); priceRef.current = null;
-    if (venue !== "US") return;
+    if (venue === "KR") return; // KR: needs KIS REST, not fetched
     let cancelled = false;
     let fetchedOnce = false;
     const ctrl = new AbortController();
     async function poll() {
-      // 마감 + 이미 현재가 있음 → 스킵 (한도 절약)
-      if (fetchedOnce && !isUSMarketOpen()) return;
+      // 미국 장 마감 + 이미 현재가 있음 → 스킵 (한도 절약). 크립토는 24/7.
+      if (venue === "US" && fetchedOnce && !isUSMarketOpen()) return;
       try {
-        const q = await getQuote(code, ctrl.signal);
+        const p = venue === "CRYPTO"
+          ? (await getCryptoBook(code, ctrl.signal)).mid_price
+          : (await getQuote(code, ctrl.signal)).price;
         if (cancelled) return;
         fetchedOnce = true;
         setPrevPrice(priceRef.current);
-        priceRef.current = q.price;
-        setLivePrice(q.price);
+        priceRef.current = p;
+        setLivePrice(p);
       } catch { /* ignore; keep last */ }
     }
     poll();
@@ -56,7 +65,7 @@ export function TradeTab({ symbol }: { symbol: string }) {
     return () => { cancelled = true; ctrl.abort(); clearInterval(id); };
   }, [code, venue]);
 
-  const q = parseInt(qty) || 0;
+  const q = (isCrypto ? parseFloat(qty) : parseInt(qty)) || 0;
   // Effective price for cost estimate: LIMIT → typed price, else live price.
   const estUnit = orderType === "LIMIT" ? (parseFloat(price) || 0) : (livePrice ?? 0);
   const estValue = q > 0 && estUnit > 0 ? q * estUnit : 0;
@@ -66,8 +75,9 @@ export function TradeTab({ symbol }: { symbol: string }) {
     return n.toLocaleString(undefined, { maximumFractionDigits: venue === "KR" ? 0 : 2 });
   }
 
-  function stepQty(delta: number) {
-    setQty(String(Math.max(1, q + delta)));
+  function stepQty(dir: number) {
+    const next = Math.max(qtyStep, q + dir * qtyStep);
+    setQty(String(isCrypto ? Number(next.toFixed(4)) : Math.round(next)));
   }
 
   function request() {
@@ -80,7 +90,14 @@ export function TradeTab({ symbol }: { symbol: string }) {
   async function submit() {
     setConfirm(false); setSubmitting(true); setError(null);
     try {
-      if (venue === "KR") {
+      if (venue === "CRYPTO") {
+        const r = await placeHLOrder({
+          coin: code, is_buy: side === "BUY", size: q,
+          order_type: orderType === "LIMIT" ? "limit" : "market", paper,
+          ...(orderType === "LIMIT" ? { limit_px: parseFloat(price) } : {}),
+        });
+        setResult(`HL · ${r.status}${r.paper ? " (테스트넷)" : " (메인넷)"}`);
+      } else if (venue === "KR") {
         const r = await placeKROrder({
           code, side, quantity: q, order_type: orderType, paper,
           ...(orderType === "LIMIT" ? { price: parseInt(price) } : {}),
@@ -111,7 +128,11 @@ export function TradeTab({ symbol }: { symbol: string }) {
           </span>
         )}
         <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-panel-2 border border-border text-text-3">
-          {venue === "KR" ? (paper ? "한국 · KIS 모의" : "한국 · KIS 실계좌") : (paper ? "미국 · Alpaca 페이퍼" : "미국 · IB 실계좌")}
+          {venue === "CRYPTO"
+            ? (paper ? "크립토 · HL 테스트넷" : "크립토 · HL 메인넷")
+            : venue === "KR"
+            ? (paper ? "한국 · KIS 모의" : "한국 · KIS 실계좌")
+            : (paper ? "미국 · Alpaca 페이퍼" : "미국 · IB 실계좌")}
         </span>
       </div>
 
@@ -120,7 +141,7 @@ export function TradeTab({ symbol }: { symbol: string }) {
         {[true, false].map(p => (
           <button key={String(p)} onClick={() => setPaper(p)}
             className={`flex-1 text-xs py-1.5 rounded border ${paper === p ? (p ? "border-pos text-pos bg-pos/10" : "border-neg text-neg bg-neg/10") : "border-border text-text-3"}`}>
-            {p ? "모의" : "실계좌"}
+            {isCrypto ? (p ? "테스트넷" : "메인넷") : (p ? "모의" : "실계좌")}
           </button>
         ))}
       </div>
@@ -151,13 +172,13 @@ export function TradeTab({ symbol }: { symbol: string }) {
         <div className="flex items-center gap-2 mt-1">
           <button onClick={() => stepQty(-1)}
             className="w-8 h-8 shrink-0 rounded border border-border text-text-2 hover:text-text-1 hover:border-accent text-sm">−</button>
-          <input value={qty} onChange={e => setQty(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric"
+          <input value={qty} onChange={e => setQty(e.target.value.replace(isCrypto ? /[^0-9.]/g : /[^0-9]/g, ""))} inputMode={isCrypto ? "decimal" : "numeric"}
             className="flex-1 min-w-0 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data text-center outline-none focus:border-accent" />
           <button onClick={() => stepQty(1)}
             className="w-8 h-8 shrink-0 rounded border border-border text-text-2 hover:text-text-1 hover:border-accent text-sm">+</button>
         </div>
         <div className="flex gap-1.5 mt-2">
-          {QTY_PRESETS.map(p => (
+          {qtyPresets.map(p => (
             <button key={p} onClick={() => setQty(String(p))}
               className={`flex-1 text-[11px] py-1 rounded border font-data ${q === p ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
               {p}
