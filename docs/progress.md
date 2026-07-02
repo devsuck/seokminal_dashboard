@@ -1,3 +1,33 @@
+## Phase 103 — TSMOM 로버스트니스 통과 → paper_candidate 확정 + forward-test 인프라 (2026-07-02) ✅ SHIPPED
+
+첫 EDGE 후보 로버스트니스 3종 + paper 확정(사용자 A). live 금지, config 동결.
+
+### 로버스트니스 3종 (paper 전 관문)
+- **N=1000 random: p=0.03** (0.0498→더 강해짐) ✅
+- **lookback 민감도: 3mo 0.14 / 6mo 0.48 / 12mo 0.55 전부 양수** ✅ (6-12mo 견고, 3mo 약)
+- **WF 0.44/0.39 양쪽 양수** ✅
+- **집중도:** 최고해(2020) 제외해도 +43%(단일해 아님), sleeve 6/7 양수 ✅ / 연도승률 5/11(2019-22강·2023-26약)=TSMOM lumpy 본질(reject 아님)
+- 비용 20bps 스트레스에서도 sharpe 0.47/99pct
+
+### paper_candidate 확정 (사용자 결정 A)
+- 상태 `paper_candidate_forward_test_required` registry 등록. **live capital 금지.**
+- 레짐 의존성 = reject 사유 아니라 TSMOM 본질 → forward-test에서 관찰
+
+### forward-test 인프라 (모니터링/리포팅 자동화만, Lv3 full 아님)
+- `research/paper/tsmom_config.py`: **FROZEN 스펙**(32시장/params/rebal/cost). universe·lookback·risk·sleeve·레짐필터 변경 금지, 결과 후 튜닝 금지
+- `research/paper/tsmom_forward.py`: shadow forward-test — trend_regime_score(현 0.774), backtest envelope(월수익 P10/P90), sleeve contribution, 턴오버/cost drag, 월간 리포트 md + 원장. envelope 이탈 체크. `--since YYYY-MM`로 forward 월 비교
+- `portfolio_backtester`: 턴오버/cost_drag 추적. 월마다 최신 데이터 pull 후 재실행 → 신규 월 vs envelope
+
+### 검증
+- 백엔드 490 passed / 4 pre-existing. forward 4 신규. 커밋 3123180 등
+
+### 다음
+- **월간 운영:** 최신 선물 데이터 pull → `tsmom_forward.py --since 2026-07` → 리포트. 3~6개월 관찰
+- Lv3 full 진입은 paper_candidate 확정(forward 생존) 후에만. 지금은 모니터링/리포팅만 허용
+- (선택) 유료 장기데이터(Norgate)로 20년 재검, 코인 시장구조/이벤트 트랙
+
+---
+
 ## Phase 102 — TSMOM 13→32 시장 확장 → 🎯 첫 EDGE 후보 (2026-07-02) ✅ SHIPPED
 
 사용자 판단: TSMOM 트랙 폐기 말고 **데이터 확장**(튜닝 아님). TSMOM 핵심=넓은 분산, 13시장은 작음.
