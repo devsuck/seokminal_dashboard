@@ -1,3 +1,25 @@
+## Phase 107 — KR Liquidity Wave survivorship 통제 재검증 (WEAK 유지, 통제 불완전) (2026-07-02) ✅ SHIPPED
+
+survivorship 통제 = 상장폐지 KOSDAQ(2022+) 포함(펌프→폭락→상폐 이벤트로 상방편향 제거).
+
+### 결과
+- `kr_data.list_delisted` + run_kr에 delisted universe 추가 + survivor/delisted 분해
+- **진단:** 폐지종목 215개 데이터 다 있으나 **유동성게이트(전체평균 거래대금) 통과 12%**, 그중 wave 이벤트 1건뿐(212 vs 211)
+- **왜:** ① 전략이 선택적(펌프주=통제된 눌림 없이 직행폭락→패턴 미발생, 최악종목 자연회피) ② 게이트 함정(잠깐펌프=평균 낮아 제외 → survivorship 제대로 스트레스 못함)
+- **결과 불변:** net +2.28%(base)·100bps까지 양수 / random 90.8pct p=0.094(유의X) / WF 후반쏠림 / survivor +2.23%(211) vs delisted +13%(1, 무의미)
+
+### 판정: WEAK 유지, sanity-only, 승격 불가
+- 편향이 뒤집지도(delisted 무의미) 제대로 통제되지도 않음. **통계적 유의성 부재가 핵심** — 희미한 발자국 있으나 매칭random과 구분 안 됨
+- 전략 선택성(펌프주 회피)은 약한 positive지만 미검증
+
+### 다음 (방법론, 튜닝 아님)
+- 유동성게이트 전체평균→이벤트윈도우(펌프주가 그 순간 자격 얻게) / 실 거래대금(Amount 히스토리) / 장기데이터. 근데 WEAK/유의X라 우선순위 낮음
+
+### 검증
+- KR detector 5 테스트 유지. 커밋 8f789ba
+
+---
+
 ## Phase 106 — KR Liquidity Wave 트랙 (audit→detector→검증, WEAK sanity) (2026-07-02) ✅ SHIPPED
 
 새 리서치 트랙: 한국 소형주 유동성 파동. 조작탐지/세력 아님 — 공개데이터 발자국 검증. 스펙대로 데이터 audit 먼저.
