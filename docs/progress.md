@@ -1,3 +1,31 @@
+## Phase 109 — KRX 공식 API 통합: 급등주 PIT REJECT 확정 + buyback WATCHLIST (2026-07-02) ✅ SHIPPED
+
+사용자가 `.env`에 KRX_API_KEY 제공했었음(내가 pykrx/FDR 오용, 안 씀). KRX 공식 OpenAPI(data-dbg.krx.co.kr)로 전환.
+
+### KRX API 데이터 레이어
+- `research/data/krx_api.py`: 날짜별 전종목 스냅샷(OHLC·**실거래대금**·시총·부서). 486 거래일(2년) KOSDAQ pull → `build_series`로 종목별 시계열 재구성 = **PIT universe + survivorship-free by construction**(폐지종목 활동기간에만 존재)
+
+### 급등주 PIT 재검 → REJECT 확정
+- `run_kr_liquidity_wave_pit`: 1923 KOSDAQ(생존+폐지), 관리종목 제외, 실거래대금 게이트
+```
+gross −1.26%(비용전 음수) | net −1.66% random 0.2pct p=0.998(랜덤보다 나쁨) | WF 양쪽 음수
+```
+- **survivor-only +2.28%(90pct)는 100% 편향 착시.** FDR로는 계속 WEAK 애매였으나 KRX 공식 PIT로 명백 REJECT. 실돈이면 잃었을 것
+
+### 보너스 — DART 자사주 이벤트 스터디 = WATCHLIST
+- `kr_dart_events`(OpenDART 주요사항보고) + `run_kr_dart_event_study`: 공시 다음날 진입 20일 보유
+```
+buyback net +1.85% random 100pct p=0.002 | WF 양쪽 양수(+1.58/+2.04)
+대조 유상증자(약세) −2.65% ← 반대=경제적 coherent | 50bps p=0.006
+```
+- **지금까지 KR 최강 신호**(buyback anomaly, 전세계 검증). WATCHLIST. 단 PIT/생존편향 미검토 + n카운트 캐시버그(방향 유효)
+
+### 현황: 15가설 → REJECT 11 / BLOCKED 1 / 후보 3(TSMOM paper + TSMOM candidate + KR buyback watchlist)
+### 검증
+- KR detector/이벤트 테스트 유지. 커밋 0f748e7·6d79b4e
+
+---
+
 ## Phase 108 — KR 이벤트윈도우 게이트 → survivorship 편향 폭로, 사실상 REJECT (2026-07-02) ✅ SHIPPED
 
 Phase 107의 delisted 통제 무효(전체평균 게이트가 펌프주 제외) → 게이트를 **20일 롤링평균 최대치**로 교체 → delisted 1→39개 제대로 포함.
