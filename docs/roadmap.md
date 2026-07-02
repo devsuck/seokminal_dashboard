@@ -90,14 +90,40 @@
 | 71 | quote 캐시+장중 게이팅 | `/quote` 3초 캐시(60/분 한도 보호), `lib/market-hours.ts` isUSMarketOpen, 마감 시 폴링 스킵 | — |
 | 72 | US 라이브 단타 IB 통일 | IBOrderClient `get_intraday_bars`+`wait_fill`/`avg_fill_price`, 라이브=IB 데이터+실행+실체결가 | — |
 | 73 | 외환 IB IDEALPRO | forex 페이지 `ForexChart`(getIBBars forex), bar-size 선택, 카드 클릭 페어 선택 | — |
-| 74 | 뉴스 요약 정확도 | NewsPanel이 headline+summary 블러브 AI 전달, groq 프롬프트 "제목만 속단 금지" | — |
+| 74 | 뉴스 요약 정확도 | NewsPanel headline+summary AI 전달, groq "제목만 속단 금지" | — |
+| 75 | 계좌 잔액 6/6 연동 | HL testnet spot 버그, IB accountValues(EUR), KIS CANO교정·재시도, quote캐시 | — |
+| 76 | 에이전트 폼 재설계 | 스타일(단타/스윙/장투)×시장(한/미/크립토), 통화 자동(₩/$/USDC), 카드 정리 | — |
+| 77 | 스윙-KR 라우팅/통화 | daytrade_tick venue=agent.market, agent_loop.sh 배정자본×비중 사이징($20k버그) | — |
+| 78 | 카피트레이드(페이퍼) | /copytrade signals·mirror·positions (의회+내부자 매수 미러, Alpaca 페이퍼) | — |
+| 79 | 카피 트레이더 카드 | /copytrade/traders 인물별 수익률(거래일 종가 진입), Autopilot 스타일 카드 | — |
+| 80 | DART 기업행위 오토파일럿 | /dart signals(자사주=매수/증자=회피)·mirror(KIS모의)·positions, /dart-auto | — |
+| 81 | 서버측 DART 봇 | dart_autobot(asyncio 루프, 브라우저 무관), 봇로그·config·장중게이팅 | — |
+| 82 | DART 봇 비중 | action_weight 소각1.5/취득1.0/신탁0.6× | — |
+| 83 | 차트 매매/알림 인라인 | MarketWorkspace 차트 우측 매매/알림 패널, Events/KR 탭 제거 | — |
+| 84 | 성과 추적 (발전#1) | /performance/portfolio equity곡선·MDD·Sharpe·SPY벤치마크, /performance | — |
+| 85 | 현실 백테스트 (발전#2) | simple_runner cost_bps(슬리피지+수수료), /backtest cost_bps + 워크포워드 | — |
+| 86 | 스마트 시그널 (발전#3) | /signal/smart 레짐(HMM)+모멘텀+Kelly, /signal | — |
+| 87 | 리스크 강화 (발전#4) | risk_state 킬스위치+MDD자동차단, /risk-guard | — |
+| 88 | 사이징 CVaR+리스크패리티 | 스마트시그널 비중=min(Kelly×레짐×변동성타게팅, CVaR캡, 25%) | — |
+| 89 | 페어 트레이딩(시장중립) | /pairs/backtest 공적분게이트+스프레드백테스트, /pairs | — |
+| 90 | 스윙 페이퍼 검증 + 잠금봇 | 스윙검증-US 봇 가동, protected 에이전트(이름확인 삭제) | — |
+| 91 | 차트 타임프레임+워치접기 | 1분/15분/1시간/4시간/하루/1달, 워치리스트 ◀▶, 크립토 인터벌 | — |
+| 92 | 패널접기+버그수정 | 매매/알림 접기, 1분 IB안내. **#3 지표통합 미완** | ⏳ |
 
-## 다음 청크
-- KR 단타 실투자(paper=false) 라이브 검증 (KIS 실계좌)
-- IB(TWS) 실계좌 라이브 매매 검증 (US 라이브 단타 = IB 데이터+실행 통일됨, Phase 72)
-- /orders(HL·봇P&L) 잔여 기능 시장/봇 페이지로 흡수 검토
-- 차트 US 소스도 IB 실시간 우선 검토 (구독 살아있음 — 현재는 catalog 우선)
-- 뉴스 본문 전문(선택): Jina Reader(`r.jina.ai`) 스크레이핑 → 진짜 본문으로 AI 요약 (지연/파싱 리스크)
+## 다음 세션 최우선 (채팅 리셋 인수인계)
+1. **[⏳ 진행중] #3 지표를 오른쪽 패널로 통합** — 매매/알림/**지표** 3탭. ChartTab 지표상태 12개(SMA/EMA/BB/RSI/MACD/Stoch/CCI/%R/ADX/ATR/거래량/OBV) → MarketWorkspace로 리프트 → 우측 "📊 지표" 탭에서 추가/삭제·파라미터. tsc/빌드/방문검증 필수 (차트·실시간오버레이·서브차트 안 깨지게). 상세 progress.md Phase 92
+2. **스윙 페이퍼 검증 지속** — 봇 `스윙검증-US`(id 7591f352, 잠금됨) 가동중. 노트북 켤 때 tmux 살아있는지 확인, 죽었으면 /agents에서 재시작. 며칠~몇주 후 성과페이지 SPY 초과수익 확인
+3. KR 단타 실투자(KIS 실계좌) / IB(TWS) 실계좌 라이브 검증
+4. 차트 US 분봉 = IB(TWS) 필요 (무료 대체 없음). 하루봉만 catalog
+5. 뉴스 본문 전문(선택): Jina Reader 스크레이핑
+
+## 현재 상태 요약 (인수인계)
+- **전략 3축**: 방향성(단타·스윙·장투·스마트시그널) / 이벤트(카피트레이드·DART봇) / 시장중립(페어)
+- **발전 4/4 완료**: 성과추적·현실백테스트·스마트시그널·리스크강화. 사이징=Kelly+변동성+CVaR
+- **검증 인프라**: 성과페이지(SPY 초과수익)·비용백테스트·페어 공적분게이트
+- **계좌**: Alpaca페이퍼 / KIS모의(1천만)·실계좌 / IB(€100) / HL testnet·mainnet — 6/6 연동
+- **인증 없음** → 클라우드 배포 전 로그인/토큰 인증 선행 필수 (지금 로컬 전용)
+- 배포: 로컬만. 24/7은 나중 클라우드(리눅스 VPS+claude CLI API키). 데스크탑 배포는 접음(반납 예정)
 
 ## 보류 (비용+난이도 — 학습 후 결정)
 > 사용자 결정(2026-07-01): 옵션/선물은 **추가 구독비 + 난이도** 높아 당장 안 함. 공부하며 알아두고 나중에.
