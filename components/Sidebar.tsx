@@ -116,6 +116,7 @@ export function Sidebar() {
       items: [
         { href: "/quant",        label: t("nav.quant") },
         { href: "/signal",       label: "스마트 시그널" },
+        { href: "/validation",   label: "검증 터미널" },
         { href: "/event-study",  label: t("nav.event-study") },
         { href: "/data-quality", label: t("nav.data-quality") },
       ],

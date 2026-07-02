@@ -1983,6 +1983,37 @@ export async function getPerformance(period = "1M", signal?: AbortSignal): Promi
   return handleResponse<PerfSummary>(r);
 }
 
+// ── Strategy Validation Terminal ─────────────────────────────────────────────
+
+export interface Experiment {
+  hypothesis_id: string; status: string; timestamp?: string;
+  net_pnl?: number; sharpe?: number; verdict?: string;
+  [k: string]: unknown;
+}
+export interface ExperimentsResponse {
+  experiments: Experiment[]; counts: Record<string, number>; total: number;
+}
+export async function getExperiments(signal?: AbortSignal): Promise<ExperimentsResponse> {
+  const r = await fetch(`${API_URL}/research/experiments`, { signal });
+  return handleResponse<ExperimentsResponse>(r);
+}
+
+export interface TsmomForward {
+  version: string; status: string; as_of: string;
+  config_frozen: { universe_n: number; params: Record<string, number>; rebalance_days: number; cost_base: number; cost_stress: number };
+  backtest_envelope: { sharpe: number; max_drawdown: number; monthly_mean: number; monthly_std: number; monthly_p10: number; monthly_p90: number; avg_turnover: number; n_months: number };
+  cost: { base_sharpe: number; stress_sharpe: number; avg_turnover: number; cost_drag_base: number; cost_drag_stress: number };
+  trend_regime: { regime_score: number | null; trending_frac: number | null; n: number };
+  sleeve_contribution: Record<string, { sharpe: number | null; ann_return: number }>;
+  forward_months: Record<string, number>;
+  envelope_deviation: Record<string, string>;
+  baseline_ref: Record<string, number>;
+}
+export async function getTsmomForward(signal?: AbortSignal): Promise<TsmomForward> {
+  const r = await fetch(`${API_URL}/research/tsmom`, { signal });
+  return handleResponse<TsmomForward>(r);
+}
+
 // ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────
 
 export interface DartSignal {
