@@ -1,3 +1,31 @@
+## Phase 106 — KR Liquidity Wave 트랙 (audit→detector→검증, WEAK sanity) (2026-07-02) ✅ SHIPPED
+
+새 리서치 트랙: 한국 소형주 유동성 파동. 조작탐지/세력 아님 — 공개데이터 발자국 검증. 스펙대로 데이터 audit 먼저.
+
+### 데이터 게이트 (audit)
+- pykrx = KRX 로그인 요구(universe/시총/플로우 블록). **FDR로 우회**: `research/data/kr_data.py`(SSL 로컬우회, 공개데이터) StockListing = universe 2766(KOSPI 945+KOSDAQ 1821) + 시총(Marcap) + 거래대금(Amount) + Dept(관리종목), DataReader = 티커 일봉
+- ✅ 일봉·시총·거래대금·상장상태·상장폐지 / ❌ **PIT universe·intraday·투자자플로우·공매도** → **RESEARCH_SANITY_CHECK_ONLY**
+
+### 전략 (KR Liquidity Wave Pullback v1)
+- `research/strategies/kr_liquidity_wave.py`: impulse(+10% & 거래대금 5×avg20) → pullback(거래대금 수축·저점유지) → rebreakout(거래대금 2×avg5) → **다음날 시가 진입**, 눌림저점 이탈/10일 타임스탑 청산. '세력' 코드 안 씀(liquidity_impulse 등)
+- `research/run_kr_liquidity_wave.py`: matched random(같은 bucket·보유·비용) + 비용스트레스 40/100/200bps 왕복 + WF. detector synthetic 5 테스트
+
+### 판정: WEAK — sanity only
+```
+211 트레이드 | gross +2.63% | net(base) +2.23% | 100bps까지 양수
+vs random 90.8pct p=0.094(유의X) | WF 전반 −0.30%/후반 +4.74%(쏠림)
+```
+- **죽은 주식 TA보다 살아있음**(극단비용까지 net+, 랜덤중앙 초과, KOSDAQ 리테일=덜 효율적 그럴듯). **근데 승격 불가:** 유의성 부족(90pct<95, p0.09)·WF 후반쏠림·**survivorship 상방편향**(현재상장만=승자편향)
+- 진짜 엣지는 보이는 것보다 약함. WEAK도 관대
+
+### 다음 (편향 통제 = 진짜 검증)
+- PIT universe + 상장폐지 포함(FDR delisting 됨)으로 survivorship 제거 → 결과 낮아질 것. 통과하면 watchlist, 아니면 reject. 실 거래대금(Amount 히스토리)으로 프록시 교체
+
+### 검증
+- 백엔드 495 passed / 4 pre-existing. KR detector 5 신규. 13가설(10 REJECT/1 BLOCKED/TSMOM paper_candidate/KR WEAK). 커밋 7128614
+
+---
+
 ## Phase 105 — Nav 재배치: 검증 터미널 중심, 차트 강등 (2026-07-02) ✅ SHIPPED
 
 방향: 재량적 차트 분석은 TradingView(+MCP)가 빠름 → 경쟁 안 함. 플랫폼 moat = 엣지 검증(random 분포·WF·BH·cost stress, TV 불가). 차트/마켓은 강등, 검증 중심 재배치.
