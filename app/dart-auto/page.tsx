@@ -142,8 +142,8 @@ export default function DartAutoPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {signals.map(s => {
-                    const k = `${s.corp_name}:${s.action_type}:${s.date}`;
+                  {signals.map((s, i) => {
+                    const k = `${s.corp_name}:${s.action_type}:${s.date}:${s.ticker ?? ""}:${i}`;
                     return (
                       <tr key={k} className="border-b border-border/50 hover:bg-panel-2">
                         <td className="px-3 py-2 text-text-2 truncate max-w-[120px]">{s.corp_name}</td>
