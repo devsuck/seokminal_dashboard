@@ -1,3 +1,35 @@
+## Phase 101 — 선물 TSMOM 트랙 (audit→로더→판정, REJECT 최고근접) (2026-07-02) ✅ SHIPPED
+
+로드맵 "다음 알파 #1 선물 TSMOM" 실행. 15m 단타보다 그럴듯한 트랙.
+
+### 데이터 게이트 (audit)
+- `research/data/futures_audit.py`: **IB 일봉 선물 = 구독 불필요로 됨**(ContFuture). 지수·마이크로·채권·원자재 반환. FX선물(6E/6J)만 실패→IDEALPRO 스팟 대체
+- `research/data/futures_loader.py`: ContFuture 일봉 13시장(ES/NQ/RTY/YM·ZN/ZB/ZF/ZT·CL/GC/NG/SI/HG) → intraday_store. 롤점프 0~4=스티칭 양호. 깊이 2.5~10년
+
+### 인프라 + 판정
+- `research/backtest/portfolio_backtester.py`: 수익률 기반 멀티에셋 + **vol targeting** + 턴오버 비용 (이산거래 아닌 포트폴리오)
+- `research/hypotheses/tsmom.py`: 12개월 모멘텀 signal + vol target, buyhold(항상롱 vol매칭)/random 베이스라인
+- `research/run_tsmom.py`: random 분포 + buyhold + cash + walk-forward 판정. tests 5
+
+### 판정: REJECT (근데 지금까지 최고)
+```
+TSMOM  SHARPE 0.444  ann_ret 4.48%  maxDD −24% (13시장, 10년)
+buyhold SHARPE 0.211  ← TSMOM이 초과 ✅
+vs random 91.5pct p=0.09  |  WF 전반 0.449 / 후반 −0.053
+```
+- Sharpe+·buyhold초과·랜덤 91.5pct = **11개 중 제일 살아있는 신호.** 학술 견고성 반영
+- **근데 기준 미달:** 95pct(91.5)·p<.05(0.09)·**WF후반 붕괴(−0.053)=TSMOM 감쇠**(문헌 일치, 2010후+2024~25 반전레짐). REJECT, 튜닝 안 함
+- **메타(11개째):** 가장 견고한 문서화 아노말리조차 리테일·최근·엄밀기준 미달 = 검증 엣지 0개 결론 강화
+
+### 검증
+- 백엔드 486 passed / 4 pre-existing. TSMOM 5 신규. VALIDATION_SUMMARY 재생성(11가설). 커밋 fce6ad6
+
+### 다음 (선택, 로드맵대로)
+- 코인 시장구조(funding+OI/basis/liquidation) / 이벤트 저빈도(정식 캘린더 데이터) — 각 데이터 게이트 먼저
+- 또는 검증 터미널 UI(Week 2). 급한 것 없음 — 알파 사냥은 규율적으로 소진 중
+
+---
+
 ## Phase 100 — 전략 전환: 알파 사냥 중단 → Strategy Validation Terminal (2026-07-02) ✅ SHIPPED
 
 10개 가설 전부 REJECT(검증 엣지 0). 사용자 결정: **1+3 혼합** — 알파 사냥 중단, 검증 프레임워크를 자산으로, 실투자는 패시브/저빈도, 고급 알파원은 학습/제품 한정.
