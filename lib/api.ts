@@ -8,7 +8,10 @@ export class ApiError extends Error {
   }
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+// 폰/LAN 접근: 접속한 호스트(맥 IP)로 API 자동 지정. env가 있으면 우선.
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (typeof window !== "undefined" ? `http://${window.location.hostname}:8000` : "http://127.0.0.1:8000");
 
 export interface BarOut {
   ts_event: number;
@@ -2014,6 +2017,160 @@ export async function getTsmomForward(signal?: AbortSignal): Promise<TsmomForwar
   return handleResponse<TsmomForward>(r);
 }
 
+// ── AI LAB (자율 리서치 루프: 자체생각→검토→집행→학습) ────────────────────────────
+
+export interface LabHypothesis {
+  id: string; name: string; family: string; market: string;
+  thesis: string; kill: string; entry: string; hold: string;
+  universe: string; cost_bps: number; data_mode: string;
+  precomputed_id?: string | null; n_trades?: number; holding?: number[];
+}
+export interface LabLogLine { ts: string; stage: string; level: string; msg: string; }
+export interface LabVerdict {
+  id: string; name: string; family: string; market: string;
+  status: string; verdict: string; data_mode: string; ts: string;
+}
+export interface LabMetrics {
+  net?: number | null; n_trades?: number | null;
+  percentile?: number | null; p?: number | null; random_median?: number | null;
+  wf_first?: number | null; wf_second?: number | null;
+}
+export interface LabState {
+  status: string; stage: string | null; progress: number;
+  busy: boolean; autopilot: boolean; live_guard: string;
+  current: LabHypothesis | null; metrics: LabMetrics;
+  stats: { processed: number; edges: number; rejects: number; blocked: number; pending?: number };
+  log: LabLogLine[]; verdicts: LabVerdict[]; queue: LabHypothesis[];
+  knowledge: Experiment[];
+}
+export async function getLabState(signal?: AbortSignal): Promise<LabState> {
+  const r = await fetch(`${API_URL}/lab/state`, { signal });
+  return handleResponse<LabState>(r);
+}
+export async function runLab(hypothesisId?: string, autopilot = false): Promise<{ started: boolean; reason?: string }> {
+  const r = await fetch(`${API_URL}/lab/run`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hypothesis_id: hypothesisId ?? null, autopilot }),
+  });
+  return handleResponse(r);
+}
+export async function setLabAutopilot(on: boolean): Promise<{ autopilot?: boolean }> {
+  const r = await fetch(`${API_URL}/lab/autopilot`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ on }),
+  });
+  return handleResponse(r);
+}
+
+export interface JarvisStatus {
+  system: string; autonomy_level: number; autonomy_name: string;
+  live_execution: string; paper_monitoring: string; research_automation: string;
+  strategy_registry: string; risk_governor: string; audit_log: string;
+  registry_counts: Record<string, number>; registry_total: number;
+}
+export async function getJarvisStatus(signal?: AbortSignal): Promise<JarvisStatus> {
+  const r = await fetch(`${API_URL}/lab/jarvis`, { signal });
+  return handleResponse<JarvisStatus>(r);
+}
+
+export interface JarvisStrategyRow { strategy_id: string; status: string; frozen: boolean; flags: string[]; }
+export interface JarvisDeployment { strategy_id: string; runner: string; rules: Record<string, unknown>; deployed_at: string; }
+export interface JarvisAuditRow {
+  timestamp: string; layer?: string; action?: string; strategy_id?: string;
+  result?: string; reason?: string; execution_status?: string; risk_status?: string;
+  permission_granted?: boolean; agent?: string; [k: string]: unknown;
+}
+export interface JarvisDetail {
+  strategies: JarvisStrategyRow[]; deployments: JarvisDeployment[]; audit: JarvisAuditRow[];
+}
+export async function getJarvisDetail(signal?: AbortSignal): Promise<JarvisDetail> {
+  const r = await fetch(`${API_URL}/lab/jarvis/detail`, { signal });
+  return handleResponse<JarvisDetail>(r);
+}
+
+export interface LabTaskMonthly { period: string; return: number | null; n: number | null; }
+export interface LabTaskForward {
+  entry?: string; exit?: string; cost_bps?: number | null;
+  stats?: Record<string, number | null>; monthly?: LabTaskMonthly[]; error?: string;
+}
+export interface LabTask {
+  strategy_id: string; status: string; runner: string | null;
+  deployed: boolean; forward: LabTaskForward | null;
+}
+export async function getLabTasks(signal?: AbortSignal): Promise<{ tasks: LabTask[]; count: number }> {
+  const r = await fetch(`${API_URL}/lab/tasks`, { signal });
+  return handleResponse(r);
+}
+
+export interface BookSleeve { name: string; n: number; ann: number; sharpe: number; mdd: number; }
+export interface BookStat { n: number; ann: number; sharpe: number; mdd: number; weights: Record<string, number>; }
+export interface BookMonthly { period: string; tsmom: number; buyback: number; combined: number; cum: number; }
+export interface BookConstraint { scale: string; capacity: string; events_month: number | null; timing: string; }
+export interface PortfolioBook {
+  sleeves: BookSleeve[]; common_months: number; range: string | null; note: string;
+  correlation?: number;
+  combined?: { equal_weight: BookStat; risk_parity: BookStat } | null;
+  monthly?: BookMonthly[];
+  constraints?: Record<string, BookConstraint>;
+}
+export async function getLabPortfolio(signal?: AbortSignal): Promise<PortfolioBook> {
+  const r = await fetch(`${API_URL}/lab/portfolio`, { signal });
+  return handleResponse<PortfolioBook>(r);
+}
+
+export interface V2Seg { n_v1: number; n_v2: number; v1_net: number | null; v2_net: number | null; v1_winrate: number | null; v2_winrate: number | null; v2_improves: boolean; }
+export interface V2Shadow {
+  hypothesis_id: string; status: string; frozen_date: string; bull_cutoff_60d_mktret: number;
+  rule: string; in_sample: V2Seg; forward: V2Seg; forward_note: string; discipline: string;
+}
+export async function getV2Shadow(signal?: AbortSignal): Promise<V2Shadow> {
+  const r = await fetch(`${API_URL}/lab/v2shadow`, { signal });
+  return handleResponse<V2Shadow>(r);
+}
+
+export interface BuybackBot {
+  version: string; config: { entry: string; hold_days: number; cost_bps: number };
+  total: number; open: number; closed: number;
+  paper_pnl_mean: number | null; paper_win_rate: number | null; cum_paper_pnl: number | null;
+  open_positions: { corp: string; code: string; entry_date: string; entry_price: number }[];
+  recent_closed: { corp: string; entry_date: string; exit_date: string; pnl_pct: number }[];
+  execution: string; live: string; note: string;
+}
+export async function getBuybackBot(signal?: AbortSignal): Promise<BuybackBot> {
+  const r = await fetch(`${API_URL}/lab/buyback-bot`, { signal });
+  return handleResponse<BuybackBot>(r);
+}
+
+export interface LabStatus {
+  server: string; now: string;
+  dart_bot: { running: boolean; enabled?: boolean; last_run?: string | null; interval_sec?: number; acted?: number; recent?: unknown[]; error?: string };
+  ai_lab: { engine_status?: string; busy?: boolean; autopilot?: boolean; processed?: number; continuous_loop?: string; autonomy_level?: number; live_execution?: string; error?: string };
+  research_service?: { running?: boolean; enabled?: boolean; interval_sec?: number; last_run?: string | null; processed_total?: number; ticks?: number; last_result?: unknown; note?: string; error?: string };
+  congress: { type: string; note: string };
+}
+export interface ScannerFamily {
+  family: string; status: string; n: number | null; net: number | null; percentile: number | null; p: number | null;
+  wf_first: number | null; wf_second: number | null; redteam: string | null; direction: string | null; thesis: string;
+}
+export interface ScannerResult {
+  families: ScannerFamily[]; count: number; done: number; cleared: number; current: string | null; total: number;
+}
+export async function getScanner(signal?: AbortSignal): Promise<ScannerResult> {
+  const r = await fetch(`${API_URL}/lab/scanner`, { signal });
+  return handleResponse<ScannerResult>(r);
+}
+
+export async function toggleResearchService(on: boolean): Promise<LabStatus["research_service"]> {
+  const r = await fetch(`${API_URL}/lab/service/toggle`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }),
+  });
+  return handleResponse(r);
+}
+export async function getLabStatus(signal?: AbortSignal): Promise<LabStatus> {
+  const r = await fetch(`${API_URL}/lab/status`, { signal });
+  return handleResponse<LabStatus>(r);
+}
+
 // ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────
 
 export interface DartSignal {
@@ -2543,4 +2700,52 @@ export async function getGroqSummary(
       signal,
     }),
   );
+}
+
+// ── Auto-Research (배치 BH-FDR 게이트: karpathy/autoresearch 정직 이식) ──
+export interface AutoResearchEntry {
+  cid: string; category: string; thesis: string; direction: string;
+  n: number | null; net: number | null; median: number | null; percentile: number | null; p: number | null;
+  wf_first: number | null; wf_second: number | null; top_tail: number | null;
+  bh_survivor: boolean; bh_threshold: number | null;
+  redteam: string; redteam_failed: string[]; redteam_missing: string[];
+  verdict: "CANDIDATE" | "REJECT_BH" | "REJECT_REDTEAM" | string;
+}
+export interface AutoResearchStatus {
+  started?: string; finished?: string;
+  n_tested: number; n_underpowered?: number; n_candidates: number;
+  bh_alpha?: number; bh_threshold?: number | null; bh_n_survivors?: number;
+  leaderboard: AutoResearchEntry[];
+  underpowered?: { cid: string; category: string; thesis: string; n: number; verdict: string }[];
+  pending_engines?: { category: string; note: string; status: string }[];
+  honest_note: string;
+  busy?: boolean;
+}
+export async function getAutoResearch(signal?: AbortSignal): Promise<AutoResearchStatus> {
+  const r = await fetch(`${API_URL}/lab/autoresearch`, { signal });
+  return handleResponse<AutoResearchStatus>(r);
+}
+export async function runAutoResearch(): Promise<AutoResearchStatus> {
+  const r = await fetch(`${API_URL}/lab/autoresearch/run`, { method: "POST" });
+  return handleResponse<AutoResearchStatus>(r);
+}
+
+// ── Buyback 손실 진단 + 청산룰 시뮬 ──
+export interface BuybackLoser {
+  corp: string; code: string; entry_date: string;
+  cur_ret: number; peak: number; trough: number; peak_day: number; held: number;
+  tags: string[]; explain: string;
+}
+export interface ExitStat { n: number; mean: number | null; median: number | null; win_rate: number | null; cum: number | null; }
+export interface BuybackAnalysis {
+  version?: string; frozen?: boolean; horizon?: number; cost_bps?: number;
+  losers: BuybackLoser[]; n_losers?: number;
+  exit_sim: Record<string, ExitStat>;
+  baseline?: string; best_rule?: string; improves?: boolean;
+  shadow_note?: string; llm_note?: string; computed_at?: string;
+  pending?: boolean; note?: string;
+}
+export async function getBuybackAnalysis(signal?: AbortSignal): Promise<BuybackAnalysis> {
+  const r = await fetch(`${API_URL}/lab/buyback-analysis`, { signal });
+  return handleResponse<BuybackAnalysis>(r);
 }
