@@ -5,7 +5,7 @@ Phase 129 미결(lab이 status.json pull만) 해소. 진짜 순환: service가 �
 - **service `_autoresearch_batch`** — `run_batch()` 후 `ENGINE.reconcile_from_batch(s)` 호출. reconcile 실패해도 배치 성공 기록 유지(예외 격리). `status()`에 `autoresearch_reconciled` 노출.
 - 순환 완성: pending_bh(잠정) → 24h 배치 → 확정 candidate/reject 자동 반영. lab 화면 판정피드가 배치 후 스스로 갱신.
 - 테스트 8 신규(reconcile 6: candidate/reject_bh/watchlist(wf음수)/non-pending skip/family부재/idempotent + service 배선 2). 백엔드 **601 pass**(기존 4만).
-- FE: service 필드(autoresearch_*)는 현재 UI 미노출이라 프론트 변경 없음.
+- FE: lab 판정피드에 되먹임 시각화 — `reconciled` → **배치확정 ✓**(accent), pending_bh 미확정 → **배치대기**(info, blink). `LabVerdict.reconciled` 필드. tsc 0.
 
 ---
 
