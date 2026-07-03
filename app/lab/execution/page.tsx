@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  getExecutionConsole, getLabPortfolio,
-  type ExecutionConsole, type PortfolioBook,
+  getExecutionConsole, getExecutionEdge, getLabPortfolio,
+  type ExecutionConsole, type ExecutionEdge, type PortfolioBook,
 } from "@/lib/api";
 import { ArcReactor, RadialGauge } from "@/components/Hud";
 import { LivePulse } from "@/components/Jarvis";
 
-/* 집행 콘솔 — 검증된 buyback 엣지의 라이브 준비 + 엣지 생존(OOS) + 생존자 포트폴리오.
-   Jarvis HUD. 실주문 없음. 라이브 arm/집행은 사람 ADMIN. */
+/* 집행 콘솔 — buyback 엣지 라이브 준비 + 엣지 생존(OOS) + 생존자 포트폴리오. Jarvis HUD.
+   엣지 생존은 series 로드 무거움 → 별도 async fetch(콘솔 즉시, 엣지 카드 프로그레시브). */
 
 function pct(n: number | null | undefined, d = 2): string {
   if (typeof n !== "number") return "—";
@@ -26,6 +26,7 @@ const EDGE: Record<string, { label: string; tone: "pos" | "accent" | "info" | "n
 
 export default function ExecutionPage() {
   const [d, setD] = useState<ExecutionConsole | null>(null);
+  const [ea, setEa] = useState<ExecutionEdge | null>(null);
   const [book, setBook] = useState<PortfolioBook | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -38,19 +39,22 @@ export default function ExecutionPage() {
     getExecutionConsole(ctrl.signal)
       .then(s => { if (mounted) setD(s); })
       .catch(e => { if (!(e instanceof DOMException && e.name === "AbortError") && mounted) setErr(String(e)); });
+    getExecutionEdge(ctrl.signal)   // 무거움 → 콘솔과 병렬, 늦게 도착
+      .then(e => { if (mounted) setEa(e); })
+      .catch(() => { /* 엣지 카드만 로딩 유지 */ });
     getLabPortfolio(ctrl.signal)
       .then(b => { if (mounted) setBook(b); })
-      .catch(() => { /* 포트폴리오는 선택적 — 실패해도 콘솔은 뜸 */ });
+      .catch(() => { /* 선택적 */ });
     return () => { mounted = false; ctrl.abort(); };
   }, []);
 
   if (err) return <div className="p-6 text-xs text-neg border border-neg/30 rounded m-6">오류: {err}</div>;
   if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton h-20 rounded-lg" />)}</div>;
 
-  const g = d.arm_gate, lr = d.live_readiness, ea = d.edge_alive;
-  const edge = EDGE[ea.status] ?? EDGE.unavailable;
-  const oosPct = ea.oos_months > 0 ? Math.round((ea.oos_in_envelope / ea.oos_months) * 100) : 0;
-  const countdownPct = Math.min(100, (ea.oos_months / Math.max(1, ea.need_months)) * 100);
+  const g = d.arm_gate, lr = d.live_readiness;
+  const edge = ea ? (EDGE[ea.status] ?? EDGE.unavailable) : { label: "계산 중", tone: "text-3" as const, note: "엣지 생존 계산 중(series 로드)…" };
+  const oosPct = ea && ea.oos_months > 0 ? Math.round((ea.oos_in_envelope / ea.oos_months) * 100) : 0;
+  const countdownPct = ea ? Math.min(100, (ea.oos_months / Math.max(1, ea.need_months)) * 100) : 0;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
@@ -58,8 +62,7 @@ export default function ExecutionPage() {
       <div className="hud-frame hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-5">
-            <ArcReactor size={132} active={ea.status === "confirmed"}
-              label={edge.label} sub="edge" />
+            <ArcReactor size={132} active={ea?.status === "confirmed"} label={edge.label} sub="edge" />
             <div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-semibold text-text-1 tracking-[0.1em] uppercase">집행 콘솔</h1>
@@ -73,9 +76,9 @@ export default function ExecutionPage() {
           </div>
         </div>
         <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mt-3 pt-3 border-t border-hud/15 flex-wrap">
-          <RadialGauge size={84} pct={countdownPct} value={`${ea.oos_months}/${ea.need_months}`} label="OOS 월" tone={ea.oos_months >= ea.need_months ? "pos" : "hud"} />
-          <RadialGauge size={84} pct={oosPct} value={`${oosPct}%`} label="envelope 내" tone={oosPct >= 50 ? "pos" : "neg"} />
-          <RadialGauge size={84} pct={(d.edge.win_rate) * 100} value={pct(d.edge.win_rate, 0)} label="승률" />
+          <RadialGauge size={84} pct={countdownPct} value={ea ? `${ea.oos_months}/${ea.need_months}` : "…"} label="OOS 월" tone={ea && ea.oos_months >= ea.need_months ? "pos" : "hud"} />
+          <RadialGauge size={84} pct={oosPct} value={ea ? `${oosPct}%` : "…"} label="envelope 내" tone={oosPct >= 50 ? "pos" : "neg"} />
+          <RadialGauge size={84} pct={d.edge.win_rate * 100} value={pct(d.edge.win_rate, 0)} label="승률" />
           <RadialGauge size={84} pct={g.autonomy_level / g.min_live_level * 100} value={`Lv${g.autonomy_level}`} label="자율" tone="neg" />
           <RadialGauge size={84} pct={Math.min(100, lr.monthly_capacity_eok)} value={`${lr.monthly_capacity_eok}억`} label="수용력" />
         </div>
@@ -88,21 +91,27 @@ export default function ExecutionPage() {
           <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">엣지 생존 모니터</div>
           <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kv k="OOS 월(동결후)" v={`${ea.oos_months} / ${ea.need_months}`} tone={ea.oos_months >= ea.need_months ? "pos" : "warn"} />
-          <Kv k="envelope 내" v={`${ea.oos_in_envelope}/${ea.oos_months}`} tone={oosPct >= 50 ? "pos" : ea.oos_months ? "neg" : undefined} />
-          <Kv k="in-sample 월" v={String(ea.in_sample_months)} />
-          <Kv k="envelope p10~p90" v={`${pct(ea.envelope.p10)} ~ ${pct(ea.envelope.p90)}`} />
-        </div>
-        {ea.oos.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {ea.oos.map(m => (
-              <span key={m.month} className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${
-                m.in_envelope ? "border-pos/40 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
-                {m.month} {pct(m.median)}
-              </span>
-            ))}
-          </div>
+        {!ea ? (
+          <div className="scan-skeleton h-14 rounded" />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Kv k="OOS 월(동결후)" v={`${ea.oos_months} / ${ea.need_months}`} tone={ea.oos_months >= ea.need_months ? "pos" : "warn"} />
+              <Kv k="envelope 내" v={`${ea.oos_in_envelope}/${ea.oos_months}`} tone={oosPct >= 50 ? "pos" : ea.oos_months ? "neg" : undefined} />
+              <Kv k="in-sample 월" v={String(ea.in_sample_months)} />
+              <Kv k="envelope p10~p90" v={`${pct(ea.envelope.p10)} ~ ${pct(ea.envelope.p90)}`} />
+            </div>
+            {ea.oos.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ea.oos.map(m => (
+                  <span key={m.month} className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${
+                    m.in_envelope ? "border-pos/40 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
+                    {m.month} {pct(m.median)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
         )}
         <div className={`mt-2 text-[11px] leading-relaxed ${edge.tone === "neg" ? "text-neg" : edge.tone === "pos" ? "text-pos" : "text-text-3"}`}>
           {edge.note}

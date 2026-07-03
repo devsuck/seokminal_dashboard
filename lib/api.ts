@@ -2744,12 +2744,6 @@ export interface ExecutionConsole {
     monthly_capacity_eok: number; timing_delay_1d_pct: number; expectation: string;
     diversification: string; min_paper_months: number; preferred_paper_months: number;
   };
-  edge_alive: {
-    status: string; in_sample_months: number;
-    envelope: { p10: number | null; avg: number | null; p90: number | null };
-    oos_months: number; oos_in_envelope: number; need_months: number;
-    oos: { month: string; median: number; n: number; in_envelope: boolean }[];
-  };
   paper: {
     total: number; open: number; closed: number; paper_pnl_mean: number | null;
     paper_win_rate: number | null; cum_paper_pnl: number | null;
@@ -2764,6 +2758,17 @@ export interface ExecutionConsole {
 export async function getExecutionConsole(signal?: AbortSignal): Promise<ExecutionConsole> {
   const r = await fetch(`${API_URL}/lab/execution`, { signal });
   return handleResponse<ExecutionConsole>(r);
+}
+// 엣지 생존 — series 로드 무거움 → 콘솔과 분리 fetch(프로그레시브)
+export interface ExecutionEdge {
+  status: string; in_sample_months: number;
+  envelope: { p10: number | null; avg: number | null; p90: number | null };
+  oos_months: number; oos_in_envelope: number; need_months: number;
+  oos: { month: string; median: number; n: number; in_envelope: boolean }[];
+}
+export async function getExecutionEdge(signal?: AbortSignal): Promise<ExecutionEdge> {
+  const r = await fetch(`${API_URL}/lab/execution/edge`, { signal });
+  return handleResponse<ExecutionEdge>(r);
 }
 
 // ── Buyback 손실 진단 + 청산룰 시뮬 ──
