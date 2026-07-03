@@ -2029,6 +2029,7 @@ export interface LabLogLine { ts: string; stage: string; level: string; msg: str
 export interface LabVerdict {
   id: string; name: string; family: string; market: string;
   status: string; verdict: string; data_mode: string; ts: string;
+  reconciled?: boolean;   // 배치 되먹임으로 pending_bh → 확정된 판정
 }
 export interface LabMetrics {
   net?: number | null; n_trades?: number | null;

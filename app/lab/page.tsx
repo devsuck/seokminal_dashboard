@@ -501,7 +501,15 @@ function VerdictFeed({ verdicts }: { verdicts: LabVerdict[] }) {
           <div key={`${v.id}-${i}`} className="px-4 py-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm text-text-1 truncate">{v.name}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${verdictStyle(v.status)}`}>{v.status}</span>
+              <span className="flex items-center gap-1 shrink-0">
+                {v.reconciled && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10">배치확정 ✓</span>
+                )}
+                {v.status === "pending_bh" && !v.reconciled && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-info/40 text-info bg-info/10 animate-blink">배치대기</span>
+                )}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${verdictStyle(v.status)}`}>{v.status}</span>
+              </span>
             </div>
             <div className="text-[11px] text-text-3 mt-0.5 truncate">{v.verdict}</div>
           </div>
