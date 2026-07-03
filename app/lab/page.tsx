@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { LivePulse, ThinkingLine } from "@/components/Jarvis";
 import { ArcReactor, RadialGauge } from "@/components/Hud";
+import AutoResearchPanel from "@/components/AutoResearchPanel";
 
 // ── 진행바 폭: style={{}} 금지 → 리터럴 Tailwind 폭 클래스 룩업(10% 스텝) ──
 const WIDTHS = [
@@ -229,6 +230,11 @@ export default function LabPage() {
           <QueueList queue={st?.queue ?? []} currentId={st?.current?.id} />
           <KnowledgePanel knowledge={st?.knowledge ?? []} />
         </div>
+      </div>
+
+      {/* 배치 리더보드 (Auto-Research 흡수) — 라이브 pending의 하류 = 최종 확정 */}
+      <div className="bg-panel border border-hud/20 rounded-lg p-4">
+        <AutoResearchPanel embedded />
       </div>
 
       {/* 실 이벤트 family 스캐너 (밤샘 자율 발굴) */}

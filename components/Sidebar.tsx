@@ -94,63 +94,66 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
+  // 과감 재편: 관측(HUD 홈) · 연구(AI+검증) · 운용 · 교육 · 정보/차트.
+  // dashboard/status/freeform = 사이드바 은퇴(페이지는 URL로 접근 가능, 되돌리기 쉬움).
   const NAV_GROUPS: NavGroup[] = [
-    { label: t("nav.dashboard"), icon: <IconDashboard />, href: "/dashboard" },
-    // 🔬 검증 = 핵심. 검증 터미널 + 백테스트 도구. 대시보드 바로 다음(최상단).
+    // 관측 — 홈은 HUD 하나. dashboard/overview/status 중복 흡수.
+    { label: "HUD 커맨드", icon: <IconDashboard />, href: "/hud" },
+    // 연구 — 자율 AI 엔진(같은 목표라 한 그룹).
     {
-      label: "🔬 검증", icon: <IconBacktest />,
+      label: "AI 연구", icon: <IconTrading />,
+      items: [
+        // AI LAB = 라이브 루프 + 배치 리더보드 흡수(Auto-Research는 /auto-research URL만 보존).
+        { href: "/lab",       label: "AI LAB" },
+        { href: "/lab/tasks", label: "Lab Task (페이퍼 모니터)" },
+      ],
+    },
+    // 검증 — 수동 도구(엣지 찾고 검증).
+    {
+      label: "검증", icon: <IconBacktest />,
       items: [
         { href: "/validation",       label: "검증 터미널" },
         { href: "/backtest",         label: t("nav.backtest") },
         { href: "/backtest/compare", label: t("nav.compare") },
+        { href: "/event-study",      label: t("nav.event-study") },
+        { href: "/signal",           label: "스마트 시그널" },
+        { href: "/data-quality",     label: t("nav.data-quality") },
         { href: "/universe",         label: t("nav.universe") },
         { href: "/pairs",            label: "페어(공적분)" },
-        { href: "/portfolio",        label: t("nav.portfolio") },
       ],
     },
+    // 운용 — 페이퍼 봇 + 진단 + 계정/리스크.
     {
-      label: t("nav.analyze"), icon: <IconAnalyze />,
+      label: "운용", icon: <IconStrategy />,
       items: [
-        { href: "/quant",        label: t("nav.quant") },
-        { href: "/signal",       label: "스마트 시그널" },
-        { href: "/event-study",  label: t("nav.event-study") },
-        { href: "/data-quality", label: t("nav.data-quality") },
+        { href: "/overview",       label: "총 포트폴리오" },
+        { href: "/buyback-doctor", label: "손실 진단" },
+        { href: "/dart-auto",      label: "DART 자동매매" },
+        { href: "/copytrade",      label: "카피트레이드" },
+        { href: "/agents",         label: t("nav.agents") },
+        { href: "/performance",    label: "성과 추적" },
+        { href: "/risk-guard",     label: "리스크 관리" },
       ],
     },
+    // 교육 — 곁가지.
     {
-      label: t("nav.discovery"), icon: <IconDiscovery />,
+      label: "교육", icon: <IconAnalyze />,
+      items: [
+        { href: "/quant",     label: "퀀트 배우기" },
+        { href: "/notebooks", label: "전략 만들기 연습" },
+        { href: "/report",    label: "결과 읽는 법" },
+        { href: "/portfolio", label: "마코위츠 (교과서)" },
+      ],
+    },
+    // 정보·차트 — 보조(차트는 TradingView가 빠름).
+    {
+      label: "정보·차트", icon: <IconMarket />,
       items: [
         { href: "/insider",  label: t("nav.insider") },
         { href: "/news",     label: t("nav.news") },
         { href: "/calendar", label: t("nav.calendar") },
-      ],
-    },
-    {
-      label: t("nav.strategy"), icon: <IconStrategy />,
-      items: [
-        { href: "/notebooks", label: t("nav.notebooks") },
-        { href: "/report",    label: t("nav.report") },
-      ],
-    },
-    {
-      label: t("nav.trading"), icon: <IconTrading />,
-      items: [
-        { href: "/bots",      label: t("nav.bots") },
-        { href: "/spawner",   label: t("nav.spawner") },
-        { href: "/workflow",  label: t("nav.workflow") },
-        { href: "/agents",    label: t("nav.agents") },
-        { href: "/copytrade", label: "카피트레이드" },
-        { href: "/dart-auto", label: "DART 자동매매" },
-        { href: "/performance", label: "성과 추적" },
-        { href: "/risk-guard", label: "리스크 관리" },
-      ],
-    },
-    // 📉 차트 = 강등. 재량적 차트 분석은 TradingView가 빠름 → 여기선 보조.
-    {
-      label: "📉 차트 (TV 권장)", icon: <IconMarket />,
-      items: [
-        { href: "/market", label: t("nav.market") },
-        { href: "/ib",     label: t("nav.ib") },
+        { href: "/market",   label: t("nav.market") },
+        { href: "/ib",       label: t("nav.ib") },
       ],
     },
   ];
@@ -173,21 +176,29 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`h-screen sticky top-0 flex flex-col bg-panel border-r border-border shrink-0 transition-all duration-200 ${
-        collapsed ? "w-12" : "w-52"
-      }`}
+      className={`h-screen sticky top-0 hidden md:flex flex-col bg-panel border-r border-border shrink-0 transition-all duration-200 ${
+        collapsed ? "w-12" : "w-52"}`}
     >
       {/* Logo + collapse toggle */}
       <div className={`flex items-center h-12 border-b border-border shrink-0 ${collapsed ? "px-0 justify-center" : "px-3"}`}>
         {!collapsed && (
-          <span className="text-text-1 font-semibold text-sm tracking-widest uppercase flex-1 select-none">
-            NAUTILUS
+          <span className="flex items-center gap-2 flex-1 select-none">
+            <span className="relative inline-flex w-2 h-2">
+              <span className="absolute inset-0 rounded-full bg-accent/60 animate-[ring_2s_ease-out_infinite]" />
+              <span className="relative inline-flex w-2 h-2 rounded-full bg-accent animate-[orb_3s_ease-in-out_infinite]" />
+            </span>
+            <span className="text-text-1 font-semibold text-sm tracking-widest uppercase">NAUTILUS</span>
+          </span>
+        )}
+        {collapsed && (
+          <span className="relative inline-flex w-2 h-2">
+            <span className="absolute inset-0 rounded-full bg-accent/60 animate-[ring_2s_ease-out_infinite]" />
+            <span className="relative inline-flex w-2 h-2 rounded-full bg-accent" />
           </span>
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="w-6 h-6 flex items-center justify-center text-text-3 hover:text-text-1 rounded transition-colors bg-transparent border-0 cursor-pointer"
-          title={collapsed ? "Expand" : "Collapse"}
+          className="w-6 h-6 flex items-center justify-center text-text-3 hover:text-text-1 rounded transition-colors bg-transparent border-0 cursor-pointer"title={collapsed ? "Expand" : "Collapse"}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             {collapsed
@@ -212,9 +223,7 @@ export function Sidebar() {
                 title={collapsed ? g.label : undefined}
                 className={`flex items-center gap-2.5 px-3 py-2 mx-1 mb-0.5 rounded text-sm no-underline transition-colors ${
                   active
-                    ? "bg-accent/15 text-accent"
-                    : "text-text-3 hover:text-text-1 hover:bg-panel-2"
-                } ${collapsed ? "justify-center" : ""}`}
+                    ? "bg-accent/15 text-accent": "text-text-3 hover:text-text-1 hover:bg-panel-2"} ${collapsed ? "justify-center" : ""}`}
               >
                 <span className="shrink-0 flex items-center">{g.icon}</span>
                 {!collapsed && <span className="truncate font-medium">{g.label}</span>}
@@ -228,8 +237,7 @@ export function Sidebar() {
                 onClick={() => !collapsed && setOpenGroup(isOpen ? null : g.label)}
                 title={collapsed ? g.label : undefined}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 mx-0 text-sm cursor-pointer border-0 bg-transparent transition-colors rounded mx-1 ${
-                  active ? "text-accent" : "text-text-3 hover:text-text-1 hover:bg-panel-2"
-                } ${collapsed ? "justify-center" : ""}`}
+                  active ? "text-accent" : "text-text-3 hover:text-text-1 hover:bg-panel-2"} ${collapsed ? "justify-center" : ""}`}
               >
                 <span className="shrink-0 flex items-center">{g.icon}</span>
                 {!collapsed && (
@@ -238,9 +246,7 @@ export function Sidebar() {
                       {g.label}
                     </span>
                     <svg
-                      width="10" height="10" viewBox="0 0 10 10" fill="none"
-                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                      className={`shrink-0 text-text-3 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+                      width="10" height="10" viewBox="0 0 10 10" fill="none"stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"className={`shrink-0 text-text-3 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
                     >
                       <line x1="3" y1="2" x2="7" y2="5" />
                       <line x1="3" y1="8" x2="7" y2="5" />
@@ -259,9 +265,7 @@ export function Sidebar() {
                         href={item.href}
                         className={`flex items-center pl-9 pr-3 py-1.5 mx-1 rounded text-sm no-underline transition-colors ${
                           itemActive
-                            ? "bg-accent/15 text-accent font-medium"
-                            : "text-text-2 hover:text-text-1 hover:bg-panel-2"
-                        }`}
+                            ? "bg-accent/15 text-accent font-medium": "text-text-2 hover:text-text-1 hover:bg-panel-2"}`}
                       >
                         {item.label}
                       </Link>
@@ -293,8 +297,7 @@ export function Sidebar() {
                 onClick={() => setLang(code)}
                 title={label}
                 className={`w-7 h-5 text-[10px] font-semibold rounded transition-colors bg-transparent cursor-pointer border-0 ${
-                  lang === code ? "text-accent" : "text-text-3 hover:text-text-1"
-                }`}
+                  lang === code ? "text-accent" : "text-text-3 hover:text-text-1"}`}
               >
                 {label}
               </button>
@@ -311,8 +314,7 @@ export function Sidebar() {
                   key={code}
                   onClick={() => setLang(code)}
                   className={`px-1.5 py-0.5 text-[10px] font-semibold rounded transition-colors bg-transparent cursor-pointer border-0 ${
-                    lang === code ? "text-accent" : "text-text-3 hover:text-text-1"
-                  }`}
+                    lang === code ? "text-accent" : "text-text-3 hover:text-text-1"}`}
                 >
                   {label}
                 </button>
