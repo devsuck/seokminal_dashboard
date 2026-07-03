@@ -1,3 +1,421 @@
+## Phase 129 — LAB↔Auto-Research 판정 통합(단일 진실원 + 배치 되먹임) (2026-07-03) ✅ SHIPPED
+
+판정 로직 두 벌 → `classify()` 한 벌. lab이 배치 BH 되먹임. SDD(implementer→reviewer→fix) 7태스크.
+
+### 통합
+- **`research/scanner/verdict.py` `classify()`** — lab·autoresearch 유일 진실원. candidate = `bh_survivor True + 레드팀 CLEARED + net>0 + wf 양쪽 양수`(양 시스템 강점 결합). canonical status 6종(candidate/watchlist/pending_bh/reject_bh/reject_redteam/reject_stats) + `DISPLAY` 대문자 매핑(FE 호환).
+- **`autoresearch.engine.latest_bh_survivor(fam_id)`** — 최신 배치 status.json 리더보드서 BH 생존 여부(bool|None). lab 되먹임용.
+- **autoresearch `run_batch`** → classify 사용. verdict 필드 대문자 유지(FE 무변경). **wf 강건성 게이트 신규**(bh생존+레드팀통과여도 wf 음수면 WATCHLIST로 강등).
+- **lab `evaluate_real_event`** → classify + `_lab_bh_survivor` 되먹임(지연 import, 순환 없음). 배치 미확정 = **`pending_bh`**(candidate 도장 보류 = 통계적 정직: BH-FDR은 전체 배치 있어야 계산). 확정 생존 = candidate.
+- **lab 파이프라인** `pending` stats 버킷(pending_bh는 reject 아님) + EXECUTE 로그 accent.
+- **lab UI** verdictStyle pending_bh → info 톤, StatsBar "배치대기" 카운트.
+
+### 검증
+- 신규 테스트: verdict 8 + autoresearch 4 + lab pending/candidate 2 + pipeline pending 1. 백엔드 **591 pass**(기존 4만). dashboard tsc 0.
+- classify 스모크: pending_bh/candidate/reject_bh/watchlist(wf음수) 전부 정확.
+
+### 미결
+- 진짜 되먹임 순환 완성: service가 배치 후 lab 재평가 트리거(지금은 lab이 배치 status.json pull만).
+- 커밋 위생: dashboard page.tsx/api.ts가 pre-task dirty라 Task6 커밋에 이전 Phase 미커밋분 번들(실기여=pending 4줄).
+
+---
+
+## Phase 128 — LAB 루프 죽은 데모 코드 제거 + lab↔autoresearch 관계 정리 (2026-07-03) ✅ SHIPPED
+
+사용자 "AI 랩·어토리서치 벌써 된 거 아니냐 / 하나는 데모 쓴다며" 확인 요청.
+
+### 진단
+- **실행 실체:** 둘 다 실데이터(scanner.event_study). Phase 127에서 lab 합성 제거 완료. `service.py`가 24h 스로틀로 autoresearch.engine.run_batch 킥오프(느슨한 배선). 상호 import 0, 판정 코드 두 벌(lab=evaluate_real_event / autoresearch=run_batch).
+- **`evaluate_synthetic`는 죽은 게 아니었음** — jarvis 배치 파이프라인(Phase 114-116)이 씀: `jarvis/agents/backtest.py`(호출) + `jarvis/pipeline._demo_specs()`(SEED_QUEUE synthetic 3개 소비). 지우면 jarvis 서브시스템+테스트 깨짐 → 보존.
+
+### 제거한 진짜 죽은 코드 (lab 루프 한정)
+- `hypotheses.synth_closes()` — 호출처 0, 완전 삭제 + `import math` 제거.
+- `Hypothesis.n_bars` 필드 — synth_closes 전용이었음(무참조) 삭제, public() pop 정리.
+- `lab/pipeline.py` synthetic_demo 분기(L182-184) — lab는 real_event만 seed라 도달 불가, 삭제.
+- `evaluator.evaluate()` synthetic 폴백 → **명시적 raise**("LAB 루프는 실데이터 경로만"). lab 루프가 합성 못 돎을 코드로 증명.
+- 문서화: evaluator/hypotheses 독스트링에 "synthetic=jarvis 배치 전용, lab 루프 아님" 명시.
+
+### 테스트
+- lab 플럼빙 3개(합성 주입→evaluate raise로 깨짐) → 빠른 `blocked` 경로(`_hb` 헬퍼)로 교체. 플럼빙은 데이터-무관이라 정당.
+- evaluator 수학 테스트 5개(evaluate_synthetic 직접 호출)는 그대로 통과.
+- **576 pass**(기존 4만). jarvis 데모 배치 스모크 OK(4 specs, synth 3).
+
+### 미결(그대로)
+- lab↔autoresearch **판정 코드 병합**은 여전히 안 됨(느슨한 배선만). 렌즈 다르니 co-locate 유지도 정당 — 사용자 결정 대기.
+
+---
+
+## Phase 127 — 캔버스 오브 + AI LAB 실엔진 교체(합성 데모 제거) (2026-07-03) ✅ SHIPPED
+
+### 1. ReactorCore 캔버스 파티클 구체
+- `components/ReactorCore.tsx` — 460 입자 피보나치 구면 + 궤도 링 3개, Y축 회전 3D 투영, perspective 깊이(앞 밝고 큼), additive('lighter') 블룸, 앰버. requestAnimationFrame. DPR 대응. 사이즈=클래스맵(no style{{}}).
+- `Hud.ArcReactor` 내부 = SVG 필라멘트(조잡) → ReactorCore 캔버스 + 얇은 HUD 링 오버레이. 전 호출부(hud/lab/auto-research/buyback-doctor) 자동 업그레이드.
+
+### 2. AI LAB 실엔진 교체 — 합성 데모 제거 (사용자 "진짜 엔진으로")
+- **문제 인지:** AI LAB 루프 = `evaluate_synthetic`(합성 데이터, `_demo` 배지). 검정 수학만 진짜, 데이터 가짜.
+- **교체:** `evaluator.evaluate_real_event(h)` 추가 — 실 event family → `event_study`(실 KRX PIT) + `review_strategy`(레드팀). data_mode="real_event". 판정 candidate_real/watchlist_real/reject_real/underpowered.
+- `hypotheses.real_event_queue()` — FAMILIES 7개 → data_mode=real_event Hypothesis(precomputed_id=fam_id).
+- `pipeline._seed` = real_event_queue() + blocked 1개. **합성 seed 제거.**
+- 검증: real_buyback→reject_real(레드팀 outlier), real_capital_reduction→reject_real(net+7%지만 레드팀), buyback_cancel→underpowered. **`_demo` 사라짐, 전부 실데이터.**
+- 성능: load_series 캐시(1회 ~50s, 이후 캐시). 배경 루프 OK. 첫 수동 run은 series warm 안됐으면 ~50s(autoresearch/스캐너가 서버서 워밍).
+- lab 페이지 modeBadge "real_event"→"실 KRX 검증".
+- **테스트 수정:** test_lab_pipeline 3개(루프 플럼빙)가 삭제된 합성 seed id 참조 + 실 family 처리로 느려짐 → `_seed_synth` 헬퍼로 합성 주입(플럼빙 테스트는 데이터 무관, 빠른 fixture 정당). 576 pass(기존 4 실패만).
+- /auto-research = 같은 실엔진의 배치/리더보드 뷰(중복 아님, 다른 렌즈). "AI 연구" 그룹에 라이브 루프 + 배치 공존.
+
+---
+
+## Phase 126 — 정보구조 과감 재편 (혼선 정리) (2026-07-03) ✅ SHIPPED
+
+기능 누적으로 사이드바 혼선 → 사용자 "과감 재편" 선택.
+**진단(중복 3축):** ①홈 화면 4개(dashboard/hud/overview/status) ②"AI 연구" 4곳 분산(lab/auto-research/lab-tasks/freeform) ③트레이딩 그룹=잡동사니 10개(연구+봇+메타 혼재). 근본원인=요청마다 새 페이지 추가.
+**재편:** 4홈+6그룹 → 홈(HUD) + 5 코헌트 그룹. 관측(HUD)·AI연구(lab/auto-research/lab-tasks)·검증(validation/backtest/compare/event-study/signal/data-quality/universe/pairs)·운용(overview/손실진단/dart/copytrade/agents/성과/리스크)·교육(quant/notebooks/report/마코위츠)·정보차트(insider/news/calendar/market/ib).
+- 루트 `/` redirect → `/hud`(홈).
+- **은퇴(사이드바만, 파일 보존=되돌리기 가능):** dashboard, status, freeform.
+- **미완(후속):** AI LAB ↔ Auto-Research 실제 코드 병합(지금은 co-locate만, 백엔드 별개). freeform은 LLM 예산 필요라 은퇴.
+- tsc 0, 재편 전 페이지 200, 은퇴 페이지도 URL 접근 유지.
+
+---
+
+## Phase 125 — Jarvis 하이테크 UI + Auto-Research 엔진 + 스캐너 피드 수정 (2026-07-03) ✅ SHIPPED
+
+사용자 알바 중 자율 배치. 3파트.
+
+### 1. Futuristic Jarvis UI
+- **globals.css 모션 시스템** — `--animate-*` 토큰(pulse-glow/radar/scanline/flicker/shimmer/rise/orb/ring/blink) + 키프레임. HUD 유틸(`.hud-frame` 코너브래킷, `.scan-skeleton`, `.scanline-host`, `.tech-grid`). `prefers-reduced-motion` 존중. transform/opacity/box-shadow만(GPU).
+- **components/Jarvis.tsx** — `<JarvisOrb>`(아크리액터, size/active), `<LivePulse>`(확장링 상태점), `<AnimatedNumber>`(easeOutCubic 카운트업), `<ThinkingLine>`(타이핑 커서). 디자인토큰 + no style{{}} 준수(size는 enum→클래스맵).
+- 적용: **/lab**(헤더 HUD+오브+ThinkingLine, statusColor 제거→LivePulse), **/overview**(오브+AnimatedNumber 총계+LivePulse per-AI), **/freeform**(오브+ThinkingLine), **Sidebar**(NAUTILUS 브랜드 라이브 펄스).
+
+### 2. Auto-Research 엔진 (karpathy/autoresearch 정직 이식)
+- **핵심 통찰:** autoresearch("지표 개선되면 유지 ~100회/밤")를 마켓에 순진 이식 = p-해킹 기계. 정직한 버전 = "유지" 기준을 **배치 BH-FDR 통과 + 레드팀 전통제 통과**로.
+- **research/autoresearch/engine.py** — Candidate 모델 + event_family 엔진(실 KRX/DART 재사용) + 배치 `benjamini_hochberg` + `review_strategy` 게이트. verdict=CANDIDATE(BH생존+레드팀)/REJECT_BH/REJECT_REDTEAM. status.json+results.jsonl 저장, log_experiment 축적. factor/tsmom/regime = 훅만("engine_pending", 가짜결과 금지).
+- **API** `/lab/autoresearch`(status), `/lab/autoresearch/run`(POST, 락). **lib/api.ts** getAutoResearch/runAutoResearch. **app/auto-research/page.tsx**(리더보드+배치요약+대기엔진, Jarvis 미학). 사이드바 추가.
+- **service.py** 24h 스로틀 `_autoresearch_batch()` 틱 편입 → 밤새 자동. status에 last_autoresearch/candidates 노출.
+- **첫 배치 결과(실데이터):** 검증 4·저파워 3·**CANDIDATE 0**. BH가 spinoff(p=0.25) 정확히 탈락, 나머지 전부 레드팀 outlier_dependence로 REJECT. = 정직한 "밤새 돌려도 진짜 없음" 데모.
+- 테스트 576 pass(기존 실패 4 = test_auth×3+backtest_happy만).
+
+### 3. 스캐너 데이터 없던 3 family 피드/키워드 수정
+- 근원: `kr_dart_events._fetch_window` L48 `pblntf_ty:"B"` 하드코딩. → `d.get("pblntf_ty","B")` + run_scanner가 family에서 전달.
+- **families.py:** supply_contract→I피드(`공급계약`, 확인 305/월), turn_to_profit→I피드 `손익구조`(흑전 report_nm 없음→손익구조30%변동 대체, direction=research 양방향), buyback_cancel→키워드 `소각`+`이익소각`(B피드 프로브 8p 전체 0 = 소각공시 부재 확인 → 재pull해도 UNDERPOWERED 예상).
+- **research/run_scanner_refill.py** — 3 family 집중 재pull(PID 33663, supply_contract I피드 24k pull 중, 메모리버퍼 끝에저장). 완료 시 Auto-Research가 자동 편입.
+
+### 다음
+- refill 완료 확인(`/tmp/scanner_refill.log`) → supply_contract/turn_to_profit event_study 결과. 팻테일 복권 가능성 높음.
+- Auto-Research 추가 엔진(factor/tsmom/regime) 배선 시 candidate space 확장.
+
+---
+
+## Phase 124 — UX 정리 + 교육 페이지 + 총 포트폴리오 + 자유형 AI (2026-07-03) ✅ SHIPPED
+
+밤샘 후속(자율 배치, 사용자 취침 중).
+
+### UX
+- **장식 이모지 전체 제거** (📱🔬🧠 등), 기능 글리프(→ ● ✓ ›)만 유지. 84파일. (정리 스크립트가 event-study 1줄 깨뜨린 거 즉시 복구.)
+- 사이드바: **workflow·spawner·bots 숨김**(사장). **총 포트폴리오·자유형 AI 추가.** 교육 그룹(퀀트·연습·결과읽기) 신설. market/ib(차트)·news·calendar 유지(요청).
+
+### 교육 페이지 3개 (초보 눈높이, 우리 실제 사례로)
+- **/quant 퀀트 배우기** — 7모듈(왜 퀀트·알파vs베타vs랜덤·백테스트·함정6개·살아남은전략·리스크·용어). 접이식 + "직접 해보기" 링크.
+- **/notebooks 전략 만들기 연습** — 가설→규칙→데이터→백테스트→검증→강건성→레드팀→페이퍼 8단계.
+- **/report 결과 읽는 법** — 지표별(net·pct·p·WF·Sharpe·MDD·승률·top-tail) 뜻/좋은값/함정 + 판정규칙(CLEARED/WATCHLIST/REJECT/BLOCKED).
+
+### 기능
+- **/overview 총 포트폴리오** — listAgents+getAgentPerformance: 총배분·총손익·수익률·가동수 + AI별 배분막대 + 카드(배분·수익률·보유포지션·매매기록, 종목→차트링크).
+- **/freeform 자유형 AI 에이전트(v1)** — 자연어 mandate → advisor 분석 + 레드팀 통제 요구(controls 논리) + 파이프 시각화. ⚠️ 완전 자율 LLM 추론은 API 예산 필요=다음 레이어. 정직 명시.
+- **의회 카드 → 차트 점프** — copytrade holdings ticker → `/market?symbol=X&date=Y`(매수 타이밍 차트).
+
+### 검증
+tsc 0. 백엔드 무변경(기존 agent API 재사용).
+
+---
+
+## Phase 123 — Red-team 통제층 + buyback 봇 페이퍼 연결 + 자동갱신 (2026-07-03) ✅ SHIPPED
+
+### buyback 봇 페이퍼 연결
+`jarvis/paper/buyback_bot.py` + `/lab/buyback-bot` + Lab Task 카드: 검증된 v1 엣지(next_open·20d·40bps)로 페이퍼 포지션 추적(open/closed·P&L). 실주문 없음(Jarvis 차단). 실측 1611포지션(open 123/closed 1488) 평균+1.30% 승률49.4%. **봇이 노이즈 아닌 검증된 엣지 실행.**
+`kr_dart_events.refresh_events()` + 서비스 24h 자동갱신 → 새 buyback 공시 → 봇 sync + v2 forward 축적.
+
+### Red-team 통제층 (LLM MD 요구 → 결정적 실행)
+`jarvis/redteam/` — 오늘 교훈(SMT confound·무상증자 ex-date·swings lookahead)을 통제 카탈로그로 encode. `REDTEAM.md`(회의주의 페르소나)가 전략별 필요통제 요구 → `controls.py` 매핑 → `review.py` 결정적 verdict(CLEARED/BLOCKED/REJECTED). LLM 합의는 verdict 아님.
+- **감사 결과: 사람(AI) 판단 7/7 일치.** SMT→REJECTED(entry_confound·lookahead 자동포착), 무상증자→BLOCKED(ex_date 미완), ICT→REJECTED(lookahead·BH-FDR), turn-of-month→REJECTED(WF, 나보다 엄격).
+- `/lab/redteam` + `run_redteam_audit.py`. **핵심: 통제층이 오늘 잡은 함정을 자동으로 요구 = 미래 전략 게이트.**
+- **파이프 게이트 연결** (`pipeline._redteam_gate`): critic+BH 통과해도 레드팀 통제 미실행이면 paper 차단 → watchlist. **합성/자동생성은 실통제(survivorship·cost_stress·lookahead) 없어 페이퍼 못 감(정직).** 테스트 갱신.
+
+### 설계 원칙 확정
+LLM = 판단·검증요구 (연구·설계·회의주의), 결정적 코드 = 판정. "LLM 여럿 대화"는 합의된 노이즈(AutoHedge 함정) → 다른 MD(레드팀)로 검증요구는 유효하나 verdict는 결정적.
+
+### 검증
+`tests/test_redteam.py` 9 pass. 전체 **576 pass**(기존 4만). tsc 0.
+
+---
+
+## Phase 122 — 밤샘 마라톤: 포트폴리오·v2·인프라·ICT 졸업·폰 (2026-07-03) ✅ SHIPPED
+
+가격패턴 사냥 졸업 후 "있는 엣지 조합·개선 + 억지 안 하는 정직한 확장" 세션. 연속 크론루프 정지(self-firing 중단).
+
+### 리서치 — 살아있는 엣지 조합/개선
+- **A 멀티엣지 북** `run_portfolio_book.py` + `/lab/portfolio` + Lab Task UI: TSMOM+buyback, **상관 -0.07(무상관)** → 등가중 **Sharpe 1.20·MDD -6%(개별 반토막)**. CB=회피 오버레이. 누적곡선·live-readiness 제약 표시.
+- **B 약신호 바스켓** `run_weak_basket.py`: turn-of-month·gap-fill·crypto-mom 무상관인데 바스켓 Sharpe 0.16 < 개별 0.21 = **실패. "분산≠연금술, 약신호는 묶어도 약함"** 실증.
+- **buyback v2 레짐 shadow** `run_buyback_v2.py`+`buyback_v2_forward.py`+`/lab/v2shadow` UI: 상승장 이벤트 제외 → net +1.72%→+2.52%, 승률 50.9%→54.8%, p 0.032→0.01, WF 강화. **경제가설(하락장=신뢰신호) 확인.** v1 동결·shadow·forward 검증 전 live 금지. in-sample vs forward(OOS) 분리 모니터.
+- **TSMOM×레짐** = 역효과(추세강한 월이 더 나쁨) → 미채택(억지 안 함).
+- **② 실행/수용력** `run_buyback_capacity.py`: 월 70건·집중도 6.7% / 유동성 이벤트당 0.7억→월수용력 ~46억(소자본) / 타이밍 1일지연 -0.62%(즉시체결). = live-readiness 관문(제약 명확).
+
+### 리서치 — 정직한 REJECT
+- **수정주가 인프라** `kr_adjustments.py`(DART 배정비율→권리락 back-adjust, 검증됨). **무상증자 = inconclusive**(커버리지 65/909 + 투기소형주 하락 엉킴, raw -26%는 권리락 아티팩트).
+- **CB 조기상환**(④) = REJECT(net -3.17% pct0.8 = distress 신호, 오버행 해소 아님). **CB 양방향(발행·상환) 다 종목에 부정적.**
+- **US 내부자 매수**(①) = UNDERPOWERED(대형주 매수 12건).
+- **ICT 졸업 🎓** — `research/ict/models_2024.py`+`run_ict_2024/final.py`: 8모델(Model A·2024·silver bullet·OTE·unicorn·iFVG·CISD·SMT) 실 15m 당일청산 **통합 BH-FDR 전멸.** SMT만 통과했으나 confound 통제(`run_smt_control.py`)로 사망(=인트라데이 딥매수 기저, 다이버전스 0기여). ⚠️ swings() lookahead 있음(reject는 안전, 딥매수 리드는 무효).
+
+### 시스템 — 폰/서버사이드
+- **📱 상태보드** `/status` + `/lab/status`: 서버·DART봇·AI루프·리서치서비스 한눈, 5초 갱신. 사이드바 모바일 숨김(반응형). 서버 0.0.0.0 바인딩 + CORS LAN regex + api.ts 동적 호스트 → **폰(192.168.0.7:3000/status) 접근.**
+- **D 서버사이드 리서치 서비스** `research/lab/service.py` + `/lab/service`: 백그라운드 스레드가 pending 큐 상시 처리(180s), 아이디어 생성 없음, live 불가, $0. 크론 self-firing 대체.
+
+### 검증
+전체 567 pass(기존 4만). tsc 0. 회귀 0.
+
+### 정직한 순수익
+새 알파 ≈ 0. **있는 엣지 3개(TSMOM·buyback·CB음드리프트)를 조합(책 Sharpe1.2)·개선(v2)·현실화(수용력)** + ICT/단타/CB해소/무상증자/약신호 **끝까지 공정검증 후 정직히 기각**(통과한 SMT도 confound로 사망). 인프라(수정주가·상태보드·서비스) 확장. 레버리지 미적용(TSMOM만 선물 내재) — 레버리지≠알파.
+
+---
+
+## Phase 113 — Jarvis Quant OS 안전 뼈대 (2026-07-02) ✅ SHIPPED
+
+에이전틱 리서치·페이퍼·제한적 집행 OS. **핵심 규칙: AI는 자기 집행권한 확장 불가.** 연구=자율, 검증=결정적, 집행=제한, 전부 감사가능.
+
+### `jarvis/` 패키지 (25 .py, 기존 research/ 하네스 래핑)
+- `config.py` — AUTONOMY_LEVEL=4(사람만 변경), MIN_LIVE_LEVEL=6, live_execution_enabled().
+- `audit/` — append-only 블랙박스(삭제/수정 함수 없음).
+- `permissions/` — Level enum(READ_ONLY..ADMIN_HUMAN_ONLY) + ACTION_PERMISSIONS + FORBIDDEN set. ADMIN=사람만. 모든 시도 감사.
+- `registry/lifecycle.py` — 16상태 FSM, 불법전이 거부(draft→live·rejected→paper·sanity→paper 차단), config_hash 동결, live전이=사람 approver 필수. experiment_registry 시드(20건).
+- `memory/` — Market Memory(실 교훈 6건 시드: 유동성웨이브 생존편향·모멘텀 REJECT·buyback right-tail 등). Research Agent가 제안 전 consult.
+- `agents/` — research(RESEARCH_ONLY)·datagate(PIT/survivorship→상태)·backtest(하네스 래핑, 불변 provenance)·critic(결정적 red-team).
+- `paper/` — 내부 원장(브로커 무관, PAPER_ONLY, paper 상태만). monitor 스켈레톤.
+- `risk/governor.py` — 결정적(LLM 아님). live_candidate+·config_hash·유니버스·notional·킬스위치. dry-run.
+- `execution/gateway.py` — live는 레벨<6이면 무조건 BLOCK. mock/paper만.
+
+### CLI (스펙대로)
+`python -m jarvis`(배너) · `jarvis.agents.research propose` · `jarvis.agents.datagate check` · `jarvis.registry show --status` · `jarvis.paper.monitor` · `jarvis.risk.check` · `jarvis.execution.live`→BLOCKED(exit 3).
+
+### UI 연결
+`/lab/jarvis` 엔드포인트 + AI LAB 페이지 상단 거버넌스 스트립(Level 4·live disabled·registry 20·risk governor dry-run).
+
+### 테스트
+`tests/test_jarvis.py` **19 pass**(live 권한거부·리스크한도 사람만·감사삭제 금지·rejected/sanity 승격불가·불법전이·데이터게이트·거버너·config_hash·원장·append-only·부트). 전체 529 pass(기존 4 실패만: auth×3, backtest_happy). tsc 0.
+
+### 안 지음
+실브로커 실행·자동 live·리스크한도 변경·자동승격·자가수정. Lv2(LLM 실시간 생성)=스케줄 Claude Code(CLI, API키 0).
+
+---
+
+## Phase 121 — 멀티엣지 포트폴리오(A) + 약신호 바스켓(B) + 이벤트 pull(C) (2026-07-03)
+
+가격패턴 사냥 졸업(6루프 전멸) → 생존자 조합 + 바 낮추는 대신 똑똑하게. 연속 크론루프 정지(self-firing 중단, 대화 우선).
+
+### A — 멀티엣지 포트폴리오 (`run_portfolio_book.py`) ✅
+TSMOM(선물)+buyback(KR) 월수익 조합. **상관 -0.07(무상관).** 개별 MDD -12~15% → **등가중 조합 Sharpe 1.20·MDD -6%(반토막).** 분산이득 = drawdown에서. CB는 음드리프트라 회피오버레이. = "실제 굴릴 책".
+
+### B — 약신호 바스켓 (`run_weak_basket.py`) ❌
+turn-of-month·gap-fill·crypto-mom(개별 WEAK) 무상관(0.28/-0.06/0.02)인데 **바스켓 Sharpe 0.16 < 최고개별 0.21.** **결론: 분산은 연금술 아님 — 약신호는 묶어도 약함.** = "검증 바 낮추지 마라"의 실증. A(진짜엣지)는 되고 B(약신호)는 안 됨.
+
+### C — 무상증자 실검증 (`run_bonus_issue_pit.py`, `kr_dart_events` bonus_issue 추가)
+새 이벤트 연못. DART 무상증자 pull → PIT survivorship-free 양드리프트 검증. [백그라운드 진행중]
+
+### 결론
+답답함의 답 = 바 낮추기(B가 반증) 아니라 **생존자 조합(A 성공) + 새 진짜 엣지(C)**.
+
+---
+
+## Phase 120 — Lab Task 페이지 + 연속루프 5분 (2026-07-03) ✅ SHIPPED
+
+### Lab Task 모니터 (`app/lab/tasks/page.tsx` + `/lab/tasks`)
+AI LAB 승격 페이퍼 전략 모니터: 진입/청산 규칙 · 통계(거래수·평균·중앙값·승률/Sharpe·MDD) · **월별 수익 막대**(매매 타이밍·손익 시계열). 실 forward 러너(tsmom/buyback) 데이터, 120초 캐시, 15초 폴링. Sidebar 📋 Lab Task.
+- 실측: kr_dart_buyback_drift_v1 = 진입 공시익일시가/청산 20일종가, 1603건, mean+1.42% 승률49.7%, 24개월 코호트.
+
+### 연속루프 5분 (job 2a7f3fc4)
+11분 → 5분(3,8,..,58). 병목은 데이터라 대부분 dedup-skip 예상.
+
+### 검증
+전체 **567 pass**(기존 4만). tsc 0.
+
+### 다음 후보 (미결) — 복합 전략(#3)
+플랫폼 미사용 기능 = condition_engine(지표조합)·regime_filter·FRED/ECOS(매크로)·KSD(대차/공매도가능)·correlation(페어/SMT). → **signal-block 조합 레이어** 제안(기존모듈 = 블록, 전략 = 조합). 미착수.
+
+---
+
+## Phase 119 — CB/BW 발행 실 DART 검증 = 음의드리프트 확인 (2026-07-03) ✅ SHIPPED
+
+첫 신규 이벤트 family를 **실데이터**로 검증(위시리스트→pull→PIT 판정 사이클 첫 완주).
+
+### 데이터 + 결과
+- DART 전환사채 발행 **7954 이벤트** pull(6.5년), KRX PIT survivorship-free 매칭 6947.
+- 20일 롱 net **-0.73%(base) / -1.33%(stress)**, **percentile 0.0**(500 랜덤 전부보다 나쁨), WF 양쪽 음수 안정.
+- 대조 buyback(호재) +1.73%.
+- **VERDICT: NEGATIVE_DRIFT 확인.**
+
+### 의미 — 자본구조 공급 논지 양방향 확증
+| 이벤트 | 공급 | 드리프트 | |
+|---|---|---|---|
+| buyback | ↓ | +1.73% | 호재(paper_candidate) |
+| CB/BW 발행 | ↑희석 | -0.73% pct0 | 악재(음드리프트 확인) |
+둘 다 survivorship-free·cost-robust·WF안정. KR 공급이벤트 방향성 실재.
+
+### 정직한 거래가능성
+음드리프트 = 롱 손실. 숏=KR 제약(대차·업틱). → live 롱 아님. 가치 = 회피신호 + 희석 메커니즘 확증 + buyback 보강.
+
+### 파일/버그
+`research/run_cb_issuance_pit.py`(신규), `research/data/kr_dart_events.py` cb_issue pull. `0.0 or 50.0` falsy 버그 수정. registry에 kr_cb_issuance_negdrift_v1_PIT=research_negative_drift 기록.
+
+---
+
+## Phase 118 — ICT 프리미티브 라이브러리 + 실 15분봉 검증 (2026-07-03) ✅ SHIPPED
+
+"order block/FVG가 끝이 아니다" — ICT를 **기계적으로 조합·검증**하는 툴킷 + 첫 실데이터 판정.
+
+### `research/ict/` (객관 프리미티브만, 주관 개념 제외)
+- `primitives.py` — FVG · order block · liquidity sweep · swings · market structure(BOS/CHoCH) · kill zone(시간) · OTE(피보). 7개 탐지기, 전부 명시적 정의.
+- `strategy.py` — Model A: NY 킬존 + bullish sweep + bullish FVG → 롱. 조합 규칙, 고정파라미터.
+- `backtest.py` + `run_ict.py` — 실 15분봉(US 12종목, 2년) 풀링, 매칭 random(킬존 eligible) 대비.
+- `tests/test_ict_primitives.py` **9 pass** — 심은 패턴 정확 탐지 검증.
+
+### 판정 (실데이터)
+```
+ICT Model A: 총 진입 113 | 평균수익 -0.09%
+vs random: percentile 52.4 p=0.477 (rand_med -0.10%)
+VERDICT: REJECT — random과 구분 불가 (엣지 없음)
+```
+**킬존+sweep+FVG 컨플루언스가 "랜덤 킬존 진입"보다 나을 게 없음.** registry에 rejected 기록.
+
+### 의미
+- ICT Model A 1개 판정일 뿐 — 라이브러리로 OTE·OB·BOS/CHoCH·SMT·다른 킬존/보유 무한 조합 가능. 단 각 조합 = BH-FDR 예산 소모.
+- ICT는 유명하나 첫 객관 검증서 엣지 0. 입증 책임은 ICT에 있고 Model A는 실패.
+
+### 검증
+전체 **567 pass**(기존 4 실패만). 회귀 0.
+
+---
+
+## Phase 117 — Lv4 arm 골격 + Jarvis UI + 실 스케줄 잡 (2026-07-02) ✅ SHIPPED
+
+"다 해줘" — 4개 동시 진행.
+
+### ① Lv4 micro-live ARM 골격 (`jarvis/execution/arm.py`)
+사람만 arm(ADMIN). **이중 게이트: ①사람 arm ②autonomy≥6.** level 4에선 무장해도 실행 BLOCK(안전). 최소 6개월 페이퍼 강제. gateway에 micro_live 모드 추가(무장 안 되면 REJECTED, 레벨 미달이면 BLOCKED). `tests/test_jarvis_arm.py` 7 pass.
+
+### ② Jarvis UI 시각화 (`app/lab/page.tsx` JarvisPanel)
+생애주기 퍼널(draft→…→micro_live + blocked/rejected/retired 카운트) + Forward 배포 목록 + 감사 로그 tail(색상). `/lab/jarvis/detail` 엔드포인트 + `getJarvisDetail`. 5초 갱신. tsc 0.
+
+### ③ 실 스케줄 잡 (CronCreate)
+매일 3:13am Research Agent 자율 실행(job 17474487). ⚠️ session-only(세션 닫으면 정지)·7일 만료. 프롬프트에 정직성(합성=파이프연습)·live 금지 박음.
+
+### ④ 스케줄 루프 수동 시연 (실측)
+submit 2건(지수편입·락업해제) → 지수편입 paper_candidate+auto paper_active, 락업 rejected → buyback 실 forward 모니터(buyback_forward available). live 0.
+
+### ⑤ CB/BW 발행 실 DART 검증 (`research/run_cb_issuance_pit.py`)
+전환사채 발행 이벤트(DART cvbdIsDecsn) PIT survivorship-free 음드리프트 연구. 익일진입 20일보유 vs 매칭 random, buyback(호재) 대조. [결과는 별도 로그 — 진행 중]
+
+### 검증
+전체 **558 pass**(기존 4 실패만). tsc 0. 회귀 0.
+
+---
+
+## Phase 116 — Lv2 리서치 큐 + 스케줄 Claude Code 가설생성 (2026-07-02) ✅ SHIPPED
+
+스케줄 Claude Code(구독, **API키 0**)가 가설을 큐에 기록 → 결정적 파이프라인이 주기 검증.
+
+### `jarvis/research_queue.py`
+- `submit(spec)` — ingest 가드: ①dedup(registry 중복 거부) ②Market Memory consult(거부 family 유사+differentiation 없으면 거부) ③명시 keywords로만 매칭.
+- `run_pending(alpha, cap)` — pending을 run_batch(BH-FDR)로 검증 → processed 이동. rate cap(기본 25).
+- `generate_stub(topic)` — LLM 없는 더미(스케줄 Claude Code가 대체).
+- CLI: `submit --spec` / `list` / `run --alpha`.
+
+### `jarvis/GENERATOR.md`
+스케줄 Claude Code 5단계 절차(memory 조회→3~5개 제안→submit→run→결과기록) + 스펙 스키마 + 가드레일.
+
+### 실측 (CLI 엔드투엔드)
+submit 3건(엣지·노이즈·유동성웨이브 재탕) → wave 재탕 **거부**(similar_rejected, differentiation 없음) → run(BH-FDR) → PEAD paper_candidate, noise rejected → **자동 paper_active**.
+
+### 테스트
+`tests/test_jarvis_research_queue.py` **9 pass** (accept·missing·dup·registry중복·memory차단·differentiation허용·run검증+clear·rate cap·엣지 auto-deploy). 전체 **551 pass**(기존 4 실패만).
+
+### 스케줄 설정 = opt-in
+반복 Claude Code 잡 = 표준 시간 소모 → 사람 승인 후 CronCreate로 설정(미설정). 큐 인프라는 완성.
+
+---
+
+## Phase 115 — Lv3 paper_candidate 자동 forward 배선 (2026-07-02) ✅ SHIPPED
+
+paper_candidate 도달 → **자동으로 forward-test 배포(paper_candidate→paper_active)** + 기존 forward 모듈 배선.
+
+### `jarvis/paper/deploy.py`
+- `deploy(sid)` — 전제조건(paper_candidate·config 동결) → paper_active 전이 + 배포기록. 권한 PAPER_ONLY.
+- `auto_deploy_all()` — registry 모든 paper_candidate 일괄 배포.
+- `run_forward(sid)` — 배포된 러너 실행(실데이터 실패 우아하게).
+- **RUNNER_REGISTRY:** futures_tsmom(_32mkt)→`tsmom_forward:generate`, kr_dart_buyback_drift_v1→`buyback_forward:generate`, 그외→generic 내부원장.
+- CLI: `python -m jarvis.paper.deploy [--strategy X]`.
+
+### 파이프라인 통합
+`run_batch(auto_deploy=True)` — 승격된 paper_candidate 즉시 자동 forward 배선. `monitor()`는 paper_active면 배포 러너 실행 + 원장 요약.
+
+### 실측 (CLI)
+- run-batch → PEAD paper_candidate → **자동 paper_active**(generic) → monitor forward available, live_orders disabled.
+- 시드 후 auto-deploy → 실 paper_candidate 3건이 실 러너 배선(tsmom_forward×2, buyback_forward×1).
+
+### 테스트
+`tests/test_jarvis_deploy.py` **8 pass** (전이·러너배선·generic·비-candidate 차단·idempotent·일괄·monitor forward·실데이터 우아실패) + pipeline auto-deploy 1. 전체 **542 pass**(기존 4 실패만). live 자본 0 유지.
+
+### 다음
+Lv2 = 스케줄 Claude Code 가설생성 → run_batch 주기실행. paper_active 실 forward = 데이터/TWS 필요(tsmom=IB, buyback=DART).
+
+---
+
+## Phase 114 — Jarvis 파이프라인 오케스트레이터 + BH-FDR 예산 (2026-07-02) ✅ SHIPPED
+
+9모듈을 하나로 체이닝: **research→datagate→backtest→critic→registry.** 결정적, LLM 0.
+
+### `jarvis/pipeline.py`
+- `run_hypothesis(spec)` — propose→data gate(commit)→(pass면)backtest→critic. registry 전이 자동.
+- `run_batch(specs, alpha)` — **BH-FDR 다중검정 예산.** paper_candidate 승격 = critic 추천 AND BH 생존 **둘 다**. 자동검정 false-discovery 방지(핵심 가드).
+- CLI: `python -m jarvis.pipeline run-batch [--alpha 0.1] [--specs f.json]`.
+
+### 데모 배치 결과 (AI LAB 시드 4가설)
+| 가설 | 결과 |
+|---|---|
+| CB/BW 해소 | blocked_by_data (데이터 게이트) |
+| CB/BW 발행 음드리프트 | rejected (p 0.33) |
+| PEAD | **paper_candidate** (critic + BH-FDR 생존, p 0.004) |
+| 오버나잇 | rejected (p 0.37) |
+
+BH-FDR: 3 tested → 1 survivor(threshold 0.004). 실엣지만 게이트 통과, 노이즈 기각.
+
+### 테스트
+`tests/test_jarvis_pipeline.py` **4 pass** (실엣지 승격 α0.1 / **α0.01로 조이면 PEAD도 승격 차단**(BH 예산) / 차단가설 tested 제외 / survivor 카운트). 전체 **533 pass**(기존 4 실패만). tsc 0.
+
+### 다음
+Lv2 = 스케줄 Claude Code가 가설 스펙 큐에 기록 → run_batch 주기 실행. Lv3 = paper_candidate 자동 forward 배선(tsmom/buyback_forward 연결).
+
+---
+
+## Phase 112 — AI LAB 자율 리서치 루프 (2026-07-02) ✅ SHIPPED
+
+자비스 플로우: **자체생각(THINK) → 검토(REVIEW) → 집행(EXECUTE) → 학습(LEARN).** 트레이딩 카테고리, 살아있는 UI.
+
+### 정직성 설계
+- LEARN 지식패널 = **실제 experiment_registry**(20건: tsmom paper_candidate, buyback, momentum/wave/funding REJECT).
+- 검토 = **진짜 empirical p-value** (per-event iid: 전략=edge+noise vs 매칭 random=edge0). 데이터 합성이면 `합성 데모` 배지. 합성 결과는 공식 registry 미기록.
+- CB/BW 오버행 해소 = 큐에 넣되 audit이 **BLOCKED_BY_DATA**(linkage/잔액 파이프 미구축) — 실제 데이터 게이트 노출.
+- **가드레일:** EXECUTE는 판정+장부까지만. live 매매 자동 실행 없음(live_guard=disarmed). paper→live는 사람.
+
+### 변경 파일
+- 백엔드: `research/lab/{__init__,hypotheses,evaluator,pipeline}.py`, `api_server/lab_api.py`(/lab/state·/run·/autopilot), main.py 라우터 include.
+- 프론트: `app/lab/page.tsx`(4스테이지 플로우+펄스+스트리밍 로그+메트릭 채워짐+판정피드+큐+지식), `lib/api.ts`(LabState 등 3함수), Sidebar 트레이딩에 🧠 AI LAB.
+- 큐 데모: CB/BW 해소(BLOCKED)·CB/BW 발행 음드리프트(REJECT)·PEAD(PASS)·오버나잇(REJECT) = 전 스펙트럼.
+
+### 테스트
+`tests/test_lab_pipeline.py` 10 pass (blocked/무엣지≈50pct/음엣지 reject/비용스트레스/underpowered/snapshot/live가드/오토파일럿 소진). tsc 0.
+
+### 다음
+Lv2 = LLM 실시간 가설 생성(API키), BH-FDR 예산. Lv3 = 통과분 자동 forward 배선. Lv4 = live(사람 arm).
+
+---
+
 ## Phase 111 — KR buyback 로버스트니스(N=1000·아웃라이어·forward모듈) (2026-07-02) ✅ SHIPPED
 
 paper_candidate 확정 후 로버스트니스. next_open만 판정근거(ann/next_close는 lookahead/아웃라이어).
