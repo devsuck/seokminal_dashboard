@@ -1,3 +1,33 @@
+## Phase 132 — 집행 전환: 집행 콘솔 + 엣지 생존 모니터 + arm/kill 사전등록 (2026-07-04) ✅ SHIPPED
+
+**사용자 방향 확정: 돈 도구, 사냥 졸업 → 집행 전환.** 병목=코드 아니라 시간(페이퍼 관찰). 경계: AI는 콘솔/판단보조까지, 실 arm·주문=사람.
+
+### 집행 콘솔 (/lab/execution, 사이드바 "집행 콘솔(돈길)")
+- `/lab/execution`: 동결config + 정직 기대치(중앙값+0.19% vs 팻테일평균+1.73%) + 페이퍼(1611) + 실전제약(수용력46억·1일지연-0.62%) + arm게이트(DISARMED·차단사유). buyback_config에 LIVE_READINESS 동결 사실 추가. registry id(kr_dart_buyback_drift_v1) ≠ CFG.VERSION(kr_buyback_drift_v1) 주의.
+- Jarvis HUD 전면(ArcReactor·RadialGauge 5·LivePulse) + 생존자 포트폴리오 카드(getLabPortfolio).
+
+### 엣지 생존 모니터 (decay 감지)
+- `research/paper/buyback_edge.py` edge_status: forward(동결후 OOS) 월코호트 vs in-sample envelope(p10 -3.0%~p90 +3.7%, 23개월). status=no_oos_yet/accumulating/drifting/confirmed.
+- **정직한 현주소: OOS 0/3** — 동결(07-02) 직후라 카운트다운 시작 전.
+- series 로드 90s+ → **service 배경 워밍**(6h 스로틀, `_warm_edge`). endpoint `/lab/execution/edge`=read_only(계산 0, 콜드=warming 즉시). 실측: 첫 틱 ~220s 후 캐시 채워짐, 이후 프론트 즉시.
+
+### arm/kill 기준 사전등록 (핵심 규율)
+- `jarvis/execution/arm_criteria.py` **arm_criteria_v1 (동결 2026-07-04)** — 데이터 보기 전 고정, 6개월 뒤 자기합리화 차단. 변경=v2 재등록.
+  - **GO**: OOS≥3 AND envelope내≥2/3 AND 페이퍼≥6mo. 첫 arm 상한 1,000만원.
+  - **KILL**: OOS≥3 AND 과반 이탈(=엣지 소멸). 1~2개월 이탈은 경고만(성급 금지).
+  - **WAIT**: 그 외(부족분 명시).
+- 콘솔 arm_decision + service status(arm_decision) 노출 = KILL이 곧 알림(폰 /status). GO여도 실행은 사람 ADMIN+Lv6 이중게이트 그대로.
+- 테스트 8(기준값 자체를 테스트로 고정 = 의도적 마찰). 전체 618 pass(기존 4만). tsc 0.
+
+### 운영 의식 (월 1회, 15분)
+매월: tsmom 데이터 pull → `tsmom_forward --since` → 집행 콘솔 확인(OOS 카운트·GO/WAIT/KILL). 그 외 기능 추가 금지 — 카운트다운은 코드로 못 당김.
+
+### 파킹
+- 사냥 인프라(S1·스캐너·autoresearch) 파킹. S1 pull(treasury_disposal·control_change·asset_transfer)은 백그라운드 진행 중 — 완료 시 결과만 기록.
+- 다음 결정 지점: OOS 3개월 시점(±2026-10) arm_criteria가 자동 판정.
+
+---
+
 ## Phase 131 — AI LAB ↔ Auto-Research 페이지 통합 (2026-07-03) ✅ SHIPPED
 
 "합쳐졌다면서 왜 페이지 2개?" — 판정 로직(Phase129)·되먹임(Phase130)은 합쳤으나 UI는 2개였음. 이제 화면도 하나.
