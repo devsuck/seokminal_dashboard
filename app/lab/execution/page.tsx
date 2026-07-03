@@ -1,19 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getExecutionConsole, type ExecutionConsole } from "@/lib/api";
+import {
+  getExecutionConsole, getLabPortfolio,
+  type ExecutionConsole, type PortfolioBook,
+} from "@/lib/api";
+import { ArcReactor, RadialGauge } from "@/components/Hud";
+import { LivePulse } from "@/components/Jarvis";
 
-/* 집행 콘솔 — 검증된 buyback 엣지의 라이브 준비 상태 한 화면.
-   동결 config + 정직한 기대치 + 페이퍼 손익 + 실전제약 + arm 게이트(사람만).
-   실주문 없음. 라이브 arm/집행은 사람 ADMIN. */
+/* 집행 콘솔 — 검증된 buyback 엣지의 라이브 준비 + 엣지 생존(OOS) + 생존자 포트폴리오.
+   Jarvis HUD. 실주문 없음. 라이브 arm/집행은 사람 ADMIN. */
 
 function pct(n: number | null | undefined, d = 2): string {
   if (typeof n !== "number") return "—";
   return `${n >= 0 ? "+" : ""}${(n * 100).toFixed(d)}%`;
 }
 
+const EDGE: Record<string, { label: string; tone: "pos" | "accent" | "info" | "neg" | "text-3"; note: string }> = {
+  no_oos_yet:   { label: "OOS 대기", tone: "info",   note: "동결 후 완결 월 0 — 카운트다운 시작 전. 무엇도 arm하지 마라." },
+  accumulating: { label: "누적 중",  tone: "accent", note: "OOS 월이 envelope 안에서 쌓이는 중. 아직 월 부족." },
+  drifting:     { label: "이탈 경고", tone: "neg",    note: "OOS 과반이 envelope 밖 — 엣지 소멸 신호. arm 금지." },
+  confirmed:    { label: "생존 확인", tone: "pos",    note: "충분한 OOS + envelope 안 = 엣지 살아있음. 승격 검토." },
+  unavailable:  { label: "데이터 대기", tone: "text-3", note: "forward 계산 불가(데이터/series)." },
+};
+
 export default function ExecutionPage() {
   const [d, setD] = useState<ExecutionConsole | null>(null);
+  const [book, setBook] = useState<PortfolioBook | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -25,83 +38,126 @@ export default function ExecutionPage() {
     getExecutionConsole(ctrl.signal)
       .then(s => { if (mounted) setD(s); })
       .catch(e => { if (!(e instanceof DOMException && e.name === "AbortError") && mounted) setErr(String(e)); });
+    getLabPortfolio(ctrl.signal)
+      .then(b => { if (mounted) setBook(b); })
+      .catch(() => { /* 포트폴리오는 선택적 — 실패해도 콘솔은 뜸 */ });
     return () => { mounted = false; ctrl.abort(); };
   }, []);
 
   if (err) return <div className="p-6 text-xs text-neg border border-neg/30 rounded m-6">오류: {err}</div>;
   if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton h-20 rounded-lg" />)}</div>;
 
-  const g = d.arm_gate;
-  const lr = d.live_readiness;
+  const g = d.arm_gate, lr = d.live_readiness, ea = d.edge_alive;
+  const edge = EDGE[ea.status] ?? EDGE.unavailable;
+  const oosPct = ea.oos_months > 0 ? Math.round((ea.oos_in_envelope / ea.oos_months) * 100) : 0;
+  const countdownPct = Math.min(100, (ea.oos_months / Math.max(1, ea.need_months)) * 100);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
-      {/* 헤더 */}
-      <div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-semibold text-text-1 tracking-[0.1em]">집행 콘솔</h1>
-          <span className="text-[11px] px-2 py-0.5 rounded border border-warn/40 text-warn bg-warn/10">{d.status}</span>
-          <span className="font-data text-[11px] text-text-3">{d.strategy_id} · 동결 {d.frozen_at}</span>
+      {/* HUD 헤더 */}
+      <div className="hud-frame hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-5">
+            <ArcReactor size={132} active={ea.status === "confirmed"}
+              label={edge.label} sub="edge" />
+            <div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-semibold text-text-1 tracking-[0.1em] uppercase">집행 콘솔</h1>
+                <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
+                <span className="text-[11px] px-2 py-0.5 rounded border border-warn/40 text-warn bg-warn/10">{d.status}</span>
+              </div>
+              <div className="mt-1 font-data text-[11px] text-hud/80">
+                {d.strategy_id} · 동결 {d.frozen_at} · 검증된 buyback 엣지 · arm은 사람만
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mt-1 text-[12px] text-text-3">검증된 buyback 엣지 라이브 준비 상태 · 실주문 없음 · arm은 사람만</div>
+        <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mt-3 pt-3 border-t border-hud/15 flex-wrap">
+          <RadialGauge size={84} pct={countdownPct} value={`${ea.oos_months}/${ea.need_months}`} label="OOS 월" tone={ea.oos_months >= ea.need_months ? "pos" : "hud"} />
+          <RadialGauge size={84} pct={oosPct} value={`${oosPct}%`} label="envelope 내" tone={oosPct >= 50 ? "pos" : "neg"} />
+          <RadialGauge size={84} pct={(d.edge.win_rate) * 100} value={pct(d.edge.win_rate, 0)} label="승률" />
+          <RadialGauge size={84} pct={g.autonomy_level / g.min_live_level * 100} value={`Lv${g.autonomy_level}`} label="자율" tone="neg" />
+          <RadialGauge size={84} pct={Math.min(100, lr.monthly_capacity_eok)} value={`${lr.monthly_capacity_eok}억`} label="수용력" />
+        </div>
       </div>
 
-      {/* 동결 config */}
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">동결 config (튜닝 금지)</div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1 font-data text-[13px] text-text-2">
-          <span>이벤트 <span className="text-text-1">{d.config.event}</span></span>
-          <span>시장 <span className="text-text-1">{d.config.markets.join("·")}</span></span>
-          <span>진입 <span className="text-text-1">{d.config.entry}</span></span>
-          <span>보유 <span className="text-text-1">{d.config.hold_days}일</span></span>
-          <span>비용 <span className="text-text-1">{d.config.cost_bps}bps</span></span>
+      {/* 엣지 생존 (OOS vs envelope) */}
+      <div className={`hud-frame rounded-lg border p-4 ${
+        edge.tone === "pos" ? "border-pos/40 bg-pos/5" : edge.tone === "neg" ? "border-neg/40 bg-neg/5" : "border-hud/20 bg-panel"}`}>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+          <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">엣지 생존 모니터</div>
+          <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Kv k="OOS 월(동결후)" v={`${ea.oos_months} / ${ea.need_months}`} tone={ea.oos_months >= ea.need_months ? "pos" : "warn"} />
+          <Kv k="envelope 내" v={`${ea.oos_in_envelope}/${ea.oos_months}`} tone={oosPct >= 50 ? "pos" : ea.oos_months ? "neg" : undefined} />
+          <Kv k="in-sample 월" v={String(ea.in_sample_months)} />
+          <Kv k="envelope p10~p90" v={`${pct(ea.envelope.p10)} ~ ${pct(ea.envelope.p90)}`} />
+        </div>
+        {ea.oos.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {ea.oos.map(m => (
+              <span key={m.month} className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${
+                m.in_envelope ? "border-pos/40 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
+                {m.month} {pct(m.median)}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className={`mt-2 text-[11px] leading-relaxed ${edge.tone === "neg" ? "text-neg" : edge.tone === "pos" ? "text-pos" : "text-text-3"}`}>
+          {edge.note}
         </div>
       </div>
 
-      {/* 정직한 엣지 */}
-      <div className="bg-panel border border-info/25 rounded-lg p-4">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">엣지 (정직한 기대치)</div>
+      {/* 정직한 엣지 (기대치) */}
+      <div className="hud-frame bg-panel border border-info/25 rounded-lg p-4">
+        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">엣지 기대치 (정직)</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Kv k="중앙값(기대)" v={pct(d.edge.net_median)} tone={d.edge.net_median >= 0 ? "pos" : "neg"} />
           <Kv k="평균(팻테일)" v={pct(d.edge.net_mean)} tone="warn" />
           <Kv k="trimmed10%" v={pct(d.edge.trimmed10)} />
-          <Kv k="승률" v={pct(d.edge.win_rate, 1)} />
           <Kv k="p(중앙값)" v={String(d.edge.p_median)} tone="pos" />
-          <Kv k="WF 전/후" v={`${pct(d.edge.wf_first)} / ${pct(d.edge.wf_second)}`} />
-          <Kv k="검증 거래수" v={String(d.edge.trade_count)} />
         </div>
         <div className="mt-2 text-[11px] text-warn leading-relaxed">⚠ {d.edge.honest_note}</div>
       </div>
 
-      {/* 페이퍼 상태 */}
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">페이퍼 실행 (실주문 없음)</div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kv k="총 포지션" v={String(d.paper.total)} />
-          <Kv k="보유중" v={String(d.paper.open)} />
-          <Kv k="청산" v={String(d.paper.closed)} />
-          <Kv k="페이퍼 승률" v={pct(d.paper.paper_win_rate, 1)} />
+      {/* 생존자 포트폴리오 (돈=조합) */}
+      {book && book.combined && (
+        <div className="hud-frame bg-panel border border-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] uppercase tracking-wider text-text-3">생존자 포트폴리오 (무상관 조합)</div>
+            <a href="/lab/portfolio" className="text-[11px] text-accent hover:underline">전체 →</a>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {book.sleeves.map(s => (
+              <span key={s.name} className="text-[11px] px-2 py-1 rounded border border-border font-data text-text-2">
+                {s.name} <span className="text-text-1">Sh {s.sharpe.toFixed(2)}</span> <span className="text-neg">MDD {pct(s.mdd, 0)}</span>
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Kv k="상관" v={typeof book.correlation === "number" ? book.correlation.toFixed(2) : "—"} tone="pos" />
+            <Kv k="등가중 Sharpe" v={book.combined.equal_weight.sharpe.toFixed(2)} tone="pos" />
+            <Kv k="등가중 MDD" v={pct(book.combined.equal_weight.mdd, 0)} tone="neg" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 실전 준비 제약 */}
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">실전 준비 제약 (Phase 122 동결)</div>
+      <div className="hud-frame bg-panel border border-border rounded-lg p-4">
+        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">실전 준비 제약 (동결)</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <Kv k="월 수용력(소자본)" v={`${lr.monthly_capacity_eok}억`} />
           <Kv k="1일 지연 시" v={pct(lr.timing_delay_1d_pct / 100)} tone="neg" />
-          <Kv k="월 이벤트" v={`${lr.monthly_events}건`} />
-          <Kv k="최대 집중도" v={`${lr.concentration_pct}%`} />
-          <Kv k="기대치 기준" v={lr.expectation === "median" ? "중앙값" : lr.expectation} />
           <Kv k="분산" v={lr.diversification === "required" ? "필수" : lr.diversification} />
         </div>
-        <div className="mt-2 text-[11px] text-text-3">타이밍 민감 = 즉시 체결 필수(핵심 리스크). 대자본이면 슬리피지로 엣지 소멸.</div>
+        <div className="mt-2 text-[11px] text-text-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
       </div>
 
       {/* arm 게이트 */}
-      <div className={`rounded-lg p-4 border ${g.armed ? "border-pos/40 bg-pos/5" : "border-warn/30 bg-warn/5"}`}>
+      <div className={`hud-frame rounded-lg p-4 border ${g.armed ? "border-pos/40 bg-pos/5" : "border-warn/30 bg-warn/5"}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-          <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">라이브 arm 게이트</div>
+          <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">라이브 ARM 게이트</div>
           <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-pos/50 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
             {g.armed ? "ARMED" : "DISARMED"}
           </span>
@@ -112,22 +168,8 @@ export default function ExecutionPage() {
           <Kv k="페이퍼 관찰" v={`${g.paper_months}mo / 최소 ${g.min_paper_months}`} tone={g.paper_months >= g.min_paper_months ? "pos" : "warn"} />
           <Kv k="arm 자격" v={g.eligible ? "가능" : "불가"} tone={g.eligible ? "pos" : "neg"} />
         </div>
-        {g.reasons.length > 0 && (
-          <div className="mt-2 text-[11px] text-neg">차단 사유: {g.reasons.join(" · ")}</div>
-        )}
-        <div className="mt-3 text-[12px] text-warn border-t border-warn/20 pt-2 leading-relaxed">
-          {g.human_action}
-        </div>
-      </div>
-
-      {/* 금지 목록 */}
-      <div className="bg-panel-2 border border-border rounded-lg p-3">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-1.5">금지 (동결 위반)</div>
-        <div className="flex flex-wrap gap-1.5">
-          {d.forbidden.map((f, i) => (
-            <span key={i} className="text-[10px] px-2 py-1 rounded border border-border text-text-3">{f}</span>
-          ))}
-        </div>
+        {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-neg">차단 사유: {g.reasons.join(" · ")}</div>}
+        <div className="mt-3 text-[12px] text-warn border-t border-warn/20 pt-2 leading-relaxed">{g.human_action}</div>
       </div>
     </div>
   );
