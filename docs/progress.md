@@ -1,3 +1,14 @@
+## Phase 130 — 되먹임 순환 완성(service 배치 → lab reconcile) (2026-07-03) ✅ SHIPPED
+
+Phase 129 미결(lab이 status.json pull만) 해소. 진짜 순환: service가 배치 후 lab 판정을 확정으로 되먹임.
+- **`LabEngine.reconcile_from_batch(status)`** — 이미 emit된 `pending_bh` 판정을 배치 결과로 확정. event_study **재계산 없이** classify 재사용(단일 진실원, 배치가 이미 계산한 net/wf/redteam/bh_survivor 사용). id `real_{fam}`↔cid `ev_{fam}` 매칭. stats 버킷 재분류(pending→edges/rejects). idempotent(status≠pending이면 skip).
+- **service `_autoresearch_batch`** — `run_batch()` 후 `ENGINE.reconcile_from_batch(s)` 호출. reconcile 실패해도 배치 성공 기록 유지(예외 격리). `status()`에 `autoresearch_reconciled` 노출.
+- 순환 완성: pending_bh(잠정) → 24h 배치 → 확정 candidate/reject 자동 반영. lab 화면 판정피드가 배치 후 스스로 갱신.
+- 테스트 8 신규(reconcile 6: candidate/reject_bh/watchlist(wf음수)/non-pending skip/family부재/idempotent + service 배선 2). 백엔드 **601 pass**(기존 4만).
+- FE: service 필드(autoresearch_*)는 현재 UI 미노출이라 프론트 변경 없음.
+
+---
+
 ## Phase 129 — LAB↔Auto-Research 판정 통합(단일 진실원 + 배치 되먹임) (2026-07-03) ✅ SHIPPED
 
 판정 로직 두 벌 → `classify()` 한 벌. lab이 배치 BH 되먹임. SDD(implementer→reviewer→fix) 7태스크.
