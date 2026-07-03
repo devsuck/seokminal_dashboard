@@ -104,8 +104,9 @@ export function Sidebar() {
       label: "AI 연구", icon: <IconTrading />,
       items: [
         // AI LAB = 라이브 루프 + 배치 리더보드 흡수(Auto-Research는 /auto-research URL만 보존).
-        { href: "/lab",       label: "AI LAB" },
-        { href: "/lab/tasks", label: "Lab Task (페이퍼 모니터)" },
+        { href: "/lab",           label: "AI LAB" },
+        { href: "/lab/execution", label: "집행 콘솔 (돈길)" },
+        { href: "/lab/tasks",     label: "Lab Task (페이퍼 모니터)" },
       ],
     },
     // 검증 — 수동 도구(엣지 찾고 검증).

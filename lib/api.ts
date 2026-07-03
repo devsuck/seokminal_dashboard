@@ -2731,6 +2731,35 @@ export async function runAutoResearch(): Promise<AutoResearchStatus> {
   return handleResponse<AutoResearchStatus>(r);
 }
 
+// ── 집행 콘솔 (검증된 buyback 엣지 라이브 준비) ──
+export interface ExecutionConsole {
+  strategy_id: string; registry_id: string; status: string; frozen_at: string;
+  config: { event: string; markets: string[]; entry: string; hold_days: number; cost_bps: number };
+  edge: {
+    net_mean: number; net_median: number; trimmed10: number; win_rate: number;
+    p_median: number; wf_first: number; wf_second: number; trade_count: number; honest_note: string;
+  };
+  live_readiness: {
+    monthly_events: number; concentration_pct: number; liquidity_per_event_eok: number;
+    monthly_capacity_eok: number; timing_delay_1d_pct: number; expectation: string;
+    diversification: string; min_paper_months: number; preferred_paper_months: number;
+  };
+  paper: {
+    total: number; open: number; closed: number; paper_pnl_mean: number | null;
+    paper_win_rate: number | null; cum_paper_pnl: number | null;
+    recent_closed: { corp: string; entry_date: string; exit_date: string | null; pnl_pct: number | null }[];
+  };
+  arm_gate: {
+    armed: boolean; autonomy_level: number; min_live_level: number; live_execution: string;
+    eligible: boolean; reasons: string[]; paper_months: number; min_paper_months: number; human_action: string;
+  };
+  forbidden: string[];
+}
+export async function getExecutionConsole(signal?: AbortSignal): Promise<ExecutionConsole> {
+  const r = await fetch(`${API_URL}/lab/execution`, { signal });
+  return handleResponse<ExecutionConsole>(r);
+}
+
 // ── Buyback 손실 진단 + 청산룰 시뮬 ──
 export interface BuybackLoser {
   corp: string; code: string; entry_date: string;
