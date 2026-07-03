@@ -17,6 +17,7 @@ function pct(n: number | null | undefined, d = 2): string {
 }
 
 const EDGE: Record<string, { label: string; tone: "pos" | "accent" | "info" | "neg" | "text-3"; note: string }> = {
+  warming:      { label: "워밍 중", tone: "text-3", note: "엣지 생존 배경 계산 중(service 워밍) — 곧 채워짐." },
   no_oos_yet:   { label: "OOS 대기", tone: "info",   note: "동결 후 완결 월 0 — 카운트다운 시작 전. 무엇도 arm하지 마라." },
   accumulating: { label: "누적 중",  tone: "accent", note: "OOS 월이 envelope 안에서 쌓이는 중. 아직 월 부족." },
   drifting:     { label: "이탈 경고", tone: "neg",    note: "OOS 과반이 envelope 밖 — 엣지 소멸 신호. arm 금지." },
@@ -52,7 +53,8 @@ export default function ExecutionPage() {
   if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton h-20 rounded-lg" />)}</div>;
 
   const g = d.arm_gate, lr = d.live_readiness;
-  const edge = ea ? (EDGE[ea.status] ?? EDGE.unavailable) : { label: "계산 중", tone: "text-3" as const, note: "엣지 생존 계산 중(series 로드)…" };
+  const warming = !ea || ea.status === "warming";
+  const edge = ea ? (EDGE[ea.status] ?? EDGE.unavailable) : EDGE.warming;
   const oosPct = ea && ea.oos_months > 0 ? Math.round((ea.oos_in_envelope / ea.oos_months) * 100) : 0;
   const countdownPct = ea ? Math.min(100, (ea.oos_months / Math.max(1, ea.need_months)) * 100) : 0;
 
@@ -76,8 +78,8 @@ export default function ExecutionPage() {
           </div>
         </div>
         <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mt-3 pt-3 border-t border-hud/15 flex-wrap">
-          <RadialGauge size={84} pct={countdownPct} value={ea ? `${ea.oos_months}/${ea.need_months}` : "…"} label="OOS 월" tone={ea && ea.oos_months >= ea.need_months ? "pos" : "hud"} />
-          <RadialGauge size={84} pct={oosPct} value={ea ? `${oosPct}%` : "…"} label="envelope 내" tone={oosPct >= 50 ? "pos" : "neg"} />
+          <RadialGauge size={84} pct={countdownPct} value={!warming && ea ? `${ea.oos_months}/${ea.need_months}` : "…"} label="OOS 월" tone={ea && ea.oos_months >= ea.need_months ? "pos" : "hud"} />
+          <RadialGauge size={84} pct={oosPct} value={!warming ? `${oosPct}%` : "…"} label="envelope 내" tone={oosPct >= 50 ? "pos" : "neg"} />
           <RadialGauge size={84} pct={d.edge.win_rate * 100} value={pct(d.edge.win_rate, 0)} label="승률" />
           <RadialGauge size={84} pct={g.autonomy_level / g.min_live_level * 100} value={`Lv${g.autonomy_level}`} label="자율" tone="neg" />
           <RadialGauge size={84} pct={Math.min(100, lr.monthly_capacity_eok)} value={`${lr.monthly_capacity_eok}억`} label="수용력" />
@@ -91,7 +93,7 @@ export default function ExecutionPage() {
           <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">엣지 생존 모니터</div>
           <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
         </div>
-        {!ea ? (
+        {warming || !ea ? (
           <div className="scan-skeleton h-14 rounded" />
         ) : (
           <>
