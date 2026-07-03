@@ -2753,6 +2753,10 @@ export interface ExecutionConsole {
     armed: boolean; autonomy_level: number; min_live_level: number; live_execution: string;
     eligible: boolean; reasons: string[]; paper_months: number; min_paper_months: number; human_action: string;
   };
+  arm_decision: {
+    decision: "GO" | "WAIT" | "KILL"; reasons: string[];
+    version: string; frozen_at: string; first_tranche_krw_max: number;
+  };
   forbidden: string[];
 }
 export async function getExecutionConsole(signal?: AbortSignal): Promise<ExecutionConsole> {

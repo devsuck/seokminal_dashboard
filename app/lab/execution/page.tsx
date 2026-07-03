@@ -169,10 +169,27 @@ export default function ExecutionPage() {
       <div className={`hud-frame rounded-lg p-4 border ${g.armed ? "border-pos/40 bg-pos/5" : "border-warn/30 bg-warn/5"}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
           <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">라이브 ARM 게이트</div>
-          <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-pos/50 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
-            {g.armed ? "ARMED" : "DISARMED"}
+          <span className="flex items-center gap-1.5">
+            {d.arm_decision && (
+              <span className={`text-[11px] px-2 py-0.5 rounded border font-data ${
+                d.arm_decision.decision === "GO" ? "border-pos/50 text-pos bg-pos/10" :
+                d.arm_decision.decision === "KILL" ? "border-neg/50 text-neg bg-neg/10 animate-blink" :
+                "border-info/40 text-info bg-info/10"}`}>
+                {d.arm_decision.decision === "GO" ? "GO — 소액 arm 검토" :
+                 d.arm_decision.decision === "KILL" ? "KILL — 엣지 소멸" : "WAIT"}
+              </span>
+            )}
+            <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-pos/50 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
+              {g.armed ? "ARMED" : "DISARMED"}
+            </span>
           </span>
         </div>
+        {d.arm_decision && (
+          <div className="mb-2 text-[11px] text-text-3">
+            사전등록 {d.arm_decision.version} (동결 {d.arm_decision.frozen_at}) · 첫 arm 상한 {(d.arm_decision.first_tranche_krw_max / 10_000).toLocaleString()}만원
+            {d.arm_decision.reasons.length > 0 && <span> · {d.arm_decision.reasons.join(" · ")}</span>}
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Kv k="자율 레벨" v={`Lv${g.autonomy_level} / 필요 ${g.min_live_level}`} tone={g.autonomy_level >= g.min_live_level ? "pos" : "neg"} />
           <Kv k="라이브 집행" v={g.live_execution} tone={g.live_execution === "disabled" ? "neg" : "pos"} />
