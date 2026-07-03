@@ -113,6 +113,23 @@ export default function ExecutionPage() {
                 ))}
               </div>
             )}
+            {ea.event_level && (
+              <div className="mt-2 pt-2 border-t border-border/50 text-[11px] font-data text-text-3">
+                이벤트 레벨(조기 신호): OOS {ea.event_level.n_oos}건
+                {ea.event_level.powered ? (
+                  <>
+                    {" "}· median {pct(ea.event_level.oos_median)} vs in-sample {pct(ea.event_level.in_sample_median)}
+                    {" "}· p_worse{" "}
+                    <span className={ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 ? "text-neg" : "text-pos"}>
+                      {ea.event_level.p_worse ?? "—"}
+                    </span>
+                    {ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 && <span className="text-neg"> ← 소멸 조기경보</span>}
+                  </>
+                ) : (
+                  <span> / {ea.event_level.min_events}건 필요 — 판단 보류(월 코호트보다 ~2개월 빠른 보조 신호)</span>
+                )}
+              </div>
+            )}
           </>
         )}
         <div className={`mt-2 text-[11px] leading-relaxed ${edge.tone === "neg" ? "text-neg" : edge.tone === "pos" ? "text-pos" : "text-text-3"}`}>

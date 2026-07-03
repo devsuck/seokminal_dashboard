@@ -2769,6 +2769,10 @@ export interface ExecutionEdge {
   envelope: { p10: number | null; avg: number | null; p90: number | null };
   oos_months: number; oos_in_envelope: number; need_months: number;
   oos: { month: string; median: number; n: number; in_envelope: boolean }[];
+  event_level?: {   // 이벤트 레벨 OOS(월 코호트보다 빨리 쌓임) — 보조 증거
+    n_oos: number; n_in_sample: number; oos_median: number | null;
+    in_sample_median: number | null; powered: boolean; min_events: number; p_worse: number | null;
+  };
 }
 export async function getExecutionEdge(signal?: AbortSignal): Promise<ExecutionEdge> {
   const r = await fetch(`${API_URL}/lab/execution/edge`, { signal });
