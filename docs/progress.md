@@ -1,3 +1,14 @@
+## Phase 131 — AI LAB ↔ Auto-Research 페이지 통합 (2026-07-03) ✅ SHIPPED
+
+"합쳐졌다면서 왜 페이지 2개?" — 판정 로직(Phase129)·되먹임(Phase130)은 합쳤으나 UI는 2개였음. 이제 화면도 하나.
+- **`components/AutoResearchPanel.tsx`** — 배치 뷰를 컴포넌트로 추출(`embedded` prop: true=컴팩트 헤더, false=아크리액터 HUD 독립 헤더). DRY 한 벌.
+- **`/auto-research`** → `<AutoResearchPanel/>` 얇은 래퍼(URL·파일 보존).
+- **`/lab`** → `<AutoResearchPanel embedded/>` 섹션 흡수. 라이브 루프(pending) → 배치 리더보드(최종 확정)가 한 페이지에 상류→하류로 배치.
+- **Sidebar** Auto-Research 링크 은퇴(URL 접근은 유지).
+- WATCHLIST verdict 스타일 추가(Phase129 wf게이트 산출), `animate-[blink...]` 임의값 → `animate-blink` 토큰. tsc 0.
+
+---
+
 ## Phase 130 — 되먹임 순환 완성(service 배치 → lab reconcile) (2026-07-03) ✅ SHIPPED
 
 Phase 129 미결(lab이 status.json pull만) 해소. 진짜 순환: service가 배치 후 lab 판정을 확정으로 되먹임.
