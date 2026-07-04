@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  listAgents, getAgentPerformance, getBuybackBot, getExecutionConsole,
-  type TradingAgent, type AgentPerformance, type BuybackBot, type ExecutionConsole,
+  listAgents, getAgentPerformance, getBuybackBot, getExecutionConsole, getLabTasks,
+  type TradingAgent, type AgentPerformance, type BuybackBot, type ExecutionConsole, type LabTask,
 } from "@/lib/api";
 import { JarvisOrb, LivePulse, AnimatedNumber } from "@/components/Jarvis";
 
@@ -32,6 +32,7 @@ export default function OverviewPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [bot, setBot] = useState<BuybackBot | null>(null);
   const [exec, setExec] = useState<ExecutionConsole | null>(null);
+  const [paperTasks, setPaperTasks] = useState<LabTask[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -44,6 +45,7 @@ export default function OverviewPage() {
       abortRef.current = ctrl;
       getBuybackBot(ctrl.signal).then(b => { if (mounted) setBot(b); }).catch(() => {});
       getExecutionConsole(ctrl.signal).then(e => { if (mounted) setExec(e); }).catch(() => {});
+      getLabTasks(ctrl.signal).then(t => { if (mounted) setPaperTasks(t.tasks); }).catch(() => {});
       try {
         const { agents } = await listAgents(ctrl.signal);
         const perfs = await Promise.all(agents.map(a =>
@@ -98,6 +100,11 @@ export default function OverviewPage() {
               exec.arm_decision.decision === "KILL" ? "border-neg/50 text-neg bg-neg/10 animate-blink" :
               "border-info/40 text-info bg-info/10"}`}>
               ARM {exec.arm_decision.decision}
+            </span>
+          )}
+          {paperTasks && paperTasks.length > 0 && (
+            <span className="text-[11px] font-data text-text-3">
+              페이퍼 전략 {paperTasks.length} · {paperTasks.map(t => t.strategy_id.replace(/^futures_|^kr_dart_/, "")).join(" · ")}
             </span>
           )}
           <span className="ml-auto text-[11px] text-accent shrink-0">집행 콘솔 →</span>

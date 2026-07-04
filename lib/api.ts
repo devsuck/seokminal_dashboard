@@ -2093,6 +2093,7 @@ export interface LabTaskMonthly { period: string; return: number | null; n: numb
 export interface LabTaskForward {
   entry?: string; exit?: string; cost_bps?: number | null;
   stats?: Record<string, number | null>; monthly?: LabTaskMonthly[]; error?: string;
+  stats_warming?: boolean;  // 통계는 서버 배경 워밍(6h) — true면 아직 규칙만
 }
 export interface LabTask {
   strategy_id: string; status: string; runner: string | null;

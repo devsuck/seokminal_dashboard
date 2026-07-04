@@ -128,7 +128,7 @@ export function Sidebar() {
       label: "운용", icon: <IconStrategy />,
       items: [
         { href: "/overview",       label: "총 포트폴리오" },
-        { href: "/buyback-doctor", label: "손실 진단" },
+        { href: "/buyback-doctor", label: "Buyback 손실진단" },
         { href: "/dart-auto",      label: "DART 자동매매" },
         { href: "/copytrade",      label: "카피트레이드" },
         { href: "/agents",         label: t("nav.agents") },

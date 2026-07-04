@@ -154,7 +154,8 @@ export default function ExecutionPage() {
         <div className="hud-frame bg-panel border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] uppercase tracking-wider text-text-3">생존자 포트폴리오 (무상관 조합)</div>
-            <a href="/lab/portfolio" className="text-[11px] text-accent hover:underline">전체 →</a>
+            {/* 북 상세 카드는 Lab Task 페이지에 있음 — /lab/portfolio는 백엔드 endpoint(페이지 아님) */}
+            <a href="/lab/tasks" className="text-[11px] text-accent hover:underline">전체 →</a>
           </div>
           <div className="flex flex-wrap gap-2 mb-2">
             {book.sleeves.map(s => (
