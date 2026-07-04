@@ -140,6 +140,7 @@ export function Sidebar() {
     {
       label: "교육", icon: <IconAnalyze />,
       items: [
+        { href: "/learn/options", label: "옵션 트레이딩" },
         { href: "/quant",     label: "퀀트 배우기" },
         { href: "/notebooks", label: "전략 만들기 연습" },
         { href: "/report",    label: "결과 읽는 법" },
