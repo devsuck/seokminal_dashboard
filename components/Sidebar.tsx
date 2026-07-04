@@ -99,14 +99,14 @@ export function Sidebar() {
   const NAV_GROUPS: NavGroup[] = [
     // 관측 — 홈은 HUD 하나. dashboard/overview/status 중복 흡수.
     { label: "HUD 커맨드", icon: <IconDashboard />, href: "/hud" },
-    // 연구 — 자율 AI 엔진(같은 목표라 한 그룹).
+    // 집행·연구 — Phase 132 집행 전환: 돈길(집행 콘솔) 최상위, 사냥 인프라(LAB)는 파킹 보조.
     {
-      label: "AI 연구", icon: <IconTrading />,
+      label: "집행 · 연구", icon: <IconTrading />,
       items: [
-        // AI LAB = 라이브 루프 + 배치 리더보드 흡수(Auto-Research는 /auto-research URL만 보존).
-        { href: "/lab",           label: "AI LAB" },
         { href: "/lab/execution", label: "집행 콘솔 (돈길)" },
         { href: "/lab/tasks",     label: "Lab Task (페이퍼 모니터)" },
+        // AI LAB = 라이브 루프 + 배치 리더보드 흡수(Auto-Research는 /auto-research URL만 보존).
+        { href: "/lab",           label: "AI LAB (사냥 · 파킹)" },
       ],
     },
     // 검증 — 수동 도구(엣지 찾고 검증).
@@ -258,8 +258,13 @@ export function Sidebar() {
 
               {!collapsed && isOpen && (
                 <div className="mt-0.5 mb-1">
-                  {g.items!.map(item => {
-                    const itemActive = pathname.startsWith(item.href);
+                  {/* longest-match만 활성 — startsWith만 쓰면 /lab/execution에서 /lab도 같이 켜짐 */}
+                  {(() => {
+                    const best = g.items!
+                      .filter(i => pathname === i.href || pathname.startsWith(i.href + "/"))
+                      .sort((a, b) => b.href.length - a.href.length)[0];
+                    return g.items!.map(item => {
+                      const itemActive = item === best;
                     return (
                       <Link
                         key={item.href}
@@ -271,7 +276,8 @@ export function Sidebar() {
                         {item.label}
                       </Link>
                     );
-                  })}
+                    });
+                  })()}
                 </div>
               )}
 
