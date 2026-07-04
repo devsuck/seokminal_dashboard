@@ -1301,6 +1301,8 @@ export interface TradingAgent {
   protected?: boolean;  // 잠금 — 삭제 시 이름 확인 필요
   profile: { label?: string; cadence_seconds?: number; buy_score_threshold?: number; venue?: string };
   session_live?: boolean;
+  validated?: boolean;          // registry 검증 전략 여부 — false면 live 차단(페이퍼 강제)
+  validation_reason?: string;
 }
 
 export interface AgentCycle {
@@ -2147,7 +2149,14 @@ export interface LabStatus {
   server: string; now: string;
   dart_bot: { running: boolean; enabled?: boolean; last_run?: string | null; interval_sec?: number; acted?: number; recent?: unknown[]; error?: string };
   ai_lab: { engine_status?: string; busy?: boolean; autopilot?: boolean; processed?: number; continuous_loop?: string; autonomy_level?: number; live_execution?: string; error?: string };
-  research_service?: { running?: boolean; enabled?: boolean; interval_sec?: number; last_run?: string | null; processed_total?: number; ticks?: number; last_result?: unknown; note?: string; error?: string };
+  research_service?: {
+    running?: boolean; enabled?: boolean; interval_sec?: number; last_run?: string | null;
+    processed_total?: number; ticks?: number; last_result?: unknown; note?: string; error?: string;
+    arm_decision?: string | null; edge_status?: string | null;
+    tsmom_last_month?: string | null; tsmom_in_envelope?: boolean | null;
+    watchdog?: { events: { ts: string; severity: string; msg: string }[]; critical: boolean; new_total: number };
+    pull_queue?: { pending: number; running: string | null };
+  };
   congress: { type: string; note: string };
 }
 export interface ScannerFamily {

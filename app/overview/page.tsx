@@ -157,6 +157,10 @@ export default function OverviewPage() {
                     <span className="text-sm font-semibold text-text-1 truncate">{r.agent.name}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded border border-border text-text-3">{r.agent.market}</span>
                     {r.agent.paper && <span className="text-[10px] px-1.5 py-0.5 rounded border border-info/40 text-info">페이퍼</span>}
+                    {r.agent.validated === false && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-warn/40 text-warn bg-warn/10"
+                        title={r.agent.validation_reason ?? "registry 미등록 전략"}>미검증</span>
+                    )}
                   </div>
                   <div className="text-[11px] text-text-3">배분 {won(p?.alloc ?? r.agent.account_alloc)} · 자율 Lv{r.agent.autonomy}</div>
                 </div>

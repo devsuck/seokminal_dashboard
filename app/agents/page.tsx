@@ -112,7 +112,7 @@ function CycleCard({ c }: { c: AgentCycle }) {
         </div>
       )}
       {c.action && c.action !== "none" && (
-        <div className="text-[11px] text-accent font-data mb-0.5">⚡ {c.action}</div>
+        <div className="text-[11px] text-accent font-data mb-0.5"> {c.action}</div>
       )}
       {c.note && <p className="text-text-2 text-[11px] leading-snug">{c.note}</p>}
       <div className="flex items-center justify-between mt-1.5 text-[9px] text-text-3">
@@ -250,7 +250,7 @@ function Dashboard({ perf }: { perf: AgentPerformance | null }) {
                     <span className={`text-[11px] font-data ${pnlColor(t.realized_pnl)}`}>{fmtMoney(t.realized_pnl)}</span>
                   )}
                 </div>
-                {t.reason && <p className="text-text-2 text-[11px] mt-1 leading-snug">💡 {t.reason}</p>}
+                {t.reason && <p className="text-text-2 text-[11px] mt-1 leading-snug"> {t.reason}</p>}
               </div>
             ))}
           </div>
@@ -283,7 +283,7 @@ function BalanceCard({ acc }: { acc: import("@/lib/api").AccountRow }) {
           <div className="flex justify-between text-[10px] font-data mt-1">
             <span className="text-text-3">배정 {money(acc.allocated, acc.ccy)}</span>
             <span className={over ? "text-neg" : "text-text-2"}>
-              잔여 {remaining != null ? money(remaining, acc.ccy) : "—"}{over && " ⚠️초과"}
+              잔여 {remaining != null ? money(remaining, acc.ccy) : "—"}{over && " ⚠초과"}
             </span>
           </div>
         </>
@@ -448,7 +448,7 @@ export default function AgentsPage() {
     if (!name.trim()) { setError("이름 입력"); return; }
     const amt = parseFloat(alloc);
     if (!amt || amt <= 0) { setError(`배정 금액 입력 (${ccy})`); return; }
-    if (!paper && !confirm("⚠️ LIVE 모드 — 실제 자금이 집행됩니다. 계속?")) return;
+    if (!paper && !confirm("⚠ LIVE 모드 — 실제 자금이 집행됩니다. 계속?")) return;
     setCreating(true); setError(null);
     try {
       const { type, market } = toBackend(style, mkt);
@@ -498,9 +498,7 @@ export default function AgentsPage() {
           <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
             <h2 className="text-text-2 text-xs uppercase tracking-wider font-semibold">새 에이전트</h2>
             <input
-              value={name} onChange={e => setName(e.target.value)} placeholder="이름 (예: 모멘텀 단타봇)"
-              className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent"
-            />
+              value={name} onChange={e => setName(e.target.value)} placeholder="이름 (예: 모멘텀 단타봇)"className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent"/>
             {/* 투자 스타일 */}
             <div className="space-y-1">
               <p className="text-text-3 text-[10px] uppercase tracking-wider">투자 스타일</p>
@@ -522,8 +520,7 @@ export default function AgentsPage() {
                   return (
                     <button key={m} disabled={!ok} onClick={() => setMkt(m)}
                       className={`text-xs py-1.5 rounded border ${
-                        !ok ? "border-border/50 text-text-3/40 cursor-not-allowed"
-                        : mkt === m ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+                        !ok ? "border-border/50 text-text-3/40 cursor-not-allowed": mkt === m ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
                       {MKT_LABEL[m]}
                     </button>
                   );
@@ -541,8 +538,7 @@ export default function AgentsPage() {
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data pointer-events-none">{ccySym(ccy)}</span>
                 )}
                 <input
-                  value={alloc} onChange={e => setAlloc(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"
-                  placeholder={mkt === "KR" ? "1000000" : mkt === "CRYPTO" ? "1000" : "10000"}
+                  value={alloc} onChange={e => setAlloc(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"placeholder={mkt === "KR" ? "1000000" : mkt === "CRYPTO" ? "1000" : "10000"}
                   className={`w-full bg-panel-2 border border-border rounded ${ccySym(ccy) ? "pl-8" : "pl-2.5"} pr-14 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent`}
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-3 text-[10px] font-data pointer-events-none">{ccy}</span>
@@ -554,25 +550,23 @@ export default function AgentsPage() {
                 <button key={String(p)} onClick={() => setPaper(p)}
                   className={`flex-1 text-xs py-1.5 rounded border ${
                     paper === p
-                      ? p ? "border-pos text-pos bg-pos/10" : "border-neg text-neg bg-neg/10"
-                      : "border-border text-text-3"
-                  }`}>
+                      ? p ? "border-pos text-pos bg-pos/10" : "border-neg text-neg bg-neg/10": "border-border text-text-3"}`}>
                   {p ? "PAPER 모의" : "LIVE 실거래"}
                 </button>
               ))}
             </div>
             {!paper && (
-              <p className="text-neg text-[10px] leading-snug">⚠️ 실제 자금 집행. 되돌릴 수 없음.</p>
+              <p className="text-neg text-[10px] leading-snug">⚠ 실제 자금 집행. 되돌릴 수 없음.</p>
             )}
             {mkt === "CRYPTO" && paper && (
               <p className="text-text-3 text-[10px] leading-snug">
-                ℹ️ 페이퍼는 크립토만 (테스트넷 TradFi 무거래). 주식·금·지수는 LIVE 필요.
+                ℹ 페이퍼는 크립토만 (테스트넷 TradFi 무거래). 주식·금·지수는 LIVE 필요.
               </p>
             )}
             {/* Autonomy level (LLM swing only; day-trade is rules-based) */}
             {isDeterministic ? (
               <p className="text-text-3 text-[10px] leading-snug">
-                ⚙️ 단타는 규칙 기반(레벨1 고정) — LLM 미사용, 토큰 0.
+                 단타는 규칙 기반(레벨1 고정) — LLM 미사용, 토큰 0.
               </p>
             ) : (
               <div className="space-y-1">
@@ -584,13 +578,12 @@ export default function AgentsPage() {
                 ].map(o => (
                   <button key={o.v} onClick={() => setAutonomy(o.v)}
                     className={`w-full text-left text-[11px] px-2 py-1.5 rounded border ${
-                      autonomy === o.v ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"
-                    }`}>
+                      autonomy === o.v ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>
                     {o.label} <span className="text-text-3">— {o.desc}</span>
                   </button>
                 ))}
                 {autonomy === 3 && (
-                  <p className="text-warn text-[10px] leading-snug">⚠️ 완전 자율은 엣지 검증이 약함. 리스크 한도는 항상 적용됨.</p>
+                  <p className="text-warn text-[10px] leading-snug">⚠ 완전 자율은 엣지 검증이 약함. 리스크 한도는 항상 적용됨.</p>
                 )}
               </div>
             )}
@@ -620,11 +613,17 @@ export default function AgentsPage() {
                   <span className={`text-[9px] px-1.5 py-0.5 rounded border ${a.paper ? "bg-pos/10 text-pos border-pos/30" : "bg-neg/15 text-neg border-neg/40"}`}>
                     {a.paper ? "PAPER" : "● LIVE"}
                   </span>
+                  {a.validated === false && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-warn/40 text-warn bg-warn/10"
+                      title={`${a.validation_reason ?? "registry 미등록"} — live 요청해도 페이퍼로 강제됨`}>
+                      미검증
+                    </span>
+                  )}
                   {(a.type === "swing" || a.type === "longterm") && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded border border-border text-text-3">Lv{a.autonomy}</span>
                   )}
                   {a.protected && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10" title="잠금 — 삭제하려면 이름 확인 필요">🔒 잠금</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10" title="잠금 — 삭제하려면 이름 확인 필요"> 잠금</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-2">
@@ -636,7 +635,7 @@ export default function AgentsPage() {
                     </button>
                     <button onClick={e => { e.stopPropagation(); onDelete(a); }}
                       className={`text-[10px] px-2 py-0.5 rounded border ${a.protected ? "border-border text-text-3/60 hover:text-neg" : "border-border text-text-3 hover:text-neg hover:border-neg/40"}`}>
-                      {a.protected ? "🔒 삭제" : "삭제"}
+                      {a.protected ? " 삭제" : "삭제"}
                     </button>
                   </div>
                 </div>
@@ -673,7 +672,7 @@ export default function AgentsPage() {
                   <div className="bg-panel border border-border rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-text-2 text-xs font-semibold">🧪 전략 증류</span>
+                        <span className="text-text-2 text-xs font-semibold"> 전략 증류</span>
                         <p className="text-text-3 text-[10px] mt-0.5">거래로그 → 규칙 전략으로 증류 → 백테스트 검증</p>
                       </div>
                       <button onClick={handleDistill} disabled={distilling}
@@ -684,7 +683,7 @@ export default function AgentsPage() {
                     {distill && (
                       <div className="mt-3 border-t border-border pt-2.5 space-y-1.5">
                         <div className={`text-xs font-semibold ${distill.validated ? "text-pos" : "text-neg"}`}>
-                          {distill.validated ? "✅ " : "⚠️ "}{distill.verdict}
+                          {distill.validated ? " " : "⚠ "}{distill.verdict}
                         </div>
                         <div className="text-[11px] font-data text-text-2 space-y-0.5">
                           <div>전략: {distill.proposal.strategy} · {distill.proposal.instrument_id}</div>
@@ -695,7 +694,7 @@ export default function AgentsPage() {
                             <span className="text-text-3">승률 {distill.backtest.win_rate != null ? (distill.backtest.win_rate * 100).toFixed(0) + "%" : "—"}</span>
                           </div>
                         </div>
-                        {distill.proposal.rationale && <p className="text-text-3 text-[10px] leading-snug">💡 {distill.proposal.rationale}</p>}
+                        {distill.proposal.rationale && <p className="text-text-3 text-[10px] leading-snug"> {distill.proposal.rationale}</p>}
                         <p className="text-text-3 text-[9px]">거래 {distill.trades_analyzed}건 분석</p>
                       </div>
                     )}
@@ -722,7 +721,7 @@ export default function AgentsPage() {
       {confirmDel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDel(null)}>
           <div className="bg-panel border border-border rounded-lg p-5 w-[360px] space-y-3" onClick={e => e.stopPropagation()}>
-            <h3 className="text-text-1 font-semibold">🔒 잠긴 에이전트 삭제</h3>
+            <h3 className="text-text-1 font-semibold"> 잠긴 에이전트 삭제</h3>
             <p className="text-text-2 text-sm leading-snug">
               <span className="text-neg font-medium">{confirmDel.name}</span> 은(는) 잠금 상태입니다. 실수 방지를 위해 이름을 정확히 입력해야 삭제됩니다.
             </p>

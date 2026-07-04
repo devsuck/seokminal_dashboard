@@ -135,7 +135,9 @@ export default function HudPage() {
   if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "enabled" : "off", metric: `체결 ${sys.dart_bot.acted ?? 0}`, href: "/dart-auto" });
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} tick`, metric: `처리 ${sys.research_service.processed_total ?? 0}`, href: "/lab" });
   const nRunning = units.filter(u => u.running).length;
-  const marquee = (lab?.log ?? []).slice(0, 12).map(l => `[${l.stage}] ${l.msg}`).join("   ·   ")
+  const wd = sys?.research_service?.watchdog;
+  const wdMsgs = (wd?.events ?? []).map(e => `[감시견${e.severity === "critical" ? " ⚠" : ""}] ${e.msg}`);
+  const marquee = [...wdMsgs, ...(lab?.log ?? []).slice(0, 10).map(l => `[${l.stage}] ${l.msg}`)].join("   ·   ")
     || "집행 전환 · 페이퍼 OOS 누적 중 · arm/kill은 사전등록 기준(arm_criteria_v1) · live 집행은 사람만";
 
   return (
@@ -183,9 +185,17 @@ export default function HudPage() {
               tone={edge?.event_level?.p_worse != null && edge.event_level.p_worse < 0.05 ? "neg" : undefined} />
             <Row k="기대 중앙값" v={exec ? `${exec.edge.net_median >= 0 ? "+" : ""}${(exec.edge.net_median * 100).toFixed(2)}%` : "—"}
               tone={exec && exec.edge.net_median >= 0 ? "pos" : "neg"} />
-            <Link href="/lab/execution" className="mt-1.5 block font-data text-[10px] text-accent no-underline uppercase tracking-wider hover:underline">
-              집행 콘솔 →
-            </Link>
+            <Row k="TSMOM 최신월" v={sys?.research_service?.tsmom_last_month
+                ? `${sys.research_service.tsmom_last_month} ${sys.research_service.tsmom_in_envelope ? "envelope 내" : "이탈"}` : "—"}
+              tone={sys?.research_service?.tsmom_in_envelope === false ? "neg" : sys?.research_service?.tsmom_in_envelope ? "pos" : undefined} />
+            <div className="mt-1.5 flex items-center justify-between">
+              <Link href="/lab/execution" className="font-data text-[10px] text-accent no-underline uppercase tracking-wider hover:underline">
+                집행 콘솔 →
+              </Link>
+              {wd?.critical && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded border border-neg/50 text-neg bg-neg/10 animate-blink font-data">감시견 경보</span>
+              )}
+            </div>
           </HudPanel>
         </div>
 
