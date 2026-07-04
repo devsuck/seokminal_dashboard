@@ -1286,7 +1286,7 @@ export async function getTradingMode(signal?: AbortSignal): Promise<TradingMode>
 
 // ── AI agents (multi-agent trading) ───────────────────────────────────────────
 
-export type AgentType = "swing" | "longterm" | "daytrade" | "hl_daytrade" | "kr_daytrade";
+export type AgentType = "swing" | "longterm" | "daytrade" | "hl_daytrade" | "kr_daytrade" | "autonomous" | "kr_macro";
 
 export interface TradingAgent {
   id: string;
@@ -2740,6 +2740,19 @@ export async function runAutoResearch(): Promise<AutoResearchStatus> {
   const r = await fetch(`${API_URL}/lab/autoresearch/run`, { method: "POST" });
   return handleResponse<AutoResearchStatus>(r);
 }
+export interface PromotePaperResult {
+  strategy_id: string; name: string; status: string;
+  already_existed: boolean;
+  deployment: { deployed?: boolean; reason?: string; runner?: string };
+}
+export async function promoteToPaper(cid: string, name?: string): Promise<PromotePaperResult> {
+  const r = await fetch(`${API_URL}/lab/registry/promote-paper`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cid, name: name ?? "" }),
+  });
+  return handleResponse<PromotePaperResult>(r);
+}
 
 // ── 집행 콘솔 (검증된 buyback 엣지 라이브 준비) ──
 export interface ExecutionConsole {
@@ -2807,4 +2820,80 @@ export interface BuybackAnalysis {
 export async function getBuybackAnalysis(signal?: AbortSignal): Promise<BuybackAnalysis> {
   const r = await fetch(`${API_URL}/lab/buyback-analysis`, { signal });
   return handleResponse<BuybackAnalysis>(r);
+}
+
+// ── Living Knowledge Graph ────────────────────────────────────────────────────
+export interface GraphNode {
+  id: string; label: string; type: "company" | "policy" | "resource" | "technology";
+  sector: string; country: string;
+  bottleneck_score: number;
+  supply_risk: number; demand_pressure: number; policy_risk: number;
+  note?: string; last_updated?: string;
+}
+export interface GraphEdge {
+  source: string; target: string;
+  relation: string; type: string;
+  weight: number; bottleneck: boolean;
+  evidence?: string; last_updated?: string;
+}
+export interface KnowledgeGraph {
+  meta: { version: number; last_updated: string; update_count: number; description: string; update_log?: { ts: string; summary: string }[] };
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+export async function getKnowledgeGraph(signal?: AbortSignal): Promise<KnowledgeGraph> {
+  const r = await fetch(`${API_URL}/graph`, { signal });
+  return handleResponse<KnowledgeGraph>(r);
+}
+export async function patchKnowledgeGraph(patch: { nodes?: Partial<GraphNode>[]; edges?: Partial<GraphEdge>[]; summary?: string }): Promise<{ status: string; update_count: number }> {
+  const r = await fetch(`${API_URL}/graph/patch`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
+  return handleResponse(r);
+}
+export async function resetKnowledgeGraph(): Promise<{ status: string }> {
+  const r = await fetch(`${API_URL}/graph/reset`, { method: "POST" });
+  return handleResponse(r);
+}
+export async function triggerAiUpdate(): Promise<{ status: string; message: string }> {
+  const r = await fetch(`${API_URL}/graph/ai-update`, { method: "POST" });
+  return handleResponse(r);
+}
+export interface GraphUpdateStatus {
+  running: boolean; last_updated: string | null; update_count: number;
+  recent_log: { ts: string; summary: string }[];
+}
+export async function getGraphUpdateStatus(signal?: AbortSignal): Promise<GraphUpdateStatus> {
+  const r = await fetch(`${API_URL}/graph/update-status`, { signal });
+  return handleResponse<GraphUpdateStatus>(r);
+}
+
+// ── 페이퍼 트레이딩 ──────────────────────────────────────────────────────────
+export interface PaperPosition {
+  node_id: string; symbol: string; name: string; side: "BUY" | "SELL";
+  qty: number; entry_price: number; entry_score: number; current_score: number;
+  score_delta: number; entry_time: string; value: number;
+}
+export interface PaperClosed extends PaperPosition {
+  exit_price: number; exit_time: string; pnl: number;
+}
+export interface PaperSignal {
+  ts: string; node_id: string; symbol: string; name: string;
+  side: string; price: number; score_delta: number; summary: string;
+}
+export interface PaperState {
+  capital: number; cash: number;
+  positions: PaperPosition[];
+  closed: PaperClosed[];
+  signals: PaperSignal[];
+}
+export async function getPaperState(signal?: AbortSignal): Promise<PaperState> {
+  const r = await fetch(`${API_URL}/graph/paper`, { signal });
+  return handleResponse<PaperState>(r);
+}
+export async function resetPaperState(): Promise<PaperState> {
+  const r = await fetch(`${API_URL}/graph/paper/reset`, { method: "POST" });
+  return handleResponse<PaperState>(r);
+}
+export async function closePaperPosition(nodeId: string): Promise<PaperClosed> {
+  const r = await fetch(`${API_URL}/graph/paper/close/${nodeId}`, { method: "POST" });
+  return handleResponse<PaperClosed>(r);
 }

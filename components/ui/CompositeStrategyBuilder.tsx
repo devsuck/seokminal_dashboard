@@ -36,8 +36,7 @@ export function CompositeStrategyBuilder({ rules, instrumentId, onChange }: Comp
 
       <button
         onClick={() => onChange([...rules, newRule()])}
-        className="text-sm text-text-2 hover:text-text-1 border border-border hover:border-text-3 px-4 py-2 rounded-md cursor-pointer bg-transparent transition-colors"
-      >
+        className="text-sm text-text-2 hover:text-text-1 border border-border hover:border-text-3 px-4 py-2 rounded-md cursor-pointer bg-transparent transition-colors">
         + Add Rule
       </button>
 

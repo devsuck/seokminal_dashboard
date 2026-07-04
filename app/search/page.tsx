@@ -220,8 +220,7 @@ export default function SearchPage() {
   }
 
   const changeCls = liveTick
-    ? liveTick.change > 0 ? "text-pos" : liveTick.change < 0 ? "text-neg" : "text-text-3"
-    : "text-text-3";
+    ? liveTick.change > 0 ? "text-pos" : liveTick.change < 0 ? "text-neg" : "text-text-3": "text-text-3";
 
   // ── 스크리너 handlers ───────────────────────────────────────────────────────
   async function handleRun() {
@@ -260,9 +259,7 @@ export default function SearchPage() {
             onClick={() => setActiveTab(tab)}
             className={
               activeTab === tab
-                ? "border-b-2 border-accent text-accent bg-transparent px-4 py-2 text-sm"
-                : "text-text-3 hover:text-text-1 px-4 py-2 text-sm"
-            }
+                ? "border-b-2 border-accent text-accent bg-transparent px-4 py-2 text-sm": "text-text-3 hover:text-text-1 px-4 py-2 text-sm"}
           >
             {tab}
           </button>
@@ -288,22 +285,19 @@ export default function SearchPage() {
               </div>
               <div className="relative flex-1">
                 <input
-                  type="text"
-                  value={query}
+                  type="text"value={query}
                   onChange={e => setQuery(e.target.value)}
                   onFocus={() => results.length && setShowResults(true)}
                   onBlur={() => setTimeout(() => setShowResults(false), 150)}
                   placeholder={market === "KR" ? "종목명 또는 코드 (예: 삼성전자, 005930)" : "Symbol or name (e.g. AAPL, Apple)"}
-                  className="w-full px-3 py-2 text-sm rounded-lg bg-panel border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent"
-                />
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-panel border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent"/>
                 {showResults && results.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-panel border border-border rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
                     {results.map(r => (
                       <button
                         key={r.code}
                         onMouseDown={() => loadBars(r.code, r.label)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-panel-2 text-left"
-                      >
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-panel-2 text-left">
                         <span className="text-text-1 font-medium">{r.label}</span>
                         <span className="text-text-3 text-xs">{r.sub}</span>
                       </button>
@@ -314,8 +308,7 @@ export default function SearchPage() {
               <select
                 value={days}
                 onChange={e => setDays(Number(e.target.value) as Duration)}
-                className="px-3 py-2 text-sm rounded-lg bg-panel border border-border text-text-1 focus:outline-none focus:border-accent"
-              >
+                className="px-3 py-2 text-sm rounded-lg bg-panel border border-border text-text-1 focus:outline-none focus:border-accent">
                 {DURATIONS.map(d => (
                   <option key={d} value={d}>{d}D</option>
                 ))}
@@ -341,8 +334,7 @@ export default function SearchPage() {
                   )}
                   <button
                     onClick={() => router.push(`/market?symbol=${encodeURIComponent(selected.code)}`)}
-                    className="px-3 h-6 text-xs rounded border border-border text-text-2 hover:border-accent hover:text-accent bg-transparent cursor-pointer transition-colors"
-                  >
+                    className="px-3 h-6 text-xs rounded border border-border text-text-2 hover:border-accent hover:text-accent bg-transparent cursor-pointer transition-colors">
                     시장 차트 →
                   </button>
                   {market === "KR" && (
@@ -386,17 +378,14 @@ export default function SearchPage() {
                 <textarea
                   value={instruments}
                   onChange={e => setInstruments(e.target.value)}
-                  placeholder="AAPL,MSFT,GOOGL,NVDA…"
-                  rows={2}
-                  className="w-full bg-bg border border-border rounded px-3 py-2 text-text-1 text-xs font-data resize-none focus:border-accent outline-none"
-                />
+                  placeholder="AAPL,MSFT,GOOGL,NVDA…"rows={2}
+                  className="w-full bg-bg border border-border rounded px-3 py-2 text-text-1 text-xs font-data resize-none focus:border-accent outline-none"/>
                 <div className="flex gap-1.5 mt-1.5 flex-wrap">
                   {PRESET_UNIVERSES.map(p => (
                     <button
                       key={p.label}
                       onClick={() => setInstruments(p.value)}
-                      className="text-[10px] text-text-3 hover:text-accent border border-border rounded px-2 py-0.5 transition-colors"
-                    >
+                      className="text-[10px] text-text-3 hover:text-accent border border-border rounded px-2 py-0.5 transition-colors">
                       {p.label}
                     </button>
                   ))}
@@ -409,24 +398,19 @@ export default function SearchPage() {
                   <label className="text-text-3 text-xs block mb-1">RSI 최솟값</label>
                   <input
                     type="number" value={rsiMin} onChange={e => setRsiMin(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs font-data focus:border-accent outline-none"
-                  />
+                    placeholder="0"className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs font-data focus:border-accent outline-none"/>
                 </div>
                 <div>
                   <label className="text-text-3 text-xs block mb-1">RSI 최댓값</label>
                   <input
                     type="number" value={rsiMax} onChange={e => setRsiMax(e.target.value)}
-                    placeholder="100"
-                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs font-data focus:border-accent outline-none"
-                  />
+                    placeholder="100"className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs font-data focus:border-accent outline-none"/>
                 </div>
                 <div>
                   <label className="text-text-3 text-xs block mb-1">EMA 시그널</label>
                   <select
                     value={emaSignal} onChange={e => setEmaSignal(e.target.value)}
-                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs focus:border-accent outline-none"
-                  >
+                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs focus:border-accent outline-none">
                     {EMA_SIGNAL_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
@@ -434,8 +418,7 @@ export default function SearchPage() {
                   <label className="text-text-3 text-xs block mb-1">기간 (일)</label>
                   <select
                     value={screenerDays} onChange={e => setScreenerDays(Number(e.target.value))}
-                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs focus:border-accent outline-none"
-                  >
+                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-text-1 text-xs focus:border-accent outline-none">
                     {[20, 30, 60, 90, 120, 180, 365].map(d => (
                       <option key={d} value={d}>{d}일</option>
                     ))}
@@ -446,8 +429,7 @@ export default function SearchPage() {
               <button
                 onClick={handleRun}
                 disabled={screenerLoading || !instruments.trim()}
-                className="bg-accent text-black text-sm px-6 py-2 rounded font-medium hover:opacity-90 disabled:opacity-50"
-              >
+                className="bg-accent text-black text-sm px-6 py-2 rounded font-medium hover:opacity-90 disabled:opacity-50">
                 {screenerLoading ? "스크리닝 중…" : "Run Screener"}
               </button>
             </div>
@@ -484,11 +466,7 @@ export default function SearchPage() {
                             {r.change_pct != null ? `${chgPos ? "+" : ""}${r.change_pct.toFixed(2)}%` : "—"}
                           </td>
                           <td className={`px-3 py-2 text-right font-data font-medium ${
-                            r.rsi14 == null ? "text-text-3"
-                            : r.rsi14 < 30 ? "text-pos"
-                            : r.rsi14 > 70 ? "text-neg"
-                            : "text-text-1"
-                          }`}>
+                            r.rsi14 == null ? "text-text-3": r.rsi14 < 30 ? "text-pos": r.rsi14 > 70 ? "text-neg": "text-text-1"}`}>
                             {r.rsi14 != null ? r.rsi14.toFixed(1) : "—"}
                           </td>
                           <td className="px-3 py-2 text-right font-data text-text-2">

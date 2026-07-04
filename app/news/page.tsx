@@ -40,9 +40,7 @@ export default function NewsPage() {
                   onClick={() => { setCategory(c); setActiveTicker(undefined); setTickerInput(""); }}
                   className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
                     !activeTicker && category === c
-                      ? "bg-accent text-black"
-                      : "text-text-3 hover:text-text-1 border border-border"
-                  }`}
+                      ? "bg-accent text-black": "text-text-3 hover:text-text-1 border border-border"}`}
                 >
                   {c.charAt(0).toUpperCase() + c.slice(1)}
                 </button>
@@ -56,20 +54,16 @@ export default function NewsPage() {
                 value={tickerInput}
                 onChange={e => setTickerInput(e.target.value.toUpperCase())}
                 onKeyDown={e => e.key === "Enter" && handleTickerSearch()}
-                placeholder="종목 뉴스: AAPL…"
-                className="bg-bg border border-border rounded px-3 py-1 text-text-1 text-xs w-32 focus:border-accent outline-none"
-              />
+                placeholder="종목 뉴스: AAPL…"className="bg-bg border border-border rounded px-3 py-1 text-text-1 text-xs w-32 focus:border-accent outline-none"/>
               <button
                 onClick={handleTickerSearch}
-                className="bg-accent text-black text-xs px-3 py-1 rounded font-medium hover:opacity-90"
-              >
+                className="bg-accent text-black text-xs px-3 py-1 rounded font-medium hover:opacity-90">
                 조회
               </button>
               {activeTicker && (
                 <button
                   onClick={() => { setActiveTicker(undefined); setTickerInput(""); }}
-                  className="text-text-3 text-xs hover:text-text-1"
-                >
+                  className="text-text-3 text-xs hover:text-text-1">
                   ✕ 전체
                 </button>
               )}

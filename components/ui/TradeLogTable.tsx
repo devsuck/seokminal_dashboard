@@ -27,8 +27,7 @@ export function TradeLogTable({ trades }: TradeLogTableProps) {
                   className={[
                     "px-4 py-2.5 text-text-3 text-[11px] font-medium uppercase tracking-wider border-b border-border whitespace-nowrap",
                     ["Entry Price", "Exit Price", "Qty", "PnL"].includes(h)
-                      ? "text-right"
-                      : "text-left",
+                      ? "text-right": "text-left",
                   ].join(" ")}
                 >
                   {h}

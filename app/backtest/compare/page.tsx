@@ -154,9 +154,7 @@ export default function BacktestComparePage() {
       <PageBanner pageKey="compare" />
       <div className="flex justify-end mb-2">
         <Link
-          href="/backtest"
-          className="text-text-3 hover:text-accent text-sm transition-colors no-underline"
-        >
+          href="/backtest"className="text-text-3 hover:text-accent text-sm transition-colors no-underline">
           ← Backtest
         </Link>
       </div>
@@ -165,9 +163,7 @@ export default function BacktestComparePage() {
         <div className="bg-panel border border-border rounded-lg p-8 text-center">
           <p className="text-text-3 text-sm mb-2">No saved results yet.</p>
           <Link
-            href="/backtest"
-            className="text-accent text-sm no-underline hover:brightness-110"
-          >
+            href="/backtest"className="text-accent text-sm no-underline hover:brightness-110">
             Run a backtest and save the result →
           </Link>
         </div>
@@ -188,18 +184,15 @@ export default function BacktestComparePage() {
                   return (
                     <div key={r.id} className="px-3 py-2.5 flex items-start gap-2">
                       <input
-                        type="checkbox"
-                        checked={isSelected}
+                        type="checkbox"checked={isSelected}
                         disabled={!isSelected && selectedIds.size >= MAX_SELECTED}
                         onChange={() => toggleSelect(r.id)}
-                        className="mt-0.5"
-                      />
+                        className="mt-0.5"/>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           {isSelected && (
                             <span
-                              className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block"
-                              style={{ backgroundColor: SERIES_COLORS[selIdx] }}
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block"style={{ backgroundColor: SERIES_COLORS[selIdx] }}
                             />
                           )}
                           <span className="text-text-1 text-xs font-medium truncate">
@@ -212,8 +205,7 @@ export default function BacktestComparePage() {
                       </div>
                       <button
                         onClick={() => handleDelete(r.id)}
-                        className="text-text-3 hover:text-neg text-xs transition-colors flex-shrink-0"
-                        aria-label={`Delete ${r.label}`}
+                        className="text-text-3 hover:text-neg text-xs transition-colors flex-shrink-0"aria-label={`Delete ${r.label}`}
                       >
                         ✕
                       </button>
@@ -256,12 +248,10 @@ export default function BacktestComparePage() {
                           {selected.map((r, i) => (
                             <th
                               key={r.id}
-                              className="px-4 py-2.5 text-right text-text-2 font-medium"
-                            >
+                              className="px-4 py-2.5 text-right text-text-2 font-medium">
                               <span className="flex items-center justify-end gap-1.5">
                                 <span
-                                  className="w-2 h-2 rounded-full inline-block flex-shrink-0"
-                                  style={{ backgroundColor: SERIES_COLORS[i] }}
+                                  className="w-2 h-2 rounded-full inline-block flex-shrink-0"style={{ backgroundColor: SERIES_COLORS[i] }}
                                 />
                                 <span className="truncate max-w-[120px]">{r.label}</span>
                               </span>
@@ -275,8 +265,7 @@ export default function BacktestComparePage() {
                           return (
                             <tr
                               key={metric.label}
-                              className="hover:bg-panel-2 transition-colors"
-                            >
+                              className="hover:bg-panel-2 transition-colors">
                               <td className="px-4 py-2 text-text-3">{metric.label}</td>
                               {vals.map((v, i) => (
                                 <td
@@ -306,8 +295,7 @@ export default function BacktestComparePage() {
                       {selected.map((r, i) => (
                         <span key={r.id} className="flex items-center gap-1.5">
                           <span
-                            className="w-4 h-0.5 rounded inline-block"
-                            style={{ backgroundColor: SERIES_COLORS[i] }}
+                            className="w-4 h-0.5 rounded inline-block"style={{ backgroundColor: SERIES_COLORS[i] }}
                           />
                           <span className="text-text-2 text-xs">{r.label}</span>
                         </span>

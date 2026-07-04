@@ -126,8 +126,7 @@ export function NoteBlockRenderer({
           <img
             src={block.src}
             alt={block.alt || "notebook image"}
-            className="max-w-full h-auto rounded border border-border"
-          />
+            className="max-w-full h-auto rounded border border-border"/>
         );
     }
   }

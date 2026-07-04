@@ -20,7 +20,7 @@ type Tab = "chart" | "compare" | "search";
 type Side = "trade" | "alert" | "indicators";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "search",  label: "🔍 검색" },
+  { id: "search",  label: "검색" },
   { id: "chart",   label: "Chart" },
   { id: "compare", label: "Compare" },
 ];
@@ -105,9 +105,7 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2.5 text-sm border-b-2 transition-colors cursor-pointer bg-transparent border-l-0 border-r-0 border-t-0 ${
                 activeTab === tab.id
-                  ? "border-accent text-accent"
-                  : "border-transparent text-text-3 hover:text-text-1"
-              }`}
+                  ? "border-accent text-accent": "border-transparent text-text-3 hover:text-text-1"}`}
             >
               {tab.label}
             </button>
@@ -119,8 +117,8 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto bg-bg">
-          {activeTab === "search"  && <SearchTab onGoToChart={handleGoToChart} />}
-          {activeTab === "chart"   && (
+          {activeTab === "search"&& <SearchTab onGoToChart={handleGoToChart} />}
+          {activeTab === "chart"&& (
             <div className="flex h-full">
               {/* 차트 */}
               <div className="flex-1 overflow-y-auto min-w-0">
@@ -136,16 +134,14 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
               {rightOpen ? (
                 <div className="w-[340px] border-l border-border flex flex-col shrink-0">
                   <div className="flex items-center border-b border-border shrink-0">
-                    {([["trade", "💵 매매"], ["alert", "🔔 알림"], ["indicators", "📊 지표"]] as const).map(([v, label]) => (
+                    {([["trade", " 매매"], ["alert", " 알림"], ["indicators", " 지표"]] as const).map(([v, label]) => (
                       <button key={v} onClick={() => setSide(v)}
                         className={`flex-1 py-2.5 text-xs border-b-2 bg-transparent cursor-pointer transition-colors ${
-                          side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
-                        }`}>
+                          side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"}`}>
                         {label}{v === "indicators" && activeIndicatorCount(indicators) > 0 ? ` ${activeIndicatorCount(indicators)}` : ""}
                       </button>
                     ))}
-                    <button onClick={() => setRightOpen(false)} title="패널 접기"
-                      className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
+                    <button onClick={() => setRightOpen(false)} title="패널 접기"className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     {side === "trade" && <TradeTab symbol={activeSymbol} />}
@@ -154,10 +150,9 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setRightOpen(true)} title="패널 열기"
-                  className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
+                <button onClick={() => setRightOpen(true)} title="패널 열기"className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
                   <span className="text-sm">◀</span>
-                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}>💵 매매 · 🔔 알림 · 📊 지표</span>
+                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}> 매매 ·  알림 ·  지표</span>
                 </button>
               )}
             </div>

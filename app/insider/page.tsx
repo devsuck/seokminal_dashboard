@@ -114,8 +114,7 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
               <tr
                 key={i}
                 className={`border-t border-border/50 transition-colors ${
-                  isBuy ? "hover:bg-pos/5" : isSell ? "hover:bg-neg/5" : "hover:bg-panel-2"
-                }`}
+                  isBuy ? "hover:bg-pos/5" : isSell ? "hover:bg-neg/5" : "hover:bg-panel-2"}`}
               >
                 <td className="px-3 py-1.5 text-text-3 font-data whitespace-nowrap text-[11px]">
                   {t.trade_date}
@@ -172,10 +171,7 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
             const isBuy = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
             const isCorpAction = isCorporateAction(t.trade_type);
-            const rowHover = isBuy ? "hover:bg-pos/5"
-              : isSell ? "hover:bg-neg/5"
-              : isCorpAction ? "hover:bg-warn/5"
-              : "hover:bg-panel-2";
+            const rowHover = isBuy ? "hover:bg-pos/5": isSell ? "hover:bg-neg/5": isCorpAction ? "hover:bg-warn/5": "hover:bg-panel-2";
             return (
               <tr key={i} className={`border-t border-border transition-colors ${rowHover}`}>
                 <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
@@ -191,8 +187,7 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
                 </td>
                 <td className="px-3 py-2 text-center">
                   {t.dart_url ? (
-                    <a href={t.dart_url} target="_blank" rel="noopener noreferrer"
-                      className="text-[10px] text-accent hover:underline whitespace-nowrap">공시↗</a>
+                    <a href={t.dart_url} target="_blank" rel="noopener noreferrer"className="text-[10px] text-accent hover:underline whitespace-nowrap">공시↗</a>
                   ) : "—"}
                 </td>
               </tr>
@@ -358,14 +353,11 @@ function KRCompanySearch({
         value={q}
         onChange={e => setQ(e.target.value)}
         onKeyDown={e => e.key === "Enter" && search()}
-        placeholder="회사명 검색…"
-        className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-xs w-44 focus:border-accent outline-none"
-      />
+        placeholder="회사명 검색…"className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-xs w-44 focus:border-accent outline-none"/>
       <button
         onClick={search}
         disabled={loading}
-        className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50"
-      >
+        className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50">
         {loading ? "…" : "검색"}
       </button>
       {results.length > 0 && (
@@ -374,8 +366,7 @@ function KRCompanySearch({
             <button
               key={c.corp_code}
               onClick={() => { onSelect(c); setResults([]); setQ(""); }}
-              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-panel-2 text-left border-t border-border first:border-0"
-            >
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-panel-2 text-left border-t border-border first:border-0">
               <span className="text-text-1 text-xs">{c.corp_name}</span>
               <span className="text-text-3 text-[10px] font-data ml-auto">{c.stock_code}</span>
             </button>
@@ -546,8 +537,7 @@ export default function InsiderPage() {
     if (market === "us" && minValue > 0 && (t.value_usd ?? 0) < minValue) return false;
     if (tickerSearch) {
       const needle = tickerSearch.toUpperCase();
-      const haystack = (market === "us"
-        ? `${t.ticker ?? ""} ${t.issuer ?? ""}`
+      const haystack = (market === "us"? `${t.ticker ?? ""} ${t.issuer ?? ""}`
         : `${t.ticker ?? ""} ${t.corp_name ?? ""}`
       ).toUpperCase();
       if (!haystack.includes(needle)) return false;
@@ -570,11 +560,9 @@ export default function InsiderPage() {
               onClick={() => setMarket(m)}
               className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
                 market === m
-                  ? "bg-accent text-black"
-                  : "text-text-3 hover:text-text-1 border border-border"
-              }`}
+                  ? "bg-accent text-black": "text-text-3 hover:text-text-1 border border-border"}`}
             >
-              {m === "us" ? "🇺🇸 US" : m === "kr" ? "🇰🇷 KR" : m === "congress" ? "🏛 의회" : "🏦 정부계약"}
+              {m === "us" ? "🇺🇸 US" : m === "kr" ? "🇰🇷 KR" : m === "congress" ? " 의회" : " 정부계약"}
             </button>
           ))}
         </div>
@@ -593,12 +581,7 @@ export default function InsiderPage() {
               onClick={() => setTradeFilter(f.value)}
               className={`px-2.5 py-0.5 text-[11px] rounded font-medium transition-colors ${
                 tradeFilter === f.value
-                  ? f.value === "BUY" ? "bg-pos/20 text-pos border border-pos/30"
-                  : f.value === "SELL" ? "bg-neg/20 text-neg border border-neg/30"
-                  : f.value === "CORP_ACTION" ? "bg-warn/20 text-warn border border-warn/30"
-                  : "border border-accent text-accent bg-accent/10"
-                  : "text-text-3 hover:text-text-1 border border-border"
-              }`}
+                  ? f.value === "BUY" ? "bg-pos/20 text-pos border border-pos/30": f.value === "SELL" ? "bg-neg/20 text-neg border border-neg/30": f.value === "CORP_ACTION" ? "bg-warn/20 text-warn border border-warn/30": "border border-accent text-accent bg-accent/10": "text-text-3 hover:text-text-1 border border-border"}`}
             >
               {f.label}
             </button>
@@ -614,8 +597,7 @@ export default function InsiderPage() {
               <select
                 value={minValue}
                 onChange={e => setMinValue(Number(e.target.value) as MinValue)}
-                className="bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs"
-              >
+                className="bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs">
                 {MIN_VALUE_OPTS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -630,8 +612,7 @@ export default function InsiderPage() {
           value={tickerSearch}
           onChange={e => setTickerSearch(e.target.value)}
           placeholder={market === "us" ? "Ticker / Company 필터…" : "종목코드 / 회사명 필터…"}
-          className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs w-44 focus:border-accent outline-none"
-        />
+          className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs w-44 focus:border-accent outline-none"/>
       </div>
 
       {/* ── Search row (US/KR only) ─────────────────────────────────────── */}
@@ -644,23 +625,19 @@ export default function InsiderPage() {
               value={usTicker}
               onChange={e => setUsTicker(e.target.value.toUpperCase())}
               onKeyDown={e => { if (e.key === "Enter" && usTicker) fetchUS(usTicker, days); }}
-              placeholder="AAPL…  (비워두면 전체 Recent)"
-              className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-52 focus:border-accent outline-none"
-            />
+              placeholder="AAPL…  (비워두면 전체 Recent)"className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-52 focus:border-accent outline-none"/>
             {usTicker && (
               <button
                 onClick={() => fetchUS(usTicker, days)}
                 disabled={usLoading}
-                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50"
-              >
+                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50">
                 {usLoading ? "…" : "조회"}
               </button>
             )}
             {usTicker && (
               <button
                 onClick={() => { setUsTicker(""); fetchUSRecent(days); }}
-                className="text-text-3 text-xs hover:text-text-1 border border-border rounded px-2 py-1.5"
-              >
+                className="text-text-3 text-xs hover:text-text-1 border border-border rounded px-2 py-1.5">
                 전체보기
               </button>
             )}

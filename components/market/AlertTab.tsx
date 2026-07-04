@@ -52,7 +52,7 @@ export function AlertTab({ symbol }: { symbol: string }) {
         for (const a of active.filter(x => x.symbol === s)) {
           const hit = a.direction === "above" ? p >= a.price : p <= a.price;
           if (hit) {
-            toast.show(`🔔 ${a.symbol} ${a.direction === "above" ? "≥" : "≤"} ${a.price} (현재 ${p})`, "warn", 8000);
+            toast.show(` ${a.symbol} ${a.direction === "above" ? "≥" : "≤"} ${a.price} (현재 ${p})`, "warn", 8000);
             markTriggered(a.id);
           }
         }
@@ -85,8 +85,7 @@ export function AlertTab({ symbol }: { symbol: string }) {
         ))}
       </div>
       <div className="flex gap-2">
-        <input value={price} onChange={e => setPrice(e.target.value)} placeholder="목표 가격"
-          className="flex-1 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+        <input value={price} onChange={e => setPrice(e.target.value)} placeholder="목표 가격"className="flex-1 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
         <button onClick={add} className="bg-accent text-black text-sm font-medium rounded px-4">추가</button>
       </div>
 

@@ -35,8 +35,7 @@ export function ToastContainer() {
           <span className="flex-1 leading-snug">{t.message}</span>
           <button
             onClick={() => toast.dismiss(t.id)}
-            className="text-text-3 hover:text-text-1 ml-1 shrink-0 text-base leading-none"
-          >
+            className="text-text-3 hover:text-text-1 ml-1 shrink-0 text-base leading-none">
             ×
           </button>
         </div>

@@ -32,9 +32,7 @@ function MarketPageInner() {
             onClick={() => setVenue(v)}
             className={`px-5 py-2.5 text-sm bg-transparent border-0 cursor-pointer transition-colors ${
               venue === v
-                ? "border-b-2 border-accent text-accent font-medium"
-                : "text-text-3 hover:text-text-1"
-            }`}
+                ? "border-b-2 border-accent text-accent font-medium": "text-text-3 hover:text-text-1"}`}
           >
             {v}
           </button>
@@ -42,12 +40,12 @@ function MarketPageInner() {
       </div>
 
       {/* Content */}
-      {venue === "주식"    && <MarketWorkspace initialSymbol={initialSymbol} />}
+      {venue === "주식"&& <MarketWorkspace initialSymbol={initialSymbol} />}
       {venue === "암호화폐" && <CryptoPage />}
-      {venue === "외환"    && <ForexPage />}
-      {venue === "선물"    && <FuturesPage />}
-      {venue === "옵션"    && <OptionsPage />}
-      {venue === "탐색"    && <SearchPage />}
+      {venue === "외환"&& <ForexPage />}
+      {venue === "선물"&& <FuturesPage />}
+      {venue === "옵션"&& <OptionsPage />}
+      {venue === "탐색"&& <SearchPage />}
     </div>
   );
 }

@@ -49,8 +49,7 @@ export default function SmartSignalPage() {
       <div className="flex items-center gap-2 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
         <input value={instrument} onChange={e => setInstrument(e.target.value.toUpperCase())}
           onKeyDown={e => e.key === "Enter" && run(instrument)}
-          placeholder="AAPL.NASDAQ"
-          className="w-48 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+          placeholder="AAPL.NASDAQ"className="w-48 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
         <button onClick={() => run(instrument)} className="text-sm px-4 py-1.5 rounded bg-accent text-black font-medium">분석</button>
         <div className="flex gap-1.5 ml-2 flex-wrap">
           {PRESETS.map(p => (

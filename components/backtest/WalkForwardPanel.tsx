@@ -24,24 +24,18 @@ function fmt(v: number | null, digits = 2, suffix = ""): string {
 function WindowRow({ w, best }: { w: WalkForwardWindow; best: boolean }) {
   const pnlColor =
     w.total_pnl_pct == null
-      ? "text-text-3"
-      : w.total_pnl_pct > 0
-      ? "text-pos"
-      : "text-neg";
+      ? "text-text-3": w.total_pnl_pct > 0
+      ? "text-pos": "text-neg";
   const shColor =
     w.sharpe_ratio == null
-      ? "text-text-3"
-      : w.sharpe_ratio > 1
-      ? "text-pos"
-      : w.sharpe_ratio < 0
-      ? "text-neg"
-      : "text-text-1";
+      ? "text-text-3": w.sharpe_ratio > 1
+      ? "text-pos": w.sharpe_ratio < 0
+      ? "text-neg": "text-text-1";
 
   return (
     <tr
       className={`border-t border-border transition-colors ${
-        best ? "bg-pos/5 border-l-2 border-l-pos" : "hover:bg-panel-2"
-      }`}
+        best ? "bg-pos/5 border-l-2 border-l-pos" : "hover:bg-panel-2"}`}
     >
       <td className="px-3 py-2 text-text-3 text-xs font-data">{w.window_start}</td>
       <td className="px-3 py-2 text-text-3 text-xs font-data">{w.window_end}</td>
@@ -122,8 +116,7 @@ export function WalkForwardPanel({
           <select
             value={nWindows}
             onChange={e => setNWindows(Number(e.target.value))}
-            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs"
-          >
+            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs">
             {[3, 4, 5, 6, 8, 10].map(n => (
               <option key={n} value={n}>{n}</option>
             ))}
@@ -131,8 +124,7 @@ export function WalkForwardPanel({
           <button
             onClick={run}
             disabled={loading}
-            className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+            className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             {loading ? "실행 중…" : "실행"}
           </button>
         </div>
@@ -149,8 +141,7 @@ export function WalkForwardPanel({
               <p className={`text-sm font-medium font-data ${
                 result.summary.avg_sharpe == null ? "text-text-3" :
                 result.summary.avg_sharpe > 1 ? "text-pos" :
-                result.summary.avg_sharpe < 0 ? "text-neg" : "text-text-1"
-              }`}>
+                result.summary.avg_sharpe < 0 ? "text-neg" : "text-text-1"}`}>
                 {fmt(result.summary.avg_sharpe)}
               </p>
             </div>
@@ -158,8 +149,7 @@ export function WalkForwardPanel({
               <p className="text-text-3 text-[10px] uppercase tracking-wider">평균 PnL</p>
               <p className={`text-sm font-medium font-data ${
                 result.summary.avg_pnl_pct == null ? "text-text-3" :
-                result.summary.avg_pnl_pct > 0 ? "text-pos" : "text-neg"
-              }`}>
+                result.summary.avg_pnl_pct > 0 ? "text-pos" : "text-neg"}`}>
                 {fmt(result.summary.avg_pnl_pct, 2, "%")}
               </p>
             </div>

@@ -88,74 +88,100 @@ function IconTrading() {
   );
 }
 
+function IconAgent() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="10" height="8" rx="2" />
+      <circle cx="6" cy="9" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="9" r="1" fill="currentColor" stroke="none" />
+      <path d="M6 2 L6 5 M10 2 L10 5" />
+      <line x1="5" y1="2" x2="11" y2="2" />
+    </svg>
+  );
+}
+
+function IconResearch() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12 Q5 4 8 8 Q11 12 14 4" />
+      <circle cx="14" cy="4" r="1.5" />
+      <line x1="2" y1="14" x2="14" y2="14" />
+    </svg>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { t, lang, setLang } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
-  // 과감 재편: 관측(HUD 홈) · 연구(AI+검증) · 운용 · 교육 · 정보/차트.
-  // dashboard/status/freeform = 사이드바 은퇴(페이지는 URL로 접근 가능, 되돌리기 쉬움).
   const NAV_GROUPS: NavGroup[] = [
-    // 관측 — 홈은 HUD 하나. dashboard/overview/status 중복 흡수.
+    // HUD — 홈
     { label: "HUD 커맨드", icon: <IconDashboard />, href: "/hud" },
-    // 집행·연구 — Phase 132 집행 전환: 돈길(집행 콘솔) 최상위, 사냥 인프라(LAB)는 파킹 보조.
+    // 집행 — 돈이 실제로 움직이는 곳
     {
-      label: "집행 · 연구", icon: <IconTrading />,
+      label: "집행", icon: <IconTrading />,
       items: [
         { href: "/lab/execution", label: "집행 콘솔 (돈길)" },
         { href: "/lab/tasks",     label: "Lab Task (페이퍼 모니터)" },
-        // AI LAB = 라이브 루프 + 배치 리더보드 흡수(Auto-Research는 /auto-research URL만 보존).
-        { href: "/lab",           label: "AI LAB (사냥 · 파킹)" },
+        { href: "/overview",      label: "총 포트폴리오" },
+        { href: "/portfolio",     label: "계좌 현황" },
       ],
     },
-    // 검증 — 수동 도구(엣지 찾고 검증).
+    // AI 에이전트 — 봇 관리·자동화
     {
-      label: "검증", icon: <IconBacktest />,
+      label: "AI 에이전트", icon: <IconAgent />,
       items: [
-        { href: "/validation",       label: "검증 터미널" },
-        { href: "/backtest",         label: t("nav.backtest") },
-        { href: "/backtest/compare", label: t("nav.compare") },
-        { href: "/event-study",      label: t("nav.event-study") },
-        { href: "/signal",           label: "스마트 시그널" },
-        { href: "/data-quality",     label: t("nav.data-quality") },
-        { href: "/universe",         label: t("nav.universe") },
-        { href: "/pairs",            label: "페어(공적분)" },
-      ],
-    },
-    // 운용 — 페이퍼 봇 + 진단 + 계정/리스크.
-    {
-      label: "운용", icon: <IconStrategy />,
-      items: [
-        { href: "/overview",       label: "총 포트폴리오" },
-        { href: "/buyback-doctor", label: "Buyback 손실진단" },
-        { href: "/dart-auto",      label: "DART 자동매매" },
-        { href: "/copytrade",      label: "카피트레이드" },
         { href: "/agents",         label: t("nav.agents") },
         { href: "/performance",    label: "성과 추적" },
         { href: "/risk-guard",     label: "리스크 관리" },
+        { href: "/dart-auto",      label: "DART 자동매매" },
+        { href: "/copytrade",      label: "카피트레이드" },
       ],
     },
-    // 교육 — 곁가지.
+    // 리서치 — 가설·인사이트 탐색
+    {
+      label: "리서치", icon: <IconResearch />,
+      items: [
+        { href: "/lab",            label: "AI LAB (사냥 · 파킹)" },
+        { href: "/macro",          label: "Macro Lab (거시 분석)" },
+        { href: "/infra",          label: "공급망 그래프 (LKG)" },
+        { href: "/buyback-doctor", label: "Buyback 손실진단" },
+        { href: "/insider",        label: t("nav.insider") },
+      ],
+    },
+    // 검증 — 엣지 찾고 검증
+    {
+      label: "검증", icon: <IconBacktest />,
+      items: [
+        { href: "/validation",   label: "검증 터미널" },
+        { href: "/backtest",     label: t("nav.backtest") },
+        { href: "/event-study",  label: t("nav.event-study") },
+        { href: "/signal",       label: "스마트 시그널" },
+        { href: "/data-quality", label: t("nav.data-quality") },
+        { href: "/universe",     label: t("nav.universe") },
+        { href: "/pairs",        label: "페어(공적분)" },
+      ],
+    },
+    // 마켓 — 차트·뉴스·데이터
+    {
+      label: "마켓", icon: <IconMarket />,
+      items: [
+        { href: "/market",   label: t("nav.market") },
+        { href: "/news",     label: t("nav.news") },
+        { href: "/calendar", label: t("nav.calendar") },
+        { href: "/ib",       label: t("nav.ib") },
+      ],
+    },
+    // 교육 — 학습·연습
     {
       label: "교육", icon: <IconAnalyze />,
       items: [
+        { href: "/quant",         label: "퀀트 배우기" },
+        { href: "/notebooks",     label: "전략 만들기 연습" },
         { href: "/learn/options", label: "옵션 트레이딩" },
-        { href: "/quant",     label: "퀀트 배우기" },
-        { href: "/notebooks", label: "전략 만들기 연습" },
-        { href: "/report",    label: "결과 읽는 법" },
-        { href: "/portfolio", label: "마코위츠 (교과서)" },
-      ],
-    },
-    // 정보·차트 — 보조(차트는 TradingView가 빠름).
-    {
-      label: "정보·차트", icon: <IconMarket />,
-      items: [
-        { href: "/insider",  label: t("nav.insider") },
-        { href: "/news",     label: t("nav.news") },
-        { href: "/calendar", label: t("nav.calendar") },
-        { href: "/market",   label: t("nav.market") },
-        { href: "/ib",       label: t("nav.ib") },
+        { href: "/report",        label: "결과 읽는 법" },
       ],
     },
   ];

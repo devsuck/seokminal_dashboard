@@ -85,12 +85,10 @@ export function NotebookEditor({ notebook, onUpdate }: NotebookEditorProps) {
               if (e.key === "Enter") saveTitle();
               if (e.key === "Escape") { setTitleDraft(notebook.title); setEditingTitle(false); }
             }}
-            className="text-text-1 text-lg font-semibold bg-transparent border-b border-accent outline-none w-full"
-          />
+            className="text-text-1 text-lg font-semibold bg-transparent border-b border-accent outline-none w-full"/>
         ) : (
           <h2
-            className="text-text-1 text-lg font-semibold cursor-text hover:text-text-1/80 transition-colors"
-            onClick={() => setEditingTitle(true)}
+            className="text-text-1 text-lg font-semibold cursor-text hover:text-text-1/80 transition-colors"onClick={() => setEditingTitle(true)}
           >
             {notebook.title}
           </h2>
@@ -112,9 +110,7 @@ export function NotebookEditor({ notebook, onUpdate }: NotebookEditorProps) {
               if (e.key === "Enter") saveTags();
               if (e.key === "Escape") { setTagsDraft(notebook.tags.join(", ")); setEditingTags(false); }
             }}
-            placeholder="tag1, tag2, tag3"
-            className="h-6 px-2 text-xs bg-panel border border-accent rounded text-text-1 outline-none"
-          />
+            placeholder="tag1, tag2, tag3"className="h-6 px-2 text-xs bg-panel border border-accent rounded text-text-1 outline-none"/>
         ) : (
           <>
             {notebook.tags.map(tag => (
@@ -124,8 +120,7 @@ export function NotebookEditor({ notebook, onUpdate }: NotebookEditorProps) {
             ))}
             <button
               onClick={() => setEditingTags(true)}
-              className="text-[9px] text-text-3 hover:text-text-2 bg-transparent border-0 cursor-pointer transition-colors"
-            >
+              className="text-[9px] text-text-3 hover:text-text-2 bg-transparent border-0 cursor-pointer transition-colors">
               {notebook.tags.length > 0 ? "edit tags" : "+ tags"}
             </button>
           </>
@@ -140,25 +135,20 @@ export function NotebookEditor({ notebook, onUpdate }: NotebookEditorProps) {
             {id.slice(0, 12)}…
             <button
               onClick={() => removeExperimentLink(id)}
-              className="text-text-3 hover:text-neg bg-transparent border-0 cursor-pointer p-0 ml-0.5"
-            >
+              className="text-text-3 hover:text-neg bg-transparent border-0 cursor-pointer p-0 ml-0.5">
               ×
             </button>
           </span>
         ))}
         <div className="flex gap-1">
           <input
-            type="text"
-            value={experimentIdDraft}
+            type="text"value={experimentIdDraft}
             onChange={e => setExperimentIdDraft(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") addExperimentLink(); }}
-            placeholder="exp_… id"
-            className="h-6 w-40 px-2 text-[10px] bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"
-          />
+            placeholder="exp_… id"className="h-6 w-40 px-2 text-[10px] bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"/>
           <button
             onClick={addExperimentLink}
-            className="h-6 px-2 text-[10px] bg-panel-2 border border-border rounded text-text-3 hover:text-text-1 cursor-pointer transition-colors"
-          >
+            className="h-6 px-2 text-[10px] bg-panel-2 border border-border rounded text-text-3 hover:text-text-1 cursor-pointer transition-colors">
             Link
           </button>
         </div>
@@ -196,8 +186,7 @@ export function NotebookEditor({ notebook, onUpdate }: NotebookEditorProps) {
       ) : (
         <button
           onClick={() => setAddingBlock(true)}
-          className="w-full h-10 border border-dashed border-border rounded-lg text-text-3 text-sm hover:text-text-2 hover:border-border/60 transition-colors cursor-pointer bg-transparent"
-        >
+          className="w-full h-10 border border-dashed border-border rounded-lg text-text-3 text-sm hover:text-text-2 hover:border-border/60 transition-colors cursor-pointer bg-transparent">
           + Add block
         </button>
       )}

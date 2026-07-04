@@ -10,8 +10,7 @@ import {
 function IndSelect({ op, onChange }: { op: IndicatorOp; onChange: (o: IndicatorOp) => void }) {
   return (
     <select
-      className="compact"
-      value={op.indicator}
+      className="compact"value={op.indicator}
       onChange={e => onChange(defaultInd(e.target.value as IndicatorType))}
     >
       {INDICATORS.map(i => <option key={i}>{i}</option>)}
@@ -27,8 +26,7 @@ function IndParams({ op, onChange }: { op: IndicatorOp; onChange: (o: IndicatorO
       {["RSI", "MA", "BB", "CCI"].includes(op.indicator) && (
         <>
           <span className="text-text-3 text-[10px]">P</span>
-          <input type="number" value={op.period} min={1} className="compact w-12"
-            onChange={e => upd({ period: Number(e.target.value) })} />
+          <input type="number" value={op.period} min={1} className="compact w-12"onChange={e => upd({ period: Number(e.target.value) })} />
         </>
       )}
       {["MA", "BB"].includes(op.indicator) && (
@@ -42,8 +40,7 @@ function IndParams({ op, onChange }: { op: IndicatorOp; onChange: (o: IndicatorO
       {op.indicator === "BB" && (
         <>
           <span className="text-text-3 text-[10px]">K</span>
-          <input type="number" value={op.k} step={0.1} min={0.1} className="compact w-12"
-            onChange={e => upd({ k: Number(e.target.value) })} />
+          <input type="number" value={op.k} step={0.1} min={0.1} className="compact w-12"onChange={e => upd({ k: Number(e.target.value) })} />
           <select className="compact" value={op.band}
             onChange={e => upd({ band: e.target.value as BBBand })}>
             {BB_BANDS.map(b => (
@@ -57,11 +54,9 @@ function IndParams({ op, onChange }: { op: IndicatorOp; onChange: (o: IndicatorO
       {op.indicator === "MACD" && (
         <>
           <span className="text-text-3 text-[10px]">F</span>
-          <input type="number" value={op.fast_period} min={1} className="compact w-12"
-            onChange={e => upd({ fast_period: Number(e.target.value) })} />
+          <input type="number" value={op.fast_period} min={1} className="compact w-12"onChange={e => upd({ fast_period: Number(e.target.value) })} />
           <span className="text-text-3 text-[10px]">S</span>
-          <input type="number" value={op.slow_period} min={1} className="compact w-12"
-            onChange={e => upd({ slow_period: Number(e.target.value) })} />
+          <input type="number" value={op.slow_period} min={1} className="compact w-12"onChange={e => upd({ slow_period: Number(e.target.value) })} />
         </>
       )}
     </span>
@@ -99,8 +94,7 @@ export function ConditionRow({ row, onChange, onRemove, isOnly }: ConditionRowPr
 
       {/* Right operand */}
       {row.rightType === "literal" ? (
-        <input type="number" value={row.rightLiteral} className="compact w-16"
-          onChange={e => upd({ rightLiteral: Number(e.target.value) })} />
+        <input type="number" value={row.rightLiteral} className="compact w-16"onChange={e => upd({ rightLiteral: Number(e.target.value) })} />
       ) : (
         <>
           <IndSelect op={row.rightIndicator} onChange={rightIndicator => upd({ rightIndicator })} />
@@ -112,9 +106,7 @@ export function ConditionRow({ row, onChange, onRemove, isOnly }: ConditionRowPr
       {!isOnly && (
         <button
           onClick={onRemove}
-          className="ml-auto opacity-0 group-hover:opacity-100 text-text-3 hover:text-neg text-base leading-none cursor-pointer bg-transparent border-0 px-1 transition-all"
-          aria-label="Remove condition"
-        >
+          className="ml-auto opacity-0 group-hover:opacity-100 text-text-3 hover:text-neg text-base leading-none cursor-pointer bg-transparent border-0 px-1 transition-all"aria-label="Remove condition">
           ×
         </button>
       )}

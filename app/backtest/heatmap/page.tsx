@@ -208,22 +208,19 @@ export default function HeatmapPage() {
             Min
             <input type="number" value={fastMin} min={1} max={fastMax - 1}
               onChange={e => setFastMin(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"
-            />
+              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
             Max
             <input type="number" value={fastMax} min={fastMin + 1}
               onChange={e => setFastMax(Math.max(fastMin + 1, parseInt(e.target.value) || fastMin + 1))}
-              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"
-            />
+              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
             Step
             <input type="number" value={fastStep} min={1}
               onChange={e => setFastStep(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"
-            />
+              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <span className="text-text-3 text-[10px] font-data">[{fastValues.join(", ")}]</span>
         </div>
@@ -235,22 +232,19 @@ export default function HeatmapPage() {
             Min
             <input type="number" value={slowMin} min={2}
               onChange={e => setSlowMin(Math.max(2, parseInt(e.target.value) || 2))}
-              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"
-            />
+              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
             Max
             <input type="number" value={slowMax} min={slowMin + 1}
               onChange={e => setSlowMax(Math.max(slowMin + 1, parseInt(e.target.value) || slowMin + 1))}
-              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"
-            />
+              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
             Step
             <input type="number" value={slowStep} min={1}
               onChange={e => setSlowStep(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"
-            />
+              className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <span className="text-text-3 text-[10px] font-data">[{slowValues.join(", ")}]</span>
         </div>
@@ -265,9 +259,7 @@ export default function HeatmapPage() {
                 onClick={() => { setMetric(m); setResults({}); }}
                 className={`px-3 h-8 text-xs rounded border transition-colors cursor-pointer ${
                   metric === m
-                    ? "bg-panel-2 text-text-1 font-semibold border-accent"
-                    : "bg-panel-2 text-text-2 border-border hover:text-text-1"
-                }`}
+                    ? "bg-panel-2 text-text-1 font-semibold border-accent": "bg-panel-2 text-text-2 border-border hover:text-text-1"}`}
               >
                 {METRIC_LABELS[m]}
               </button>
@@ -280,8 +272,7 @@ export default function HeatmapPage() {
           <button
             onClick={running ? stopHeatmap : runHeatmap}
             disabled={totalCombinations === 0}
-            className="px-6 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
+            className="px-6 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed">
             {running ? `Stop (${progress}/${total})` : "Run Heatmap"}
           </button>
         </div>
@@ -329,9 +320,7 @@ export default function HeatmapPage() {
                       return (
                         <div
                           key={s}
-                          className="w-10 h-8 bg-panel-2 rounded-sm opacity-20"
-                          title="Invalid: fast ≥ slow"
-                        />
+                          className="w-10 h-8 bg-panel-2 rounded-sm opacity-20"title="Invalid: fast ≥ slow"/>
                       );
                     }
                     const value = results[key];
@@ -343,8 +332,7 @@ export default function HeatmapPage() {
                     return (
                       <div
                         key={s}
-                        className="w-10 h-8 rounded-sm flex items-center justify-center cursor-default"
-                        // Accepted exception: visualization requires computed color
+                        className="w-10 h-8 rounded-sm flex items-center justify-center cursor-default"// Accepted exception: visualization requires computed color
                         style={t !== null ? { backgroundColor: interpolateColor(t) } : undefined}
                         title={
                           !hasResult
@@ -379,8 +367,7 @@ export default function HeatmapPage() {
                 {Array.from({ length: 20 }, (_, i) => i / 19).map((t, i) => (
                   <div
                     key={i}
-                    className="flex-1"
-                    // Accepted exception: gradient legend
+                    className="flex-1"// Accepted exception: gradient legend
                     style={{ backgroundColor: interpolateColor(t) }}
                   />
                 ))}

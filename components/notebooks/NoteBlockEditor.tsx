@@ -28,8 +28,7 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
   const [blockType, setBlockType] = useState<BlockType>(initial?.type ?? "comment");
   const [draft, setDraft] = useState<NotebookBlock>(initial ?? DEFAULT_BLOCKS.comment);
   const [chartJson, setChartJson] = useState(
-    initial?.type === "chart" ? JSON.stringify(initial.data, null, 2) : ""
-  );
+    initial?.type === "chart" ? JSON.stringify(initial.data, null, 2) : "");
   const [chartJsonError, setChartJsonError] = useState("");
 
   function handleTypeChange(t: BlockType) {
@@ -68,9 +67,7 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
             rows={6}
             value={(draft as CommentBlock).markdown}
             onChange={e => updateDraft({ markdown: e.target.value })}
-            placeholder="Write your notes here…"
-            className="w-full px-3 py-2 text-sm bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-y font-sans"
-          />
+            placeholder="Write your notes here…"className="w-full px-3 py-2 text-sm bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-y font-sans"/>
         );
 
       case "metric":
@@ -78,20 +75,14 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
           <div className="space-y-2">
             <input type="text" value={(draft as MetricBlock).label}
               onChange={e => updateDraft({ label: e.target.value })}
-              placeholder="Label (e.g. Sharpe Ratio)"
-              className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-            />
+              placeholder="Label (e.g. Sharpe Ratio)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
             <div className="flex gap-2">
               <input type="number" value={(draft as MetricBlock).value ?? ""}
                 onChange={e => updateDraft({ value: e.target.value === "" ? null : parseFloat(e.target.value) })}
-                placeholder="Value"
-                className="flex-1 h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"
-              />
+                placeholder="Value"className="flex-1 h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"/>
               <input type="text" value={(draft as MetricBlock).unit}
                 onChange={e => updateDraft({ unit: e.target.value })}
-                placeholder="Unit (optional)"
-                className="w-24 h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-              />
+                placeholder="Unit (optional)"className="w-24 h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
             </div>
           </div>
         );
@@ -101,12 +92,9 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
           <div className="space-y-2">
             <div>
               <label className="text-text-3 text-[10px] uppercase tracking-wider">Headers (comma-separated)</label>
-              <input type="text"
-                value={(draft as TableBlock).headers.join(",")}
+              <input type="text"value={(draft as TableBlock).headers.join(",")}
                 onChange={e => updateDraft({ headers: e.target.value.split(",").map(h => h.trim()) })}
-                placeholder="Col A, Col B, Col C"
-                className="w-full mt-1 h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-              />
+                placeholder="Col A, Col B, Col C"className="w-full mt-1 h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
             </div>
             <div>
               <label className="text-text-3 text-[10px] uppercase tracking-wider">Rows (JSON array of arrays)</label>
@@ -118,8 +106,7 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
                     if (Array.isArray(rows)) updateDraft({ rows });
                   } catch { /* ignore invalid JSON while typing */ }
                 }}
-                className="w-full mt-1 px-3 py-2 text-xs bg-panel border border-border rounded text-text-1 outline-none focus:border-accent resize-y font-data"
-              />
+                className="w-full mt-1 px-3 py-2 text-xs bg-panel border border-border rounded text-text-1 outline-none focus:border-accent resize-y font-data"/>
             </div>
           </div>
         );
@@ -129,17 +116,14 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
           <div className="space-y-2">
             <input type="text" value={(draft as ChartBlock).title}
               onChange={e => updateDraft({ title: e.target.value })}
-              placeholder="Chart title (optional)"
-              className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-            />
+              placeholder="Chart title (optional)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
             <div>
               <label className="text-text-3 text-[10px] uppercase tracking-wider">Data (JSON array of {"{ time, value }"})</label>
               <textarea rows={6}
                 value={chartJson}
                 onChange={e => { setChartJson(e.target.value); setChartJsonError(""); }}
                 placeholder={'[{"time": "2025-01-01", "value": 1.5}, ...]'}
-                className="w-full mt-1 px-3 py-2 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-y font-data"
-              />
+                className="w-full mt-1 px-3 py-2 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-y font-data"/>
               {chartJsonError && <p className="text-neg text-[10px] mt-1">{chartJsonError}</p>}
             </div>
           </div>
@@ -150,14 +134,10 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
           <div className="space-y-2">
             <input type="text" value={(draft as ImageBlock).src}
               onChange={e => updateDraft({ src: e.target.value })}
-              placeholder="Image URL or paste base64 data"
-              className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-            />
+              placeholder="Image URL or paste base64 data"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
             <input type="text" value={(draft as ImageBlock).alt}
               onChange={e => updateDraft({ alt: e.target.value })}
-              placeholder="Alt text (optional)"
-              className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-            />
+              placeholder="Alt text (optional)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
           </div>
         );
     }
@@ -175,9 +155,7 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
               onClick={() => handleTypeChange(t)}
               className={`px-3 h-7 text-xs rounded border cursor-pointer capitalize transition-colors ${
                 blockType === t
-                  ? "border-accent text-text-1 bg-panel"
-                  : "border-border text-text-3 hover:text-text-1 bg-panel"
-              }`}
+                  ? "border-accent text-text-1 bg-panel": "border-border text-text-3 hover:text-text-1 bg-panel"}`}
             >
               {labelForType(t)}
             </button>
@@ -192,14 +170,12 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
       <div className="flex gap-2">
         <button
           onClick={handleSave}
-          className="px-4 h-8 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0"
-        >
+          className="px-4 h-8 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0">
           {initial ? "Update" : "Add Block"}
         </button>
         <button
           onClick={onCancel}
-          className="px-4 h-8 bg-panel border border-border text-text-2 text-xs rounded cursor-pointer hover:text-text-1 transition-colors"
-        >
+          className="px-4 h-8 bg-panel border border-border text-text-2 text-xs rounded cursor-pointer hover:text-text-1 transition-colors">
           Cancel
         </button>
       </div>

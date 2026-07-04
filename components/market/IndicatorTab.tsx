@@ -24,8 +24,7 @@ interface ParamInputProps {
 function ParamInput({ value, onChange, min = 1, max = 500, width = "w-12" }: ParamInputProps) {
   return (
     <input
-      type="number"
-      value={value}
+      type="number"value={value}
       onChange={e => onChange(Number(e.target.value))}
       min={min}
       max={max}
@@ -45,11 +44,9 @@ function IndicatorRow({ checked, onToggle, label, children }: IndicatorRowProps)
   return (
     <label className="flex items-center gap-2 cursor-pointer select-none group">
       <input
-        type="checkbox"
-        checked={checked}
+        type="checkbox"checked={checked}
         onChange={onToggle}
-        className="w-3.5 h-3.5 accent-accent cursor-pointer"
-      />
+        className="w-3.5 h-3.5 accent-accent cursor-pointer"/>
       <span className={`text-xs w-24 shrink-0 ${checked ? "text-accent" : "text-text-2 group-hover:text-text-1"}`}>
         {label}
       </span>
@@ -78,8 +75,7 @@ export function IndicatorTab({ indicators: ind, setIndicators }: IndicatorTabPro
         {count > 0 && (
           <button
             onClick={() => setIndicators(DEFAULT_INDICATORS)}
-            className="px-2 py-1 text-xs rounded border border-border text-text-3 hover:border-neg hover:text-neg bg-transparent cursor-pointer transition-colors"
-          >
+            className="px-2 py-1 text-xs rounded border border-border text-text-3 hover:border-neg hover:text-neg bg-transparent cursor-pointer transition-colors">
             모두 끄기
           </button>
         )}

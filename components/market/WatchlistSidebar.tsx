@@ -83,8 +83,7 @@ export function WatchlistSidebar({
         <span className="text-text-3 text-[10px] uppercase tracking-wider font-semibold">Watchlist</span>
         <button
           onClick={onCompare}
-          className="text-[10px] text-text-3 hover:text-text-1 transition-colors px-1.5 py-0.5 border border-border rounded bg-transparent cursor-pointer"
-        >
+          className="text-[10px] text-text-3 hover:text-text-1 transition-colors px-1.5 py-0.5 border border-border rounded bg-transparent cursor-pointer">
           Compare
         </button>
       </div>
@@ -99,8 +98,7 @@ export function WatchlistSidebar({
             <div
               key={symbol}
               className={`px-3 py-2 border-b border-border/40 cursor-pointer group ${
-                isActive ? "bg-panel-2" : "hover:bg-panel-2/50"
-              }`}
+                isActive ? "bg-panel-2" : "hover:bg-panel-2/50"}`}
               onClick={() => onSymbolSelect(symbol)}
             >
               <div className="flex items-center justify-between mb-0.5">
@@ -110,8 +108,7 @@ export function WatchlistSidebar({
                 </span>
                 <button
                   onClick={e => { e.stopPropagation(); onRemove(symbol); }}
-                  className="text-text-3 hover:text-neg text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-0 cursor-pointer p-0 leading-none"
-                >
+                  className="text-text-3 hover:text-neg text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-0 cursor-pointer p-0 leading-none">
                   ×
                 </button>
               </div>
@@ -128,17 +125,13 @@ export function WatchlistSidebar({
               {/* Cross-nav CTAs */}
               <div className="flex gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Link
-                  href="/backtest"
-                  onClick={e => e.stopPropagation()}
-                  className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors"
-                >
+                  href="/backtest"onClick={e => e.stopPropagation()}
+                  className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors">
                   Backtest
                 </Link>
                 <Link
-                  href="/quant"
-                  onClick={e => e.stopPropagation()}
-                  className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors"
-                >
+                  href="/quant"onClick={e => e.stopPropagation()}
+                  className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors">
                   Research
                 </Link>
               </div>

@@ -103,8 +103,7 @@ export function NavBar() {
               key={group.href}
               href={group.href}
               className={`px-3 py-1.5 text-sm rounded transition-colors duration-150 no-underline ${
-                active ? "text-accent" : "text-text-3 hover:text-text-1"
-              }`}
+                active ? "text-accent" : "text-text-3 hover:text-text-1"}`}
             >
               {group.label}
             </Link>
@@ -116,8 +115,7 @@ export function NavBar() {
             <button
               onClick={() => setOpen(open === group.label ? null : group.label)}
               className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded transition-colors duration-150 bg-transparent border-0 cursor-pointer ${
-                active || open === group.label ? "text-accent" : "text-text-3 hover:text-text-1"
-              }`}
+                active || open === group.label ? "text-accent" : "text-text-3 hover:text-text-1"}`}
             >
               {group.label}
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="opacity-60">
@@ -136,9 +134,7 @@ export function NavBar() {
                       onClick={() => setOpen(null)}
                       className={`block px-3 py-1.5 text-sm no-underline transition-colors duration-100 ${
                         itemActive
-                          ? "text-accent bg-accent/10"
-                          : "text-text-2 hover:text-text-1 hover:bg-panel-2"
-                      }`}
+                          ? "text-accent bg-accent/10": "text-text-2 hover:text-text-1 hover:bg-panel-2"}`}
                     >
                       {item.label}
                     </Link>

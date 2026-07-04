@@ -21,12 +21,38 @@ import {
   type AccountBalances,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { ReactorCore, lvToOrbVariant, type OrbVariant } from "@/components/ReactorCore";
 
 type Style = "swing" | "daytrade" | "longterm";
 type Mkt = "KR" | "US" | "CRYPTO";
 
 const STYLE_LABEL: Record<Style, string> = { swing: "스윙", daytrade: "단타", longterm: "장투" };
 const MKT_LABEL: Record<Mkt, string> = { KR: "한국주식", US: "미국주식", CRYPTO: "가상화폐" };
+
+function isLv5Agent(a: TradingAgent): boolean {
+  return a.autonomy === 5 || a.type === "autonomous" || a.type === "kr_macro";
+}
+
+
+const LV_CFG: Record<number, { color: string; bg: string; border: string; label: string }> = {
+  1: { color: "#22c55e", bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.5)",   label: "Lv1" },
+  2: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.5)",  label: "Lv2" },
+  3: { color: "#eab308", bg: "rgba(234,179,8,0.1)",  border: "rgba(234,179,8,0.5)",   label: "Lv3" },
+  4: { color: "#f97316", bg: "rgba(249,115,22,0.1)", border: "rgba(249,115,22,0.5)",  label: "Lv4" },
+  5: { color: "#ef4444", bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.5)",   label: "Lv5" },
+  6: { color: "#ec4899", bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.5)",  label: "Lv6" },
+};
+function lvCfg(lv: number) { return LV_CFG[lv] ?? LV_CFG[2]; }
+
+function LvBadge({ lv }: { lv: number }) {
+  const c = lvCfg(lv);
+  return (
+    <span className="text-[9px] px-1.5 py-0.5 rounded border font-semibold"
+      style={{ color: c.color, background: c.bg, borderColor: c.border }}>
+      {c.label}
+    </span>
+  );
+}
 
 function ccyOfMkt(m: Mkt): string {
   return m === "KR" ? "KRW" : m === "CRYPTO" ? "USDC" : "USD";
@@ -35,22 +61,27 @@ function ccyOfMkt(m: Mkt): string {
 /** 기존 에이전트의 표시 통화 (type+market에서 유추). */
 function agentCcy(a: TradingAgent): string {
   if (a.type === "hl_daytrade") return "USDC";
-  if (a.type === "kr_daytrade" || a.market === "KR") return "KRW";
+  if (a.type === "kr_daytrade" || a.type === "kr_macro" || a.market === "KR") return "KRW";
   return "USD";
 }
 
 function agentStyleLabel(a: TradingAgent): string {
+  if (a.type === "autonomous") return "자율학습";
+  if (a.type === "kr_macro") return "KR거시";
+
   return a.type === "longterm" ? "장투" : a.type === "swing" ? "스윙" : "단타";
 }
 function agentMktLabel(a: TradingAgent): string {
   if (a.type === "hl_daytrade") return "크립토";
-  if (a.type === "kr_daytrade" || a.market === "KR") return "한국";
+  if (a.type === "kr_macro" || a.type === "kr_daytrade" || a.market === "KR") return "한국";
   if (a.market === "MIXED") return "혼합";
   return "미국";
 }
 
 /** 스타일+시장 → 백엔드 (type, market). */
-function toBackend(style: Style, m: Mkt): { type: AgentType; market: "US" | "KR" | "MIXED" } {
+function toBackend(style: Style | "autonomous" | "kr_macro", m: Mkt): { type: AgentType; market: "US" | "KR" | "MIXED" } {
+  if (style === "autonomous") return { type: "autonomous", market: "US" };
+  if (style === "kr_macro") return { type: "kr_macro", market: "KR" };
   if (style === "daytrade") {
     if (m === "KR") return { type: "kr_daytrade", market: "KR" };
     if (m === "CRYPTO") return { type: "hl_daytrade", market: "US" };
@@ -172,8 +203,11 @@ function PortfolioPie({ perf }: { perf: AgentPerformance }) {
   );
 }
 
-function Dashboard({ perf }: { perf: AgentPerformance | null }) {
+function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?: string }) {
   if (!perf) return <p className="text-text-3 text-xs">성과 데이터 로딩 중…</p>;
+  const sym = ccySym(ccy);
+  const digits = ccy === "KRW" ? 0 : 2;
+  const fmt = (v: number) => `${sym}${v.toLocaleString(undefined, { maximumFractionDigits: digits })}${ccy === "USDC" ? " USDC" : ""}`;
   return (
     <div className="space-y-3">
       {/* Summary cards */}
@@ -184,9 +218,9 @@ function Dashboard({ perf }: { perf: AgentPerformance | null }) {
         <StatCard label="미실현 (실시간)" value={fmtMoney(perf.unrealized_pnl)} cls={pnlColor(perf.unrealized_pnl)} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        <StatCard label="배정 자본" value={`$${perf.alloc.toLocaleString()}`} />
-        <StatCard label="현금" value={`$${perf.cash.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
-        <StatCard label="투자 중" value={`$${perf.invested.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} />
+        <StatCard label="배정 자본" value={fmt(perf.alloc)} />
+        <StatCard label="현금" value={fmt(perf.cash)} />
+        <StatCard label="투자 중" value={fmt(perf.invested)} />
       </div>
 
       {/* Portfolio composition pie (positions + cash) */}
@@ -352,21 +386,29 @@ export default function AgentsPage() {
   const [balances, setBalances] = useState<AccountBalances | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Create form — 스타일(스윙/단타/장투) × 시장(한국/미국/가상화폐) 두 축.
+  // Create form — 스타일(스윙/단타/장투/자율형/KR거시/인프라헤지) × 시장(한국/미국/가상화폐) 두 축.
   const [name, setName] = useState("");
-  const [style, setStyle] = useState<Style>("daytrade");
+  const [style, setStyle] = useState<Style | "autonomous" | "kr_macro">("daytrade");
   const [mkt, setMkt] = useState<Mkt>("US");
   const [alloc, setAlloc] = useState("");
   const [paper, setPaper] = useState(true);
   const [autonomy, setAutonomy] = useState(2);
   const [creating, setCreating] = useState(false);
 
-  // 스타일별 허용 시장 (스윙·장투는 크립토 미지원).
+  // 스타일별 허용 시장 (스윙·장투는 크립토 미지원, 인프라헤지는 KR 고정).
   const allowedMkts: Mkt[] = style === "daytrade" ? ["KR", "US", "CRYPTO"] : ["KR", "US"];
-  useEffect(() => { if (!allowedMkts.includes(mkt)) setMkt("US"); /* eslint-disable-next-line */ }, [style]);
+  useEffect(() => {
+    if (!allowedMkts.includes(mkt)) setMkt("US");
+    // 단타 선택 시 기본 Lv5 (페이퍼 전용으로 뚫어줌)
+    if (style === "daytrade") setAutonomy(5);
+    else if (style !== "autonomous" && style !== "kr_macro") setAutonomy(2);
+    /* eslint-disable-next-line */
+  }, [style]);
 
-  // 단타는 규칙기반(결정론), 스윙·장투는 LLM(자율성 레벨 적용).
-  const isDeterministic = style === "daytrade";
+  // 자율형/KR거시는 Lv5 고정. 단타는 페이퍼니까 Lv5까지 허용(기본 Lv5).
+  const isDeterministic = false;
+  const isLv5Style = style === "autonomous" || style === "kr_macro";
+  const isLv4Style = false;
   const ccy = ccyOfMkt(mkt);
 
   const cyclePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -452,7 +494,8 @@ export default function AgentsPage() {
     setCreating(true); setError(null);
     try {
       const { type, market } = toBackend(style, mkt);
-      await createAgent(name.trim(), type, amt, paper, isDeterministic ? 1 : autonomy, market);
+      const effectiveAutonomy = isLv5Style ? 5 : isLv4Style ? 4 : autonomy;
+      await createAgent(name.trim(), type, amt, paper, effectiveAutonomy, market);
       setName(""); setAlloc("");
       await refresh();
     } catch (e) {
@@ -510,6 +553,18 @@ export default function AgentsPage() {
                   </button>
                 ))}
               </div>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {([
+                  { k: "autonomous", label: "자율학습 AI",   color: "#ef4444", dot: "🔴" },
+                  { k: "kr_macro",   label: "KR 거시전략",   color: "#ef4444", dot: "🔴" },
+                ] as { k: "autonomous" | "kr_macro"; label: string; color: string; dot: string }[]).map(({ k, label, color, dot }) => (
+                  <button key={k} onClick={() => setStyle(k)}
+                    className={`text-xs py-1.5 rounded border transition-colors ${style === k ? "" : "border-border text-text-3 hover:text-text-2"}`}
+                    style={style === k ? { borderColor: color, color, background: `${color}1a` } : {}}>
+                    {style === k && `${dot} `}{label}
+                  </button>
+                ))}
+              </div>
             </div>
             {/* 시장 */}
             <div className="space-y-1">
@@ -563,27 +618,43 @@ export default function AgentsPage() {
                 ℹ 페이퍼는 크립토만 (테스트넷 TradFi 무거래). 주식·금·지수는 LIVE 필요.
               </p>
             )}
-            {/* Autonomy level (LLM swing only; day-trade is rules-based) */}
-            {isDeterministic ? (
-              <p className="text-text-3 text-[10px] leading-snug">
-                 단타는 규칙 기반(레벨1 고정) — LLM 미사용, 토큰 0.
-              </p>
+            {/* Autonomy level */}
+            {isLv5Style ? (
+              <div className="text-[10px] leading-snug px-2 py-1.5 rounded border" style={{ borderColor: "#ff4444", color: "#ff6666", background: "rgba(255,50,50,0.07)" }}>
+                🔴 Lv5 고정 — 뉴스·공시·ML 자가학습 풀 피처. 페이퍼 전용.
+              </div>
+            ) : isLv4Style ? (
+              <div className="text-[10px] leading-snug px-2 py-1.5 rounded border" style={{ borderColor: "#f97316", color: "#fb923c", background: "rgba(249,115,22,0.07)" }}>
+                🟠 Lv4 고정 — 상황인지 → 병목탐지 → 정책연계 → 전략수립(공격/방어/비중). KR 반도체 공급망 전문. 페이퍼 전용, 최종 집행은 사람 결정.
+              </div>
             ) : (
               <div className="space-y-1">
                 <p className="text-text-3 text-[10px] uppercase tracking-wider">자율성 레벨</p>
                 {[
-                  { v: 1, label: "레벨1 · 고정 규칙", desc: "정해진 임계값대로만" },
-                  { v: 2, label: "레벨2 · AI 전략가", desc: "백테스트 검증 후 매매 (추천)" },
-                  { v: 3, label: "레벨3 · 완전 자율", desc: "AI 재량 (엣지 검증 약함)" },
-                ].map(o => (
-                  <button key={o.v} onClick={() => setAutonomy(o.v)}
-                    className={`w-full text-left text-[11px] px-2 py-1.5 rounded border ${
-                      autonomy === o.v ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>
-                    {o.label} <span className="text-text-3">— {o.desc}</span>
-                  </button>
-                ))}
+                  { v: 1, label: "Lv1 · 고정 규칙", desc: "정해진 임계값대로만" },
+                  { v: 2, label: "Lv2 · AI 전략가", desc: "백테스트 검증 후 매매 (추천)" },
+                  { v: 3, label: "Lv3 · 완전 자율", desc: "AI 재량 (엣지 검증 약함)" },
+                  { v: 5, label: "Lv5 · 자율형 AI", desc: "자가학습·전략생성·뉴스·공시 풀 피처" },
+                ].map(o => {
+                  const c = lvCfg(o.v);
+                  const sel = autonomy === o.v;
+                  return (
+                    <button key={o.v} onClick={() => setAutonomy(o.v)}
+                      className="w-full text-left text-[11px] px-2 py-1.5 rounded border transition-colors"
+                      style={sel ? { borderColor: c.border, color: c.color, background: c.bg } : undefined}>
+                      <span className={sel ? "" : "text-text-3"}>
+                        {o.label} <span className="opacity-60">— {o.desc}</span>
+                      </span>
+                    </button>
+                  );
+                })}
                 {autonomy === 3 && (
                   <p className="text-warn text-[10px] leading-snug">⚠ 완전 자율은 엣지 검증이 약함. 리스크 한도는 항상 적용됨.</p>
+                )}
+                {autonomy === 5 && (
+                  <p className="text-[10px] leading-snug" style={{ color: "#ff4444" }}>
+                    🔴 Lv5: {style === "daytrade" ? "Claude AI 에이전틱 자가학습 — 10사이클마다 실적 분석 후 전략·유니버스 자동 재편성. 페이퍼 전용." : "뉴스·공시·ML 자가학습 모두 활성화. 페이퍼 전용 샌드박스 권장."}
+                  </p>
                 )}
               </div>
             )}
@@ -595,17 +666,45 @@ export default function AgentsPage() {
 
           <div className="space-y-2">
             {agents.length === 0 && <p className="text-text-3 text-xs px-1">에이전트 없음. 위에서 생성하세요.</p>}
-            {agents.map(a => (
+            {agents.map(a => {
+              const lv = isLv5Agent(a) ? 5 : (a.autonomy ?? 2);
+              const cfg = lvCfg(lv);
+              const orbVariant = lvToOrbVariant(lv);
+              const isHighLv = lv >= 3; // Lv3+ shows orb
+              return (
               <div key={a.id}
                 onClick={() => setSelected(a.id)}
-                className={`bg-panel border rounded-lg p-3 cursor-pointer transition-colors ${selected === a.id ? "border-accent/50" : "border-border hover:border-text-3"}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-text-1 text-sm font-medium truncate min-w-0">{a.name}</span>
-                  <span className={`flex items-center gap-1 text-[10px] shrink-0 ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${a.status === "running" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
-                    {a.status === "running" ? "가동" : "정지"}
-                  </span>
-                </div>
+                className={`bg-panel border rounded-lg p-3 cursor-pointer transition-colors ${selected === a.id ? "border-accent/50" : "border-border hover:border-text-3"}`}
+                style={selected === a.id ? { borderColor: cfg.color + "80" } : undefined}>
+                {isHighLv && (
+                  <div className="flex items-center gap-3 mb-2">
+                    <ReactorCore size={84} active={a.status === "running"} variant={orbVariant} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-text-1 text-sm font-medium truncate">{a.name}</div>
+                      <div className="text-[10px] mt-0.5 font-semibold" style={{ color: cfg.color }}>
+                        {cfg.label} · {agentStyleLabel(a)}
+                      </div>
+                      {a.type === "kr_macro" && (
+                        <div className="text-[9px] text-text-3 mt-0.5">
+                          Situation → Impact → Portfolio
+                        </div>
+                      )}
+                    </div>
+                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${a.status === "running" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                      {a.status === "running" ? "가동" : "정지"}
+                    </span>
+                  </div>
+                )}
+                {!isHighLv && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-text-1 text-sm font-medium truncate min-w-0">{a.name}</span>
+                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${a.status === "running" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                      {a.status === "running" ? "가동" : "정지"}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-panel-2 text-text-2 border border-border">
                     {agentStyleLabel(a)} · {agentMktLabel(a)}
@@ -619,9 +718,7 @@ export default function AgentsPage() {
                       미검증
                     </span>
                   )}
-                  {(a.type === "swing" || a.type === "longterm") && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-border text-text-3">Lv{a.autonomy}</span>
-                  )}
+                  <LvBadge lv={lv} />
                   {a.protected && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10" title="잠금 — 삭제하려면 이름 확인 필요"> 잠금</span>
                   )}
@@ -640,7 +737,8 @@ export default function AgentsPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -666,7 +764,7 @@ export default function AgentsPage() {
 
               {tab === "dashboard" && (
                 <div className="space-y-3">
-                  <Dashboard perf={perf} />
+                  <Dashboard perf={perf} ccy={agentCcy(agents.find(a => a.id === selected)!)} />
 
                   {/* Strategy distillation — Lv3 자유탐색 → 검증된 규칙 전략 */}
                   <div className="bg-panel border border-border rounded-lg p-3">

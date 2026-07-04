@@ -86,9 +86,7 @@ function GreeksTab() {
                   onClick={() => setOptionType(t)}
                   className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
                     optionType === t
-                      ? "border-accent text-accent bg-accent/10"
-                      : "border-border text-text-3 hover:text-text-2 bg-transparent"
-                  }`}
+                      ? "border-accent text-accent bg-accent/10": "border-border text-text-3 hover:text-text-2 bg-transparent"}`}
                 >
                   {t.toUpperCase()}
                 </button>
@@ -105,19 +103,15 @@ function GreeksTab() {
             <div key={label} className="space-y-1">
               <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
               <input
-                type="number"
-                value={value}
+                type="number"value={value}
                 onChange={e => set(e.target.value)}
-                step="any"
-                className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"
-              />
+                step="any"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"/>
             </div>
           ))}
           <button
             onClick={run}
             disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-          >
+            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
             {loading ? "Computing…" : "Compute"}
           </button>
         </div>
@@ -204,19 +198,15 @@ function ChainTab() {
             <div key={label} className="space-y-1">
               <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
               <input
-                type="number"
-                value={value}
+                type="number"value={value}
                 onChange={e => set(e.target.value)}
-                step="any"
-                className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"
-              />
+                step="any"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"/>
             </div>
           ))}
           <button
             onClick={run}
             disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-          >
+            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
             {loading ? "Computing…" : "Compute"}
           </button>
         </div>
@@ -444,19 +434,15 @@ function IvSurfaceTab() {
             <div key={label} className="space-y-1">
               <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
               <input
-                type="number"
-                value={value}
+                type="number"value={value}
                 onChange={e => set(e.target.value)}
-                step="any"
-                className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"
-              />
+                step="any"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"/>
             </div>
           ))}
           <button
             onClick={run}
             disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-          >
+            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
             {loading ? "Computing…" : "Compute"}
           </button>
         </div>
@@ -509,17 +495,15 @@ export default function OptionsPage() {
             onClick={() => setTab(t.id)}
             className={`px-5 py-1.5 text-sm cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
               tab === t.id
-                ? "border-accent text-accent font-bold"
-                : "border-transparent text-text-3 font-normal hover:text-text-1"
-            }`}
+                ? "border-accent text-accent font-bold": "border-transparent text-text-3 font-normal hover:text-text-1"}`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {tab === "greeks"  && <GreeksTab />}
-      {tab === "chain"   && <ChainTab />}
+      {tab === "greeks"&& <GreeksTab />}
+      {tab === "chain"&& <ChainTab />}
       {tab === "surface" && <IvSurfaceTab />}
     </div>
   );

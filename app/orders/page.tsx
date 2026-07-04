@@ -395,9 +395,7 @@ function OrdersPageInner() {
                   key={v}
                   className={`px-5 py-1.5 text-sm font-medium ${
                     venue === v
-                      ? "border-accent text-accent bg-accent/10"
-                      : "bg-panel-2 text-text-2 hover:bg-panel"
-                  }`}
+                      ? "border-accent text-accent bg-accent/10": "bg-panel-2 text-text-2 hover:bg-panel"}`}
                   onClick={() => { setVenue(v); setSubmitResult(null); setSubmitError(null); if (v === "HL") loadHLPositions(hlPaper); }}
                 >
                   {v}
@@ -412,12 +410,7 @@ function OrdersPageInner() {
               {venueMode && (
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded font-data uppercase tracking-wider ${
-                    venueMode === "live"
-                      ? "bg-neg/15 text-neg border border-neg/40"
-                      : venueMode === "paper"
-                      ? "bg-pos/10 text-pos border border-pos/30"
-                      : "bg-panel-2 text-text-3 border border-border"
-                  }`}
+                    venueMode === "live"? "bg-neg/15 text-neg border border-neg/40": venueMode === "paper"? "bg-pos/10 text-pos border border-pos/30": "bg-panel-2 text-text-3 border border-border"}`}
                 >
                   {venueMode === "live" ? "● LIVE 실거래" : venueMode === "paper" ? "PAPER 모의" : "UNKNOWN"}
                 </span>
@@ -434,9 +427,7 @@ function OrdersPageInner() {
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-text-2 w-24 shrink-0">Coin</label>
                   <input
-                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono uppercase"
-                    placeholder="ETH"
-                    value={hlCoin}
+                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono uppercase"placeholder="ETH"value={hlCoin}
                     onChange={e => setHlCoin(e.target.value.toUpperCase())}
                   />
                 </div>
@@ -447,18 +438,14 @@ function OrdersPageInner() {
                       <button key={s} onClick={() => setHlSide(s)}
                         className={`px-4 py-1.5 rounded text-sm font-medium border ${
                           hlSide === s
-                            ? s === "BUY" ? "bg-pos/20 border-pos text-pos" : "bg-neg/20 border-neg text-neg"
-                            : "border-border text-text-3"
-                        }`}>{s}</button>
+                            ? s === "BUY" ? "bg-pos/20 border-pos text-pos" : "bg-neg/20 border-neg text-neg": "border-border text-text-3"}`}>{s}</button>
                     ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-text-2 w-24 shrink-0">Size</label>
                   <input
-                    type="number" step="0.001"
-                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"
-                    value={hlSize} onChange={e => setHlSize(e.target.value)}
+                    type="number" step="0.001"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"value={hlSize} onChange={e => setHlSize(e.target.value)}
                   />
                 </div>
                 <div className="flex items-center gap-3">
@@ -467,8 +454,7 @@ function OrdersPageInner() {
                     {(["market", "limit"] as const).map(t => (
                       <button key={t} onClick={() => setHlOrderType(t)}
                         className={`px-4 py-1.5 rounded text-sm border ${
-                          hlOrderType === t ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"
-                        }`}>{t}</button>
+                          hlOrderType === t ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>{t}</button>
                     ))}
                   </div>
                 </div>
@@ -476,11 +462,8 @@ function OrdersPageInner() {
                   <div className="flex items-center gap-3">
                     <label className="text-sm text-text-2 w-24 shrink-0">Limit Px</label>
                     <input
-                      type="number" step="0.01"
-                      className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"
-                      value={hlLimitPx} onChange={e => setHlLimitPx(e.target.value)}
-                      placeholder="2500.00"
-                    />
+                      type="number" step="0.01"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"value={hlLimitPx} onChange={e => setHlLimitPx(e.target.value)}
+                      placeholder="2500.00"/>
                   </div>
                 )}
                 <div className="flex items-center gap-3">
@@ -511,8 +494,7 @@ function OrdersPageInner() {
                   onClick={() => hlPaper ? submitHLOrder() : setHlConfirm(true)}
                   disabled={hlSubmitting}
                   className={`w-full py-2 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50 ${
-                    hlPaper ? "bg-info/20 border border-info text-info" : "bg-accent text-black"
-                  }`}
+                    hlPaper ? "bg-info/20 border border-info text-info" : "bg-accent text-black"}`}
                 >
                   {hlSubmitting ? "주문 중…" : hlPaper ? `[Paper] ${hlSide} ${hlCoin}` : `${hlSide} ${hlCoin}`}
                 </button>
@@ -553,12 +535,10 @@ function OrdersPageInner() {
                       <div className="flex gap-3">
                         <button
                           onClick={() => setHlConfirm(false)}
-                          className="flex-1 border border-border text-text-2 py-2 rounded text-sm hover:bg-panel-2"
-                        >취소</button>
+                          className="flex-1 border border-border text-text-2 py-2 rounded text-sm hover:bg-panel-2">취소</button>
                         <button
                           onClick={submitHLOrder}
-                          className="flex-1 bg-accent text-black py-2 rounded text-sm font-semibold hover:opacity-90"
-                        >확인 · 주문</button>
+                          className="flex-1 bg-accent text-black py-2 rounded text-sm font-semibold hover:opacity-90">확인 · 주문</button>
                       </div>
                     </div>
                   </div>
@@ -641,16 +621,12 @@ function OrdersPageInner() {
                 </label>
                 {venue === "KR" ? (
                   <input
-                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"
-                    placeholder="005930"
-                    value={krCode}
+                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono"placeholder="005930"value={krCode}
                     onChange={e => setKrCode(e.target.value)}
                   />
                 ) : (
                   <input
-                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono uppercase"
-                    placeholder="AAPL"
-                    value={usSymbol}
+                    className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono uppercase"placeholder="AAPL"value={usSymbol}
                     onChange={e => setUsSymbol(e.target.value.toUpperCase())}
                   />
                 )}
@@ -665,9 +641,7 @@ function OrdersPageInner() {
                       key={s}
                       className={`px-4 py-1.5 text-sm font-medium ${
                         side === s
-                          ? s === "BUY" ? "bg-pos text-bg" : "bg-neg text-bg"
-                          : "bg-panel-2 text-text-2 hover:bg-panel"
-                      }`}
+                          ? s === "BUY" ? "bg-pos text-bg" : "bg-neg text-bg": "bg-panel-2 text-text-2 hover:bg-panel"}`}
                       onClick={() => setSide(s)}
                     >
                       {s}
@@ -680,10 +654,7 @@ function OrdersPageInner() {
               <div className="flex items-center gap-3">
                 <label className="text-sm text-text-2 w-24 shrink-0">Qty</label>
                 <input
-                  type="number"
-                  className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"
-                  min="1"
-                  value={qty}
+                  type="number"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"min="1"value={qty}
                   onChange={e => setQty(e.target.value)}
                 />
               </div>
@@ -697,9 +668,7 @@ function OrdersPageInner() {
                       key={t}
                       className={`px-4 py-1.5 text-sm font-medium ${
                         orderType === t
-                          ? "border-accent text-accent bg-accent/10"
-                          : "bg-panel-2 text-text-2 hover:bg-panel"
-                      }`}
+                          ? "border-accent text-accent bg-accent/10": "bg-panel-2 text-text-2 hover:bg-panel"}`}
                       onClick={() => setOrderType(t)}
                     >
                       {t}
@@ -714,19 +683,12 @@ function OrdersPageInner() {
                   <label className="text-sm text-text-2 w-24 shrink-0">Price</label>
                   {venue === "KR" ? (
                     <input
-                      type="number"
-                      className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"
-                      placeholder="limit price (KRW)"
-                      value={krPrice}
+                      type="number"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"placeholder="limit price (KRW)"value={krPrice}
                       onChange={e => setKrPrice(e.target.value)}
                     />
                   ) : (
                     <input
-                      type="number"
-                      step="0.01"
-                      className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"
-                      placeholder="limit price (USD)"
-                      value={usLimitPrice}
+                      type="number"step="0.01"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"placeholder="limit price (USD)"value={usLimitPrice}
                       onChange={e => setUsLimitPrice(e.target.value)}
                     />
                   )}
@@ -736,8 +698,7 @@ function OrdersPageInner() {
 
             <div className="mt-4 flex items-center gap-3">
               <button
-                className="bg-accent text-black text-sm font-medium rounded px-5 py-2 disabled:opacity-40"
-                onClick={requestPlaceOrder}
+                className="bg-accent text-black text-sm font-medium rounded px-5 py-2 disabled:opacity-40"onClick={requestPlaceOrder}
                 disabled={submitting}
               >
                 {submitting ? "Placing…" : "Place Order"}
@@ -765,8 +726,7 @@ function OrdersPageInner() {
                   )}
                   <div className="flex gap-2 justify-end">
                     <button
-                      className="text-sm text-text-2 border border-border rounded px-4 py-1.5 hover:bg-panel-2"
-                      onClick={() => setOrderConfirm(false)}
+                      className="text-sm text-text-2 border border-border rounded px-4 py-1.5 hover:bg-panel-2"onClick={() => setOrderConfirm(false)}
                     >취소</button>
                     <button
                       className={`text-sm font-medium rounded px-4 py-1.5 ${venueMode === "live" ? "bg-neg text-black" : "bg-accent text-black"}`}
@@ -822,8 +782,7 @@ function OrdersPageInner() {
                             <div className="flex items-center gap-1">
                               {canCancel(entry.status) && (
                                 <button
-                                  className="text-xs text-neg border border-neg/50 rounded px-2 py-0.5 hover:bg-neg/10 disabled:opacity-40"
-                                  disabled={act?.loading}
+                                  className="text-xs text-neg border border-neg/50 rounded px-2 py-0.5 hover:bg-neg/10 disabled:opacity-40"disabled={act?.loading}
                                   onClick={() => handleCancel(entry)}
                                 >
                                   {act?.loading ? "…" : "Cancel"}
@@ -831,8 +790,7 @@ function OrdersPageInner() {
                               )}
                               {entry.venue === "KR" && (
                                 <button
-                                  className="text-xs border border-border text-text-2 rounded px-2 py-0.5 hover:bg-panel-2 disabled:opacity-40"
-                                  disabled={act?.loading}
+                                  className="text-xs border border-border text-text-2 rounded px-2 py-0.5 hover:bg-panel-2 disabled:opacity-40"disabled={act?.loading}
                                   onClick={() => handleCheckStatus(entry)}
                                 >
                                   {act?.loading ? "…" : "Check"}
@@ -859,8 +817,7 @@ function OrdersPageInner() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-text-2 uppercase tracking-wide">Bot Positions</h2>
               <button
-                className="bg-accent text-black text-xs font-medium rounded px-3 py-1 disabled:opacity-40"
-                onClick={handleRefreshBots}
+                className="bg-accent text-black text-xs font-medium rounded px-3 py-1 disabled:opacity-40"onClick={handleRefreshBots}
                 disabled={botsLoading}
               >
                 {botsLoading ? "Loading…" : "Refresh"}
@@ -897,10 +854,7 @@ function OrdersPageInner() {
                           </span>
                         </td>
                         <td className={`py-1.5 font-medium ${
-                          bot.position === "LONG" ? "text-pos"
-                            : bot.position === "SHORT" ? "text-neg"
-                            : "text-text-3"
-                        }`}>
+                          bot.position === "LONG" ? "text-pos": bot.position === "SHORT" ? "text-neg": "text-text-3"}`}>
                           {bot.position}
                         </td>
                         <td className="py-1.5 text-text-1 text-right">{bot.qty}</td>

@@ -135,9 +135,9 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
   return (
     <div className="bg-panel border border-border rounded-lg overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-2">
-        <span className="text-text-1 text-sm font-medium">📈 {t.version}</span>
+        <span className="text-text-1 text-sm font-medium"> {t.version}</span>
         <span className="px-2 py-0.5 rounded border border-pos/40 text-pos bg-pos/10 text-[10px]">{t.status}</span>
-        <span className="ml-auto text-text-3 text-xs">as of {t.as_of} · ⚠️ PAPER, NO LIVE</span>
+        <span className="ml-auto text-text-3 text-xs">as of {t.as_of} · ⚠ PAPER, NO LIVE</span>
       </div>
       <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Backtest Sharpe" value={fmt(env.sharpe, 2)} tone="pos" />
@@ -178,8 +178,7 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
           : <div className="flex flex-wrap gap-1.5">
               {fwd.map(([m, v]) => {
                 const dev = t.envelope_deviation[m];
-                const tone = dev === "in_envelope" ? "text-text-2 border-border"
-                  : dev === "ABOVE_P90" ? "text-pos border-pos/40" : "text-neg border-neg/40";
+                const tone = dev === "in_envelope" ? "text-text-2 border-border": dev === "ABOVE_P90" ? "text-pos border-pos/40" : "text-neg border-neg/40";
                 return <span key={m} className={`px-2 py-0.5 rounded border text-[11px] font-data ${tone}`}>
                   {m}: {(v * 100).toFixed(1)}%</span>;
               })}

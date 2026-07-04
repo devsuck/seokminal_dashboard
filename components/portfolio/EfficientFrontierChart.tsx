@@ -163,8 +163,7 @@ export function EfficientFrontierChart({
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full rounded-lg"
-      />
+        className="w-full rounded-lg"/>
       <div className="flex gap-4 justify-center text-xs text-text-3 mt-2">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-info inline-block shrink-0" />

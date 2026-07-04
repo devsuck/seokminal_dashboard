@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ApiError, getDartSignals, getDartPositions, mirrorDart,
   getDartBotStatus, setDartBotConfig,
@@ -102,8 +103,7 @@ export default function DartAutoPage() {
           <label className="text-text-3 text-xs">매수 예산</label>
           <div className="relative">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">₩</span>
-            <input value={krw} onChange={e => setKrw(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric"
-              onBlur={() => on && setDartBotConfig({ budget: parseFloat(krw) || 1000000 })}
+            <input value={krw} onChange={e => setKrw(e.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric"onBlur={() => on && setDartBotConfig({ budget: parseFloat(krw) || 1000000 })}
               className="w-32 bg-panel-2 border border-border rounded pl-7 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function DartAutoPage() {
         )}
       </div>
       {on && !bot?.market_open && (
-        <p className="text-text-3 text-[11px] px-1">ℹ️ 장 마감 중 — 자사주 신규 공시는 다음 개장 때 매수됨 (7일 내 공시 추적).</p>
+        <p className="text-text-3 text-[11px] px-1">ℹ 장 마감 중 — 자사주 신규 공시는 다음 개장 때 매수됨 (7일 내 공시 추적).</p>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
@@ -187,20 +187,32 @@ export default function DartAutoPage() {
                 {totalPl >= 0 ? "+" : ""}₩{Math.round(totalPl).toLocaleString()}
               </span>
             </div>
+            {positions.length > 0 && (
+              <div className="px-4 py-2 bg-warn/5 border-b border-warn/20 text-[11px] text-text-2 leading-relaxed">
+                <span className="text-warn font-semibold">매도 정책:</span> 현재 자동 매도 <b className="text-text-1">없음</b> — 공시 이벤트 매수만 하고 보유(mark-to-market).
+                손절/익절/보유기간 규칙 미설정. 종목 누르면 차트에서 매수 위치 확인.
+              </div>
+            )}
             {positions.length === 0 ? (
               <div className="p-5"><EmptyState message="보유 없음" hint="공시를 매수하면 표시" /></div>
             ) : (
               <div className="divide-y divide-border/50">
                 {positions.map(p => (
-                  <div key={p.code} className="px-4 py-2.5 flex items-center justify-between">
-                    <div>
-                      <div className="font-data text-text-1 text-sm font-semibold">{p.code}</div>
+                  <Link key={p.code} href={`/market?symbol=${encodeURIComponent(`${p.code}.XKRX`)}`}
+                    title="차트에서 매매 위치 보기"
+                    className="px-4 py-2.5 flex items-center justify-between no-underline hover:bg-panel-2 transition-colors group">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-text-1 text-sm font-semibold truncate group-hover:text-accent">{p.name || p.code}</span>
+                        <span className="font-data text-text-3 text-[10px] shrink-0">{p.code}</span>
+                        <span className="text-text-3 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">차트 →</span>
+                      </div>
                       <div className="text-text-3 text-[10px] font-data">{p.qty}주 · 평단 ₩{p.avg_price.toLocaleString()}</div>
                     </div>
-                    <div className={`text-right font-data text-sm ${(p.return_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
+                    <div className={`text-right font-data text-sm shrink-0 ${(p.return_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
                       {p.return_pct != null ? `${p.return_pct >= 0 ? "+" : ""}${p.return_pct.toFixed(2)}%` : "—"}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

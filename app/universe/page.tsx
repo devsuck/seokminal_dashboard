@@ -121,9 +121,7 @@ export default function UniversePage() {
                   onClick={() => setMarket(m)}
                   className={`px-4 py-1.5 text-xs rounded border cursor-pointer transition-colors ${
                     market === m
-                      ? "border-accent text-accent bg-accent/10"
-                      : "border-border text-text-3 bg-transparent hover:text-text-2"
-                  }`}
+                      ? "border-accent text-accent bg-accent/10": "border-border text-text-3 bg-transparent hover:text-text-2"}`}
                 >
                   {m}
                 </button>
@@ -133,8 +131,7 @@ export default function UniversePage() {
           <button
             onClick={load}
             disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? "Loading…" : "Load"}
           </button>
           {rows.length > 0 && (
@@ -152,23 +149,19 @@ export default function UniversePage() {
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Name or ticker..."
-                className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent w-64"
-              />
+                placeholder="Name or ticker..."className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent w-64"/>
             </div>
             <div className="flex items-center gap-3">
               <label className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">
                 Max Market Cap
               </label>
               <input
-                type="range"
-                min={0}
+                type="range"min={0}
                 max={mktcapMax}
                 step={mktcapMax / 100}
                 value={maxCap}
                 onChange={e => setMaxCap(parseFloat(e.target.value))}
-                className="flex-1 accent-[#FF9F1C]"
-              />
+                className="flex-1 accent-[#FF9F1C]"/>
               <span className="text-text-2 text-xs font-data w-16 text-right">
                 {formatMktcap(maxCap || null)}
               </span>
@@ -223,16 +216,12 @@ export default function UniversePage() {
                             disabled={inWl}
                             className={`px-2 py-0.5 text-[10px] rounded border cursor-pointer transition-colors ${
                               inWl
-                                ? "border-border text-text-3 cursor-default"
-                                : "border-border text-text-3 hover:border-accent hover:text-accent"
-                            }`}
+                                ? "border-border text-text-3 cursor-default": "border-border text-text-3 hover:border-accent hover:text-accent"}`}
                           >
                             {inWl ? "✓ Watchlist" : "+ Watchlist"}
                           </button>
                           <Link
-                            href="/backtest"
-                            className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent transition-colors no-underline"
-                          >
+                            href="/backtest"className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent transition-colors no-underline">
                             → Backtest
                           </Link>
                         </div>
@@ -271,8 +260,7 @@ export default function UniversePage() {
           </div>
           <button
             onClick={handleWorkflowNext}
-            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0"
-          >
+            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0">
             → Factor Analysis
           </button>
         </div>

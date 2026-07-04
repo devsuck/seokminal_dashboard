@@ -5,6 +5,7 @@ import { SystemStatusWidget }      from "@/components/dashboard/SystemStatusWidg
 import { TodayEventsWidget }       from "@/components/dashboard/TodayEventsWidget";
 import { ResearchActivityWidget }  from "@/components/dashboard/ResearchActivityWidget";
 import { PortfolioSnapshotWidget } from "@/components/dashboard/PortfolioSnapshotWidget";
+import { StrategyHubWidget }       from "@/components/dashboard/StrategyHubWidget";
 import { FearGreedWidget }         from "@/components/dashboard/FearGreedWidget";
 import { NewsPanel }               from "@/components/news/NewsPanel";
 import { PageBanner }              from "@/components/PageBanner";
@@ -23,11 +24,12 @@ export default function DashboardPage() {
         <FearGreedWidget />
       </div>
 
-      {/* Row 2: Today's Events + Research Activity + Portfolio Snapshot */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Row 2: Today's Events + Research Activity + Portfolio Snapshot + Strategy Hub */}
+      <div className="grid grid-cols-4 gap-4">
         <TodayEventsWidget />
         <ResearchActivityWidget />
         <PortfolioSnapshotWidget />
+        <StrategyHubWidget />
       </div>
 
       {/* Row 3: Market News */}

@@ -64,6 +64,7 @@ export default function ExecutionPage() {
       <div className="hud-frame hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-5">
+            {/* 엣지 오브 — edge 생존 상태 */}
             <ArcReactor size={132} active={ea?.status === "confirmed"} label={edge.label} sub="edge" />
             <div>
               <div className="flex items-center gap-3 flex-wrap">
@@ -73,6 +74,12 @@ export default function ExecutionPage() {
               </div>
               <div className="mt-1 font-data text-[11px] text-hud/80">
                 {d.strategy_id} · 동결 {d.frozen_at} · 검증된 buyback 엣지 · arm은 사람만
+              </div>
+              {/* 봇 가동 상태 뱃지 */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-pos animate-pulse" />
+                <span className="font-data text-[10px] text-pos uppercase tracking-wider">페이퍼 봇 가동 중</span>
+                <span className="font-data text-[10px] text-text-3">· Buyback · TSMOM 32mkt</span>
               </div>
             </div>
           </div>

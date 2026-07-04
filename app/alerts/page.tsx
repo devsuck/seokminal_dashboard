@@ -146,17 +146,14 @@ export default function AlertsPage() {
             <div className="flex flex-col gap-1">
               <label className="text-text-3 text-xs">Label</label>
               <input
-                className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm"
-                value={label}
+                className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm"value={label}
                 onChange={e => setLabel(e.target.value)}
-                placeholder="My alert"
-              />
+                placeholder="My alert"/>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-text-3 text-xs">Condition</label>
               <select
-                className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm"
-                value={conditionType}
+                className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm"value={conditionType}
                 onChange={e => setConditionType(e.target.value as AlertConditionType)}
               >
                 {(Object.keys(CONDITION_LABELS) as AlertConditionType[]).map(ct => (
@@ -168,22 +165,17 @@ export default function AlertsPage() {
               <div className="flex flex-col gap-1 flex-1">
                 <label className="text-text-3 text-xs">Bot ID</label>
                 <input
-                  className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm"
-                  value={botId}
+                  className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm"value={botId}
                   onChange={e => setBotId(e.target.value)}
-                  placeholder="bot_id"
-                />
+                  placeholder="bot_id"/>
               </div>
               {needsThreshold && (
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-text-3 text-xs">Threshold</label>
                   <input
-                    type="number"
-                    className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm font-data"
-                    value={threshold}
+                    type="number"className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-sm font-data"value={threshold}
                     onChange={e => setThreshold(e.target.value)}
-                    placeholder="0.00"
-                  />
+                    placeholder="0.00"/>
                 </div>
               )}
             </div>
@@ -191,8 +183,7 @@ export default function AlertsPage() {
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="bg-accent text-black rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 self-start"
-            >
+              className="bg-accent text-black rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 self-start">
               {creating ? "Creating…" : "Create Rule"}
             </button>
           </div>
@@ -206,8 +197,7 @@ export default function AlertsPage() {
               {rules.map(rule => (
                 <div
                   key={rule.id}
-                  className="bg-panel-2 border border-border rounded-md p-3 flex items-start justify-between gap-2"
-                >
+                  className="bg-panel-2 border border-border rounded-md p-3 flex items-start justify-between gap-2">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-text-1 text-sm font-medium truncate">{rule.label}</span>
                     <span className="text-text-3 text-xs">
@@ -217,8 +207,7 @@ export default function AlertsPage() {
                   </div>
                   <button
                     onClick={() => handleDelete(rule.id)}
-                    className="text-neg text-xs border border-neg rounded px-2 py-0.5 shrink-0"
-                  >
+                    className="text-neg text-xs border border-neg rounded px-2 py-0.5 shrink-0">
                     Delete
                   </button>
                 </div>
@@ -235,14 +224,12 @@ export default function AlertsPage() {
               <button
                 onClick={loadTriggered}
                 disabled={loading}
-                className="text-accent text-xs border border-accent rounded px-2 py-0.5"
-              >
+                className="text-accent text-xs border border-accent rounded px-2 py-0.5">
                 Refresh
               </button>
               <button
                 onClick={handleClearTriggered}
-                className="text-text-3 text-xs border border-border rounded px-2 py-0.5"
-              >
+                className="text-text-3 text-xs border border-border rounded px-2 py-0.5">
                 Clear
               </button>
             </div>
@@ -256,8 +243,7 @@ export default function AlertsPage() {
               {triggered.map((t, i) => (
                 <div
                   key={`${t.rule_id}-${t.triggered_at}-${i}`}
-                  className="bg-panel-2 border border-border rounded-md p-3 flex flex-col gap-0.5"
-                >
+                  className="bg-panel-2 border border-border rounded-md p-3 flex flex-col gap-0.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-warn text-sm font-medium truncate">{t.rule_label}</span>
                     <span className="text-text-3 text-xs shrink-0">

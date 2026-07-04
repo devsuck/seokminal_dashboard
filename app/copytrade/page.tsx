@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ApiError, getCopyTraders, getCopyPositions, mirrorCopyTrade,
   type TraderCard, type CopyPosition,
@@ -99,8 +100,7 @@ export default function CopyTradePage() {
   const shown = traders
     .filter(t => t.name.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) =>
-      sortBy === "recent"
-        ? latestDate(b).localeCompare(latestDate(a))
+      sortBy === "recent"? latestDate(b).localeCompare(latestDate(a))
         : (b.avg_return_pct ?? -999) - (a.avg_return_pct ?? -999),
     );
 
@@ -119,15 +119,13 @@ export default function CopyTradePage() {
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">$</span>
           <input value={notional}
             onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setNotional(v); localStorage.setItem(NOTIONAL_KEY, v); }}
-            inputMode="decimal"
-            className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+            inputMode="decimal"className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
         </div>
         <span className="text-text-3 text-[11px]">팔로우 = 해당 인물 보유 종목 각각 이 금액만큼 페이퍼 매수</span>
 
         <div className="flex items-center gap-2 ml-auto flex-wrap">
           {/* 이름 검색 */}
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름 검색 (예: Pelosi)"
-            className="w-44 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-xs outline-none focus:border-accent" />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름 검색 (예: Pelosi)"className="w-44 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-xs outline-none focus:border-accent" />
           {/* 정렬 */}
           <div className="flex rounded overflow-hidden border border-border">
             {([["return", "수익률순"], ["recent", "최신순"]] as const).map(([v, label]) => (
@@ -162,7 +160,7 @@ export default function CopyTradePage() {
                           <div className="flex items-center gap-1.5">
                             <span className="text-text-1 text-sm font-medium truncate">{t.name}</span>
                             <span className="text-[9px] px-1 py-0.5 rounded border border-border text-text-3 shrink-0">
-                              {t.source === "congress" ? "🏛 의회" : "👤 내부자"}
+                              {t.source === "congress" ? " 의회" : " 내부자"}
                             </span>
                           </div>
                           <div className="text-text-3 text-[11px] truncate">{t.role ?? "—"}</div>
@@ -178,7 +176,9 @@ export default function CopyTradePage() {
                         {(isOpen ? t.holdings : t.holdings.slice(0, 3)).map(h => (
                           <div key={h.ticker} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-data text-text-1 font-semibold w-14 shrink-0">{h.ticker}</span>
+                              <Link href={`/market?symbol=${encodeURIComponent(h.ticker)}&date=${h.date}`}
+                                title="차트에서 매수 타이밍 보기"
+                                className="font-data text-accent font-semibold w-14 shrink-0 no-underline hover:underline">{h.ticker}</Link>
                               <span className="text-text-3 font-data text-[10px]">{h.date}</span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">

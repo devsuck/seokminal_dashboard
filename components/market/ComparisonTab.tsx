@@ -74,8 +74,7 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
         <button
           onClick={loadData}
           disabled={loading || symbols.length === 0}
-          className="px-4 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+          className="px-4 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed">
           {loading ? "Loading…" : "Compare"}
         </button>
       </div>

@@ -1,0 +1,2 @@
+{"ts": "2026-07-02T12:26:38.171755+00:00", "venue": "KR", "status": "submitted", "request": {"code": "005930", "side": "BUY", "quantity": 1, "order_type": "MARKET", "price": null, "paper": true}, "result": {"order_id": "0001234", "status": "SUBMITTED", "filled": 0.0, "remaining": 1.0}}
+{"ts": "2026-07-02T12:26:38.181145+00:00", "venue": "US", "status": "submitted", "request": {"symbol": "AAPL", "side": "BUY", "quantity": 1, "order_type": "MARKET", "limit_price": null, "paper": false}, "result": {"order_id": 42, "status": "PendingSubmit", "filled": 0.0, "remaining": 1.0}}

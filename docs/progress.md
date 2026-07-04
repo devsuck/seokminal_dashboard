@@ -1,3 +1,233 @@
+## Phase 138 — Lv5 에이전틱 고도화 + Telegram 알림 (2026-07-04) ✅ SHIPPED
+
+### 알파카 할당 버그 수정
+- `router_autopilot.py` KR market 에이전트가 `us_alpaca`로 잘못 집계되던 버그 수정
+- KR 거시 AI($1M)는 KIS 사용 → Alpaca 실 할당 = $20K
+
+### 홈 대시보드 업데이트
+- `PortfolioSnapshotWidget` 재작성 — Alpaca + 페이퍼 + LKG P&L
+- `SystemStatusWidget` — LKG Graph 체크 추가
+- `StrategyHubWidget` 신규 — LKG AI 업데이트 시각 + Macro Lab 링크
+- `dashboard/page.tsx` — Row2 3→4열
+
+### Lv5 단타 에이전틱 자가학습 (5개 파일)
+
+**`lv5_learner.py`** — 빠른 규칙 기반 (<1ms, 매 사이클)
+- TP/SL 이력 → 승률 기반 threshold/position_pct 조정
+- 연속 SL 3회 → 1사이클 entry 휴식
+- Score band Bayesian (Laplace smoothing)
+
+**`lv5_agent.py`** — 3-Phase Claude CLI 루프 (10사이클마다 백그라운드)
+- Phase 1 Strategist: 실적+컨텍스트+메모리 → 전략 제안 (산문)
+- Phase 2 Critic: 리스크 지적
+- Phase 3 Merger: 최종 JSON + DSL 생성
+- daemon 스레드 (~90-180초), tick 블로킹 없음
+- 완료 시 Telegram 자동 발송
+
+**`lv5_memory.py`** — 에이전트별 누적 메모리
+- `data/{agent_id}_memory.md` append-only 로그
+- Claude가 매 리뷰 전 읽고, 완료 후 인사이트 기록
+
+**`lv5_context.py`** — 시장 컨텍스트 (30분 캐시)
+- VIX / 어닝 캘린더 / 뉴스 헤드라인 (yfinance)
+
+**`lv5_dsl.py`** — Claude 생성 전략 DSL 실행
+- time_rules / vix_rules / symbol_overrides / earnings_buffer / banned_symbols
+- HL/KR/US 3개 진입점 모두 적용
+
+**`lv6_notify.py`** — Telegram 알림
+- certifi SSL 해결 (macOS Python 3.14)
+- 이벤트: 리뷰완료 / 실전체결 / 회로차단기 / arm평가 / 일일요약
+- Lv5 리뷰 완료 시 자동 발송 연결
+
+### Lv6 설계 확정 (구현은 ~2026-10)
+- 전략(Lv5 paper) ↔ 집행(Lv6 live) 분리 원칙
+- 필요 모듈: lv6_governor / lv6_whitelist
+- 알림 채널: Telegram 이미 연결
+- 트리거: arm_criteria_v1 GO 판정 (~2026-10)
+
+### 테스트: 645 pass (pre-existing 4만 실패)
+
+### 다음
+- Lv6 구현: 페이퍼 관찰 후 (~2026-10)
+- senate_efd / dart_nps 실행 결과 확인
+- lending pull 완료 → run_buyback_x_lending.py
+
+---
+
+## Phase 137 — 페어트레이딩 검증 + 새 전략 등록 (2026-07-04)
+
+### 페어트레이딩 검증 최종: REJECT
+
+**v1 (US ETF 섹터 쌍 12개 — 잘못된 선택):**
+- MSFT/AAPL 같은 비경쟁 쌍 포함 → 공적분 0/12, BH-FDR 0개 → REJECT
+
+**v2 (경제적 페어 11개 — KO/PEP, MO/PM, HD/LOW 등):**
+- IS 3년(2020-22): MO/PM EG p=0.031 공적분 ✓, IS Sharpe 1.23 / OOS 1.26 → 일시 CANDIDATE
+- IS 8년(2015-22)으로 확장: MO/PM p=0.191 공적분 소멸, BH-FDR 0개, strong_pass 0개
+- KO/PEP: IS p=0.0096 공적분 있으나 OOS Sharpe -0.36 붕괴
+- **판정: REJECT 확정** — 공적분 시간가변적(time-varying), IS 단기 결과 = 우연
+
+**근본 원인:** 일별 데이터 페어트레이딩은 공적분 관계가 regime 변화로 붕괴. 실제 stat-arb는 분/시간 단위 고빈도 또는 동일주식 다른 클래스(보통주/우선주) 필요.
+
+**파일:**
+- `research/run_pairs_validation.py` — 검증 스크립트 (IS 2015~2022, OOS 2023~)
+- experiment_registry: `pairs_statarb_v1` REJECT 등록
+
+### AI LAB 큐/전략 관련 파악
+- LAB 큐 소스: `research/scanner/families.py` FAMILIES (11개 이벤트 family) + `hypotheses.py` SEED_QUEUE
+- 자동 전략 생성 없음 — 사람이 families.py 또는 SEED_QUEUE에 추가해야 큐 증가
+- 오토파일럿: ON 시 큐 전체 연속 처리, 큐 소진 시 자동 정지 (live 매매 없음)
+
+### 새 전략 3개 SEED_QUEUE 등록
+- `us_congress_buy_drift_v1` — Senate EFD PTR 데이터 활용, blocked (네트워크 필요)
+- `kr_nps_acquisition_drift_v1` — DART 지분공시 국민연금 취득, blocked
+- `pairs_statarb_v1` — blocked + REJECT 판정 기록
+
+### 다음
+- senate_efd.py / dart_nps.py 실제 실행 후 데이터 확보 → blocked → real_event 전환
+- survivorship_check / options_backtest 실행 결과 확인
+- LAB 오토파일럿 돌려서 기존 11개 real_* 가설 처리
+
+---
+
+## Phase 136 — 무료 데이터 소스 확장 + 생존자편향 보정 + 옵션 백테스트 (2026-07-04)
+
+### 페어트레이딩/평균회귀 상태 확인
+- `pairs_trading/johansen.py` (공적분) + `backtest.py` (z-score) + `/pairs` 프론트엔드 페이지 존재
+- `risk_analysis/hurst.py` (허스트 지수) 존재
+- **검증 없음** — experiment registry 미등록, BH-FDR/WF/random baseline 미실행
+- **결론: 교육/UI 도구 수준. 엣지 미검증.**
+
+### Senate.gov 무료 파싱 (#1)
+- `research/data/senate_efd.py` — Senate EFD PTR (Periodic Transaction Reports) 스크래퍼
+  - URL: `https://efts.senate.gov/LATEST/search-index` (무료, 키 없음)
+  - 연도별 파일링 목록 → 개별 XML/HTML 다운로드 → Purchase 거래 파싱
+  - 7일 캐시: `data/congress/senate_efd_{year}.json`
+- `research/data/congress_history.py` 업데이트 — Senate EFD 1순위 → Quiver 2순위 → FMP 3순위 폴백 체인
+
+### DART 문서 파싱 — 국민연금 이벤트 (#2)
+- `research/data/dart_nps.py` — DART 지분공시(D) 문서 파싱
+  - `pblntf_ty=D`: 대량보유상황보고서
+  - 각 문서 XML 다운로드 → "국민연금" 신고자 필터 → 취득 이벤트 추출
+  - 7일 캐시: `data/institutional/dart_nps_{year}.json`
+  - API 키: OPENDART_API_KEY (기존 .env 존재)
+
+### 생존자편향 보정 (#3)
+- `research/run_survivorship_check.py` — Stooq.com 대안 로드
+  - yfinance 실패 종목 → `stooq.com` `TICKER.US` 재시도
+  - surviving vs Stooq-found 수익 비교
+  - 편향 크기 = surviving median - combined median
+
+### 옵션 백테스트 (#4)
+- `research/run_options_backtest.py` — ATM 콜 vs 직접 주식 비교
+  - 전략 A: Form 4 공시 D+1 주식 직접 매수 20일 보유
+  - 전략 B: ATM 콜(Black-Scholes 이론가, IV=20일 실현변동성, 만기 30일)
+  - $1 자본 기준 레버리지 효과 vs 프리미엄 소멸 리스크 측정
+
+### 다음
+- senate_efd.py / dart_nps.py: 실제 네트워크 환경에서 실행 후 결과 확인
+- survivorship check / options_backtest: 실행 후 결과 기록
+- 페어트레이딩: 검증 파이프라인 통과 시킬지 사용자 결정 (소요: 공적분 검정 + WF)
+
+---
+
+## Phase 135 — US 리서치 파이프라인 + 옵션 교육 (2026-07-04)
+
+### KSD H1/H2/H3 최종 판정 (pull 완료 1371종목)
+- H1 buyback×高대차: top +2.14% vs bot +0.77% diff=+1.37% **p=0.055 BH=FAIL** → REJECT (아깝지만 사전등록 기준 미통과)
+- H2 Δ대차 낮음→수익: p=0.864 → REJECT
+- H3 disposal×高대차: p=0.730 → REJECT
+- **결론: KSD 대차잔고는 buyback/disposal 상호작용에 통계적 유의미 엣지 없음. 정직 REJECT.**
+
+### US 리서치 파이프라인 배선 (BE 106e8f9 · FE 2a36c13)
+- `research/data/congress_history.py` + `research/paper/congress_forward.py` — Congress 매매 drift 연구 프레임워크
+  - **데이터 한계:** FMP 플랜 제한 → 최근 2개월치(200건)만 받아짐. 20일 forward 대부분 미완결. 검증 보류.
+  - 대안: Quiver Quantitative도 유료화됨. Senate.gov/House.gov 원본 XML bulk download 검토 필요.
+- `research/data/sec_edgar.py` + `research/paper/form4_forward.py` — SEC EDGAR Form 4 내부자 매수 drift
+  - **URL 버그 수정:** {acc}.txt → form4.xml
+  - **대형주 한계:** AAPL/MSFT 등 S&P500 대형주는 오픈마켓 매수(P) 거의 없음 — 옵션행사(M)만. 미드캡/밸류주 유니버스 필요.
+  - 결과 대기 중(미드캡 은행주 테스트 실행중)
+- `research/data/nps_holdings.py` — NPS/기관 데이터 스텁 (KRX 기관 순매수 대안 제시)
+  - NPS 특정: DART 문서 본문 파싱 필요 → 미구현 TODO
+- `backends/ib/client.py` — `get_option_chain()` 추가 (지연 데이터, OPRA 불필요)
+- `/ib/options/chain` 엔드포인트 추가
+- `app/learn/options/page.tsx` — 옵션 교육 페이지 4탭 (기초/Greeks/전략/시스템활용), 페이오프 차트
+
+### US 내부자 매수 drift 검증 — PASS (단서 있음) (커밋 8c2f3c3)
+- **데이터:** OpenInsider.com (무료, 키 없음) Form 4 P-Purchase $10k+ · 2025-10~2026-07 · 4,186건
+- **결과:**
+  - median +0.95% · stress 50bps +0.50% (살아남음)
+  - p_random=0.0000 (1000회 랜덤 베이스라인 중 0회 초과) · p_sign=6e-6
+  - IS(2025-10~12): median +2.36% win 60% ✓
+  - OOS(2026~): median +0.42% win 51% ✓
+  - BH-FDR α=0.1 통과 · WF 일관성 PASS
+- **판정: PASS — 단 생존자편향 미보정, live 불가**
+  - yfinance = 현존 종목만 → 상장폐지 종목(손실) 누락 → edge 과대평가 가능
+  - OOS median IS 대비 크게 약화(+2.36%→+0.42%) — 관세 충격 영향
+  - CRSP/Compustat(유료) 없이 PIT-clean 검증 불가
+- **추가 파일:** `research/data/openinsider.py` · `research/run_us_insider_drift.py`
+
+### 다음
+- **US 내부자:** 생존자편향 보정 방법 검토 (무료 대안: Stooq.com 상장폐지 포함 여부 확인)
+- **Congress drift:** 히스토리 소스 확보 필요 (FMP 2개월치 한계, Quiver 유료화)
+  - 대안: Senate.gov EFD bulk XML download (연도별 ZIP), House disclosures ZIP
+- **NPS/기관:** DART 지분공시 문서 파싱 구현 여부 사용자 결정
+- **KSD H1 p=0.055:** 재실험 금지(사전등록 위반). v2 별도 가설 등록만 가능
+
+---
+
+## Phase 134 — S1 부분판정 + 월간 운영의식 + KSD 대차잔고 배선(사전등록) (2026-07-04) ✅ SHIPPED
+
+사용자 "다 해줘" — 대기 항목 3개 일괄.
+
+### S1 부분판정: treasury_disposal = 음의 드리프트 확인
+- pull 완료분(3107건) 단독 판정: **n=3000 net −1.91% median −2.93% pct 0.0(bearish 예측대로) WF 양쪽 음수, 레드팀 CLEARED.** buyback 거울상(공급↑=악재) 확증 — CB발행(−0.73%)보다 강함. registry 기록.
+- control_change/asset_transfer: 스캐너 pull 아직 진행 중(PID 67306, 완료 시 s1_scan.log에 판정 출력).
+
+### 월간 운영의식 (07월분)
+- TSMOM forward: 2026-07 월수익 −0.04bp → **in_envelope** ✓ (as_of 07-02).
+- buyback edge: no_oos_yet(동결 직후), 이벤트 레벨 n_oos 0. arm_decision = **WAIT**(need_oos 0<3, need_paper 0.1<6mo) — 사전등록대로.
+
+### KSD 대차잔고 배선 (다음 사냥, 커밋 30d2eaf)
+- **ISIN 체크디짓 버그 수정**: `ksd/client.isin_from_code` 'KR7{code}003' 하드코딩 → 표준 Luhn 계산. 소형주 대차 조회 전부 0건 나오던 원인(138040=…001). 수정 후 이벤트 종목 5/5 풀히스토리 확인.
+- **데이터 연못**: `research/data/ksd_lending.py` — data.go.kr KSD 대차현황, ISIN당 전 히스토리(2008~) 요청 1~2번, parquet(`data/kr_lending/`), 재개 지원. 유니버스 = buyback∪disposal 1371종목. [백그라운드 pull 중, 수 시간]
+- **사전등록 동결(데이터 결합 전)**: `research/ksd_lending_prereg.md` — H1 buyback×高대차(D−2 잔고비율 top tercile 드리프트 강함) / H2 공시후 Δ대차 D0..D+5 하위→D+6..20 수익 높음(보유창 분리=lookahead 없음) / H3 disposal×高대차 더 음수. tercile n≥100, BH-FDR α=0.1, 부트스트랩 1000, stress 100bps, WF. **v1 불변 — 통과해도 v2 별도등록.**
+- 러너 `research/run_buyback_x_lending.py` (pull 완료 후 실행). 테스트 4 신규, 전체 632 pass(기존 4만).
+
+### UX 정비 — 집행 전환 반영 (FE 커밋 cd36b44)
+사용자 "UXUI 평가·수정" — 진단: HUD가 사냥 시대 화면(파킹된 Auto-Research·스캔 게이지 중심), 돈길(arm 판정·OOS) 부재.
+- **HUD**: 상단 ARM 배지(GO/WAIT/KILL, KILL=blink, /lab/execution 링크) + "돈길 — 엣지 생존" 패널(OOS·envelope·이벤트레벨·기대중앙값). 중앙 게이지 진행/스캔 → OOS 월·페이퍼 관찰 교체. 리액터 라벨=arm 판정, sub="money path". Auto-Research 패널 제거(로스터 유지). 마퀴 기본문구 집행 시대로.
+- **Sidebar**: 그룹 "AI 연구"→"집행 · 연구", 집행 콘솔(돈길) 첫 항목, AI LAB "(사냥 · 파킹)". 하위항목 활성화 longest-match 수정(기존: /lab/execution에서 /lab 동시 하이라이트).
+- **총 포트폴리오**: 연구 트랙(페이퍼) 스트립(buyback 보유/청산/누적+19.27% + ARM 배지 + 집행 콘솔 링크) — 라이브 에이전트만 보이던 구멍.
+- **Hud.tsx 버그**: RadialGauge 틱 좌표 풀정밀 float → SSR/클라 hydration mismatch(dev "1 Issue"). 3자리 반올림으로 수정.
+- 검증: tsc 0 · vitest 190 pass · 실브라우저(/hud /overview /lab/execution) 스크린샷 확인.
+
+### UX 감사 2차 — 사용자 4질문 후속 (FE 46ce188 · BE 6349760)
+1. 손실진단=buyback 전용 확인 → 사이드바 라벨 "Buyback 손실진단".
+2. /agents(관리) vs /overview(집계) 역할 구분 확인 — 중복 아님.
+3. /portfolio=마코위츠 교과서(교육) — 중복 아님. 페이퍼 트랙이 총 포폴에 안 뜨던 건 agents 원장만 집계해서 → 연구 스트립에 페이퍼 전략 목록 추가.
+4. **Lab Task 카드 빈 원인 = `_task_forward()` 죽은 코드**(endpoint가 무겁다고 호출 안 함). `_warm_edge` 패턴으로 6h 배경 워밍 + 캐시 병합 + `stats_warming` 플래그. tsmom×2(Sharpe 0.56·MDD −16.96%·121mo)·buyback(1603건·월별 막대) 카드 채워짐 실확인.
+- 보너스: 집행 콘솔 "전체 →" 데드링크(/lab/portfolio는 페이지 아님) → /lab/tasks.
+
+### S1 스캔 최종 (백그라운드 완료)
+11 family 중 CLEARED 3 — **전부 음의 드리프트(회피 신호), 새 롱 엣지 0(정직)**: treasury_disposal −1.91% pct0 / turn_to_profit −0.90% pct0 / asset_transfer −3.78% pct2.2(n69). supply_contract·treasury_trust·rights_issue = outlier_dependence REJECT. **control_change = 이벤트 0(UNDERPOWERED — B피드 키워드 미매칭 의심, 재pull 필요하면 I피드 검토).** registry 기록됨.
+
+### AI 업그레이드 5종 (사용자 "하나하나 전부다") — BE 72a2a97 · FE a4ff576
+1. **감시견** `jarvis/watchdog.py` — edge/ARM/OOS/이벤트레벨 조기경보/TSMOM envelope 변화만 이벤트 기록(결정적, 스팸 0). service `_warm_tsmom`(24h) 신설 = 월간 의식 관찰 자동화. /status(폰) 감시견 카드 + HUD 마퀴/blink 배지.
+2. **에이전트 registry 게이트** `jarvis/execution/agent_gate.py` — 미검증 전략 live 요청 → 페이퍼 강제(+사이클 감사 흔적). PROFILE_TO_STRATEGY 명시 매핑만 인정(현재 빈 매핑 = 전 에이전트 미검증 = live 전부 차단). FE "미검증" 배지(/agents·/overview).
+3. **코드 감사자** `jarvis/redteam/code_audit.py` — lookahead/PIT/survivorship 패턴 정적 탐지(음수 shift·swings·미래수익 피처·yfinance/FDR·랜덤 베이스라인 부재). 판정 안 함(finding만). 기존 swings() 2건 정확 지목 확인. CLI `python3 -m jarvis.redteam.code_audit`.
+4. **Lv2 가설 생성 크론** — 매주 월 9:12 GENERATOR.md 절차(memory→3~5개→submit→run_pending→기록). job e19ab212. ⚠ 세션 종속·7일 만료(Phase 117과 동일 한계) — 세션 닫히면 재등록 필요.
+5. **pull 큐** `research/data/pull_queue.py` — service가 장시간 pull 관리(ksd_lending/dart_events/krx_range, 재개 지원, 1-job 직렬). 세션 babysit 제거. /status에 큐 현황.
+- 테스트 13 신규, 백엔드 **645 pass**(기존 4만). tsc 0 · vitest 190.
+
+### 다음
+- lending pull 완료(진행 ~493/1371) → `run_buyback_x_lending.py` 실행 → H1/H2/H3 판정 기록.
+- control_change 이벤트 0 원인(피드/키워드) 확인 여부 사용자 결정.
+- 검증된 전략을 에이전트로 돌리려면 agent_gate.PROFILE_TO_STRATEGY에 명시 등록(등록해도 live는 Lv6+사람 arm 별도).
+
+---
+
 ## Phase 133 — 이벤트 레벨 OOS 검정 (6개월 체감 단축, 정직한 방법) (2026-07-04) ✅ SHIPPED
 
 사용자 "6개월 너무 길어" → 편법 아닌 해상도 상향: 월 코호트(월 1개) 대신 이벤트 단위(월 ~70건)로 검정력 조기 축적.

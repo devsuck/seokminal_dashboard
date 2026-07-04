@@ -202,28 +202,20 @@ function BacktestPageInner() {
         strategyId: strategy,
       });
       const singleLabel =
-        strategyType === "macd"
-          ? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal} ${start}→${end}`
-          : strategyType === "rsi"
-          ? `${instrumentId} RSI(${rsiPeriod}) ${start}→${end}`
-          : strategyType === "xgb"
-          ? `${instrumentId} XGBoost ${xgbTrainRatio}/${xgbNEstimators}/${xgbMaxDepth} ${start}→${end}`
+        strategyType === "macd"? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal} ${start}→${end}`
+          : strategyType === "rsi"? `${instrumentId} RSI(${rsiPeriod}) ${start}→${end}`
+          : strategyType === "xgb"? `${instrumentId} XGBoost ${xgbTrainRatio}/${xgbNEstimators}/${xgbMaxDepth} ${start}→${end}`
           : `${instrumentId} EMA ${fast}/${slow} ${start}→${end}`;
       setSaveLabel(
-        mode === "single"
-          ? singleLabel
+        mode === "single"? singleLabel
           : `${instrumentId} Gated(${rules.length}R) ${start}→${end}`
       );
       setShowSaveResult(false);
       setResultSaved(false);
       const activityLabel =
-        mode === "single"
-          ? (strategyType === "macd"
-              ? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal}`
-              : strategyType === "rsi"
-              ? `${instrumentId} RSI(${rsiPeriod})`
-              : strategyType === "xgb"
-              ? `${instrumentId} XGBoost`
+        mode === "single"? (strategyType === "macd"? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal}`
+              : strategyType === "rsi"? `${instrumentId} RSI(${rsiPeriod})`
+              : strategyType === "xgb"? `${instrumentId} XGBoost`
               : `${instrumentId} EMA ${fast}/${slow}`)
           : `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`;
       logActivity({
@@ -232,23 +224,15 @@ function BacktestPageInner() {
         href: "/backtest",
       });
       const experimentLabel =
-        mode === "single"
-          ? strategyType === "macd"
-            ? { strategy: "macd" as ExperimentStrategy, instrumentId, macdFast, macdSlow, macdSignal }
-            : strategyType === "rsi"
-            ? { strategy: "rsi" as ExperimentStrategy, instrumentId, rsiPeriod }
-            : strategyType === "xgb"
-            ? { strategy: "xgb" as ExperimentStrategy, instrumentId, xgbTrainRatio, xgbNEstimators, xgbMaxDepth }
+        mode === "single"? strategyType === "macd"? { strategy: "macd" as ExperimentStrategy, instrumentId, macdFast, macdSlow, macdSignal }
+            : strategyType === "rsi"? { strategy: "rsi" as ExperimentStrategy, instrumentId, rsiPeriod }
+            : strategyType === "xgb"? { strategy: "xgb" as ExperimentStrategy, instrumentId, xgbTrainRatio, xgbNEstimators, xgbMaxDepth }
             : { strategy: "ema_cross" as ExperimentStrategy, instrumentId, fast, slow }
           : { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length };
       const experimentParams: Record<string, any> =
-        mode === "single"
-          ? strategyType === "macd"
-            ? { macdFast, macdSlow, macdSignal }
-            : strategyType === "rsi"
-            ? { rsiPeriod, rsiOversold, rsiOverbought }
-            : strategyType === "xgb"
-            ? { xgbTrainRatio, xgbNEstimators, xgbMaxDepth, xgbLearningRate }
+        mode === "single"? strategyType === "macd"? { macdFast, macdSlow, macdSignal }
+            : strategyType === "rsi"? { rsiPeriod, rsiOversold, rsiOverbought }
+            : strategyType === "xgb"? { xgbTrainRatio, xgbNEstimators, xgbMaxDepth, xgbLearningRate }
             : { fast, slow }
           : { rulesCount: rules.length };
       saveExperiment({
@@ -374,8 +358,7 @@ function BacktestPageInner() {
         </Link>
         <button
           onClick={() => setShowSaveStrategy(v => !v)}
-          className="text-text-3 hover:text-accent text-xs bg-transparent border-0 cursor-pointer transition-colors"
-        >
+          className="text-text-3 hover:text-accent text-xs bg-transparent border-0 cursor-pointer transition-colors">
           Save Strategy
         </button>
       </div>
@@ -405,8 +388,7 @@ function BacktestPageInner() {
                     className={
                       `px-2 py-0.5 rounded border text-xs transition-colors ` +
                       (strategyType === type
-                        ? "border-accent text-accent bg-accent/10"
-                        : "border-border text-text-3 hover:text-text-2 bg-transparent")
+                        ? "border-accent text-accent bg-accent/10": "border-border text-text-3 hover:text-text-2 bg-transparent")
                     }
                   >
                     {type === "ema_cross" ? "EMA Cross" : type === "macd" ? "MACD" : "RSI"}
@@ -415,10 +397,7 @@ function BacktestPageInner() {
                 <button
                   onClick={() => { setStrategyType("xgb"); setOptimizeResult(null); }}
                   className={`px-3 py-1 text-xs rounded transition-colors cursor-pointer ${
-                    strategyType === "xgb"
-                      ? "bg-accent/10 text-accent border border-accent"
-                      : "text-text-3 hover:text-text-1 border border-transparent"
-                  }`}
+                    strategyType === "xgb"? "bg-accent/10 text-accent border border-accent": "text-text-3 hover:text-text-1 border border-transparent"}`}
                 >
                   XGBoost (ML)
                 </button>
@@ -429,8 +408,7 @@ function BacktestPageInner() {
                 <div className="flex items-center gap-2">
                   <label className="text-text-3 text-xs">거래비용</label>
                   <input value={costBps} onChange={e => setCostBps(e.target.value.replace(/[^0-9.]/g, ""))}
-                    inputMode="decimal"
-                    className="w-16 bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data text-center outline-none focus:border-accent" />
+                    inputMode="decimal"className="w-16 bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data text-center outline-none focus:border-accent" />
                   <span className="text-text-3 text-[10px]">bps/체결 (슬리피지+수수료, 왕복 2회). 실전 함정 방지</span>
                 </div>
               )}
@@ -446,35 +424,28 @@ function BacktestPageInner() {
                   <label className="flex items-center gap-1 text-text-3 text-xs">
                     Fast
                     <input
-                      type="number"
-                      value={macdFast}
+                      type="number"value={macdFast}
                       onChange={e => setMacdFast(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"
-                    />
+                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
                   </label>
                   <label className="flex items-center gap-1 text-text-3 text-xs">
                     Slow
                     <input
-                      type="number"
-                      value={macdSlow}
+                      type="number"value={macdSlow}
                       onChange={e => setMacdSlow(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"
-                    />
+                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
                   </label>
                   <label className="flex items-center gap-1 text-text-3 text-xs">
                     Signal
                     <input
-                      type="number"
-                      value={macdSignal}
+                      type="number"value={macdSignal}
                       onChange={e => setMacdSignal(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"
-                    />
+                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
                   </label>
                   <button
                     onClick={optimize}
                     disabled={optimizing}
-                    className="bg-accent text-black px-3 py-1 rounded text-sm disabled:opacity-50"
-                  >
+                    className="bg-accent text-black px-3 py-1 rounded text-sm disabled:opacity-50">
                     {optimizing ? "Optimizing…" : "Optimize"}
                   </button>
                 </div>
@@ -486,35 +457,28 @@ function BacktestPageInner() {
                   <label className="flex items-center gap-1 text-text-3 text-xs">
                     Period
                     <input
-                      type="number"
-                      value={rsiPeriod}
+                      type="number"value={rsiPeriod}
                       onChange={e => setRsiPeriod(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"
-                    />
+                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
                   </label>
                   <label className="flex items-center gap-1 text-text-3 text-xs">
                     Oversold
                     <input
-                      type="number"
-                      value={rsiOversold}
+                      type="number"value={rsiOversold}
                       onChange={e => setRsiOversold(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"
-                    />
+                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
                   </label>
                   <label className="flex items-center gap-1 text-text-3 text-xs">
                     Overbought
                     <input
-                      type="number"
-                      value={rsiOverbought}
+                      type="number"value={rsiOverbought}
                       onChange={e => setRsiOverbought(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"
-                    />
+                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
                   </label>
                   <button
                     onClick={optimize}
                     disabled={optimizing}
-                    className="bg-accent text-black px-3 py-1 rounded text-sm disabled:opacity-50"
-                  >
+                    className="bg-accent text-black px-3 py-1 rounded text-sm disabled:opacity-50">
                     {optimizing ? "Optimizing…" : "Optimize"}
                   </button>
                 </div>
@@ -526,50 +490,30 @@ function BacktestPageInner() {
                   <div>
                     <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Train Ratio</label>
                     <input
-                      type="number"
-                      min="0.5"
-                      max="0.9"
-                      step="0.05"
-                      value={xgbTrainRatio}
+                      type="number"min="0.5"max="0.9"step="0.05"value={xgbTrainRatio}
                       onChange={e => setXgbTrainRatio(parseFloat(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
-                    />
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
                   </div>
                   <div>
                     <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Trees</label>
                     <input
-                      type="number"
-                      min="10"
-                      max="500"
-                      step="10"
-                      value={xgbNEstimators}
+                      type="number"min="10"max="500"step="10"value={xgbNEstimators}
                       onChange={e => setXgbNEstimators(parseInt(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
-                    />
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
                   </div>
                   <div>
                     <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Max Depth</label>
                     <input
-                      type="number"
-                      min="2"
-                      max="10"
-                      step="1"
-                      value={xgbMaxDepth}
+                      type="number"min="2"max="10"step="1"value={xgbMaxDepth}
                       onChange={e => setXgbMaxDepth(parseInt(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
-                    />
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
                   </div>
                   <div>
                     <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Learning Rate</label>
                     <input
-                      type="number"
-                      min="0.01"
-                      max="0.5"
-                      step="0.01"
-                      value={xgbLearningRate}
+                      type="number"min="0.01"max="0.5"step="0.01"value={xgbLearningRate}
                       onChange={e => setXgbLearningRate(parseFloat(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
-                    />
+                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
                   </div>
                 </div>
               )}
@@ -589,8 +533,7 @@ function BacktestPageInner() {
                   </span>
                   <button
                     onClick={applyBestParams}
-                    className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors"
-                  >
+                    className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors">
                     Apply
                   </button>
                 </div>
@@ -608,9 +551,7 @@ function BacktestPageInner() {
                 <input
                   value={portfolioInstruments}
                   onChange={e => setPortfolioInstruments(e.target.value)}
-                  className="bg-panel border border-border rounded px-2 py-1 text-text-1 text-sm w-full"
-                  placeholder="AAPL.NASDAQ,SPY.ARCA"
-                />
+                  className="bg-panel border border-border rounded px-2 py-1 text-text-1 text-sm w-full"placeholder="AAPL.NASDAQ,SPY.ARCA"/>
               </div>
 
               {/* Strategy type selector */}
@@ -622,8 +563,7 @@ function BacktestPageInner() {
                     className={[
                       "px-3 py-1 text-xs rounded border transition-colors cursor-pointer",
                       strategyType === s
-                        ? "border-accent text-accent bg-accent/10"
-                        : "border-border text-text-3 hover:text-text-2",
+                        ? "border-accent text-accent bg-accent/10": "border-border text-text-3 hover:text-text-2",
                     ].join(" ")}
                   >
                     {s === "ema_cross" ? "EMA Cross" : s.toUpperCase()}
@@ -673,8 +613,7 @@ function BacktestPageInner() {
               <button
                 onClick={runPortfolio}
                 disabled={portfolioLoading}
-                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
+                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
                 {portfolioLoading ? "Running…" : "Run Portfolio Backtest"}
               </button>
 
@@ -820,14 +759,12 @@ function BacktestPageInner() {
               <div className="px-4 py-2 border-t border-border flex items-center justify-between">
                 <button
                   onClick={() => setShowSaveResult(true)}
-                  className="text-text-3 hover:text-accent text-xs transition-colors bg-transparent border-0 cursor-pointer"
-                >
+                  className="text-text-3 hover:text-accent text-xs transition-colors bg-transparent border-0 cursor-pointer">
                   Save Result
                 </button>
                 <button
                   onClick={() => router.push(`/orders?symbol=${encodeURIComponent(instrumentId)}`)}
-                  className="px-3 h-6 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0"
-                >
+                  className="px-3 h-6 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0">
                   주문하기 →
                 </button>
               </div>
@@ -843,17 +780,12 @@ function BacktestPageInner() {
                   <input
                     value={saveLabel}
                     onChange={e => setSaveLabel(e.target.value)}
-                    className="flex-1 bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs min-w-0"
-                    placeholder="Label"
-                  />
+                    className="flex-1 bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs min-w-0"placeholder="Label"/>
                   <button
                     onClick={() => {
                       const resultParams: Record<string, any> =
-                        mode === "single"
-                          ? strategyType === "macd"
-                            ? { macdFast, macdSlow, macdSignal }
-                            : strategyType === "rsi"
-                            ? { rsiPeriod, rsiOversold, rsiOverbought }
+                        mode === "single"? strategyType === "macd"? { macdFast, macdSlow, macdSignal }
+                            : strategyType === "rsi"? { rsiPeriod, rsiOversold, rsiOverbought }
                             : { fast, slow }
                           : {};
                       const saved = saveBacktestResult({
@@ -868,14 +800,12 @@ function BacktestPageInner() {
                       setShowSaveResult(false);
                       if (saved !== null) setResultSaved(true);
                     }}
-                    className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors whitespace-nowrap"
-                  >
+                    className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors whitespace-nowrap">
                     Save
                   </button>
                   <button
                     onClick={() => setShowSaveResult(false)}
-                    className="text-xs text-text-3 hover:text-text-2 transition-colors"
-                  >
+                    className="text-xs text-text-3 hover:text-text-2 transition-colors">
                     ✕
                   </button>
                 </div>
@@ -926,12 +856,9 @@ function BacktestPageInner() {
               end={end}
               strategy={strategyType}
               strategyParams={
-                strategyType === "macd"
-                  ? { fast: String(macdFast), slow: String(macdSlow), signal_period: String(macdSignal) }
-                  : strategyType === "rsi"
-                  ? { period: String(rsiPeriod), oversold: String(rsiOversold), overbought: String(rsiOverbought) }
-                  : strategyType === "xgb"
-                  ? { xgb_train_ratio: String(xgbTrainRatio), xgb_n_estimators: String(xgbNEstimators), xgb_max_depth: String(xgbMaxDepth), xgb_learning_rate: String(xgbLearningRate) }
+                strategyType === "macd"? { fast: String(macdFast), slow: String(macdSlow), signal_period: String(macdSignal) }
+                  : strategyType === "rsi"? { period: String(rsiPeriod), oversold: String(rsiOversold), overbought: String(rsiOverbought) }
+                  : strategyType === "xgb"? { xgb_train_ratio: String(xgbTrainRatio), xgb_n_estimators: String(xgbNEstimators), xgb_max_depth: String(xgbMaxDepth), xgb_learning_rate: String(xgbLearningRate) }
                   : { fast: String(fast), slow: String(slow) }
               }
             />
@@ -947,8 +874,7 @@ function BacktestPageInner() {
           </div>
           <button
             onClick={handleWorkflowNext}
-            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0"
-          >
+            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0">
             → Optimise Portfolio
           </button>
         </div>
@@ -1170,8 +1096,7 @@ function ReplayContent() {
                   {SPEED_OPTIONS.map(opt => (
                     <button key={opt.ms} onClick={() => setSpeed(opt.ms)}
                       className={`px-2 py-0.5 text-xs rounded border cursor-pointer transition-colors ${
-                        speed === opt.ms ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2 bg-transparent"
-                      }`}>
+                        speed === opt.ms ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2 bg-transparent"}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -1197,8 +1122,7 @@ function ReplayContent() {
                         key={i}
                         onClick={() => setCurrentIndex(i)}
                         className={`w-full px-3 py-2 text-left border-b border-border/40 transition-colors cursor-pointer ${
-                          isActive ? "bg-accent/10 border-l-2 border-l-accent" : "hover:bg-panel-2 bg-transparent"
-                        }`}
+                          isActive ? "bg-accent/10 border-l-2 border-l-accent" : "hover:bg-panel-2 bg-transparent"}`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-text-3 text-[10px]">#{i + 1}</span>
@@ -1252,9 +1176,7 @@ function BacktestPageWithTabs() {
             onClick={() => setOuterTab(t.id as "backtest" | "replay")}
             className={`px-5 py-2.5 text-sm bg-transparent border-0 cursor-pointer transition-colors ${
               outerTab === t.id
-                ? "border-b-2 border-accent text-accent font-medium"
-                : "text-text-3 hover:text-text-1"
-            }`}
+                ? "border-b-2 border-accent text-accent font-medium": "text-text-3 hover:text-text-1"}`}
           >
             {t.label}
           </button>

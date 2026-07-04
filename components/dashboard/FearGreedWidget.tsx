@@ -33,12 +33,10 @@ function MiniArc({ value, color }: { value: number; color: string }) {
     <svg width="72" height="44" viewBox="0 0 72 44" className="overflow-visible">
       <path d={track} fill="none" stroke="var(--color-border)" strokeWidth="6" strokeLinecap="round" />
       {value > 0 && (
-        <path d={fill} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
-          style={{ filter: `drop-shadow(0 0 4px ${color}55)` }} />
+        <path d={fill} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"style={{ filter: `drop-shadow(0 0 4px ${color}55)` }} />
       )}
       <circle cx={nx} cy={ny} r={3.5} fill={color} />
-      <text x="36" y="38" textAnchor="middle" fill={color} fontSize="11"
-        fontFamily="'IBM Plex Mono', monospace" fontWeight="700">{value}</text>
+      <text x="36" y="38" textAnchor="middle" fill={color} fontSize="11"fontFamily="'IBM Plex Mono', monospace" fontWeight="700">{value}</text>
     </svg>
   );
 }

@@ -18,9 +18,7 @@ export function LanguageSwitcher() {
           onClick={() => setLang(code)}
           className={`px-2 py-1 text-[11px] font-semibold rounded transition-colors duration-150 bg-transparent cursor-pointer ${
             lang === code
-              ? "border border-accent text-accent bg-accent/10"
-              : "text-text-3 hover:text-text-1"
-          }`}
+              ? "border border-accent text-accent bg-accent/10": "text-text-3 hover:text-text-1"}`}
         >
           {label}
         </button>

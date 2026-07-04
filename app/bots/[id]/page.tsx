@@ -142,9 +142,7 @@ export default function BotDetailPage() {
           <span
             className={`text-xs px-2 py-0.5 rounded ${
               live.running
-                ? "bg-pos/10 text-pos"
-                : "bg-panel text-text-3"
-            }`}
+                ? "bg-pos/10 text-pos": "bg-panel text-text-3"}`}
           >
             {live.running ? "Running" : "Stopped"}
           </span>
@@ -170,15 +168,12 @@ export default function BotDetailPage() {
               cls:
                 live.unrealized_pnl != null
                   ? live.unrealized_pnl >= 0
-                    ? "text-pos"
-                    : "text-neg"
-                  : "text-text-2",
+                    ? "text-pos": "text-neg": "text-text-2",
             },
           ].map(({ label, value, cls }) => (
             <div
               key={label}
-              className="bg-panel border border-border rounded p-3"
-            >
+              className="bg-panel border border-border rounded p-3">
               <p className="text-text-3 text-xs mb-1">{label}</p>
               <p className={`text-text-1 text-sm font-mono ${cls ?? ""}`}>
                 {value}
@@ -208,9 +203,7 @@ export default function BotDetailPage() {
             onClick={() => setTab(key)}
             className={`pb-2 text-sm border-b-2 transition-colors ${
               tab === key
-                ? "border-accent text-accent bg-accent/10 px-2 rounded-t"
-                : "border-transparent text-text-3 hover:text-text-1"
-            }`}
+                ? "border-accent text-accent bg-accent/10 px-2 rounded-t": "border-transparent text-text-3 hover:text-text-1"}`}
           >
             {label}
           </button>
@@ -244,8 +237,7 @@ export default function BotDetailPage() {
                       </td>
                       <td
                         className={`py-2 pr-4 font-medium ${
-                          t.side === "LONG" ? "text-pos" : "text-neg"
-                        }`}
+                          t.side === "LONG" ? "text-pos" : "text-neg"}`}
                       >
                         {t.side}
                       </td>
@@ -258,8 +250,7 @@ export default function BotDetailPage() {
                       <td className="py-2 pr-4 text-text-2">{t.qty}</td>
                       <td
                         className={`py-2 pr-4 font-mono font-medium ${
-                          t.pnl >= 0 ? "text-pos" : "text-neg"
-                        }`}
+                          t.pnl >= 0 ? "text-pos" : "text-neg"}`}
                       >
                         {fmtPnl(t.pnl)}
                       </td>
@@ -295,15 +286,13 @@ export default function BotDetailPage() {
               {[...signals].reverse().map((s, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-4 py-1.5 border-b border-border/30"
-                >
+                  className="flex items-center gap-4 py-1.5 border-b border-border/30">
                   <span className="text-text-3 text-xs font-mono w-44 shrink-0">
                     {fmtTs(s.ts_ns)}
                   </span>
                   <span
                     className={`text-sm font-medium w-24 shrink-0 ${
-                      SIGNAL_CLASS[s.signal] ?? "text-text-2"
-                    }`}
+                      SIGNAL_CLASS[s.signal] ?? "text-text-2"}`}
                   >
                     {s.signal}
                   </span>

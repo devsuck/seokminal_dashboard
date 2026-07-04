@@ -8,8 +8,8 @@ import { PageBanner } from "@/components/PageBanner";
 type AssetTab = "stock" | "forex" | "future" | "option" | "crypto";
 
 const TABS: { id: AssetTab; label: string }[] = [
-  { id: "stock",  label: "Stock"  },
-  { id: "forex",  label: "Forex"  },
+  { id: "stock",  label: "Stock"},
+  { id: "forex",  label: "Forex"},
   { id: "future", label: "Future" },
   { id: "option", label: "Option" },
   { id: "crypto", label: "Crypto" },
@@ -114,8 +114,7 @@ function FormShell({ children, onLoad, loading }: FormShellProps) {
         <button
           onClick={onLoad}
           disabled={loading}
-          className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-        >
+          className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
           {loading ? "Loading…" : "Load"}
         </button>
       </div>
@@ -150,9 +149,7 @@ function BarSizeButtons({ value, onChange }: { value: IBBarSize; onChange: (v: I
                 onClick={() => onChange(s)}
                 className={`px-2 py-1 text-[11px] font-medium border-r border-border last:border-r-0 ${
                   value === s
-                    ? "bg-accent text-black"
-                    : "bg-panel-2 text-text-3 hover:text-text-1 hover:bg-panel"
-                }`}
+                    ? "bg-accent text-black": "bg-panel-2 text-text-3 hover:text-text-1 hover:bg-panel"}`}
               >{s}</button>
             ))}
           </div>
@@ -180,11 +177,9 @@ function EndDateInput({ value, onChange }: { value: string; onChange: (v: string
   return (
     <Field label="End Date (optional)">
       <input
-        type="text"
-        value={value}
+        type="text"value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="20250101"
-        className={`${inputCls} w-28`}
+        placeholder="20250101"className={`${inputCls} w-28`}
       />
     </Field>
   );
@@ -415,17 +410,15 @@ export default function IBPage() {
             onClick={() => setTab(t.id)}
             className={`px-5 py-1.5 text-sm cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
               tab === t.id
-                ? "border-accent text-accent font-bold"
-                : "border-transparent text-text-3 font-normal hover:text-text-1"
-            }`}
+                ? "border-accent text-accent font-bold": "border-transparent text-text-3 font-normal hover:text-text-1"}`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {tab === "stock"  && <StockTab />}
-      {tab === "forex"  && <ForexTab />}
+      {tab === "stock"&& <StockTab />}
+      {tab === "forex"&& <ForexTab />}
       {tab === "future" && <FutureTab />}
       {tab === "option" && <OptionTab />}
       {tab === "crypto" && <CryptoTab />}

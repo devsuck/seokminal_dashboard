@@ -107,13 +107,9 @@ function BotDetail({ bot, onUpdate }: { bot: BotRecord; onUpdate: (b: BotRecord)
       <div className="flex items-center gap-3 mb-4">
         <span className="text-text-1 text-sm font-semibold">{bot.name}</span>
         <span className={`text-xs ${
-          bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"
-        }`}>● {bot.status}</span>
+          bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"}`}>● {bot.status}</span>
         <button onClick={toggle} className={`h-7 px-3 text-xs rounded border cursor-pointer bg-transparent hover:opacity-80 ${
-          bot.status === "running"
-            ? "border-neg text-neg"
-            : "border-pos text-pos"
-        }`}>
+          bot.status === "running"? "border-neg text-neg": "border-pos text-pos"}`}>
           {bot.status === "running" ? "Stop" : "Start"}
         </button>
       </div>
@@ -132,20 +128,14 @@ function BotDetail({ bot, onUpdate }: { bot: BotRecord; onUpdate: (b: BotRecord)
             <div>
               <div className="text-text-3 text-[11px] uppercase">Position</div>
               <div className={`text-sm font-data font-semibold ${
-                liveStatus?.position === "LONG" ? "text-pos"
-                : liveStatus?.position === "SHORT" ? "text-neg"
-                : "text-text-3"
-              }`}>
+                liveStatus?.position === "LONG" ? "text-pos": liveStatus?.position === "SHORT" ? "text-neg": "text-text-3"}`}>
                 {liveStatus?.position ?? "FLAT"}{liveStatus?.qty ? ` ×${liveStatus.qty}` : ""}
               </div>
             </div>
             <div>
               <div className="text-text-3 text-[11px] uppercase">Signal</div>
               <div className={`text-sm font-data ${
-                liveStatus?.last_signal?.includes("BUY") ? "text-pos"
-                : liveStatus?.last_signal?.includes("SELL") ? "text-neg"
-                : "text-text-3"
-              }`}>
+                liveStatus?.last_signal?.includes("BUY") ? "text-pos": liveStatus?.last_signal?.includes("SELL") ? "text-neg": "text-text-3"}`}>
                 {liveStatus?.last_signal ?? "—"}
               </div>
             </div>
@@ -248,8 +238,7 @@ function BotDetail({ bot, onUpdate }: { bot: BotRecord; onUpdate: (b: BotRecord)
                         <td className="py-1.5 pr-3 text-xs font-data text-text-1 border-b border-border/40">{t.exit_price?.toFixed(2) ?? "—"}</td>
                         <td className="py-1.5 pr-3 text-xs font-data text-text-2 border-b border-border/40">{t.qty.toFixed(0)}</td>
                         <td className={`py-1.5 pr-3 text-xs font-data font-semibold border-b border-border/40 ${
-                          t.pnl != null ? (t.pnl >= 0 ? "text-pos" : "text-neg") : "text-text-3"
-                        }`}>
+                          t.pnl != null ? (t.pnl >= 0 ? "text-pos" : "text-neg") : "text-text-3"}`}>
                           {t.pnl != null ? t.pnl.toFixed(2) : "—"}
                         </td>
                       </tr>
@@ -343,9 +332,7 @@ export default function BotsPage() {
               onClick={() => { setSelectedId(bot.id); setShowForm(false); }}
               className={`px-3 py-2 cursor-pointer border-b border-border/50 border-l-2 transition-colors ${
                 selectedId === bot.id
-                  ? "border-l-accent bg-panel"
-                  : "border-l-transparent hover:bg-panel/50"
-              }`}>
+                  ? "border-l-accent bg-panel": "border-l-transparent hover:bg-panel/50"}`}>
               <div className="flex items-center justify-between">
                 <span className={`text-xs ${selectedId === bot.id ? "text-text-1" : "text-text-2"}`}>
                   {bot.name}
@@ -365,8 +352,7 @@ export default function BotsPage() {
                 </div>
               </div>
               <div className={`text-xs mt-0.5 ${
-                bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"
-              }`}>
+                bot.status === "running" ? "text-pos" : bot.status === "error" ? "text-neg" : "text-text-3"}`}>
                 ● {bot.status}
               </div>
               <div className="text-[11px] text-text-3 mt-0.5 font-data">{bot.instrument_id}</div>
@@ -390,9 +376,7 @@ export default function BotsPage() {
                 <input
                   value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="bot-name"
-                  className="h-7 flex-1 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"
-                />
+                  placeholder="bot-name"className="h-7 flex-1 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data"/>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-accent text-xs w-24 shrink-0">Strategy</span>
@@ -415,32 +399,26 @@ export default function BotsPage() {
               <div className="flex items-center gap-2">
                 <span className="text-accent text-xs w-24 shrink-0">Fast EMA</span>
                 <input
-                  type="number"
-                  value={form.fast_ema}
+                  type="number"value={form.fast_ema}
                   min={1}
                   onChange={e => setForm(p => ({ ...p, fast_ema: Number(e.target.value) }))}
-                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
-                />
+                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"/>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-accent text-xs w-24 shrink-0">Slow EMA</span>
                 <input
-                  type="number"
-                  value={form.slow_ema}
+                  type="number"value={form.slow_ema}
                   min={1}
                   onChange={e => setForm(p => ({ ...p, slow_ema: Number(e.target.value) }))}
-                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
-                />
+                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"/>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-accent text-xs w-24 shrink-0">Trade Size</span>
                 <input
-                  type="number"
-                  value={form.trade_size}
+                  type="number"value={form.trade_size}
                   min={1}
                   onChange={e => setForm(p => ({ ...p, trade_size: Number(e.target.value) }))}
-                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
-                />
+                  className="h-7 w-16 px-2 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"/>
               </div>
               <button type="submit" disabled={submitting}
                 className="mt-1 h-7 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 border-0 disabled:opacity-50 disabled:cursor-not-allowed">

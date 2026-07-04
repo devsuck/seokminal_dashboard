@@ -147,9 +147,7 @@ export default function CalendarPage() {
               onClick={() => setWeek(w)}
               className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
                 week === w
-                  ? "bg-accent text-black"
-                  : "text-text-3 hover:text-text-1 border border-border"
-              }`}
+                  ? "bg-accent text-black": "text-text-3 hover:text-text-1 border border-border"}`}
             >
               {w === "this" ? "이번 주" : "다음 주"}
             </button>
@@ -167,12 +165,7 @@ export default function CalendarPage() {
               onClick={() => setImpactFilter(f)}
               className={`px-2.5 py-0.5 text-[11px] rounded border font-medium transition-colors ${
                 impactFilter === f
-                  ? f === "High"   ? "bg-neg/20 text-neg border-neg/30"
-                  : f === "Medium" ? "bg-warn/20 text-warn border-warn/30"
-                  : f === "Low"    ? "bg-panel-2 text-text-2 border-border"
-                  : "border-accent text-accent bg-accent/10"
-                  : "text-text-3 hover:text-text-1 border-transparent"
-              }`}
+                  ? f === "High"? "bg-neg/20 text-neg border-neg/30": f === "Medium" ? "bg-warn/20 text-warn border-warn/30": f === "Low"? "bg-panel-2 text-text-2 border-border": "border-accent text-accent bg-accent/10": "text-text-3 hover:text-text-1 border-transparent"}`}
             >
               {f === "all" ? "전체" : f}
             </button>
@@ -187,8 +180,7 @@ export default function CalendarPage() {
           <select
             value={countryFilter}
             onChange={e => setCountryFilter(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs"
-          >
+            className="bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs">
             {countries.map(c => (
               <option key={c} value={c}>
                 {c === "all" ? "전체" : `${COUNTRY_FLAGS[c] ?? ""} ${c}`}
@@ -257,7 +249,7 @@ export default function CalendarPage() {
                   const { time } = formatDate(ev.date);
                   const flag = COUNTRY_FLAGS[ev.country] ?? "";
                   const rowBg =
-                    ev.impact === "High"   ? "hover:bg-neg/5" :
+                    ev.impact === "High"? "hover:bg-neg/5" :
                     ev.impact === "Medium" ? "hover:bg-warn/5" :
                     "hover:bg-panel-2";
                   return (

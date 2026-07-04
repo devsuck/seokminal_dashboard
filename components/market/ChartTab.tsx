@@ -232,8 +232,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
             key={t.id}
             onClick={() => setTf(t.id)}
             className={`px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
-              tf === t.id ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-accent hover:border-accent bg-panel-2"
-            }`}
+              tf === t.id ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-accent hover:border-accent bg-panel-2"}`}
           >{t.label}</button>
         ))}
         <span className="text-border text-xs ml-1">|</span>
@@ -247,9 +246,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
             }
             router.push(`/backtest?${params.toString()}`);
           }}
-          className="px-3 h-7 text-xs font-medium rounded border border-border text-text-2 hover:border-accent hover:text-accent bg-transparent cursor-pointer transition-colors"
-          title="이 종목으로 백테스팅"
-        >
+          className="px-3 h-7 text-xs font-medium rounded border border-border text-text-2 hover:border-accent hover:text-accent bg-transparent cursor-pointer transition-colors"title="이 종목으로 백테스팅">
           백테스트 →
         </button>
         {onAddToWatchlist && (
@@ -257,11 +254,8 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
             onClick={() => onAddToWatchlist(symbol)}
             className={`px-3 h-7 text-xs font-medium rounded border cursor-pointer transition-colors ${
               isInWatchlist
-                ? "border-accent text-accent bg-accent/10"
-                : "border-border text-text-2 hover:border-accent hover:text-accent bg-transparent"
-            }`}
-            title="워치리스트에 추가"
-          >
+                ? "border-accent text-accent bg-accent/10": "border-border text-text-2 hover:border-accent hover:text-accent bg-transparent"}`}
+            title="워치리스트에 추가">
             {isInWatchlist ? "★ 워치리스트" : "☆ 워치리스트"}
           </button>
         )}
@@ -270,26 +264,24 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
         )}
       </div>
 
-      {/* Row 2: Active indicator chips (관리는 우측 📊 지표 탭) */}
+      {/* Row 2: Active indicator chips (관리는 우측  지표 탭) */}
       <div className="flex items-center gap-1.5 flex-wrap min-h-[28px]">
         {chips.length > 0 ? (
           chips.map(ind => (
             <span
               key={ind.key}
-              className="px-2 py-0.5 text-xs rounded border border-accent/40 text-accent bg-accent/5 flex items-center gap-1"
-            >
+              className="px-2 py-0.5 text-xs rounded border border-accent/40 text-accent bg-accent/5 flex items-center gap-1">
               {ind.label}
               <button
                 onClick={() => removeIndicator(ind.key)}
-                className="text-text-3 hover:text-neg cursor-pointer leading-none"
-                aria-label={`Remove ${ind.label}`}
+                className="text-text-3 hover:text-neg cursor-pointer leading-none"aria-label={`Remove ${ind.label}`}
               >
                 ✕
               </button>
             </span>
           ))
         ) : (
-          <span className="text-text-3 text-xs">지표 없음 — 우측 📊 지표 탭에서 추가</span>
+          <span className="text-text-3 text-xs">지표 없음 — 우측  지표 탭에서 추가</span>
         )}
       </div>
 

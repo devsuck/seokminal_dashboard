@@ -34,17 +34,14 @@ function NoteCell({
           if (e.key === "Enter") { onUpdate(value); setEditing(false); }
           if (e.key === "Escape") { setValue(experiment.notes); setEditing(false); }
         }}
-        className="w-full bg-panel-2 border border-border text-text-1 text-xs px-1.5 py-0.5 rounded outline-none focus:border-border"
-        placeholder="Add note…"
-      />
+        className="w-full bg-panel-2 border border-border text-text-1 text-xs px-1.5 py-0.5 rounded outline-none focus:border-border"placeholder="Add note…"/>
     );
   }
 
   return (
     <span
       onClick={() => setEditing(true)}
-      className="text-text-3 text-xs italic cursor-text hover:text-text-2 transition-colors block truncate max-w-[160px]"
-    >
+      className="text-text-3 text-xs italic cursor-text hover:text-text-2 transition-colors block truncate max-w-[160px]">
       {value || "Add note…"}
     </span>
   );
@@ -111,8 +108,7 @@ export function ExperimentTable({
       <button
         onClick={() => toggleSort(k)}
         className={`text-left text-[10px] uppercase tracking-wider font-normal bg-transparent border-0 cursor-pointer transition-colors ${
-          active ? "text-text-1" : "text-text-3 hover:text-text-2"
-        }`}
+          active ? "text-text-1" : "text-text-3 hover:text-text-2"}`}
       >
         {label} {active ? (sortAsc ? "↑" : "↓") : ""}
       </button>
@@ -132,12 +128,9 @@ export function ExperimentTable({
       {/* Search + info */}
       <div className="flex items-center gap-3">
         <input
-          type="text"
-          value={search}
+          type="text"value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by label or symbol…"
-          className="h-8 w-64 px-3 text-xs bg-panel-2 border border-border rounded-md text-text-1 placeholder:text-text-3 outline-none focus:border-border"
-        />
+          placeholder="Search by label or symbol…"className="h-8 w-64 px-3 text-xs bg-panel-2 border border-border rounded-md text-text-1 placeholder:text-text-3 outline-none focus:border-border"/>
         <span className="text-text-3 text-xs font-data">{filtered.length} / {experiments.length}</span>
         {selected.length > 0 && (
           <span className="text-info text-xs">{selected.length} selected for compare</span>
@@ -168,17 +161,14 @@ export function ExperimentTable({
                 <tr
                   key={exp.id}
                   className={`border-b border-border/40 transition-colors ${
-                    isSelected ? "bg-panel-2/60" : "hover:bg-panel-2/40"
-                  }`}
+                    isSelected ? "bg-panel-2/60" : "hover:bg-panel-2/40"}`}
                 >
                   {/* Compare checkbox */}
                   <td className="px-3 py-2 text-center">
                     <input
-                      type="checkbox"
-                      checked={isSelected}
+                      type="checkbox"checked={isSelected}
                       onChange={() => onSelect(exp.id)}
-                      className="cursor-pointer"
-                    />
+                      className="cursor-pointer"/>
                   </td>
 
                   {/* Label + timestamp */}
@@ -222,9 +212,7 @@ export function ExperimentTable({
                   <td className="px-3 py-2 text-center">
                     <button
                       onClick={() => onDelete(exp.id)}
-                      className="text-text-3 hover:text-neg text-xs bg-transparent border-0 cursor-pointer transition-colors p-0"
-                      title="Delete experiment"
-                    >
+                      className="text-text-3 hover:text-neg text-xs bg-transparent border-0 cursor-pointer transition-colors p-0"title="Delete experiment">
                       ×
                     </button>
                   </td>

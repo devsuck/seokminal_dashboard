@@ -90,8 +90,7 @@ export function ExperimentCompare({ experiments, onClose }: ExperimentComparePro
         <span className="text-text-3 text-[11px] uppercase tracking-wider">Experiment Comparison</span>
         <button
           onClick={onClose}
-          className="text-text-3 hover:text-text-1 text-xs bg-transparent border-0 cursor-pointer transition-colors"
-        >
+          className="text-text-3 hover:text-text-1 text-xs bg-transparent border-0 cursor-pointer transition-colors">
           Close ×
         </button>
       </div>

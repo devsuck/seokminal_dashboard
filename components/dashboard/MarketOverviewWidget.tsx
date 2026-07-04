@@ -112,8 +112,7 @@ export function MarketOverviewWidget() {
               <span className={`text-[11px] font-data w-[72px] text-right ${
                 row.noFeed        ? "text-text-3 italic" :
                 row.positive === null ? "text-text-3" :
-                row.positive      ? "text-pos" : "text-neg"
-              }`}>
+                row.positive      ? "text-pos" : "text-neg"}`}>
                 {row.changePct}
               </span>
             </div>

@@ -30,8 +30,7 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
         <div className="flex items-center gap-1.5">
           <span className="text-text-3 text-[11px]">Logic</span>
           <select
-            className="compact"
-            value={rule.combinator}
+            className="compact"value={rule.combinator}
             onChange={e => upd({ combinator: e.target.value as Combinator })}
           >
             <option>AND</option>
@@ -40,8 +39,7 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
         </div>
         <button
           onClick={onRemove}
-          className="ml-auto text-xs text-text-3 hover:text-neg border border-border hover:border-neg/40 px-2.5 py-1 rounded cursor-pointer bg-transparent transition-colors"
-        >
+          className="ml-auto text-xs text-text-3 hover:text-neg border border-border hover:border-neg/40 px-2.5 py-1 rounded cursor-pointer bg-transparent transition-colors">
           Remove
         </button>
       </div>
@@ -71,8 +69,7 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
         ))}
         <button
           onClick={() => upd({ comparisons: [...rule.comparisons, newComp()] })}
-          className="text-xs text-text-3 hover:text-text-2 border border-border hover:border-border px-3 py-1.5 rounded cursor-pointer bg-transparent transition-colors my-3"
-        >
+          className="text-xs text-text-3 hover:text-text-2 border border-border hover:border-border px-3 py-1.5 rounded cursor-pointer bg-transparent transition-colors my-3">
           + Add Condition
         </button>
       </div>
@@ -85,13 +82,11 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
         </span>
         <div className="flex items-center gap-1.5">
           <span className="text-text-3 text-[10px]">Fast</span>
-          <input type="number" value={rule.fast} min={1} className="compact w-14"
-            onChange={e => upd({ fast: Number(e.target.value) })} />
+          <input type="number" value={rule.fast} min={1} className="compact w-14"onChange={e => upd({ fast: Number(e.target.value) })} />
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-text-3 text-[10px]">Slow</span>
-          <input type="number" value={rule.slow} min={1} className="compact w-14"
-            onChange={e => upd({ slow: Number(e.target.value) })} />
+          <input type="number" value={rule.slow} min={1} className="compact w-14"onChange={e => upd({ slow: Number(e.target.value) })} />
         </div>
       </div>
     </div>

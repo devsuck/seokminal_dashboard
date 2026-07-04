@@ -36,8 +36,7 @@ export function MetricGrid({ result }: MetricGridProps) {
     {
       label: "Max DD",
       value: result?.max_drawdown != null
-        ? (result.max_drawdown * 100).toFixed(2) + "%"
-        : "—",
+        ? (result.max_drawdown * 100).toFixed(2) + "%": "—",
       colorClass: result?.max_drawdown != null ? "text-neg" : "text-text-3",
     },
     {

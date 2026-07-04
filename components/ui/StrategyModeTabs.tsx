@@ -23,8 +23,7 @@ export function StrategyModeTabs({ mode, onChange }: StrategyModeTabsProps) {
           className={[
             "px-4 py-1.5 text-sm rounded transition-all duration-150 cursor-pointer border-0",
             mode === tab.value
-              ? "bg-panel text-accent font-medium border border-border shadow-sm"
-              : "bg-transparent text-text-3 hover:text-text-2",
+              ? "bg-panel text-accent font-medium border border-border shadow-sm": "bg-transparent text-text-3 hover:text-text-2",
           ].join(" ")}
         >
           {tab.label}

@@ -56,8 +56,8 @@ export const TRANSLATIONS: Translations = {
   "page.orders.title":          { ko: "주문 관리",      en: "Orders",          de: "Aufträge" },
   "page.bots.title":            { ko: "트레이딩 봇",    en: "Bots",            de: "Bots" },
   "page.alerts.title":          { ko: "알림 설정",      en: "Alerts",          de: "Alarme" },
-  "nav.agents":                 { ko: "AI 에이전트",    en: "AI Agents",       de: "KI-Agenten" },
-  "page.agents.title":          { ko: "AI 에이전트",    en: "AI Agents",       de: "KI-Agenten" },
+  "nav.agents":                 { ko: "자율형 AI",      en: "Autonomous AI",   de: "Autonome KI" },
+  "page.agents.title":          { ko: "자율형 AI 에이전트", en: "Autonomous AI Agents", de: "Autonome KI-Agenten" },
   "page.agents.desc": {
     ko: "여러 AI 트레이딩 에이전트를 봇처럼 생성·관리합니다. 스윙(중장기)/데이트레이딩 타입, 각 사이클은 구조화 카드로 표시됩니다.",
     en: "Create and manage multiple AI trading agents like bots. Swing/day-trade types; each cycle is shown as a structured card.",

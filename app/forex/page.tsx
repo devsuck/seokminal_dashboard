@@ -60,19 +60,15 @@ function InputRow({
           <div key={label} className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
             <input
-              type="number"
-              value={value}
+              type="number"value={value}
               onChange={e => set(e.target.value)}
-              step="any"
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"
-            />
+              step="any"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-24"/>
           </div>
         ))}
         <button
           onClick={onCompute}
           disabled={loading}
-          className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-        >
+          className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
           {loading ? "Computing…" : "Compute"}
         </button>
       </div>
@@ -153,8 +149,7 @@ function ForwardTab() {
                 <tr key={row.label} className="border-b border-border last:border-0">
                   <td className="px-4 py-2 text-accent text-[13px] w-[240px]">{row.label}</td>
                   <td className={`px-4 py-2 text-sm font-data font-bold w-36 ${
-                    loading ? "text-text-3/30" : v !== null ? signCls(v) : "text-text-3"
-                  }`}>
+                    loading ? "text-text-3/30" : v !== null ? signCls(v) : "text-text-3"}`}>
                     {loading ? "…" : v !== null ? row.fmt(v) : "—"}
                   </td>
                   <td className="px-4 py-2 text-text-3 text-xs">{row.desc}</td>
@@ -243,8 +238,7 @@ function CarryTab() {
                 <tr key={row.label} className="border-b border-border last:border-0">
                   <td className="px-4 py-2 text-accent text-[13px] w-[240px]">{row.label}</td>
                   <td className={`px-4 py-2 text-sm font-data font-bold w-36 ${
-                    loading ? "text-text-3/30" : v !== null ? row.cls(v) : "text-text-3"
-                  }`}>
+                    loading ? "text-text-3/30" : v !== null ? row.cls(v) : "text-text-3"}`}>
                     {loading ? "…" : v !== null ? row.fmt(v) : "—"}
                   </td>
                   <td className="px-4 py-2 text-text-3 text-xs">{row.desc}</td>
@@ -454,9 +448,9 @@ const PAIR_GROUPS = [
 
 function heatColor(pct: number | null): string {
   if (pct == null) return "bg-panel-2";
-  if (pct >  1.0) return "bg-pos/30";
-  if (pct >  0.3) return "bg-pos/15";
-  if (pct >  0.0) return "bg-pos/8";
+  if (pct > 1.0) return "bg-pos/30";
+  if (pct > 0.3) return "bg-pos/15";
+  if (pct > 0.0) return "bg-pos/8";
   if (pct < -1.0) return "bg-neg/30";
   if (pct < -0.3) return "bg-neg/15";
   if (pct <  0.0) return "bg-neg/8";
@@ -620,19 +614,17 @@ export default function ForexPage() {
             onClick={() => setTab(t.id)}
             className={`px-5 py-1.5 text-sm cursor-pointer border-0 border-b-2 -mb-px bg-transparent transition-colors ${
               tab === t.id
-                ? "border-accent text-accent font-bold"
-                : "border-transparent text-text-3 font-normal hover:text-text-1"
-            }`}
+                ? "border-accent text-accent font-bold": "border-transparent text-text-3 font-normal hover:text-text-1"}`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {tab === "live"    && <LiveRatesTab />}
+      {tab === "live"&& <LiveRatesTab />}
       {tab === "forward" && <ForwardTab />}
-      {tab === "carry"   && <CarryTab />}
-      {tab === "curve"   && <CurveTab />}
+      {tab === "carry"&& <CarryTab />}
+      {tab === "curve"&& <CurveTab />}
     </div>
   );
 }

@@ -144,9 +144,7 @@ export function DrawdownChart({ points, height = 320 }: DrawdownChartProps) {
   return (
     <svg
       ref={ref}
-      width="100%"
-      style={{ height }}
-      className="block"
-    />
+      width="100%"style={{ height }}
+      className="block"/>
   );
 }

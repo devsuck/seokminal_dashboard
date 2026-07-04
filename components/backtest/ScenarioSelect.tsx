@@ -22,10 +22,8 @@ export function ScenarioSelect({ onStartChange, onEndChange }: ScenarioSelectPro
     <div className="flex items-center gap-2">
       <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">Scenario</span>
       <select
-        defaultValue=""
-        onChange={handleChange}
-        className="h-9 px-2 text-xs bg-panel-2 border border-border rounded-md text-text-2 outline-none focus:border-accent cursor-pointer"
-      >
+        defaultValue=""onChange={handleChange}
+        className="h-9 px-2 text-xs bg-panel-2 border border-border rounded-md text-text-2 outline-none focus:border-accent cursor-pointer">
         <option value="" disabled>Select crisis preset…</option>
         {SCENARIOS.map(s => (
           <option key={s.id} value={s.id} title={s.description}>

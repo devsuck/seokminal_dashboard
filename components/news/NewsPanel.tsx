@@ -18,8 +18,7 @@ function NewsCard({ item }: { item: NewsItem }) {
       {/* Clickable header row */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full text-left cursor-pointer bg-transparent border-0 p-0 group"
-      >
+        className="w-full text-left cursor-pointer bg-transparent border-0 p-0 group">
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
             <p className={`text-xs leading-snug transition-colors line-clamp-2 ${open ? "text-accent" : "text-text-1 group-hover:text-accent"}`}>
@@ -59,10 +58,7 @@ function NewsCard({ item }: { item: NewsItem }) {
           )}
           <a
             href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block mt-2 text-[11px] text-accent hover:underline no-underline"
-          >
+            target="_blank"rel="noopener noreferrer"className="inline-block mt-2 text-[11px] text-accent hover:underline no-underline">
             원문 보기 →
           </a>
         </div>
@@ -123,8 +119,7 @@ export function NewsPanel({ ticker, maxItems = 15, onHeadlinesLoaded }: NewsPane
         <button
           onClick={() => fetch_(ticker)}
           disabled={loading}
-          className="text-text-3 text-[10px] hover:text-text-1 disabled:opacity-40"
-        >
+          className="text-text-3 text-[10px] hover:text-text-1 disabled:opacity-40">
           {loading ? "…" : "↻"}
         </button>
       </div>

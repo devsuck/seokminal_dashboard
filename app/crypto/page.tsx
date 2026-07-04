@@ -94,8 +94,7 @@ function CryptoSidebar({
               key={coin}
               onClick={() => onSelect(coin)}
               className={`px-3 py-2 border-b border-border/40 cursor-pointer group ${
-                isActive ? "bg-panel-2" : "hover:bg-panel-2/50"
-              }`}
+                isActive ? "bg-panel-2" : "hover:bg-panel-2/50"}`}
             >
               <div className="flex items-center justify-between mb-0.5">
                 <span className={`text-xs font-semibold ${isActive ? "text-text-1" : "text-text-2"}`}>
@@ -103,8 +102,7 @@ function CryptoSidebar({
                 </span>
                 <button
                   onClick={e => { e.stopPropagation(); onRemove(coin); }}
-                  className="text-text-3 hover:text-neg text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-0 cursor-pointer p-0 leading-none"
-                >
+                  className="text-text-3 hover:text-neg text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-0 cursor-pointer p-0 leading-none">
                   ×
                 </button>
               </div>
@@ -242,10 +240,8 @@ function SearchTab({
         <input
           value={query}
           onChange={e => setQuery(e.target.value.toUpperCase())}
-          placeholder="코인 검색…"
-          autoFocus
-          className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-48 focus:border-accent outline-none"
-        />
+          placeholder="코인 검색…"autoFocus
+          className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-48 focus:border-accent outline-none"/>
         {assets && (
           <span className="text-text-3 text-xs">{assets.count}개 마켓 · Hyperliquid Perps</span>
         )}
@@ -286,9 +282,7 @@ function SearchTab({
                         disabled={inList}
                         className={`text-[10px] px-2 py-0.5 rounded border cursor-pointer transition-colors ${
                           inList
-                            ? "border-border text-text-3 cursor-not-allowed"
-                            : "border-accent text-accent hover:bg-accent/10"
-                        }`}
+                            ? "border-border text-text-3 cursor-not-allowed": "border-accent text-accent hover:bg-accent/10"}`}
                       >
                         {inList ? "추가됨" : "+ 추가"}
                       </button>
@@ -366,7 +360,7 @@ function StatsTab({
 type Tab = "search" | "workspace" | "stats";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "search",    label: "🔍 검색" },
+  { id: "search",    label: "검색" },
   { id: "workspace", label: "워크스페이스" },
   { id: "stats",     label: "통계" },
 ];
@@ -439,9 +433,7 @@ export default function CryptoPage() {
               onClick={() => setTab(t.id)}
               className={`px-4 py-2.5 text-sm border-b-2 transition-colors cursor-pointer bg-transparent border-l-0 border-r-0 border-t-0 ${
                 tab === t.id
-                  ? "border-accent text-accent font-medium"
-                  : "border-transparent text-text-3 hover:text-text-1"
-              }`}
+                  ? "border-accent text-accent font-medium": "border-transparent text-text-3 hover:text-text-1"}`}
             >
               {t.label}
             </button>
@@ -471,16 +463,14 @@ export default function CryptoPage() {
               {rightOpen ? (
                 <div className="w-[340px] border-l border-border flex flex-col shrink-0">
                   <div className="flex items-center border-b border-border shrink-0">
-                    {([["trade", "💵 매매"], ["alert", "🔔 알림"], ["indicators", "📊 지표"], ["book", "📖 호가"]] as const).map(([v, label]) => (
+                    {([["trade", " 매매"], ["alert", " 알림"], ["indicators", " 지표"], ["book", " 호가"]] as const).map(([v, label]) => (
                       <button key={v} onClick={() => setSide(v)}
                         className={`flex-1 py-2.5 text-[11px] border-b-2 bg-transparent cursor-pointer transition-colors ${
-                          side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"
-                        }`}>
+                          side === v ? "border-accent text-accent" : "border-transparent text-text-3 hover:text-text-1"}`}>
                         {label}{v === "indicators" && activeIndicatorCount(indicators) > 0 ? ` ${activeIndicatorCount(indicators)}` : ""}
                       </button>
                     ))}
-                    <button onClick={() => setRightOpen(false)} title="패널 접기"
-                      className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
+                    <button onClick={() => setRightOpen(false)} title="패널 접기"className="w-7 h-9 flex items-center justify-center text-text-3 hover:text-text-1 bg-transparent border-0 cursor-pointer shrink-0">▶</button>
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     {side === "trade" && <TradeTab symbol={`${activeCoin}.HL`} />}
@@ -490,10 +480,9 @@ export default function CryptoPage() {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setRightOpen(true)} title="패널 열기"
-                  className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
+                <button onClick={() => setRightOpen(true)} title="패널 열기"className="w-10 border-l border-border shrink-0 flex flex-col items-center justify-center gap-2 text-accent hover:bg-accent/10 bg-panel-2 cursor-pointer border-y-0 border-r-0">
                   <span className="text-sm">◀</span>
-                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}>💵 매매 · 🔔 알림 · 📊 지표 · 📖 호가</span>
+                  <span className="text-[11px]" style={{ writingMode: "vertical-rl" }}> 매매 ·  알림 ·  지표 ·  호가</span>
                 </button>
               )}
             </div>

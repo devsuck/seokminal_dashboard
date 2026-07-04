@@ -20,16 +20,14 @@ export function SingleStrategyForm({ fast, slow, onFastChange, onSlowChange }: S
         <span className="text-text-3 text-[11px] uppercase tracking-wider">Fast</span>
         <input
           type="number" value={fast} min={1}
-          className="compact w-14"
-          onChange={e => onFastChange(Number(e.target.value))}
+          className="compact w-14"onChange={e => onFastChange(Number(e.target.value))}
         />
       </div>
       <div className="flex items-center gap-2">
         <span className="text-text-3 text-[11px] uppercase tracking-wider">Slow</span>
         <input
           type="number" value={slow} min={1}
-          className="compact w-14"
-          onChange={e => onSlowChange(Number(e.target.value))}
+          className="compact w-14"onChange={e => onSlowChange(Number(e.target.value))}
         />
       </div>
     </div>

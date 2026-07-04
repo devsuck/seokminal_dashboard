@@ -54,8 +54,7 @@ export function ResearchActivityWidget() {
             <Link
               key={a.id}
               href={a.href}
-              className="flex items-center justify-between py-2 border-b border-border/40 last:border-0 no-underline group"
-            >
+              className="flex items-center justify-between py-2 border-b border-border/40 last:border-0 no-underline group">
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`text-[10px] font-semibold uppercase tracking-wide shrink-0 ${TYPE_COLOR[a.type]}`}>
                   {TYPE_LABEL[a.type]}

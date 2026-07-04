@@ -49,9 +49,7 @@ export function KRMarketsTab() {
               onClick={() => setIndexType(type)}
               className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
                 indexType === type
-                  ? "border-accent text-accent bg-accent/10"
-                  : "text-text-3 hover:text-text-1 border border-transparent"
-              }`}
+                  ? "border-accent text-accent bg-accent/10": "text-text-3 hover:text-text-1 border border-transparent"}`}
             >
               {type}
             </button>
@@ -59,11 +57,9 @@ export function KRMarketsTab() {
         </div>
         {/* Date input */}
         <input
-          type="date"
-          value={dateInput}
+          type="date"value={dateInput}
           onChange={e => setDateInput(e.target.value)}
-          className="bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"
-        />
+          className="bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
       </div>
 
       {/* Table or status */}

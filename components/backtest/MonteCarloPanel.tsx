@@ -112,19 +112,16 @@ export function MonteCarloPanel({ instrumentId, start, end }: Props) {
         <div className="flex items-center gap-2 shrink-0">
           <label className="text-text-3 text-xs">기간(일)</label>
           <input
-            type="number"
-            value={horizon}
+            type="number"value={horizon}
             min={20}
             max={1260}
             onChange={e => setHorizon(Math.max(20, Math.min(1260, Number(e.target.value))))}
-            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs font-data w-16"
-          />
+            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs font-data w-16"/>
           <label className="text-text-3 text-xs">시뮬</label>
           <select
             value={nSim}
             onChange={e => setNSim(Number(e.target.value))}
-            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs"
-          >
+            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs">
             {[200, 500, 1000, 2000].map(n => (
               <option key={n} value={n}>{n}</option>
             ))}
@@ -132,8 +129,7 @@ export function MonteCarloPanel({ instrumentId, start, end }: Props) {
           <button
             onClick={run}
             disabled={loading}
-            className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+            className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             {loading ? "실행 중…" : "실행"}
           </button>
         </div>

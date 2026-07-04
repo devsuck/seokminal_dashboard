@@ -40,9 +40,7 @@ function StockCard({ pick }: { pick: GroqStockPick }) {
       href={href}
       className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition-colors no-underline group ${
         isUp
-          ? "border-pos/30 bg-pos/5 hover:bg-pos/10"
-          : "border-neg/30 bg-neg/5 hover:bg-neg/10"
-      }`}
+          ? "border-pos/30 bg-pos/5 hover:bg-pos/10": "border-neg/30 bg-neg/5 hover:bg-neg/10"}`}
     >
       <div className="flex items-center gap-1.5">
         <span className={`text-[11px] font-bold ${isUp ? "text-pos" : "text-neg"}`}>
@@ -120,8 +118,7 @@ export function GroqSummaryPanel({ mode, getContent }: Props) {
           <button
             onClick={handleSummarize}
             disabled={loading}
-            className="text-[11px] px-2.5 py-1 bg-accent text-black rounded font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer border-0 transition-opacity"
-          >
+            className="text-[11px] px-2.5 py-1 bg-accent text-black rounded font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer border-0 transition-opacity">
             {loading ? "분석 중…" : "AI 분석"}
           </button>
         </div>

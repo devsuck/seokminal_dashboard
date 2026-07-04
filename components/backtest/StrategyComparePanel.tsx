@@ -81,8 +81,7 @@ export function StrategyComparePanel({ instrumentId, start, end }: StrategyCompa
         <button
           onClick={run}
           disabled={loading}
-          className="px-3 py-1.5 text-xs bg-accent text-black font-semibold rounded hover:brightness-110 disabled:opacity-50 cursor-pointer"
-        >
+          className="px-3 py-1.5 text-xs bg-accent text-black font-semibold rounded hover:brightness-110 disabled:opacity-50 cursor-pointer">
           {loading ? "실행 중..." : "모든 전략 비교"}
         </button>
       </div>
@@ -138,9 +137,7 @@ export function StrategyComparePanel({ instrumentId, start, end }: StrategyCompa
                       "px-3 py-2 font-data text-right " +
                       (result?.total_pnl_pct != null
                         ? result.total_pnl_pct > 0
-                          ? "text-pos"
-                          : "text-neg"
-                        : "text-text-2")
+                          ? "text-pos": "text-neg": "text-text-2")
                     }
                   >
                     {result?.total_pnl_pct != null

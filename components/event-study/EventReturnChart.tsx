@@ -141,7 +141,6 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      className="w-full"
-    />
+      className="w-full"/>
   );
 }

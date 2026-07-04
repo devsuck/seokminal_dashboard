@@ -134,6 +134,13 @@ export default function HudPage() {
   units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: bot?.version ?? "—", metric: `보유 ${bot?.open ?? 0}`, href: "/lab/tasks" });
   if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "enabled" : "off", metric: `체결 ${sys.dart_bot.acted ?? 0}`, href: "/dart-auto" });
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} tick`, metric: `처리 ${sys.research_service.processed_total ?? 0}`, href: "/lab" });
+
+  // 페이퍼 봇 목록 (AI LAB tasks 기반) — 항상 paper_active = 가동 중
+  const paperBots = [
+    { id: "buyback", name: "Buyback 봇", running: true, metric: `보유 ${bot?.open ?? 0}` },
+    { id: "tsmom", name: "TSMOM 32mkt", running: true, metric: "월 리밸런스" },
+  ];
+  const botRunning = paperBots.some(b => b.running);
   const nRunning = units.filter(u => u.running).length;
   const wd = sys?.research_service?.watchdog;
   const wdMsgs = (wd?.events ?? []).map(e => `[감시견${e.severity === "critical" ? " ⚠" : ""}] ${e.msg}`);
@@ -201,7 +208,20 @@ export default function HudPage() {
 
         {/* 중앙 아크리액터 */}
         <div className="flex flex-col items-center gap-4 order-1 lg:order-2 py-2">
+          {/* AI 오브 */}
           <ArcReactor size={160} active={active} label={arm ? arm.decision : busy ? "SCAN" : "IDLE"} sub="money path" />
+          {/* 봇 오브 — AI와 분리. 페이퍼 봇 가동 여부 */}
+          <div className="flex flex-col items-center gap-1">
+            <ArcReactor size={84} active={botRunning} label={botRunning ? "BOT" : "IDLE"} sub="paper" />
+            <div className="flex gap-2 mt-0.5">
+              {paperBots.map(b => (
+                <div key={b.id} className="flex items-center gap-1">
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${b.running ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                  <span className="font-data text-[9px] text-text-3 uppercase tracking-wider">{b.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="flex gap-3 sm:gap-4">
             <RadialGauge size={72} pct={edge ? Math.min(100, (edge.oos_months / Math.max(1, edge.need_months)) * 100) : 0}
               value={edge ? `${edge.oos_months}/${edge.need_months}` : "—"} label="OOS 월" tone={edge && edge.oos_months >= edge.need_months ? "pos" : "hud"} />
@@ -222,12 +242,26 @@ export default function HudPage() {
             <Row k="리스크 거버너" v={jarvis?.risk_governor ?? "—"} tone="hud" />
             <Row k="live 집행" v={jarvis?.live_execution ?? "—"} tone="neg" />
           </HudPanel>
-          <HudPanel title="Buyback 봇 (페이퍼)" right={<LivePulse tone="pos" />}>
-            <Row k="버전" v={bot?.version ?? "—"} tone="hud" />
-            <Row k="보유 포지션" v={String(bot?.open ?? 0)} />
-            <Row k="청산" v={String(bot?.closed ?? 0)} />
-            <Row k="누적 페이퍼 P&L" v={bot?.cum_paper_pnl != null ? `${bot.cum_paper_pnl >= 0 ? "+" : ""}${bot.cum_paper_pnl.toFixed(2)}%` : "—"}
-              tone={(bot?.cum_paper_pnl ?? 0) >= 0 ? "pos" : "neg"} />
+          <HudPanel title="페이퍼 봇" right={<LivePulse tone={botRunning ? "pos" : "text-3"} label={botRunning ? "가동" : "대기"} />}>
+            <div className="space-y-1 mb-2">
+              {paperBots.map(b => (
+                <div key={b.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${b.running ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                    <span className="font-data text-[10px] text-text-2">{b.name}</span>
+                  </div>
+                  <span className="font-data text-[10px] text-text-3">{b.metric}</span>
+                </div>
+              ))}
+            </div>
+            <div className="pt-1.5 border-t border-border/50">
+              <Row k="Buyback 보유" v={String(bot?.open ?? 0)} tone={(bot?.open ?? 0) > 0 ? "pos" : undefined} />
+              <Row k="누적 P&L" v={bot?.cum_paper_pnl != null ? `${bot.cum_paper_pnl >= 0 ? "+" : ""}${bot.cum_paper_pnl.toFixed(2)}%` : "—"}
+                tone={(bot?.cum_paper_pnl ?? 0) >= 0 ? "pos" : "neg"} />
+            </div>
+            <Link href="/lab/tasks" className="font-data text-[10px] text-accent no-underline uppercase tracking-wider hover:underline block mt-1.5">
+              봇 상세 →
+            </Link>
           </HudPanel>
         </div>
       </div>

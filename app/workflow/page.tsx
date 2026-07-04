@@ -97,8 +97,7 @@ export default function WorkflowPage() {
         </div>
         <button
           onClick={handleReset}
-          className="mt-1 text-xs text-text-3 hover:text-neg border border-border hover:border-neg/40 px-3 py-1.5 rounded transition-colors bg-transparent cursor-pointer"
-        >
+          className="mt-1 text-xs text-text-3 hover:text-neg border border-border hover:border-neg/40 px-3 py-1.5 rounded transition-colors bg-transparent cursor-pointer">
           Reset
         </button>
       </div>
@@ -112,8 +111,7 @@ export default function WorkflowPage() {
         {/* Progress bar */}
         <div className="h-1.5 bg-panel-2 rounded-full overflow-hidden mb-5">
           <div
-            className="h-full bg-accent rounded-full transition-all duration-500"
-            style={{ width: `${progressPct}%` }}
+            className="h-full bg-accent rounded-full transition-all duration-500"style={{ width: `${progressPct}%` }}
           />
         </div>
         {/* Step nodes + connectors */}
@@ -125,26 +123,17 @@ export default function WorkflowPage() {
               <div key={idx} className="flex items-center flex-1 last:flex-none">
                 <Link
                   href={def.href}
-                  className="flex flex-col items-center gap-1.5 no-underline group shrink-0"
-                  title={def.label}
+                  className="flex flex-col items-center gap-1.5 no-underline group shrink-0"title={def.label}
                 >
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-colors ${
-                      status === "done"
-                        ? "bg-pos/20 text-pos border-pos/40"
-                        : status === "current"
-                        ? "bg-accent/20 text-accent border-accent group-hover:bg-accent/30"
-                        : "bg-panel-2 text-text-3 border-border group-hover:border-text-3"
-                    }`}
+                      status === "done"? "bg-pos/20 text-pos border-pos/40": status === "current"? "bg-accent/20 text-accent border-accent group-hover:bg-accent/30": "bg-panel-2 text-text-3 border-border group-hover:border-text-3"}`}
                   >
                     {status === "done" ? "✓" : idx + 1}
                   </div>
                   <span
                     className={`text-[9px] whitespace-nowrap transition-colors ${
-                      status === "current" ? "text-accent font-semibold"
-                      : status === "done" ? "text-text-2"
-                      : "text-text-3 group-hover:text-text-2"
-                    }`}
+                      status === "current" ? "text-accent font-semibold": status === "done" ? "text-text-2": "text-text-3 group-hover:text-text-2"}`}
                   >
                     {def.label.replace(/^\d+\.\s*/, "")}
                   </span>
@@ -199,12 +188,7 @@ export default function WorkflowPage() {
               <div className="flex flex-col items-center shrink-0 pt-4">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
-                    status === "done"
-                      ? "bg-pos/20 text-pos border-pos/40"
-                      : status === "current"
-                      ? "bg-accent/20 text-accent border-accent"
-                      : "bg-panel-2 text-text-3 border-border"
-                  }`}
+                    status === "done"? "bg-pos/20 text-pos border-pos/40": status === "current"? "bg-accent/20 text-accent border-accent": "bg-panel-2 text-text-3 border-border"}`}
                 >
                   {status === "done" ? "✓" : idx + 1}
                 </div>
@@ -216,8 +200,7 @@ export default function WorkflowPage() {
               {/* Card */}
               <div
                 className={`flex-1 mb-2 bg-panel border rounded-lg p-4 transition-colors ${
-                  status === "current" ? "border-accent/40" : "border-border"
-                }`}
+                  status === "current" ? "border-accent/40" : "border-border"}`}
               >
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
@@ -238,10 +221,7 @@ export default function WorkflowPage() {
                 <Link
                   href={def.href}
                   className={`flex-shrink-0 px-3 py-1.5 text-xs rounded no-underline transition-colors whitespace-nowrap ${
-                    status === "current"
-                      ? "bg-accent text-black font-semibold hover:brightness-110"
-                      : "border border-border text-text-3 hover:text-text-1 hover:border-accent/50"
-                  }`}
+                    status === "current"? "bg-accent text-black font-semibold hover:brightness-110": "border border-border text-text-3 hover:text-text-1 hover:border-accent/50"}`}
                 >
                   {def.actionLabel}
                 </Link>

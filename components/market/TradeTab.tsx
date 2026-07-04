@@ -50,8 +50,7 @@ export function TradeTab({ symbol }: { symbol: string }) {
       // 미국 장 마감 + 이미 현재가 있음 → 스킵 (한도 절약). 크립토는 24/7.
       if (venue === "US" && fetchedOnce && !isUSMarketOpen()) return;
       try {
-        const p = venue === "CRYPTO"
-          ? (await getCryptoBook(code, ctrl.signal)).mid_price
+        const p = venue === "CRYPTO"? (await getCryptoBook(code, ctrl.signal)).mid_price
           : (await getQuote(code, ctrl.signal)).price;
         if (cancelled) return;
         fetchedOnce = true;
@@ -128,10 +127,8 @@ export function TradeTab({ symbol }: { symbol: string }) {
           </span>
         )}
         <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-panel-2 border border-border text-text-3">
-          {venue === "CRYPTO"
-            ? (paper ? "크립토 · HL 테스트넷" : "크립토 · HL 메인넷")
-            : venue === "KR"
-            ? (paper ? "한국 · KIS 모의" : "한국 · KIS 실계좌")
+          {venue === "CRYPTO"? (paper ? "크립토 · HL 테스트넷" : "크립토 · HL 메인넷")
+            : venue === "KR"? (paper ? "한국 · KIS 모의" : "한국 · KIS 실계좌")
             : (paper ? "미국 · Alpaca 페이퍼" : "미국 · IB 실계좌")}
         </span>
       </div>
@@ -232,7 +229,7 @@ export function TradeTab({ symbol }: { symbol: string }) {
               )}
             </div>
             {!paper && (
-              <p className="text-warn text-xs">⚠️ 실계좌 주문 — 실제 체결됩니다.</p>
+              <p className="text-warn text-xs">⚠ 실계좌 주문 — 실제 체결됩니다.</p>
             )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setConfirm(false)} className="text-sm text-text-2 border border-border rounded px-4 py-1.5">취소</button>

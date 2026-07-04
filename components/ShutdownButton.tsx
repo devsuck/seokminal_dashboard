@@ -101,9 +101,7 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
         <button
           onClick={handleClick}
           disabled={phase !== "idle"}
-          title="종료"
-          className="w-7 h-7 flex items-center justify-center text-neg/60 hover:text-neg hover:bg-neg/10 rounded transition-colors bg-transparent border-0 cursor-pointer disabled:opacity-30 mx-auto"
-        >
+          title="종료"className="w-7 h-7 flex items-center justify-center text-neg/60 hover:text-neg hover:bg-neg/10 rounded transition-colors bg-transparent border-0 cursor-pointer disabled:opacity-30 mx-auto">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <circle cx="7" cy="7" r="5.5" />
             <line x1="7" y1="3" x2="7" y2="7" />
@@ -114,8 +112,7 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
         <button
           onClick={handleClick}
           disabled={phase !== "idle"}
-          className="w-full py-2 rounded border border-neg/30 text-neg/70 text-[11px] font-medium hover:bg-neg/8 hover:text-neg hover:border-neg/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent"
-        >
+          className="w-full py-2 rounded border border-neg/30 text-neg/70 text-[11px] font-medium hover:bg-neg/8 hover:text-neg hover:border-neg/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent">
           {phase === "idle" ? "⏹ 종료" : "종료 중..."}
         </button>
       )}

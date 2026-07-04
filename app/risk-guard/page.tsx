@@ -29,7 +29,7 @@ export default function RiskGuardPage() {
   async function toggleKill() {
     if (!data) return;
     const next = !data.kill_engaged;
-    if (next && !confirm("⚠️ 킬스위치 ON — 모든 자동봇/주문 즉시 차단. 계속?")) return;
+    if (next && !confirm("⚠ 킬스위치 ON — 모든 자동봇/주문 즉시 차단. 계속?")) return;
     setBusy(true);
     try { await setKillSwitch(next, "manual"); load(); }
     catch (e) { setError(e instanceof ApiError ? e.message : String(e)); }
@@ -58,7 +58,7 @@ export default function RiskGuardPage() {
             <div className={`border rounded-lg p-4 flex items-center justify-between ${data.kill_engaged ? "border-neg/50 bg-neg/10" : "border-border bg-panel"}`}>
               <div>
                 <div className={`text-sm font-semibold ${data.kill_engaged ? "text-neg" : "text-text-1"}`}>
-                  킬스위치 {data.kill_engaged ? "🔴 ON — 거래 차단됨" : "🟢 OFF — 정상"}
+                  킬스위치 {data.kill_engaged ? " ON — 거래 차단됨" : " OFF — 정상"}
                 </div>
                 <div className="text-text-3 text-xs mt-0.5">
                   {data.kill_engaged ? `사유: ${data.kill_reason || "manual"}` : "모든 자동봇/주문 즉시 중단 스위치"}
@@ -66,8 +66,7 @@ export default function RiskGuardPage() {
               </div>
               <button onClick={toggleKill} disabled={busy}
                 className={`text-sm font-medium px-4 py-2 rounded border disabled:opacity-40 ${
-                  data.kill_engaged ? "border-pos/50 text-pos hover:bg-pos/10" : "border-neg/50 text-neg hover:bg-neg/10"
-                }`}>
+                  data.kill_engaged ? "border-pos/50 text-pos hover:bg-pos/10" : "border-neg/50 text-neg hover:bg-neg/10"}`}>
                 {data.kill_engaged ? "해제" : "긴급 정지"}
               </button>
             </div>
@@ -85,7 +84,7 @@ export default function RiskGuardPage() {
                   style={{ width: `${Math.round(ddFrac * 100)}%` }} />
               </div>
               {data.drawdown_breached && (
-                <p className="text-neg text-xs mt-2">⚠️ 낙폭 한도 초과 — 자동 킬 발동됨. 원인 점검 후 수동 해제.</p>
+                <p className="text-neg text-xs mt-2">⚠ 낙폭 한도 초과 — 자동 킬 발동됨. 원인 점검 후 수동 해제.</p>
               )}
             </div>
 

@@ -14,6 +14,7 @@ const CHECKS = [
   { label: "KRX Data",   url: () => `${API_URL}/krx/index?bas_dd=${todayKrx()}&index_type=KOSPI` },
   { label: "FRED/Macro", url: () => `${API_URL}/fred/catalog` },
   { label: "Bot Engine", url: () => `${API_URL}/bots` },
+  { label: "LKG Graph",  url: () => `${API_URL}/graph/update-status` },
 ] as const;
 
 interface ServiceStatus {
@@ -74,15 +75,14 @@ export function SystemStatusWidget() {
           <div key={s.label} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                s.state === "online"   ? "bg-pos" :
-                s.state === "error"    ? "bg-neg" :
-                                         "bg-warn animate-pulse"
-              }`} />
+                s.state === "online"? "bg-pos" :
+                s.state === "error"? "bg-neg" :
+                                         "bg-warn animate-pulse"}`} />
               <span className="text-text-2 text-xs">{s.label}</span>
             </div>
             <span className={`text-[11px] font-data ${statusColor(s.state)}`}>
               {s.state === "checking" ? "…" :
-               s.state === "online"   ? formatLatency(s.latencyMs) :
+               s.state === "online"? formatLatency(s.latencyMs) :
                                         "Error"}
             </span>
           </div>

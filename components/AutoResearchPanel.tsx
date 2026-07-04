@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  getAutoResearch, runAutoResearch,
-  type AutoResearchStatus, type AutoResearchEntry,
+  getAutoResearch, runAutoResearch, promoteToPaper,
+  type AutoResearchStatus, type AutoResearchEntry, type PromotePaperResult,
 } from "@/lib/api";
 import { LivePulse, AnimatedNumber, ThinkingLine } from "@/components/Jarvis";
 import { ArcReactor, RadialGauge } from "@/components/Hud";
@@ -29,6 +29,8 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [promoting, setPromoting] = useState<string | null>(null);
+  const [promoteResults, setPromoteResults] = useState<Record<string, PromotePaperResult>>({});
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -47,6 +49,18 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
     try { setSt(await runAutoResearch()); }
     catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
+  }
+
+  async function onPromote(cid: string, thesis: string) {
+    setPromoting(cid); setErr(null);
+    try {
+      const res = await promoteToPaper(cid, thesis.slice(0, 40));
+      setPromoteResults(prev => ({ ...prev, [cid]: res }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPromoting(null);
+    }
   }
 
   const lb = st?.leaderboard ?? [];
@@ -130,7 +144,10 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
           <div className="text-[10px] uppercase tracking-wider text-text-3">리더보드 ({lb.length})</div>
           {lb.map((e, i) => (
             <LeaderRow key={e.cid} e={e} rank={i + 1} open={open === e.cid}
-              onToggle={() => setOpen(open === e.cid ? null : e.cid)} />
+              onToggle={() => setOpen(open === e.cid ? null : e.cid)}
+              onPromote={e.verdict === "CANDIDATE" ? () => onPromote(e.cid, e.thesis) : undefined}
+              promoteResult={promoteResults[e.cid] ?? null}
+              promoting={promoting === e.cid} />
           ))}
         </div>
       )}
@@ -185,10 +202,15 @@ function Stat({ label, num, str, tone }: { label: string; num?: number; str?: st
   );
 }
 
-function LeaderRow({ e, rank, open, onToggle }: { e: AutoResearchEntry; rank: number; open: boolean; onToggle: () => void }) {
+function LeaderRow({ e, rank, open, onToggle, onPromote, promoteResult, promoting }: {
+  e: AutoResearchEntry; rank: number; open: boolean; onToggle: () => void;
+  onPromote?: () => void; promoteResult?: PromotePaperResult | null; promoting?: boolean;
+}) {
   const v = VERDICT[e.verdict] ?? { label: e.verdict, cls: "text-text-2 border-border" };
+  const isCandidate = e.verdict === "CANDIDATE";
+  const alreadyPaper = promoteResult?.status?.startsWith("paper");
   return (
-    <div className={`bg-panel border rounded-lg animate-[rise_0.4s_ease-out_both] ${e.verdict === "CANDIDATE" ? "border-pos/40 animate-[pulse-glow_2.4s_ease-in-out_infinite]" : "border-border"}`}>
+    <div className={`bg-panel border rounded-lg animate-[rise_0.4s_ease-out_both] ${isCandidate ? "border-pos/40 animate-[pulse-glow_2.4s_ease-in-out_infinite]" : "border-border"}`}>
       <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer bg-transparent border-0 text-left">
         <span className="text-[11px] font-data text-text-3 w-5 shrink-0">{rank}</span>
         <div className="flex-1 min-w-0">
@@ -196,6 +218,11 @@ function LeaderRow({ e, rank, open, onToggle }: { e: AutoResearchEntry; rank: nu
             <span className="text-sm font-data text-text-1">{e.cid}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded border border-border text-text-3">{e.category}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded border ${v.cls}`}>{v.label}</span>
+            {alreadyPaper && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded border border-info/40 text-info bg-info/10">
+                {promoteResult!.status} ✓
+              </span>
+            )}
           </div>
           <div className="text-[11px] text-text-3 truncate mt-0.5">{e.thesis}</div>
         </div>
@@ -207,15 +234,33 @@ function LeaderRow({ e, rank, open, onToggle }: { e: AutoResearchEntry; rank: nu
       </button>
 
       {open && (
-        <div className="px-4 pb-3 border-t border-border pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-          <Kv k="배치 BH" v={e.bh_survivor ? "생존 ✓" : "탈락"} tone={e.bh_survivor ? "pos" : "neg"} />
-          <Kv k="레드팀" v={e.redteam} tone={e.redteam === "CLEARED" ? "pos" : "neg"} />
-          <Kv k="WF 전/후" v={`${fnum(e.wf_first, 3, true)} / ${fnum(e.wf_second, 3, true)}`} />
-          <Kv k="상위꼬리" v={fnum(e.top_tail, 2)} />
-          <Kv k="median" v={fnum(e.median, 4, true)} tone={(e.median ?? 0) >= 0 ? "pos" : "neg"} />
-          <Kv k="n" v={String(e.n ?? "—")} />
-          {e.redteam_failed.length > 0 && (
-            <div className="col-span-2 sm:col-span-4 text-[11px] text-neg">통제 실패: {e.redteam_failed.join(", ")}</div>
+        <div className="px-4 pb-3 border-t border-border pt-3 space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+            <Kv k="배치 BH" v={e.bh_survivor ? "생존 ✓" : "탈락"} tone={e.bh_survivor ? "pos" : "neg"} />
+            <Kv k="레드팀" v={e.redteam} tone={e.redteam === "CLEARED" ? "pos" : "neg"} />
+            <Kv k="WF 전/후" v={`${fnum(e.wf_first, 3, true)} / ${fnum(e.wf_second, 3, true)}`} />
+            <Kv k="상위꼬리" v={fnum(e.top_tail, 2)} />
+            <Kv k="median" v={fnum(e.median, 4, true)} tone={(e.median ?? 0) >= 0 ? "pos" : "neg"} />
+            <Kv k="n" v={String(e.n ?? "—")} />
+            {e.redteam_failed.length > 0 && (
+              <div className="col-span-2 sm:col-span-4 text-[11px] text-neg">통제 실패: {e.redteam_failed.join(", ")}</div>
+            )}
+          </div>
+          {isCandidate && onPromote && (
+            <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+              <button onClick={e => { e.stopPropagation(); onPromote(); }} disabled={promoting || !!alreadyPaper}
+                className="text-[11px] px-3 py-1.5 rounded border border-pos/50 text-pos bg-pos/10 font-medium disabled:opacity-40 hover:bg-pos/20 transition-colors">
+                {alreadyPaper ? "✓ 페이퍼 등록됨" : promoting ? "등록 중…" : "🚀 페이퍼로 올리기"}
+              </button>
+              {promoteResult && !alreadyPaper && (
+                <span className="text-[10px] text-neg">{promoteResult.deployment?.reason ?? "오류"}</span>
+              )}
+              {alreadyPaper && (
+                <span className="text-[10px] text-text-3">
+                  registry: {promoteResult!.status} · runner: {promoteResult!.deployment?.runner ?? "—"}
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}

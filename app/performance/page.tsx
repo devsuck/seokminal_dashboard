@@ -101,8 +101,7 @@ export default function PerformancePage() {
               <Metric label="수익률" value={`${data.return_pct > 0 ? "+" : ""}${data.return_pct}%`} cls={pnlCls(data.return_pct)} />
               <Metric label="최대낙폭 (MDD)" value={`${data.mdd_pct}%`} cls="text-neg" />
               <Metric label="Sharpe" value={`${data.sharpe}`} cls={data.sharpe >= 1 ? "text-pos" : "text-text-1"} />
-              <Metric label="vs SPY (초과)"
-                value={data.excess_pct != null ? `${data.excess_pct > 0 ? "+" : ""}${data.excess_pct}%` : "—"}
+              <Metric label="vs SPY (초과)"value={data.excess_pct != null ? `${data.excess_pct > 0 ? "+" : ""}${data.excess_pct}%` : "—"}
                 cls={pnlCls(data.excess_pct)} />
             </div>
 

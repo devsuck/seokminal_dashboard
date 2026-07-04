@@ -77,8 +77,7 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
               key={v}
               onClick={() => { setVenue(v); setKrResults([]); setUsResults([]); setSearched(false); }}
               className={`px-3 py-1.5 text-xs font-semibold cursor-pointer border-0 transition-colors ${
-                venue === v ? "bg-accent text-black" : "bg-panel text-text-3 hover:text-text-1"
-              }`}
+                venue === v ? "bg-accent text-black" : "bg-panel text-text-3 hover:text-text-1"}`}
             >
               {v}
             </button>
@@ -86,20 +85,17 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
         </div>
 
         <input
-          type="text"
-          value={query}
+          type="text"value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKey}
           placeholder={venue === "KR" ? "종목명 또는 코드 (삼성, 005930)" : "Symbol or name (AAPL, Apple)"}
-          className="flex-1 h-8 px-3 text-sm bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
-          autoFocus
+          className="flex-1 h-8 px-3 text-sm bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"autoFocus
         />
 
         <button
           onClick={() => run()}
           disabled={loading || !query.trim()}
-          className="h-8 px-4 text-xs font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 disabled:opacity-50 shrink-0"
-        >
+          className="h-8 px-4 text-xs font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 disabled:opacity-50 shrink-0">
           {loading ? "…" : "검색"}
         </button>
       </div>
@@ -135,8 +131,7 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
                     <span className="text-[10px] text-text-3 self-center font-data">{instrId}</span>
                     <button
                       onClick={() => onGoToChart(instrId)}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0"
-                    >
+                      className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0">
                       차트 →
                     </button>
                   </div>
@@ -166,8 +161,7 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
                     <span className="text-[10px] text-text-3 self-center font-data">{instrId}</span>
                     <button
                       onClick={() => onGoToChart(instrId)}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0"
-                    >
+                      className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0">
                       차트 →
                     </button>
                   </div>

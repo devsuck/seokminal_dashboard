@@ -143,9 +143,7 @@ function IndicatorParamsEditor({
     return (
       <input
         key={key}
-        type="number"
-        className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs w-20"
-        placeholder={placeholder}
+        type="number"className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs w-20"placeholder={placeholder}
         value={params[key]}
         onChange={e => onChange({ ...params, [key]: e.target.value })}
       />
@@ -157,8 +155,7 @@ function IndicatorParamsEditor({
         numInput("period", "period")}
       {indicator === "MA" && (
         <select
-          className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs"
-          value={params.ma_type}
+          className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs"value={params.ma_type}
           onChange={e => onChange({ ...params, ma_type: e.target.value })}
         >
           {MA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -168,8 +165,7 @@ function IndicatorParamsEditor({
         <>
           {numInput("k", "k")}
           <select
-            className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs"
-            value={params.band}
+            className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs"value={params.band}
             onChange={e => onChange({ ...params, band: e.target.value })}
           >
             <option value="upper">upper</option>
@@ -198,8 +194,7 @@ function OperandEditor({
   return (
     <div className="flex flex-col gap-1">
       <select
-        className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm"
-        value={value.opType}
+        className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm"value={value.opType}
         onChange={e => onChange({ ...value, opType: e.target.value as OperandType })}
       >
         <option value="indicator">Indicator</option>
@@ -207,17 +202,13 @@ function OperandEditor({
       </select>
       {value.opType === "literal" ? (
         <input
-          type="number"
-          className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm w-28"
-          placeholder="value"
-          value={value.value}
+          type="number"className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm w-28"placeholder="value"value={value.value}
           onChange={e => onChange({ ...value, value: e.target.value })}
         />
       ) : (
         <>
           <select
-            className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm"
-            value={value.indicator}
+            className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm"value={value.indicator}
             onChange={e =>
               onChange({ ...value, indicator: e.target.value as IndicatorType, params: { ...DEFAULT_PARAMS } })
             }
@@ -225,9 +216,7 @@ function OperandEditor({
             {INDICATORS.map(ind => <option key={ind} value={ind}>{ind}</option>)}
           </select>
           <input
-            className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs"
-            placeholder="bar_type e.g. AAPL.NASDAQ-1-DAY-LAST-EXTERNAL"
-            value={value.barType}
+            className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-xs"placeholder="bar_type e.g. AAPL.NASDAQ-1-DAY-LAST-EXTERNAL"value={value.barType}
             onChange={e => onChange({ ...value, barType: e.target.value })}
           />
           <IndicatorParamsEditor
@@ -261,8 +250,7 @@ function ConditionRowEditor({
       </div>
       <div className="flex flex-col items-center pt-6">
         <select
-          className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm"
-          value={condition.op}
+          className="border border-border bg-panel text-text-1 rounded px-2 py-1 text-sm"value={condition.op}
           onChange={e => onChange({ ...condition, op: e.target.value as OpType })}
         >
           {OPS.map(op => <option key={op} value={op}>{op}</option>)}
@@ -276,10 +264,8 @@ function ConditionRowEditor({
         />
       </div>
       <button
-        className="text-neg text-lg leading-none mt-6 px-1"
-        onClick={onRemove}
-        aria-label="Remove condition"
-      >
+        className="text-neg text-lg leading-none mt-6 px-1"onClick={onRemove}
+        aria-label="Remove condition">
         ✕
       </button>
     </div>
@@ -402,8 +388,7 @@ export default function SpawnerPage() {
             <div className="flex items-center gap-2 mb-4">
               <span className="text-sm text-text-2">Combinator:</span>
               <select
-                className="border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"
-                value={rule.combinator}
+                className="border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"value={rule.combinator}
                 onChange={e =>
                   setRule(r => ({ ...r, combinator: e.target.value as Combinator }))
                 }
@@ -425,8 +410,7 @@ export default function SpawnerPage() {
             </div>
 
             <button
-              className="mt-3 text-sm text-accent border border-accent/40 rounded px-3 py-1 hover:bg-accent/10"
-              onClick={addCondition}
+              className="mt-3 text-sm text-accent border border-accent/40 rounded px-3 py-1 hover:bg-accent/10"onClick={addCondition}
             >
               + Add Condition
             </button>
@@ -436,16 +420,14 @@ export default function SpawnerPage() {
           <div className="bg-panel border border-border rounded-lg p-4">
             <div className="flex flex-wrap items-center gap-3">
               <button
-                className="bg-accent text-black text-sm font-medium rounded px-4 py-1.5"
-                onClick={handleValidate}
+                className="bg-accent text-black text-sm font-medium rounded px-4 py-1.5"onClick={handleValidate}
               >
                 Validate
               </button>
               {validateResult && (
                 <span
                   className={`text-sm font-medium ${
-                    validateResult.valid ? "text-pos" : "text-neg"
-                  }`}
+                    validateResult.valid ? "text-pos" : "text-neg"}`}
                 >
                   {validateResult.valid
                     ? `✓ Valid — ${validateResult.rules[0]?.condition_count ?? 0} condition(s)`
@@ -464,8 +446,7 @@ export default function SpawnerPage() {
               JSON Preview
             </h2>
             <textarea
-              className="w-full h-32 bg-panel-2 border border-border text-text-2 text-xs font-mono rounded p-2 resize-none"
-              readOnly
+              className="w-full h-32 bg-panel-2 border border-border text-text-2 text-xs font-mono rounded p-2 resize-none"readOnly
               value={rulesJson}
             />
           </div>
@@ -477,15 +458,12 @@ export default function SpawnerPage() {
             </h2>
             <div className="flex gap-2">
               <input
-                className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"
-                placeholder="Rule name…"
-                value={saveName}
+                className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm"placeholder="Rule name…"value={saveName}
                 onChange={e => setSaveName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
               />
               <button
-                className="bg-accent text-black text-sm font-medium rounded px-4 py-1.5 disabled:opacity-40"
-                onClick={handleSave}
+                className="bg-accent text-black text-sm font-medium rounded px-4 py-1.5 disabled:opacity-40"onClick={handleSave}
                 disabled={!saveName.trim()}
               >
                 Save
@@ -510,9 +488,7 @@ export default function SpawnerPage() {
                     key={r.name}
                     className={`flex items-center justify-between px-3 py-2 rounded border cursor-pointer ${
                       selectedRule === r.name
-                        ? "border-accent text-accent bg-accent/10"
-                        : "border-border bg-panel-2 text-text-1"
-                    }`}
+                        ? "border-accent text-accent bg-accent/10": "border-border bg-panel-2 text-text-1"}`}
                     onClick={() =>
                       setSelectedRule(selectedRule === r.name ? null : r.name)
                     }
@@ -524,8 +500,7 @@ export default function SpawnerPage() {
                       </span>
                     </div>
                     <button
-                      className="text-xs text-neg hover:underline"
-                      onClick={e => {
+                      className="text-xs text-neg hover:underline"onClick={e => {
                         e.stopPropagation();
                         handleDelete(r.name);
                       }}
@@ -553,35 +528,28 @@ export default function SpawnerPage() {
               <div className="flex items-center gap-2">
                 <label className="text-sm text-text-2 w-24 shrink-0">Instrument</label>
                 <input
-                  className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"
-                  value={instrument}
+                  className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"value={instrument}
                   onChange={e => setInstrument(e.target.value)}
-                  placeholder="e.g. AAPL.NASDAQ"
-                />
+                  placeholder="e.g. AAPL.NASDAQ"/>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-text-2 w-24 shrink-0">Start</label>
                 <input
-                  type="date"
-                  className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"
-                  value={start}
+                  type="date"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"value={start}
                   onChange={e => setStart(e.target.value)}
                 />
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-text-2 w-24 shrink-0">End</label>
                 <input
-                  type="date"
-                  className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"
-                  value={end}
+                  type="date"className="flex-1 border border-border bg-panel-2 text-text-1 rounded px-2 py-1 text-sm"value={end}
                   onChange={e => setEnd(e.target.value)}
                 />
               </div>
             </div>
 
             <button
-              className="bg-accent text-black text-sm font-medium rounded px-4 py-1.5 disabled:opacity-40"
-              onClick={handleEvaluate}
+              className="bg-accent text-black text-sm font-medium rounded px-4 py-1.5 disabled:opacity-40"onClick={handleEvaluate}
               disabled={loading}
             >
               {loading ? "Running…" : "Run Evaluate"}

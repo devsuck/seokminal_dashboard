@@ -75,20 +75,16 @@ export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
         <div className="flex flex-col gap-1">
           <label className="text-text-3 text-xs">초기 자본</label>
           <input
-            type="number"
-            value={capital}
+            type="number"value={capital}
             onChange={e => setCapital(Math.max(1, Number(e.target.value)))}
-            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs font-data w-28"
-          />
+            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs font-data w-28"/>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-text-3 text-xs">거래 횟수</label>
           <input
-            type="number"
-            value={nTrades}
+            type="number"value={nTrades}
             onChange={e => setNTrades(Math.max(1, Math.min(500, Number(e.target.value))))}
-            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs font-data w-20"
-          />
+            className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs font-data w-20"/>
         </div>
         <div className="text-text-3 text-xs pb-1.5">
           승률 {(winRate * 100).toFixed(1)}% · 평균수익 {avgWin.toFixed(2)}% · 평균손실 {Math.abs(avgLoss).toFixed(2)}%
@@ -130,13 +126,11 @@ export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
                   {(row.frac * 100).toFixed(1)}%
                 </td>
                 <td className={`px-3 py-2 text-right text-xs font-data ${
-                  row.terminal > capital ? "text-pos" : row.terminal < capital ? "text-neg" : "text-text-3"
-                }`}>
+                  row.terminal > capital ? "text-pos" : row.terminal < capital ? "text-neg" : "text-text-3"}`}>
                   {fmt$(row.terminal)}
                 </td>
                 <td className={`px-3 py-2 text-right text-xs font-data ${
-                  row.pctReturn > 0 ? "text-pos" : row.pctReturn < 0 ? "text-neg" : "text-text-3"
-                }`}>
+                  row.pctReturn > 0 ? "text-pos" : row.pctReturn < 0 ? "text-neg" : "text-text-3"}`}>
                   {row.pctReturn > 0 ? "+" : ""}{row.pctReturn.toFixed(1)}%
                 </td>
               </tr>

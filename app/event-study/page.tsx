@@ -134,27 +134,21 @@ export default function EventStudyPage() {
             <input
               value={instrumentId}
               onChange={e => setInstrumentId(e.target.value)}
-              placeholder="005930.XKRX"
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data w-40"
-            />
+              placeholder="005930.XKRX"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data w-40"/>
           </div>
           <div className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">Start</label>
             <input
-              type="date"
-              value={start}
+              type="date"value={start}
               onChange={e => setStart(e.target.value)}
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
-            />
+              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"/>
           </div>
           <div className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">End</label>
             <input
-              type="date"
-              value={end}
+              type="date"value={end}
               onChange={e => setEnd(e.target.value)}
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"
-            />
+              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"/>
           </div>
         </div>
 
@@ -168,9 +162,7 @@ export default function EventStudyPage() {
                 onClick={() => setSource(opt.value)}
                 className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
                   source === opt.value
-                    ? "border-accent text-accent bg-accent/10"
-                    : "border-border text-text-3 bg-transparent hover:text-text-2"
-                }`}
+                    ? "border-accent text-accent bg-accent/10": "border-border text-text-3 bg-transparent hover:text-text-2"}`}
               >
                 {opt.label}
               </button>
@@ -185,8 +177,7 @@ export default function EventStudyPage() {
             <select
               value={fredSeriesId}
               onChange={e => setFredSeriesId(e.target.value)}
-              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent"
-            >
+              className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent">
               {fredCatalog.length === 0 && <option value="">Loading...</option>}
               {fredCatalog.map(item => (
                 <option key={item.series_id} value={item.series_id}>
@@ -203,9 +194,7 @@ export default function EventStudyPage() {
               rows={4}
               value={customDates}
               onChange={e => setCustomDates(e.target.value)}
-              placeholder="2022-02-24&#10;2022-09-30"
-              className="w-full px-3 py-2 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-y font-data"
-            />
+              placeholder="2022-02-24&#10;2022-09-30"className="w-full px-3 py-2 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-y font-data"/>
           </div>
         )}
 
@@ -220,9 +209,7 @@ export default function EventStudyPage() {
                   onClick={() => setWindowDays(w)}
                   className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
                     windowDays === w
-                      ? "border-accent text-accent bg-accent/10"
-                      : "border-border text-text-3 bg-transparent hover:text-text-2"
-                  }`}
+                      ? "border-accent text-accent bg-accent/10": "border-border text-text-3 bg-transparent hover:text-text-2"}`}
                 >
                   ±{w}d
                 </button>
@@ -232,8 +219,7 @@ export default function EventStudyPage() {
           <button
             onClick={run}
             disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? "Running…" : "Run"}
           </button>
         </div>
@@ -328,8 +314,7 @@ export default function EventStudyPage() {
                         <td
                           key={k}
                           className={`px-2 py-1.5 text-right font-data ${
-                            r === null ? "text-text-3" : r > 0 ? "text-pos" : r < 0 ? "text-neg" : "text-text-2"
-                          }`}
+                            r === null ? "text-text-3" : r > 0 ? "text-pos" : r < 0 ? "text-neg" : "text-text-2"}`}
                         >
                           {r === null ? "—" : `${(r * 100).toFixed(2)}%`}
                         </td>

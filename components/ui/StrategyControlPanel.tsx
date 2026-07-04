@@ -54,8 +54,7 @@ export function StrategyControlPanel({
                 className={[
                   "px-2.5 py-1 text-xs rounded border cursor-pointer transition-all duration-100",
                   timeframe === tf
-                    ? "bg-panel-2 text-accent border-accent/40 font-medium"
-                    : "bg-transparent text-text-3 border-border hover:text-text-2 hover:border-border",
+                    ? "bg-panel-2 text-accent border-accent/40 font-medium": "bg-transparent text-text-3 border-border hover:text-text-2 hover:border-border",
                 ].join(" ")}
               >
                 {tf}
@@ -78,8 +77,7 @@ export function StrategyControlPanel({
         <button
           onClick={onRun}
           disabled={loading}
-          className="ml-auto px-5 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-0"
-        >
+          className="ml-auto px-5 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-0">
           {loading ? "Running…" : "Run"}
         </button>
       </div>
