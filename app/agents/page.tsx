@@ -12,6 +12,8 @@ import {
   distillAgent,
   getAgentsOverview,
   getAccountBalances,
+  getGodModeEligibility,
+  promoteToGodMode,
   type TradingAgent,
   type AgentType,
   type AgentCycle,
@@ -19,9 +21,25 @@ import {
   type DistillResult,
   type AgentsOverview,
   type AccountBalances,
+  type GodModeEligibility,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 import { ReactorCore, lvToOrbVariant, type OrbVariant } from "@/components/ReactorCore";
+import { displayLevel } from "@/lib/agent-level";
+import { Balances } from "@/components/AccountBalances";
+
+/** God Mode 전용 아이콘 — 왕관(3-jewel). LIVE 승급 상태를 나타내는 유일한 자리에만 쓴다. */
+function IconCrown({ size = 14, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor"
+      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M2,12.5 L2,6 L5,9 L8,4 L11,9 L14,6 L14,12.5 L2,12.5 Z" />
+      <circle cx="2" cy="6" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="4" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="6" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 
 type Style = "swing" | "daytrade" | "longterm";
 type Mkt = "KR" | "US" | "CRYPTO";
@@ -29,18 +47,10 @@ type Mkt = "KR" | "US" | "CRYPTO";
 const STYLE_LABEL: Record<Style, string> = { swing: "스윙", daytrade: "단타", longterm: "장투" };
 const MKT_LABEL: Record<Mkt, string> = { KR: "한국주식", US: "미국주식", CRYPTO: "가상화폐" };
 
-function isLv5Agent(a: TradingAgent): boolean {
-  return a.autonomy === 5 || a.type === "autonomous" || a.type === "kr_macro";
-}
-
-
 const LV_CFG: Record<number, { color: string; bg: string; border: string; label: string }> = {
   1: { color: "#22c55e", bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.5)",   label: "Lv1" },
   2: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.5)",  label: "Lv2" },
-  3: { color: "#eab308", bg: "rgba(234,179,8,0.1)",  border: "rgba(234,179,8,0.5)",   label: "Lv3" },
-  4: { color: "#f97316", bg: "rgba(249,115,22,0.1)", border: "rgba(249,115,22,0.5)",  label: "Lv4" },
-  5: { color: "#ef4444", bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.5)",   label: "Lv5" },
-  6: { color: "#ec4899", bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.5)",  label: "Lv6" },
+  3: { color: "#ef4444", bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.5)",   label: "Lv3" },
 };
 function lvCfg(lv: number) { return LV_CFG[lv] ?? LV_CFG[2]; }
 
@@ -66,6 +76,8 @@ function agentCcy(a: TradingAgent): string {
 }
 
 function agentStyleLabel(a: TradingAgent): string {
+  if (a.type === "condition_lv1") return "조건식";
+  if (a.type === "option_lv1") return "옵션 조건식";
   if (a.type === "autonomous") return "자율학습";
   if (a.type === "kr_macro") return "KR거시";
 
@@ -89,6 +101,15 @@ function toBackend(style: Style | "autonomous" | "kr_macro", m: Mkt): { type: Ag
   }
   const type: AgentType = style === "longterm" ? "longterm" : "swing";
   return { type, market: m === "KR" ? "KR" : "US" };
+}
+
+/** 신규 에이전트가 실제로 걸리는 브로커 venue — accounts/balances의 venue 키와 동일 기준.
+    실계좌(paper=false)는 가드 대상 아님(수동 승인 전제, 여기선 페이퍼 과다배정만 막음). */
+function venueBucket(type: AgentType, market: string, paper: boolean): string | null {
+  if (!paper) return null;
+  if (type === "hl_daytrade") return "hl_testnet";
+  if (market === "KR") return "kis_mock";
+  return "alpaca";
 }
 
 function ccySym(ccy: string): string {
@@ -294,48 +315,78 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
   );
 }
 
-function money(n: number, ccy: string): string {
-  const sym = ccy === "KRW" ? "₩" : ccy === "USDC" ? "" : ccy === "EUR" ? "€" : "$";
-  const suffix = ccy === "USDC" ? " USDC" : "";
-  return `${sym}${n.toLocaleString(undefined, { maximumFractionDigits: ccy === "KRW" ? 0 : 2 })}${suffix}`;
-}
+/** Lv3 에이전트의 God Mode 승급 패널 — 최근 실적 3조건 심사 + 사람 확인 클릭. */
+function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: () => void }) {
+  const [check, setCheck] = useState<GodModeEligibility | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [promoting, setPromoting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-function BalanceCard({ acc }: { acc: import("@/lib/api").AccountRow }) {
-  const remaining = acc.balance != null ? acc.balance - acc.allocated : null;
-  const over = remaining != null && remaining < 0;
-  return (
-    <div className="bg-panel border border-border rounded-lg p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-text-2 text-xs font-semibold">{acc.label}</span>
-        {acc.mode && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${acc.mode === "live" ? "bg-neg/15 text-neg border-neg/40" : "bg-pos/10 text-pos border-pos/30"}`}>{acc.mode === "live" ? "● LIVE" : "PAPER"}</span>}
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    getGodModeEligibility(agent.id)
+      .then(r => { if (live) setCheck(r); })
+      .catch(e => { if (live) setError(e instanceof Error ? e.message : String(e)); })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [agent.id]);
+
+  if (agent.god_mode) {
+    return (
+      <div className="bg-panel border rounded-lg p-3 flex items-center gap-1.5 animate-pulse-glow-purple"
+        style={{ borderColor: "rgba(168,85,247,0.4)" }}>
+        <IconCrown className="purple-glow-lg" />
+        <span className="text-[11px] font-semibold" style={{ color: "#c084fc" }}>God Mode 승급됨 — LIVE 집행 중</span>
       </div>
-      {acc.error ? (
-        <div className="text-text-3 text-[10px] mt-1.5">연결 불가 ({acc.error.slice(0, 30)})</div>
-      ) : (
-        <>
-          <div className="text-base font-data text-text-1 mt-1">{acc.balance != null ? money(acc.balance, acc.ccy) : "—"}</div>
-          <div className="flex justify-between text-[10px] font-data mt-1">
-            <span className="text-text-3">배정 {money(acc.allocated, acc.ccy)}</span>
-            <span className={over ? "text-neg" : "text-text-2"}>
-              잔여 {remaining != null ? money(remaining, acc.ccy) : "—"}{over && " ⚠초과"}
-            </span>
-          </div>
-        </>
+    );
+  }
+
+  async function handlePromote() {
+    if (!confirm("God Mode 승급 — 이 에이전트가 실제 자금으로 LIVE 거래를 시작합니다. 되돌릴 수 없습니다. 계속?")) return;
+    setPromoting(true); setError(null);
+    try {
+      await promoteToGodMode(agent.id);
+      onPromoted();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPromoting(false);
+    }
+  }
+
+  return (
+    <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-text-2 text-xs font-semibold inline-flex items-center gap-1">
+            <IconCrown size={12} />God Mode 승급 심사
+          </span>
+          <p className="text-text-3 text-[10px] mt-0.5">최근 {check?.window_days ?? 30}일 실적 3조건 — 전부 통과해야 승급 가능</p>
+        </div>
+        <button onClick={handlePromote} disabled={!check?.eligible || promoting}
+          className="text-[11px] px-3 py-1.5 rounded font-medium disabled:opacity-40"
+          style={{ background: check?.eligible ? "#a855f7" : undefined, color: check?.eligible ? "#000" : undefined }}>
+          {promoting ? "승급 중…" : "God Mode 승급 (LIVE 전환)"}
+        </button>
+      </div>
+      {loading && <p className="text-text-3 text-[10px]">심사 중…</p>}
+      {error && <p className="text-neg text-[10px]">{error}</p>}
+      {check && (
+        <div className="space-y-1 border-t border-border pt-2">
+          {check.conditions.map(c => (
+            <div key={c.key} className="flex items-center gap-2 text-[11px]">
+              <span className={c.passed ? "text-pos" : "text-text-3"}>{c.passed ? "✓" : "✗"}</span>
+              <span className={c.passed ? "text-text-1" : "text-text-3"}>{c.label}</span>
+              <span className="text-text-3 text-[10px] ml-auto font-data">{c.detail}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function Balances({ bal }: { bal: AccountBalances }) {
-  return (
-    <div className="space-y-2">
-      <p className="text-text-3 text-[10px] uppercase tracking-wider">계좌 잔액 & 배정 (배정 정할 때 참고)</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {bal.accounts.map(a => <BalanceCard key={a.venue} acc={a} />)}
-      </div>
-    </div>
-  );
-}
 
 function Overview({ ov, onSelect }: { ov: AgentsOverview; onSelect: (id: string) => void }) {
   const maxAbs = Math.max(1, ...ov.agents.map(a => Math.abs(a.realized_pnl)));
@@ -394,21 +445,21 @@ export default function AgentsPage() {
   const [paper, setPaper] = useState(true);
   const [autonomy, setAutonomy] = useState(2);
   const [creating, setCreating] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   // 스타일별 허용 시장 (스윙·장투는 크립토 미지원, 인프라헤지는 KR 고정).
   const allowedMkts: Mkt[] = style === "daytrade" ? ["KR", "US", "CRYPTO"] : ["KR", "US"];
   useEffect(() => {
     if (!allowedMkts.includes(mkt)) setMkt("US");
-    // 단타 선택 시 기본 Lv5 (페이퍼 전용으로 뚫어줌)
-    if (style === "daytrade") setAutonomy(5);
+    // 단타 선택 시 기본 Lv3(자가학습, 페이퍼 전용으로 뚫어줌)
+    if (style === "daytrade") setAutonomy(3);
     else if (style !== "autonomous" && style !== "kr_macro") setAutonomy(2);
     /* eslint-disable-next-line */
   }, [style]);
 
-  // 자율형/KR거시는 Lv5 고정. 단타는 페이퍼니까 Lv5까지 허용(기본 Lv5).
+  // 자율형/KR거시는 Lv3(자가학습) 고정.
   const isDeterministic = false;
-  const isLv5Style = style === "autonomous" || style === "kr_macro";
-  const isLv4Style = false;
+  const isLv3Style = style === "autonomous" || style === "kr_macro";
   const ccy = ccyOfMkt(mkt);
 
   const cyclePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -491,10 +542,20 @@ export default function AgentsPage() {
     const amt = parseFloat(alloc);
     if (!amt || amt <= 0) { setError(`배정 금액 입력 (${ccy})`); return; }
     if (!paper && !confirm("⚠ LIVE 모드 — 실제 자금이 집행됩니다. 계속?")) return;
+    const { type, market } = toBackend(style, mkt);
+    const bucket = venueBucket(type, market, paper);
+    const row = bucket ? balances?.accounts.find(a => a.venue === bucket) : null;
+    if (row && row.balance != null && row.allocated + amt > row.balance) {
+      setError(
+        `배정 초과: ${row.label} 실제 잔고 ${moneyCcy(row.balance, row.ccy)}, ` +
+        `기존 봇 배정 합계 ${moneyCcy(row.allocated, row.ccy)} + 신규 ${moneyCcy(amt, row.ccy)} ` +
+        `= ${moneyCcy(row.allocated + amt, row.ccy)} — 실제 보유 금액보다 많이 배정할 수 없음`,
+      );
+      return;
+    }
     setCreating(true); setError(null);
     try {
-      const { type, market } = toBackend(style, mkt);
-      const effectiveAutonomy = isLv5Style ? 5 : isLv4Style ? 4 : autonomy;
+      const effectiveAutonomy = isLv3Style ? 3 : autonomy;
       await createAgent(name.trim(), type, amt, paper, effectiveAutonomy, market);
       setName(""); setAlloc("");
       await refresh();
@@ -529,15 +590,21 @@ export default function AgentsPage() {
       <PageBanner pageKey="agents" />
       {error && <div className="text-neg text-xs bg-neg/10 border border-neg/30 rounded px-3 py-2">{error}</div>}
 
-      {balances && <Balances bal={balances} />}
-
       {overview && overview.agents.length > 0 && (
         <Overview ov={overview} onSelect={setSelected} />
       )}
 
+      {balances && <Balances bal={balances} />}
+
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
         {/* Left: agent list + create */}
         <div className="space-y-3">
+          <button onClick={() => setShowCreate(v => !v)}
+            className={`w-full text-xs py-2 rounded border transition-colors ${
+              showCreate ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2 hover:border-text-3"}`}>
+            {showCreate ? "− 생성 폼 닫기" : "+ 새 에이전트"}
+          </button>
+          {showCreate && (
           <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
             <h2 className="text-text-2 text-xs uppercase tracking-wider font-semibold">새 에이전트</h2>
             <input
@@ -618,23 +685,17 @@ export default function AgentsPage() {
                 ℹ 페이퍼는 크립토만 (테스트넷 TradFi 무거래). 주식·금·지수는 LIVE 필요.
               </p>
             )}
-            {/* Autonomy level */}
-            {isLv5Style ? (
+            {/* Autonomy level (Lv1 조건식은 백테스트 페이지의 "승격" 버튼 전용 — 여기선 생성 불가) */}
+            {isLv3Style ? (
               <div className="text-[10px] leading-snug px-2 py-1.5 rounded border" style={{ borderColor: "#ff4444", color: "#ff6666", background: "rgba(255,50,50,0.07)" }}>
-                🔴 Lv5 고정 — 뉴스·공시·ML 자가학습 풀 피처. 페이퍼 전용.
-              </div>
-            ) : isLv4Style ? (
-              <div className="text-[10px] leading-snug px-2 py-1.5 rounded border" style={{ borderColor: "#f97316", color: "#fb923c", background: "rgba(249,115,22,0.07)" }}>
-                🟠 Lv4 고정 — 상황인지 → 병목탐지 → 정책연계 → 전략수립(공격/방어/비중). KR 반도체 공급망 전문. 페이퍼 전용, 최종 집행은 사람 결정.
+                🔴 Lv3 고정 — 뉴스·공시·ML 자가학습 풀 피처. 페이퍼로 시작(승급은 실적으로 별도 심사).
               </div>
             ) : (
               <div className="space-y-1">
                 <p className="text-text-3 text-[10px] uppercase tracking-wider">자율성 레벨</p>
                 {[
-                  { v: 1, label: "Lv1 · 고정 규칙", desc: "정해진 임계값대로만" },
                   { v: 2, label: "Lv2 · AI 전략가", desc: "백테스트 검증 후 매매 (추천)" },
-                  { v: 3, label: "Lv3 · 완전 자율", desc: "AI 재량 (엣지 검증 약함)" },
-                  { v: 5, label: "Lv5 · 자율형 AI", desc: "자가학습·전략생성·뉴스·공시 풀 피처" },
+                  { v: 3, label: "Lv3 · 자가학습", desc: "실적 분석 후 전략 자동 재편성 (페이퍼로 시작)" },
                 ].map(o => {
                   const c = lvCfg(o.v);
                   const sel = autonomy === o.v;
@@ -649,11 +710,8 @@ export default function AgentsPage() {
                   );
                 })}
                 {autonomy === 3 && (
-                  <p className="text-warn text-[10px] leading-snug">⚠ 완전 자율은 엣지 검증이 약함. 리스크 한도는 항상 적용됨.</p>
-                )}
-                {autonomy === 5 && (
                   <p className="text-[10px] leading-snug" style={{ color: "#ff4444" }}>
-                    🔴 Lv5: {style === "daytrade" ? "Claude AI 에이전틱 자가학습 — 10사이클마다 실적 분석 후 전략·유니버스 자동 재편성. 페이퍼 전용." : "뉴스·공시·ML 자가학습 모두 활성화. 페이퍼 전용 샌드박스 권장."}
+                    🔴 Lv3: {style === "daytrade" ? "Claude AI 에이전틱 자가학습 — 10사이클마다 실적 분석 후 전략·유니버스 자동 재편성. 페이퍼로 시작." : "뉴스·공시·ML 자가학습 모두 활성화. 페이퍼 전용 샌드박스 권장."} 최근 실적이 3조건을 통과하면 God Mode 승급(live) 가능.
                   </p>
                 )}
               </div>
@@ -663,14 +721,15 @@ export default function AgentsPage() {
               {creating ? "생성 중…" : paper ? "에이전트 생성 (모의)" : "에이전트 생성 (실거래)"}
             </button>
           </div>
+          )}
 
           <div className="space-y-2">
-            {agents.length === 0 && <p className="text-text-3 text-xs px-1">에이전트 없음. 위에서 생성하세요.</p>}
+            {agents.length === 0 && <p className="text-text-3 text-xs px-1">에이전트 없음. 위의 &ldquo;+ 새 에이전트&rdquo;로 생성하세요.</p>}
             {agents.map(a => {
-              const lv = isLv5Agent(a) ? 5 : (a.autonomy ?? 2);
+              const lv = displayLevel(a);
               const cfg = lvCfg(lv);
               const orbVariant = lvToOrbVariant(lv);
-              const isHighLv = lv >= 3; // Lv3+ shows orb
+              const isHighLv = lv >= 3; // Lv3(자가학습) shows orb
               return (
               <div key={a.id}
                 onClick={() => setSelected(a.id)}
@@ -719,6 +778,13 @@ export default function AgentsPage() {
                     </span>
                   )}
                   <LvBadge lv={lv} />
+                  {a.god_mode && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border font-semibold inline-flex items-center gap-0.5 animate-pulse-glow-purple"
+                      style={{ color: "#c084fc", background: "rgba(168,85,247,0.1)", borderColor: "rgba(168,85,247,0.5)" }}
+                      title="God Mode 승급됨 — 최근 실적 3조건 심사 통과 후 LIVE 집행 중">
+                      <IconCrown size={9} className="purple-glow-lg" />GOD
+                    </span>
+                  )}
                   {a.protected && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10" title="잠금 — 삭제하려면 이름 확인 필요"> 잠금</span>
                   )}
@@ -765,6 +831,12 @@ export default function AgentsPage() {
               {tab === "dashboard" && (
                 <div className="space-y-3">
                   <Dashboard perf={perf} ccy={agentCcy(agents.find(a => a.id === selected)!)} />
+
+                  {(() => {
+                    const agent = agents.find(a => a.id === selected)!;
+                    if (displayLevel(agent) !== 3) return null;
+                    return <GodModePanel agent={agent} onPromoted={refresh} />;
+                  })()}
 
                   {/* Strategy distillation — Lv3 자유탐색 → 검증된 규칙 전략 */}
                   <div className="bg-panel border border-border rounded-lg p-3">

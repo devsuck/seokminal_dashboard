@@ -5,10 +5,10 @@ import {
   getExecutionConsole, getExecutionEdge, getLabPortfolio,
   type ExecutionConsole, type ExecutionEdge, type PortfolioBook,
 } from "@/lib/api";
-import { ArcReactor, RadialGauge } from "@/components/Hud";
 import { LivePulse } from "@/components/Jarvis";
 
-/* 집행 콘솔 — buyback 엣지 라이브 준비 + 엣지 생존(OOS) + 생존자 포트폴리오. Jarvis HUD.
+/* 집행 콘솔 — 질문 하나: "지금 arm해도 되나?"
+   ARM 판정(GO/WAIT/KILL)을 최상단에 크게. 그 판단 근거(엣지 생존·기대치·제약)가 아래로.
    엣지 생존은 series 로드 무거움 → 별도 async fetch(콘솔 즉시, 엣지 카드 프로그레시브). */
 
 function pct(n: number | null | undefined, d = 2): string {
@@ -56,41 +56,48 @@ export default function ExecutionPage() {
   const warming = !ea || ea.status === "warming";
   const edge = ea ? (EDGE[ea.status] ?? EDGE.unavailable) : EDGE.warming;
   const oosPct = ea && ea.oos_months > 0 ? Math.round((ea.oos_in_envelope / ea.oos_months) * 100) : 0;
-  const countdownPct = ea ? Math.min(100, (ea.oos_months / Math.max(1, ea.need_months)) * 100) : 0;
+
+  const armDecision = d.arm_decision?.decision ?? null;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
-      {/* HUD 헤더 */}
-      <div className="hud-frame hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-5">
-            {/* 엣지 오브 — edge 생존 상태 */}
-            <ArcReactor size={132} active={ea?.status === "confirmed"} label={edge.label} sub="edge" />
+      {/* ARM 판정 — 이 페이지의 답. 최상단에 크게 */}
+      <div className={`hud-frame rounded-lg p-4 border ${
+        armDecision === "GO" ? "border-pos/50 bg-pos/5" :
+        armDecision === "KILL" ? "border-neg/50 bg-neg/5" : "border-warn/30 bg-warn/5"}`}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-4">
+            <span className={`font-data text-3xl font-semibold tracking-wider ${
+              armDecision === "GO" ? "text-pos" : armDecision === "KILL" ? "text-neg animate-blink" : "text-info"}`}>
+              {armDecision ?? "…"}
+            </span>
             <div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-semibold text-text-1 tracking-[0.1em] uppercase">집행 콘솔</h1>
-                <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
-                <span className="text-[11px] px-2 py-0.5 rounded border border-warn/40 text-warn bg-warn/10">{d.status}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-sm font-semibold text-text-1 uppercase tracking-wider">집행 콘솔 — 라이브 ARM 게이트</h1>
+                <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-pos/50 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
+                  {g.armed ? "ARMED" : "DISARMED"}
+                </span>
               </div>
-              <div className="mt-1 font-data text-[11px] text-hud/80">
-                {d.strategy_id} · 동결 {d.frozen_at} · 검증된 buyback 엣지 · arm은 사람만
-              </div>
-              {/* 봇 가동 상태 뱃지 */}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-pos animate-pulse" />
-                <span className="font-data text-[10px] text-pos uppercase tracking-wider">페이퍼 봇 가동 중</span>
-                <span className="font-data text-[10px] text-text-3">· Buyback · TSMOM 32mkt</span>
+              <div className="mt-0.5 font-data text-[11px] text-text-3">
+                {d.strategy_id} · 동결 {d.frozen_at} · arm은 사람만
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mt-3 pt-3 border-t border-hud/15 flex-wrap">
-          <RadialGauge size={84} pct={countdownPct} value={!warming && ea ? `${ea.oos_months}/${ea.need_months}` : "…"} label="OOS 월" tone={ea && ea.oos_months >= ea.need_months ? "pos" : "hud"} />
-          <RadialGauge size={84} pct={oosPct} value={!warming ? `${oosPct}%` : "…"} label="envelope 내" tone={oosPct >= 50 ? "pos" : "neg"} />
-          <RadialGauge size={84} pct={d.edge.win_rate * 100} value={pct(d.edge.win_rate, 0)} label="승률" />
-          <RadialGauge size={84} pct={g.autonomy_level / g.min_live_level * 100} value={`Lv${g.autonomy_level}`} label="자율" tone="neg" />
-          <RadialGauge size={84} pct={Math.min(100, lr.monthly_capacity_eok)} value={`${lr.monthly_capacity_eok}억`} label="수용력" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+          <Kv k="자율 레벨" v={`Lv${g.autonomy_level} / 필요 ${g.min_live_level}`} tone={g.autonomy_level >= g.min_live_level ? "pos" : "neg"} />
+          <Kv k="라이브 집행" v={g.live_execution} tone={g.live_execution === "disabled" ? "neg" : "pos"} />
+          <Kv k="페이퍼 관찰" v={`${g.paper_months}mo / 최소 ${g.min_paper_months}`} tone={g.paper_months >= g.min_paper_months ? "pos" : "warn"} />
+          <Kv k="arm 자격" v={g.eligible ? "가능" : "불가"} tone={g.eligible ? "pos" : "neg"} />
         </div>
+        {d.arm_decision && (
+          <div className="mt-2 text-[11px] text-text-3">
+            사전등록 {d.arm_decision.version} · 첫 arm 상한 {(d.arm_decision.first_tranche_krw_max / 10_000).toLocaleString()}만원
+            {d.arm_decision.reasons.length > 0 && <span> · {d.arm_decision.reasons.join(" · ")}</span>}
+          </div>
+        )}
+        {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-neg">차단 사유: {g.reasons.join(" · ")}</div>}
+        <div className="mt-3 text-[12px] text-warn border-t border-warn/20 pt-2 leading-relaxed">{g.human_action}</div>
       </div>
 
       {/* 엣지 생존 (OOS vs envelope) */}
@@ -190,40 +197,6 @@ export default function ExecutionPage() {
         <div className="mt-2 text-[11px] text-text-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
       </div>
 
-      {/* arm 게이트 */}
-      <div className={`hud-frame rounded-lg p-4 border ${g.armed ? "border-pos/40 bg-pos/5" : "border-warn/30 bg-warn/5"}`}>
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-          <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">라이브 ARM 게이트</div>
-          <span className="flex items-center gap-1.5">
-            {d.arm_decision && (
-              <span className={`text-[11px] px-2 py-0.5 rounded border font-data ${
-                d.arm_decision.decision === "GO" ? "border-pos/50 text-pos bg-pos/10" :
-                d.arm_decision.decision === "KILL" ? "border-neg/50 text-neg bg-neg/10 animate-blink" :
-                "border-info/40 text-info bg-info/10"}`}>
-                {d.arm_decision.decision === "GO" ? "GO — 소액 arm 검토" :
-                 d.arm_decision.decision === "KILL" ? "KILL — 엣지 소멸" : "WAIT"}
-              </span>
-            )}
-            <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-pos/50 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
-              {g.armed ? "ARMED" : "DISARMED"}
-            </span>
-          </span>
-        </div>
-        {d.arm_decision && (
-          <div className="mb-2 text-[11px] text-text-3">
-            사전등록 {d.arm_decision.version} (동결 {d.arm_decision.frozen_at}) · 첫 arm 상한 {(d.arm_decision.first_tranche_krw_max / 10_000).toLocaleString()}만원
-            {d.arm_decision.reasons.length > 0 && <span> · {d.arm_decision.reasons.join(" · ")}</span>}
-          </div>
-        )}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kv k="자율 레벨" v={`Lv${g.autonomy_level} / 필요 ${g.min_live_level}`} tone={g.autonomy_level >= g.min_live_level ? "pos" : "neg"} />
-          <Kv k="라이브 집행" v={g.live_execution} tone={g.live_execution === "disabled" ? "neg" : "pos"} />
-          <Kv k="페이퍼 관찰" v={`${g.paper_months}mo / 최소 ${g.min_paper_months}`} tone={g.paper_months >= g.min_paper_months ? "pos" : "warn"} />
-          <Kv k="arm 자격" v={g.eligible ? "가능" : "불가"} tone={g.eligible ? "pos" : "neg"} />
-        </div>
-        {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-neg">차단 사유: {g.reasons.join(" · ")}</div>}
-        <div className="mt-3 text-[12px] text-warn border-t border-warn/20 pt-2 leading-relaxed">{g.human_action}</div>
-      </div>
     </div>
   );
 }

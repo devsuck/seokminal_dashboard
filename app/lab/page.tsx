@@ -7,7 +7,6 @@ import {
   type JarvisDetail, type JarvisAuditRow, type ScannerResult, type ScannerFamily,
 } from "@/lib/api";
 import { LivePulse, ThinkingLine } from "@/components/Jarvis";
-import { ArcReactor, RadialGauge } from "@/components/Hud";
 import AutoResearchPanel from "@/components/AutoResearchPanel";
 
 // ── 진행바 폭: style={{}} 금지 → 리터럴 Tailwind 폭 클래스 룩업(10% 스텝) ──
@@ -108,44 +107,28 @@ export default function LabPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-5">
-      {/* Header — 아크리액터 HUD 커맨드바 */}
-      <div className="hud-frame hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* 좌: 아크리액터 + 타이틀 */}
-          <div className="flex items-center gap-5">
-            <ArcReactor size={132} active={busy || (st?.autopilot ?? false)}
-              label={busy ? "SCAN" : (st?.autopilot ? "AUTO" : "IDLE")} sub="reactor" />
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold text-text-1 tracking-[0.15em] uppercase">AI LAB</h1>
-                <LivePulse tone={busy ? "accent" : (st?.autopilot ? "pos" : "text-3")} label={status.toUpperCase()} />
-              </div>
-              <div className="mt-1 h-4 font-data text-[11px] text-hud/80">
-                {busy ? <ThinkingLine text="가설 검토 중 · 검정 · 레드팀 실행" />
-                      : `자율 리서치 루프 · 자체생각→검토→집행→학습 · 스테이지 ${st?.stage ?? "—"}`}
-              </div>
-            </div>
+      {/* Header — 상태 + 컨트롤 컴팩트 스트립 (수치는 우측 StatsRow가 담당) */}
+      <div className="hud-frame flex items-center justify-between gap-4 flex-wrap rounded-lg border border-hud/20 bg-panel px-4 py-3">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-text-1 tracking-[0.15em] uppercase">AI LAB</h1>
+            <LivePulse tone={busy ? "accent" : (st?.autopilot ? "pos" : "text-3")} label={status.toUpperCase()} />
           </div>
-          {/* 우: 컨트롤 */}
-          <div className="flex items-center gap-2">
-            <button onClick={onRunNext} disabled={busy}
-              className="px-3 py-1.5 text-sm font-medium rounded bg-accent text-black disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0 transition-opacity">
-              ▶ 다음 가설 검토
-            </button>
-            <button onClick={onToggleAuto}
-              className={`px-3 py-1.5 text-sm font-medium rounded border transition-colors cursor-pointer ${
-                st?.autopilot ? "border-pos/50 text-pos bg-pos/10" : "border-border text-text-2 hover:text-text-1 bg-transparent"}`}>
-              {st?.autopilot ? "⏸ 오토파일럿 ON" : " 오토파일럿"}
-            </button>
+          <div className="mt-0.5 h-4 font-data text-[11px] text-hud/80">
+            {busy ? <ThinkingLine text="가설 검토 중 · 검정 · 레드팀 실행" />
+                  : `자율 리서치 루프 · 자체생각→검토→집행→학습 · 스테이지 ${st?.stage ?? "—"}`}
           </div>
         </div>
-        {/* 방사 게이지 계기판 */}
-        <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mt-3 pt-3 border-t border-hud/15 flex-wrap">
-          <RadialGauge size={84} pct={st?.progress ?? 0} value={`${Math.round(st?.progress ?? 0)}%`} label="진행" />
-          <RadialGauge size={84} pct={((jarvis?.autonomy_level ?? 0) / 6) * 100} value={`Lv${jarvis?.autonomy_level ?? 0}`} label="자율" tone="accent" />
-          <RadialGauge size={84} pct={Math.min(100, (st?.queue?.length ?? 0) * 12)} value={String(st?.queue?.length ?? 0)} label="큐" />
-          <RadialGauge size={84} pct={st?.stats ? Math.min(100, (st.stats.edges / Math.max(1, st.stats.processed)) * 100) : 0} value={String(st?.stats?.edges ?? 0)} label="엣지" tone="pos" />
-          <RadialGauge size={84} pct={Math.min(100, (jarvis?.registry_total ?? 0) * 8)} value={String(jarvis?.registry_total ?? 0)} label="전략" />
+        <div className="flex items-center gap-2">
+          <button onClick={onRunNext} disabled={busy}
+            className="px-3 py-1.5 text-sm font-medium rounded bg-accent text-black disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0 transition-opacity">
+            ▶ 다음 가설 검토
+          </button>
+          <button onClick={onToggleAuto}
+            className={`px-3 py-1.5 text-sm font-medium rounded border transition-colors cursor-pointer ${
+              st?.autopilot ? "border-pos/50 text-pos bg-pos/10" : "border-border text-text-2 hover:text-text-1 bg-transparent"}`}>
+            {st?.autopilot ? "⏸ 오토파일럿 ON" : " 오토파일럿"}
+          </button>
         </div>
       </div>
 

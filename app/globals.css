@@ -207,6 +207,12 @@
 .red-glow-lg   { filter: drop-shadow(0 0 14px rgba(255,30,30,0.9)); }
 .pink-glow     { filter: drop-shadow(0 0 4px rgba(236,72,153,0.6)); }
 .pink-glow-lg  { filter: drop-shadow(0 0 13px rgba(236,72,153,0.9)); }
+.purple-glow-lg { filter: drop-shadow(0 0 13px rgba(168,85,247,0.9)); }
+@keyframes pulse-glow-purple {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,0.0), 0 0 8px 0 rgba(168,85,247,0.15); }
+  50%      { box-shadow: 0 0 0 1px rgba(168,85,247,0.35), 0 0 24px 3px rgba(168,85,247,0.4); }
+}
+.animate-pulse-glow-purple { animation: pulse-glow-purple 2.4s ease-in-out infinite; }
 @keyframes filament-shimmer {
   0%, 100% { opacity: 0.55; } 50% { opacity: 0.95; }
 }

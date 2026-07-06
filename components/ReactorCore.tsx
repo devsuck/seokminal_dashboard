@@ -159,6 +159,7 @@ const BOX: Record<number, string> = {
 };
 
 export function lvToOrbVariant(lv: number): OrbVariant {
-  const map: Record<number, OrbVariant> = { 1: "green", 2: "blue", 3: "yellow", 4: "orange", 5: "red", 6: "pink" };
+  // 레벨 재편: 1=조건식 / 2=AI 전략가 / 3=자가학습(구Lv5, 리스크 최고 → red 유지)
+  const map: Record<number, OrbVariant> = { 1: "green", 2: "blue", 3: "red" };
   return map[lv] ?? "amber";
 }

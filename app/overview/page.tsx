@@ -6,7 +6,7 @@ import {
   listAgents, getAgentPerformance, getBuybackBot, getExecutionConsole, getLabTasks,
   type TradingAgent, type AgentPerformance, type BuybackBot, type ExecutionConsole, type LabTask,
 } from "@/lib/api";
-import { JarvisOrb, LivePulse, AnimatedNumber } from "@/components/Jarvis";
+import { LivePulse, AnimatedNumber } from "@/components/Jarvis";
 
 /* 총 포트폴리오 — 지금 얼마가 어떤 AI에 가있는지 + 각 AI 수익률·매매기록.
    + 연구 트랙(페이퍼 돈길) 스트립: 라이브 배분 0이어도 진짜 돈길은 여기서 보이게. */
@@ -71,16 +71,20 @@ export default function OverviewPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
-      <div className="hud-frame tech-grid flex items-center gap-4 bg-panel border border-border rounded-lg p-4">
-        <JarvisOrb size={56} active={running > 0} />
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-text-1 tracking-wide">총 포트폴리오</h1>
-            <LivePulse tone={running > 0 ? "pos" : "text-3"} label={running > 0 ? `${running} 가동` : "대기"} />
-          </div>
-          <p className="text-text-3 text-sm mt-1">지금 얼마가 어떤 AI에 배분됐는지 · 각 AI 수익률과 매매기록.</p>
-        </div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-semibold text-text-1 tracking-wide">총 포트폴리오</h1>
+        <LivePulse tone={running > 0 ? "pos" : "text-3"} label={running > 0 ? `${running} 가동` : "대기"} />
       </div>
+
+      {/* 총괄 요약 — 이 페이지의 답: 얼마가, 어디에, 성과는 */}
+      {rows && rows.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Summary label="총 배분" num={totalAlloc} decimals={0} />
+          <Summary label="총 손익" num={totalPnl} decimals={0} prefix={totalPnl >= 0 ? "+" : ""} pos={totalPnl >= 0} />
+          <Summary label="총 수익률" num={totalReturn} decimals={2} prefix={totalReturn >= 0 ? "+" : ""} suffix="%" pos={totalReturn >= 0} />
+          <Summary label="가동 AI" val={`${running} / ${rows.length}`} />
+        </div>
+      )}
 
       {/* 연구 트랙 — 페이퍼 돈길 (라이브 배분과 별개, 실캐피탈 0) */}
       {bot && (
@@ -115,16 +119,6 @@ export default function OverviewPage() {
       {rows && rows.length === 0 && (
         <div className="bg-panel border border-border rounded-lg p-6 text-center text-text-3 text-sm">
           운용 중인 AI 없음 — <Link href="/agents" className="text-accent no-underline">에이전트</Link>에서 생성.
-        </div>
-      )}
-
-      {/* 총괄 요약 */}
-      {rows && rows.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Summary label="총 배분" num={totalAlloc} decimals={0} />
-          <Summary label="총 손익" num={totalPnl} decimals={0} prefix={totalPnl >= 0 ? "+" : ""} pos={totalPnl >= 0} />
-          <Summary label="총 수익률" num={totalReturn} decimals={2} prefix={totalReturn >= 0 ? "+" : ""} suffix="%" pos={totalReturn >= 0} />
-          <Summary label="가동 AI" val={`${running} / ${rows.length}`} />
         </div>
       )}
 
