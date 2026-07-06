@@ -1,3 +1,46 @@
+## Phase 147 — option_lv1·macro 라이브·UI 최적화·Lv3 기대값 전환·HL 사고 수습·데스크탑 이전 (2026-07-06) ✅ DONE
+
+하루 대형 세션. 커밋: 백엔드 `a244861`·`c14a0ec`·`f81107e`, 프론트 `b1f33eb`·`4556f9e`·`d4477d2`.
+
+### 1. option_lv1 에이전트 (a244861 / b1f33eb)
+- condition_lv1과 동일 시그널, 집행만 IB 옵션 주문(`place_option_order`, 항상 paper 7497).
+- agent_store 프로필/컬럼/검증 + `POST /agents/{id}/option-condition-tick` + 백테스트 승급 UI(만기/행사가/콜풋/계약수, KR 종목은 숨김).
+
+### 2. Macro 라이브 지표 (a244861 / b1f33eb)
+- US=FRED 4종, KR=ECOS 7종(기준금리·KOSPI·원달러·CPI·수출·수입·M2), 30분 자동갱신, 레짐 스코어(0~100).
+- **ECOS 버그 2개 수정**: ① ISO 날짜 무변환 통과로 전 시리즈 빈 배열(`_iso_to_ecos_period` 추가) ② EXPORT/IMPORT item_code `I`→`*AA`, M2 구지표 101Y004→신지표 161Y006/BBHA00.
+- LKG 6h 스케줄러 주말 스킵(일 18시 KST 캐치업 1회).
+
+### 3. 페이지 정보구조 최적화 (4556f9e)
+- 원칙: 페이지당 질문 하나, 답을 최상단에. /hud(유닛 로스터 메인, N/M 가동), /lab/execution(ARM 판정 최상단), /overview(요약 4칸 최상단), /agents(성과 먼저·생성폼 접기), /lab(리액터 헤더→컴팩트 스트립).
+- 이미 최적이라 미변경: portfolio/performance/validation/dart-auto/lab-tasks/insider.
+
+### 4. Lv3 자가학습 기대값 전환 + 검증 게이트 (c14a0ec)
+- **치명 버그 수정**: 청산 라벨이 한글(익절/손절)인데 영문 tp/sl만 탐지 → 전 거래 패배 분류로 학습 오염. 실현 수익률 % 파싱(net_ret) 추가.
+- 조정 규칙 승률→비용(10bps) 차감 기대값+경로 MDD (shrinkage n/(n+10), MDD>10% 사이즈 거버너).
+- `validate_proposal()`: Claude 3-Phase 제안 threshold를 counterfactual replay로 게이트(상향=부분집합 비교, 하향=기대값 플러스+폭5 이내만). 3개 프롬프트 전부 기대값 목표함수로 재작성. 신규 테스트 9건.
+
+### 5. 백테스트 개선 (d4477d2 / f81107e)
+- 조건식 지표 차트 자동 표시: `chartSpecsFromRules()` → MA/BB/EMA 가격 오버레이, RSI/MACD/CCI/OBV 서브페인(v5 멀티페인) + 헤더 칩.
+- **온디맨드 카탈로그 적재**(`api_server/auto_ingest.py`): /bars·/backtest에 없는 종목이면 yfinance 3년 자동 수집. US/KR(.KS→.KQ 폴백)/크립토(.HL→-USD). GOOGL·카카오·BTC.HL 실증.
+
+### 6. HL 에이전트 8시간 중단 사고 수습 (f81107e)
+- 원인: `hyperliquid/trader.py`가 SDK 임포트마다 전역 sys.path 스왑→복원 — 스레드 경합으로 레포 루트 영구 소실 → `hyperliquid.trader` 임포트 전멸.
+- 수정: importlib 직접 로드+락+캐시, main.py에 레포 루트 sys.path 고정, agent_loop.sh curl --max-time 240. 복구 확인(사이클 재개+주문 실행).
+- 참고: 나머지 Lv3 에이전트 3개는 정상이었음(매크로 게이트 4<5 미달로 관망 중이었을 뿐).
+
+### 7. 데스크탑(독일, 윈도우+WSL2) 24/7 러너 이전 — 완료
+- 배경: 맥북 발열+이동성. `deploy/wsl/` 키트 신규(setup.sh, systemd 유닛 tpl, resume_agents.py, README).
+- 데스크탑: WSL2 Ubuntu 22.04(deadsnakes python3.12), 백엔드+에이전트 루프 4개 가동 확인. pyproject 밖 추가 의존성: yfinance/HL SDK/xgboost/openai/alpaca-py/statsmodels/hmmlearn 등(setup.sh에 반영).
+- 접속: Tailscale — 데스크탑 `100.93.202.127`, 백엔드 `--host 0.0.0.0`. 맥북 `.env.local`→`NEXT_PUBLIC_API_URL=http://100.93.202.127:8000`. 맥에서 대시보드 실동작 확인.
+- 맥북 정리: 에이전트 tmux 4개+uvicorn 종료(중복 방지). **이제 맥에서 로컬 백테스트 시 uvicorn 수동 기동 필요.**
+- 미커밋(레포 밖): `deploy/wsl/*`, `autopilot/agent_loop.sh` 타임아웃 패치, `.env.local`(gitignore) — seokminal 루트가 git 레포 아님.
+
+### 다음 할 일
+- 데스크탑 재부팅 시 자동시작(작업 스케줄러) 미설정 — 윈도우 업데이트 재부팅 시 수동 `systemctl start` 필요.
+- ECOS 잔여: 없음(수출/수입/M2 복구됨).
+- Lv3 후속(선택): 거래별 피처 저장 → 컨텍스추얼 학습, v2 shadow A/B.
+
 ## Phase 145 — 옵션 체인 데드락 버그 수정 + 실TWS 검증 (2026-07-06) ✅ DONE
 
 "tws 했어. 나머지 다 작업해줘" 요청으로 Phase143 이월 항목 "옵션 실TWS 검증" 진행 중 `GET /ib/options/chain` 완전 행(hang) 발견 — 60초 응답 없음, 이후 `/health`까지 죽어서 서버 전체가 wedge됨.
