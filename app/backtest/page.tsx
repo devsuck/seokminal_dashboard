@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { updateWorkflow } from "@/lib/workflow-storage";
-import { ApiError, getBars, getBacktest, runBacktestOptimize, runPortfolioBacktest, type BarOut, type BacktestResponse, type OptimizeResponse, type PortfolioBacktestResponse, type TradeRecord } from "@/lib/api";
+import { ApiError, getBars, getBacktest, runPortfolioBacktest, createAgent, type BarOut, type BacktestResponse, type PortfolioBacktestResponse, type TradeRecord } from "@/lib/api";
 import { logActivity } from "@/lib/dashboard-storage";
 import { saveBacktestResult } from "@/lib/backtest-result-storage";
 import { toast } from "@/lib/toast";
@@ -22,7 +22,6 @@ import {
 import {
   StrategyModeTabs,
   StrategyControlPanel,
-  SingleStrategyForm,
   CompositeStrategyBuilder,
   ChartPanel,
   MetricGrid,
@@ -30,8 +29,6 @@ import {
 } from "@/components/ui";
 import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
 import type { StrategyParams } from "@/lib/strategy-storage";
-import { StrategyComparePanel } from "@/components/backtest/StrategyComparePanel";
-import { WalkForwardPanel } from "@/components/backtest/WalkForwardPanel";
 import { PositionSizingPanel } from "@/components/backtest/PositionSizingPanel";
 import { MonteCarloPanel } from "@/components/backtest/MonteCarloPanel";
 import { TradeAnalyticsPanel } from "@/components/backtest/TradeAnalyticsPanel";
@@ -41,7 +38,7 @@ import { computeRunningStats } from "@/lib/replay-utils";
 import { ReplayChart } from "@/components/replay/ReplayChart";
 
 function BacktestPageInner() {
-  const [mode, setMode]               = useState<Mode>("single");
+  const [mode, setMode]               = useState<Mode>("composite");
   const [instrumentId, setInstrumentId] = useState("AAPL.NASDAQ");
   const [start, setStart]             = useState("2025-06-25");
   const [end, setEnd]                 = useState("2026-06-23");
@@ -49,7 +46,6 @@ function BacktestPageInner() {
   const [fast, setFast]               = useState(10);
   const [slow, setSlow]               = useState(20);
   const [benchmarkId, setBenchmarkId] = useState("");
-  const [costBps, setCostBps]         = useState("5");  // 현실 거래비용 (체결당 bps)
   const [rules, setRules]             = useState<SpawnRuleState[]>([newRule()]);
   const [bars, setBars]               = useState<BarOut[]>([]);
   const [result, setResult]           = useState<BacktestResponse | null>(null);
@@ -59,6 +55,15 @@ function BacktestPageInner() {
   const [showSaveResult, setShowSaveResult] = useState(false);
   const [resultSaved, setResultSaved]       = useState(false);
   const [showSaveStrategy, setShowSaveStrategy] = useState(false);
+
+  // Lv1 승급 — 검증된 조건식을 그대로 페이퍼로 포워드 실행
+  const [promoteRuleIdx, setPromoteRuleIdx] = useState(0);
+  const [promoteName, setPromoteName]       = useState("");
+  const [promoteAlloc, setPromoteAlloc]     = useState("100000");
+  const [promoting, setPromoting]           = useState(false);
+  const [promoted, setPromoted]             = useState(false);
+  const [promoteError, setPromoteError]     = useState<string | null>(null);
+
   const abortRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,17 +81,6 @@ function BacktestPageInner() {
   const [rsiOversold, setRsiOversold]     = useState(30);
   const [rsiOverbought, setRsiOverbought] = useState(70);
 
-  // XGBoost params
-  const [xgbTrainRatio, setXgbTrainRatio]     = useState(0.7);
-  const [xgbNEstimators, setXgbNEstimators]   = useState(100);
-  const [xgbMaxDepth, setXgbMaxDepth]         = useState(4);
-  const [xgbLearningRate, setXgbLearningRate] = useState(0.1);
-
-  // Optimize state
-  const [optimizing, setOptimizing]           = useState(false);
-  const [optimizeResult, setOptimizeResult]   = useState<OptimizeResponse | null>(null);
-  const optimizeCtrlRef = useRef<AbortController | null>(null);
-
   // Portfolio state
   const [portfolioInstruments, setPortfolioInstruments] = useState("AAPL.NASDAQ,SPY.ARCA");
   const [portfolioResult, setPortfolioResult]           = useState<PortfolioBacktestResponse | null>(null);
@@ -98,7 +92,6 @@ function BacktestPageInner() {
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      if (optimizeCtrlRef.current) optimizeCtrlRef.current.abort();
       portfolioCtrlRef.current?.abort();
     };
   }, []);
@@ -111,42 +104,6 @@ function BacktestPageInner() {
     if (instrument) setInstrumentId(instrument);
     if (startParam)  setStart(startParam);
     if (endParam)    setEnd(endParam);
-
-    const strategy = searchParams.get("strategy");
-    if (!strategy) return;
-    if (strategy === "macd") {
-      setStrategyType("macd");
-      const fast = searchParams.get("fast");
-      const slow = searchParams.get("slow");
-      const signal = searchParams.get("signal_period");
-      if (fast) setMacdFast(parseInt(fast));
-      if (slow) setMacdSlow(parseInt(slow));
-      if (signal) setMacdSignal(parseInt(signal));
-    } else if (strategy === "rsi") {
-      setStrategyType("rsi");
-      const period = searchParams.get("period");
-      const oversold = searchParams.get("oversold");
-      const overbought = searchParams.get("overbought");
-      if (period) setRsiPeriod(parseInt(period));
-      if (oversold) setRsiOversold(parseFloat(oversold));
-      if (overbought) setRsiOverbought(parseFloat(overbought));
-    } else if (strategy === "ema_cross") {
-      setStrategyType("ema_cross");
-      const fast = searchParams.get("fast");
-      const slow = searchParams.get("slow");
-      if (fast) setFast(parseInt(fast));
-      if (slow) setSlow(parseInt(slow));
-    } else if (strategy === "xgb") {
-      setStrategyType("xgb");
-      const trainRatio = searchParams.get("xgb_train_ratio");
-      const nEstimators = searchParams.get("xgb_n_estimators");
-      const maxDepth = searchParams.get("xgb_max_depth");
-      const learningRate = searchParams.get("xgb_learning_rate");
-      if (trainRatio) setXgbTrainRatio(parseFloat(trainRatio));
-      if (nEstimators) setXgbNEstimators(parseInt(nEstimators));
-      if (maxDepth) setXgbMaxDepth(parseInt(maxDepth));
-      if (learningRate) setXgbLearningRate(parseFloat(learningRate));
-    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Business logic ───────────────────────────────────────────────
@@ -157,36 +114,9 @@ function BacktestPageInner() {
     abortRef.current = ctrl;
     setLoading(true); setError(null);
     try {
-      let strategy: string;
-      let strategyParams: Record<string, string>;
-      if (mode === "single") {
-        if (strategyType === "macd") {
-          strategy = "macd";
-          strategyParams = { fast: String(macdFast), slow: String(macdSlow), signal_period: String(macdSignal) };
-        } else if (strategyType === "rsi") {
-          strategy = "rsi";
-          strategyParams = { period: String(rsiPeriod), oversold: String(rsiOversold), overbought: String(rsiOverbought) };
-        } else if (strategyType === "xgb") {
-          strategy = "xgb";
-          strategyParams = {
-            xgb_train_ratio: String(xgbTrainRatio),
-            xgb_n_estimators: String(xgbNEstimators),
-            xgb_max_depth: String(xgbMaxDepth),
-            xgb_learning_rate: String(xgbLearningRate),
-          };
-        } else {
-          strategy = "ema_cross";
-          strategyParams = { fast: String(fast), slow: String(slow) };
-        }
-      } else {
-        if (rules.length === 0) { setError("최소 1개 이상의 Rule 필요"); setLoading(false); return; }
-        strategy = "gated";
-        strategyParams = { spawn_rules: JSON.stringify(buildSpawnRules(rules, instrumentId)) };
-      }
-      // 현실 거래비용(슬리피지+수수료) — macd/rsi/xgb 심플 러너에 반영
-      if (["macd", "rsi", "xgb"].includes(strategy)) {
-        strategyParams.cost_bps = String(parseFloat(costBps) || 0);
-      }
+      if (rules.length === 0) { setError("최소 1개 이상의 Rule 필요"); setLoading(false); return; }
+      const strategy = "gated";
+      const strategyParams: Record<string, string> = { spawn_rules: JSON.stringify(buildSpawnRules(rules, instrumentId)) };
       const [barsRes, btRes] = await Promise.all([
         getBars(instrumentId, start, end, timeframe, ctrl.signal),
         getBacktest(instrumentId, start, end, strategy, strategyParams, benchmarkId || undefined, ctrl.signal),
@@ -201,44 +131,20 @@ function BacktestPageInner() {
         backtestPnlPct: btRes.total_pnl_pct ?? null,
         strategyId: strategy,
       });
-      const singleLabel =
-        strategyType === "macd"? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal} ${start}→${end}`
-          : strategyType === "rsi"? `${instrumentId} RSI(${rsiPeriod}) ${start}→${end}`
-          : strategyType === "xgb"? `${instrumentId} XGBoost ${xgbTrainRatio}/${xgbNEstimators}/${xgbMaxDepth} ${start}→${end}`
-          : `${instrumentId} EMA ${fast}/${slow} ${start}→${end}`;
-      setSaveLabel(
-        mode === "single"? singleLabel
-          : `${instrumentId} Gated(${rules.length}R) ${start}→${end}`
-      );
+      setSaveLabel(`${instrumentId} Gated(${rules.length}R) ${start}→${end}`);
       setShowSaveResult(false);
       setResultSaved(false);
-      const activityLabel =
-        mode === "single"? (strategyType === "macd"? `${instrumentId} MACD ${macdFast}/${macdSlow}/${macdSignal}`
-              : strategyType === "rsi"? `${instrumentId} RSI(${rsiPeriod})`
-              : strategyType === "xgb"? `${instrumentId} XGBoost`
-              : `${instrumentId} EMA ${fast}/${slow}`)
-          : `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`;
       logActivity({
         type: "backtest",
-        label: activityLabel,
+        label: `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`,
         href: "/backtest",
       });
-      const experimentLabel =
-        mode === "single"? strategyType === "macd"? { strategy: "macd" as ExperimentStrategy, instrumentId, macdFast, macdSlow, macdSignal }
-            : strategyType === "rsi"? { strategy: "rsi" as ExperimentStrategy, instrumentId, rsiPeriod }
-            : strategyType === "xgb"? { strategy: "xgb" as ExperimentStrategy, instrumentId, xgbTrainRatio, xgbNEstimators, xgbMaxDepth }
-            : { strategy: "ema_cross" as ExperimentStrategy, instrumentId, fast, slow }
-          : { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length };
-      const experimentParams: Record<string, any> =
-        mode === "single"? strategyType === "macd"? { macdFast, macdSlow, macdSignal }
-            : strategyType === "rsi"? { rsiPeriod, rsiOversold, rsiOverbought }
-            : strategyType === "xgb"? { xgbTrainRatio, xgbNEstimators, xgbMaxDepth, xgbLearningRate }
-            : { fast, slow }
-          : { rulesCount: rules.length };
+      const experimentLabel = { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length };
+      const experimentParams: Record<string, any> = { rulesCount: rules.length };
       saveExperiment({
         label: makeExperimentLabel(experimentLabel),
         params: {
-          strategy: (mode === "single" ? strategyType : "gated") as ExperimentStrategy,
+          strategy: "gated" as ExperimentStrategy,
           instrumentId,
           start,
           end,
@@ -255,22 +161,6 @@ function BacktestPageInner() {
       toast.show(msg, "error");
       setBars([]); setResult(null);
     } finally { setLoading(false); }
-  }
-
-  async function optimize() {
-    if (optimizeCtrlRef.current) optimizeCtrlRef.current.abort();
-    const ctrl = new AbortController();
-    optimizeCtrlRef.current = ctrl;
-    setOptimizing(true);
-    setOptimizeResult(null);
-    try {
-      const res = await runBacktestOptimize(instrumentId, start, end, strategyType as "macd" | "rsi", ctrl.signal);
-      if (!ctrl.signal.aborted) setOptimizeResult(res);
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === "AbortError") return;
-    } finally {
-      if (!ctrl.signal.aborted) setOptimizing(false);
-    }
   }
 
   async function runPortfolio() {
@@ -315,17 +205,24 @@ function BacktestPageInner() {
     }
   }
 
-  function applyBestParams() {
-    if (!optimizeResult) return;
-    const p = optimizeResult.best_params;
-    if (strategyType === "macd") {
-      if (p.fast) setMacdFast(p.fast);
-      if (p.slow) setMacdSlow(p.slow);
-      if (p.signal_period) setMacdSignal(p.signal_period);
-    } else if (strategyType === "rsi") {
-      if (p.period) setRsiPeriod(p.period);
-      if (p.oversold) setRsiOversold(p.oversold);
-      if (p.overbought) setRsiOverbought(p.overbought);
+  async function handlePromoteToLv1() {
+    const rule = rules[promoteRuleIdx];
+    const alloc = parseFloat(promoteAlloc);
+    if (!rule || !alloc || alloc <= 0) { setPromoteError("배정 금액 입력"); return; }
+    setPromoting(true); setPromoteError(null);
+    try {
+      const spawnRule = buildSpawnRules([rule], instrumentId)[0];
+      const market = instrumentId.endsWith(".XKRX") ? "KR" : "US";
+      await createAgent(
+        promoteName.trim() || `${instrumentId} 조건식`,
+        "condition_lv1", alloc, true, 1, market,
+        { condition: spawnRule, instrument_id: instrumentId },
+      );
+      setPromoted(true);
+    } catch (e) {
+      setPromoteError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPromoting(false);
     }
   }
 
@@ -338,9 +235,6 @@ function BacktestPageInner() {
   }
 
   function currentStrategyParams(): StrategyParams {
-    if (mode === "single") {
-      return { type: "ema_cross", fast, slow };
-    }
     return { type: "gated", rules };
   }
 
@@ -377,169 +271,6 @@ function BacktestPageInner() {
           benchmarkId={benchmarkId} onBenchmarkChange={setBenchmarkId}
           onRun={run} loading={loading}
         >
-          {mode === "single" && (
-            <div className="flex flex-col gap-2">
-              {/* Strategy type selector */}
-              <div className="flex gap-1">
-                {(["ema_cross", "macd", "rsi"] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => { setStrategyType(type); setOptimizeResult(null); }}
-                    className={
-                      `px-2 py-0.5 rounded border text-xs transition-colors ` +
-                      (strategyType === type
-                        ? "border-accent text-accent bg-accent/10": "border-border text-text-3 hover:text-text-2 bg-transparent")
-                    }
-                  >
-                    {type === "ema_cross" ? "EMA Cross" : type === "macd" ? "MACD" : "RSI"}
-                  </button>
-                ))}
-                <button
-                  onClick={() => { setStrategyType("xgb"); setOptimizeResult(null); }}
-                  className={`px-3 py-1 text-xs rounded transition-colors cursor-pointer ${
-                    strategyType === "xgb"? "bg-accent/10 text-accent border border-accent": "text-text-3 hover:text-text-1 border border-transparent"}`}
-                >
-                  XGBoost (ML)
-                </button>
-              </div>
-
-              {/* 현실 거래비용 (macd/rsi/xgb 반영) */}
-              {strategyType !== "ema_cross" && (
-                <div className="flex items-center gap-2">
-                  <label className="text-text-3 text-xs">거래비용</label>
-                  <input value={costBps} onChange={e => setCostBps(e.target.value.replace(/[^0-9.]/g, ""))}
-                    inputMode="decimal"className="w-16 bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data text-center outline-none focus:border-accent" />
-                  <span className="text-text-3 text-[10px]">bps/체결 (슬리피지+수수료, 왕복 2회). 실전 함정 방지</span>
-                </div>
-              )}
-
-              {/* EMA Cross params */}
-              {strategyType === "ema_cross" && (
-                <SingleStrategyForm fast={fast} slow={slow} onFastChange={setFast} onSlowChange={setSlow} />
-              )}
-
-              {/* MACD params */}
-              {strategyType === "macd" && (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <label className="flex items-center gap-1 text-text-3 text-xs">
-                    Fast
-                    <input
-                      type="number"value={macdFast}
-                      onChange={e => setMacdFast(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
-                  </label>
-                  <label className="flex items-center gap-1 text-text-3 text-xs">
-                    Slow
-                    <input
-                      type="number"value={macdSlow}
-                      onChange={e => setMacdSlow(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
-                  </label>
-                  <label className="flex items-center gap-1 text-text-3 text-xs">
-                    Signal
-                    <input
-                      type="number"value={macdSignal}
-                      onChange={e => setMacdSignal(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
-                  </label>
-                  <button
-                    onClick={optimize}
-                    disabled={optimizing}
-                    className="bg-accent text-black px-3 py-1 rounded text-sm disabled:opacity-50">
-                    {optimizing ? "Optimizing…" : "Optimize"}
-                  </button>
-                </div>
-              )}
-
-              {/* RSI params */}
-              {strategyType === "rsi" && (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <label className="flex items-center gap-1 text-text-3 text-xs">
-                    Period
-                    <input
-                      type="number"value={rsiPeriod}
-                      onChange={e => setRsiPeriod(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
-                  </label>
-                  <label className="flex items-center gap-1 text-text-3 text-xs">
-                    Oversold
-                    <input
-                      type="number"value={rsiOversold}
-                      onChange={e => setRsiOversold(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
-                  </label>
-                  <label className="flex items-center gap-1 text-text-3 text-xs">
-                    Overbought
-                    <input
-                      type="number"value={rsiOverbought}
-                      onChange={e => setRsiOverbought(Number(e.target.value))}
-                      className="w-12 bg-bg border border-border rounded px-1 py-0.5 text-text-1 text-xs text-right"/>
-                  </label>
-                  <button
-                    onClick={optimize}
-                    disabled={optimizing}
-                    className="bg-accent text-black px-3 py-1 rounded text-sm disabled:opacity-50">
-                    {optimizing ? "Optimizing…" : "Optimize"}
-                  </button>
-                </div>
-              )}
-
-              {/* XGBoost params */}
-              {strategyType === "xgb" && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div>
-                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Train Ratio</label>
-                    <input
-                      type="number"min="0.5"max="0.9"step="0.05"value={xgbTrainRatio}
-                      onChange={e => setXgbTrainRatio(parseFloat(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
-                  </div>
-                  <div>
-                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Trees</label>
-                    <input
-                      type="number"min="10"max="500"step="10"value={xgbNEstimators}
-                      onChange={e => setXgbNEstimators(parseInt(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
-                  </div>
-                  <div>
-                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Max Depth</label>
-                    <input
-                      type="number"min="2"max="10"step="1"value={xgbMaxDepth}
-                      onChange={e => setXgbMaxDepth(parseInt(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
-                  </div>
-                  <div>
-                    <label className="text-text-3 text-[10px] uppercase tracking-wider block mb-1">Learning Rate</label>
-                    <input
-                      type="number"min="0.01"max="0.5"step="0.01"value={xgbLearningRate}
-                      onChange={e => setXgbLearningRate(parseFloat(e.target.value))}
-                      className="w-full bg-panel-2 border border-border rounded px-2 py-1 text-text-1 text-xs font-data"/>
-                  </div>
-                </div>
-              )}
-
-              {/* Optimize result */}
-              {optimizeResult && (
-                <div className="flex items-center gap-2">
-                  <span className="text-text-3 text-xs">
-                    Best: Sharpe {optimizeResult.best_sharpe?.toFixed(2) ?? "N/A"}
-                    {strategyType === "macd" && optimizeResult.best_params.fast !== undefined && (
-                      <> | Fast={optimizeResult.best_params.fast} Slow={optimizeResult.best_params.slow} Signal={optimizeResult.best_params.signal_period}</>
-                    )}
-                    {strategyType === "rsi" && optimizeResult.best_params.period !== undefined && (
-                      <> | Period={optimizeResult.best_params.period} Oversold={optimizeResult.best_params.oversold} Overbought={optimizeResult.best_params.overbought}</>
-                    )}
-                    {" "}({optimizeResult.combinations_tested} combos)
-                  </span>
-                  <button
-                    onClick={applyBestParams}
-                    className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors">
-                    Apply
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
           {mode === "composite" && (
             <CompositeStrategyBuilder rules={rules} instrumentId={instrumentId} onChange={setRules} />
           )}
@@ -740,11 +471,8 @@ function BacktestPageInner() {
         <ChartPanel
           bars={bars}
           trades={result?.trades ?? []}
-          emaFast={mode === "single" ? fast : undefined}
-          emaSlow={mode === "single" ? slow : undefined}
           symbol={instrumentId}
           timeframe={timeframe}
-          mode={mode !== "portfolio" ? mode : undefined}
         />
 
         {/* Right: Stats + Trade Log */}
@@ -783,18 +511,12 @@ function BacktestPageInner() {
                     className="flex-1 bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs min-w-0"placeholder="Label"/>
                   <button
                     onClick={() => {
-                      const resultParams: Record<string, any> =
-                        mode === "single"? strategyType === "macd"? { macdFast, macdSlow, macdSignal }
-                            : strategyType === "rsi"? { rsiPeriod, rsiOversold, rsiOverbought }
-                            : { fast, slow }
-                          : {};
                       const saved = saveBacktestResult({
                         label: saveLabel.trim() || `${instrumentId} ${start}`,
                         instrumentId,
                         start,
                         end,
-                        strategy: (mode === "single" ? strategyType : "gated") as "ema_cross" | "gated" | "macd" | "rsi" | "xgb",
-                        ...resultParams,
+                        strategy: "gated" as "ema_cross" | "gated" | "macd" | "rsi" | "xgb",
                         result,
                       });
                       setShowSaveResult(false);
@@ -813,25 +535,53 @@ function BacktestPageInner() {
             )}
           </div>
 
+          {/* Lv1 승급 — 검증된 조건식을 그대로 페이퍼 포워드 실행 */}
+          {mode === "composite" && result !== null && (
+            <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
+              <div>
+                <span className="text-text-2 text-xs font-semibold">Lv1 승급</span>
+                <p className="text-text-3 text-[10px] mt-0.5">백테스트로 검증한 조건식을 그대로 페이퍼로 포워드 실행</p>
+              </div>
+              {promoted ? (
+                <p className="text-pos text-xs">에이전트 생성 완료 ✓ — 에이전트 페이지에서 확인</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {rules.length > 1 && (
+                    <select value={promoteRuleIdx} onChange={e => setPromoteRuleIdx(Number(e.target.value))}
+                      className="w-full bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs">
+                      {rules.map((r, i) => (
+                        <option key={r.id} value={i}>Rule {i + 1} ({r.combinator}, {r.comparisons.length}조건)</option>
+                      ))}
+                    </select>
+                  )}
+                  <div className="flex gap-1.5">
+                    <input value={promoteName} onChange={e => setPromoteName(e.target.value)}
+                      placeholder={`${instrumentId} 조건식`}
+                      className="flex-1 bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs min-w-0" />
+                    <input value={promoteAlloc} onChange={e => setPromoteAlloc(e.target.value)}
+                      placeholder="배정 금액" inputMode="decimal"
+                      className="w-24 bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs" />
+                  </div>
+                  <button onClick={handlePromoteToLv1} disabled={promoting || rules.length === 0}
+                    className="w-full text-xs px-3 py-1.5 rounded bg-accent text-black font-medium disabled:opacity-40">
+                    {promoting ? "생성 중…" : "Lv1 에이전트로 승급 (페이퍼)"}
+                  </button>
+                  {promoteError && <p className="text-neg text-[10px]">{promoteError}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Trade Log */}
           <TradeLogTable trades={result?.trades ?? []} />
 
           {/* Trade Analytics */}
-          {mode === "single" && result !== null && (
+          {mode === "composite" && result !== null && (
             <TradeAnalyticsPanel trades={result.trades} />
           )}
 
-          {/* Strategy Comparison */}
-          {mode === "single" && (
-            <StrategyComparePanel
-              instrumentId={instrumentId}
-              start={start}
-              end={end}
-            />
-          )}
-
           {/* Monte Carlo Simulation */}
-          {mode === "single" && result !== null && (
+          {mode === "composite" && result !== null && (
             <MonteCarloPanel
               instrumentId={instrumentId}
               start={start}
@@ -840,27 +590,11 @@ function BacktestPageInner() {
           )}
 
           {/* Position Sizing Calculator */}
-          {mode === "single" && result !== null && (
+          {mode === "composite" && result !== null && (
             <PositionSizingPanel
               winRate={result.win_rate}
               avgWin={result.avg_win}
               avgLoss={result.avg_loss}
-            />
-          )}
-
-          {/* Walk-Forward Analysis */}
-          {mode === "single" && result !== null && (
-            <WalkForwardPanel
-              instrumentId={instrumentId}
-              start={start}
-              end={end}
-              strategy={strategyType}
-              strategyParams={
-                strategyType === "macd"? { fast: String(macdFast), slow: String(macdSlow), signal_period: String(macdSignal) }
-                  : strategyType === "rsi"? { period: String(rsiPeriod), oversold: String(rsiOversold), overbought: String(rsiOverbought) }
-                  : strategyType === "xgb"? { xgb_train_ratio: String(xgbTrainRatio), xgb_n_estimators: String(xgbNEstimators), xgb_max_depth: String(xgbMaxDepth), xgb_learning_rate: String(xgbLearningRate) }
-                  : { fast: String(fast), slow: String(slow) }
-              }
             />
           )}
         </div>

@@ -1,3 +1,259 @@
+## Phase 145 — 옵션 체인 데드락 버그 수정 + 실TWS 검증 (2026-07-06) ✅ DONE
+
+"tws 했어. 나머지 다 작업해줘" 요청으로 Phase143 이월 항목 "옵션 실TWS 검증" 진행 중 `GET /ib/options/chain` 완전 행(hang) 발견 — 60초 응답 없음, 이후 `/health`까지 죽어서 서버 전체가 wedge됨.
+
+### 원인 — `backends/ib/client.py::get_option_chain()` 3중 버그
+1. **동기 메서드를 async 함수 안에서 호출**: `self._ib.reqTickers(...)`(동기, 내부적으로 `loop.run_until_complete()` 호출)를 이미 실행 중인 이벤트루프 위 코루틴에서 호출 — 순정 asyncio라면 `RuntimeError`를 즉시 던지지만, uvicorn 서버 쪽에선 예외 대신 이벤트루프 자체가 멎어버림(정확한 내부 메커니즘은 uvloop 특성 추정, 확정은 안 함). 재현: standalone 스크립트에서 동일 호출 시 `RuntimeError: This event loop is already running`. → `await self._ib.reqTickersAsync(...)`로 교체, `asyncio.wait_for(..., timeout=N)`로 감쌈(참고: `reqTickersAsync`도 내부 `ib.RequestTimeout` 기본값이 `0`이라 자체 타임아웃이 원래 전혀 없었음).
+2. **옵션 계약 미검증(qualify) 상태로 조회**: `Option(...)`으로 직접 만든 계약은 `conId`가 없어서 `reqTickersAsync` 호출 시 `"can't be hashed because no 'conId' value exists"` 에러. → 호출 전 `await self._ib.qualifyContractsAsync(*contracts)` 추가, 매칭 실패(`None`) 계약은 필터링.
+3. **NaN → int 변환 크래시**: `open_interest` 필드가 TWS에서 `NaN`으로 오는 경우 `int(NaN)` = `ValueError`. → `oi == oi`(NaN 자기부정 성질 이용) 체크 후 변환.
+
+### 조치
+- 서버 프로세스(uvicorn, PID 23789)가 진짜로 wedge된 것 확인(`/health`도 timeout) → `kill -9`로 부모+자식(multiprocessing fork) 전부 종료 후 재기동.
+- TWS 포트 재확인 습관 유지: 이번 세션 중 한 번 TWS가 7496(LIVE)로 떠 있는 걸 발견해서 주문 테스트 전면 중단 후 사용자 확인 요청 → 사용자가 7497(paper)로 재접속 확인 후 진행.
+
+### 실TWS 검증 (paper, 7497) — 전부 통과
+- `GET /ib/options/chain?symbol=AAPL` → 실 체인 데이터 정상 반환(HTTP 200).
+- `POST /orders/options`(AAPL 135P 20260710 LIMIT BUY 1@0.10, paper=true) → `order_id=4` 정상 접수.
+- `GET /orders/options/4/status` → `PreSubmitted` 정상 조회(최초 1회 지연 있었으나 재시도 시 0.3s, 일회성으로 판단).
+- `POST /orders/options/4/cancel` → `PendingCancel` 정상 취소, 테스트 주문 정리 완료.
+- 회귀 테스트: `pytest tests/ -q` → 668 passed, 기존 pre-existing 실패 4건(test_auth×3, test_backtest_happy_path)만 남음 — 신규 회귀 없음.
+
+### 옵션 전용 리스크가드 (만기 기반)
+- `live_engine/risk_guard.py`: `RiskConfig.min_option_dte`(env `MIN_OPTION_DTE`, 기본 0=비활성) + `validate_option_expiry(expiry, config)` 신규 — 만기까지 D일 미만인 옵션 주문 차단(0DTE 등 핀/배정 리스크). 기본값 0이라 기존 동작엔 영향 없음, 필요 시 env로 켜는 옵트인 방식.
+- `_check_risk()`에 `option_expiry` 파라미터 추가, `POST /orders/options`에서 전달. `GET /trading/mode`에도 `min_option_dte` 노출.
+- Greeks(delta) 기반 한도는 보류 — 주문 시점에 매번 `reqTickersAsync` 왕복이 추가로 필요해 레이턴시/복잡도 대비 실익 낮다고 판단, 만기 기반 가드로 우선 커버.
+- `tests/test_risk_guard.py`에 정식 테스트 4건 추가(기본값 비활성/0DTE 차단/2DTE 이상 통과/env 로딩) + 전체 pytest 672 passed(기존 4건 pre-existing만 잔존) 확인.
+
+### 옵션 폼 IV/Delta 노출
+- `app/orders/page.tsx` OPT 탭 체인 테이블에 IV/Delta 컬럼 추가(백엔드는 Phase143부터 이미 반환하고 있었는데 테이블에 안 그려지고 있었음). `npx tsc --noEmit` 클린.
+
+### 다음 할 일
+- ~~백테스트 단일모드 → composite 통합~~ → Phase146에서 완료.
+- ~~mock 잔고 리셋 여부 결정~~ → 사용자 결정: 그대로 둠(액션 없음), 종결.
+
+## Phase 146 — 백테스트 단일모드 제거, composite 통합 (2026-07-06) ✅ DONE
+
+Phase145에서 이월된 결정 사항 중 "단일모드는 없애고 composite로 통합해줘" 사용자 확정 지시 처리. mock 잔고는 그대로 두기로 결정 완료(액션 없음).
+
+### 변경
+- `lib/backtest-types.ts`: `Mode` 타입 `"single" | "composite" | "portfolio"` → `"composite" | "portfolio"`.
+- `components/ui/StrategyModeTabs.tsx`: "Single Strategy" 탭 제거.
+- `components/ui/ChartPanel.tsx`: `emaFast`/`emaSlow`/`mode` prop 제거, EMA 범례를 항상 표시되는 Buy/Sell 범례로 단순화. (`CandlestickChart` 자체는 그대로 — `bots`/`forex`/`ChartTab`에서 계속 emaFast/emaSlow 사용 중이라 미변경)
+- `app/backtest/page.tsx`: 단일모드 전용 state(`costBps`, `xgb*`, `optimizing`, `optimizeResult`) 제거, `run()`에서 단일/composite 분기 제거하고 항상 `gated` 전략 빌드, `optimize()`/`applyBestParams()` 삭제, `currentStrategyParams()` 단순화, URL 쿼리파람 프리필에서 strategy 관련 로직 제거(instrument/start/end 프리필은 유지 — 원래도 `instrument_id`가 아니라 `instrument` 키라 freeform 딥링크와는 무관했음), `mode === "single"` JSX 블록 전체 삭제.
+- 분석 패널 게이팅: `TradeAnalyticsPanel`/`MonteCarloPanel`/`PositionSizingPanel` — `mode === "single"` → `mode === "composite"`로 변경(세 컴포넌트 다 전략 타입 의존성 없음, props 확인함).
+- `StrategyComparePanel`/`WalkForwardPanel` — composite로 이관 불가라 완전 제거 후 파일 삭제:
+  - `StrategyComparePanel`: EMA/MACD/RSI/XGBoost 캔드 전략 비교가 목적이라 단일모드 개념 자체가 사라지면 의미 없음.
+  - `WalkForwardPanel`: 백엔드 `GET /backtest/walk-forward`가 `_SIMPLE_STRATEGIES = {macd,rsi,xgb,ema_cross}` 외 전략을 400으로 명시 거부(`api_server/main.py`) — composite(`gated`) 전략으론 애초에 동작 불가, 백엔드 변경은 이번 스코프 밖.
+- 오펀 파일 삭제: `components/ui/SingleStrategyForm.tsx`, `components/backtest/StrategyComparePanel.tsx`, `components/backtest/WalkForwardPanel.tsx`. `components/ui/index.ts`에서 `SingleStrategyForm` export 제거.
+- 포트폴리오 모드는 자체 전략 선택 UI(strategyType/macdFast 등 동일 state 공유)라 전혀 미변경.
+
+### 검증
+- `npx tsc --noEmit` 클린, `npm test -- --run` 190/190 통과(회귀 없음).
+- 브라우저 실동작 확인(dev server): `/backtest` 진입 시 Composite/Portfolio 탭만 존재, 기본 composite 모드로 진입. Rule 조건 기반 백테스트 Run → 차트/Performance/거래분석/Monte Carlo/포지션사이징/Lv1승급 패널 전부 정상 렌더. Portfolio 탭 전환 후 기존 전략선택 UI 그대로 동작 확인.
+
+### 다음 할 일
+- 없음 (요청된 작업 완료).
+
+## Phase 144 — control_change/buyback_cancel Auto-Research 배치 (2026-07-06) ✅ DONE
+
+오래 밀려있던 요청("buyback_cancel, control_change 배치 지금 돌려줘"). `control_change` DART 재pull이 여러 세션째 백그라운드에서 이유 없이 죽는 문제부터 해결해야 했음.
+
+### 원인 (무한루프 아니었음)
+- `research/scanner/families.py`의 `control_change` 키워드가 `["최대주주변경","경영권"]`였는데, 실제 DART 리포트명은 `"최대주주등소유주식변동신고서"` — 매치 자체가 안 되는 버그. `"최대주주등소유주식변동"` 키워드 추가로 수정.
+- `pblntf_ty=I`(지분공시) 카테고리가 원체 커서(최근 분기 기준 월 4000~2만건, 윈도우당 최대 200페이지+) 6.5년 풀스캔에 요청당 3.5~100초(간헐적 타임아웃 재시도 포함)씩 걸림 — 배경 작업 하나가 감당하기엔 너무 김. "무한루프"로 보였던 건 실은 이 볼륨 때문에 하네스 백그라운드 잡 제한시간에 걸려 죽은 것.
+- `research/data/kr_dart_events.py::_fetch_window()`의 `except Exception: sleep(1); continue`에 재시도 상한이 없던 것도 잠재 위험이라 5회 연속 실패 시 예외 raise하도록 방어 추가.
+
+### 재개형(resumable) pull 신규
+- `_fetch_window()`에 `resume_page`/`on_row`/`on_progress` 파라미터 추가(하위호환, 기존 `pull_events()` 호출부 무영향).
+- `pull_events_resumable(event, d, out_path, checkpoint_path, years, ...)` 신규 — 페이지 완료마다 즉시 jsonl에 append+flush, 체크포인트(`{window_idx, page}`) 갱신. 죽어도 동일 커맨드 재호출하면 마지막 완료 페이지부터 이어짐(dedup은 out_path 기존 내용 재로드로 처리). `data/kr/events_control_change.jsonl` 이걸로 6.5년(28윈도우) 완주 — 5번 죽고 재개 반복 끝에 총 24,069건 수집.
+
+### 배치 결과
+- `research.autoresearch.engine.run_batch()` 실행 완료.
+- **`ev_control_change`**(최대주주변경=경영권 프리미엄 가설): n=22,251, p=1.0, `REJECT_BH`(random_baseline·walk_forward·cost_stress 전부 탈락, net -1.26%/median -2.53% 마이너스). 가설 반증 — 엣지 없음.
+- **`ev_buyback_cancel`**(자사주 소각): n=0, `UNDERPOWERED`. DART에 "소각" 독립 리포트 타입이 없어 원천적으로 검증 불가 — 버그 아니고 정직한 데이터 부재 처리(`families.py` 주석에 기록됨).
+- 결론: 두 이벤트 모두 실전 투입 불가. 기존 `paper_candidate`(TSMOM 등) 상태 변경 없음.
+
+### 다음 할 일
+- 없음(이 배치 요청 자체는 완결).
+
+### 부가 — InstrumentSelect 하드코딩 개선 (Phase141 이월 항목 처리)
+- `components/InstrumentSelect.tsx`: 고정 `<select>`(심볼 4개 고정, 그 외 입력 불가) → `<input list=...>` + `<datalist>` 콤보박스로 교체. 알려진 심볼 8개(NVDA/TSLA/035420/035720 추가)는 자동완성 제안일 뿐, 목록에 없는 임의 심볼도 자유 입력 가능. `app/backtest/heatmap/page.tsx`·`StrategyControlPanel.tsx` 호출부는 동일 `value`/`onChange` 인터페이스라 무변경. 디자인 토큰(`border-border bg-panel-2 text-text-1`) 적용. tsc/npm test(190) 통과.
+- 남은 것: Phase145 참고 (옵션 실TWS 검증 완료, 옵션 리스크가드/백테스트 통합/mock 잔고 리셋은 계속 이월).
+
+## Phase 143 — 옵션 매매 실행 (신규 구축) (2026-07-05) ✅ SHIPPED
+
+Phase 142 6번 항목("옵션 매매 가능여부")을 사용자가 "옵션 매매 만들어주고"로 업그레이드. GitHub 5개 링크(lightweight-charts, finance repo 검색, FinGPT, PyPatel/Options-Trading-Strategies-in-Python, optionlab) 검토 — optionlab·PyPatel 둘 다 분석/전략 코드만 있고 브로커 주문 연동 전무 확인. 결국 기존 `ib_async` 기반 IB 연동을 직접 확장하는 수밖에 없어 그대로 진행.
+
+### 백엔드
+- `backends/ib/order_client.py` — `IBOrderClient.place_option_order()` 신규. `Option(symbol, lastTradeDateOrContractMonth=expiry, strike, right, exchange="SMART", currency="USD")` 계약빌더는 기존 `backends/ib/client.py`의 `get_option_chain()`/`get_daily_bars_option()` 패턴 그대로 재사용. `cancel_order()`/`get_order_status()`는 `orderId` 기반이라 계약 종류 무관하게 이미 동작 — 수정 불필요.
+- `api_server/main.py` — `OptionOrderRequest`/`OptionOrderResponse` 모델 + `POST /orders/options`(+ `/cancel`, `GET /status`) 신규. 기존 `/orders/us` 패턴(`_check_risk()` 사전 리스크가드 → `record_order()` 감사로그 → `ConnectionRefusedError`/`OSError`→503, 기타→400) 그대로 미러링. 리스크 체크 시 `price_estimate = limit_price * 100`(1계약=기초자산 100주 승수) — 계약수 자체 한도(`max_order_qty`)는 그대로, 달러 한도(`max_order_notional`)만 승수 반영.
+- 라우팅: 옵션은 항상 IB 직결(Alpaca 옵션 미지원) — `paper=True`→포트 7497, `paper=False`→7496. 기존 매뉴얼 주문 철학("실 주문=사람이 이미 결정")을 그대로 따름 — Phase113 risk-governor/exec-gateway는 옵션 자산군 인지가 아직 없지만, 이 엔드포인트는 자동화 봇이 아니라 사람이 UI에서 직접 누르는 수동 주문이라 기존 US/KR 수동주문과 동일 신뢰 수준으로 판단.
+
+### 프론트엔드
+- `lib/api.ts` — `placeOptionOrder`/`cancelOptionOrder`/`getIBOptionChain` + 관련 타입 신규.
+- `lib/order-storage.ts` — `OrderLogEntry.venue`에 `"OPT"` 추가.
+- `app/orders/page.tsx` — 기존 KR/US/HL 탭 옆에 `OPT` 탭 신규. Symbol+"체인 조회" 버튼(`/ib/options/chain` 실시간 IB 체인 조회) → 만기 드롭다운 + strike/C/P 테이블(행 클릭 시 strike/right/limit price(mid) 자동입력) → Paper/Live 토글 → Side/Qty(계약)/Type/Price 공유 폼 재사용 → 주문확인 모달·Order Log·Cancel 전부 기존 KR/US 분기에 OPT 분기 추가하는 방식으로 통합.
+
+### 검증
+- 신규 pytest 9건(`test_ib_order_client.py` 2건 + `test_orders_options_api.py` 7건) 포함 `pytest tests/ -q` 668 pass(pre-existing 4개 제외 동일).
+- `npx tsc --noEmit` clean, `npm test` 190 pass(회귀 없음).
+- 브라우저 실사용: OPT 탭 렌더→체인조회(TWS 미기동이라 "Connection refused" 에러 정상 표시)→필드 검증 에러("Symbol/expiry/strike required.")→주문확인 모달(AAPL 20261218 200C, 1계약, MARKET)→제출→"IB TWS not reachable"(503) 정상 표시까지 end-to-end 확인. 콘솔 에러 없음.
+
+### 다음 할 일
+- 실제 IB TWS(paper 7497) 붙여서 진짜 체인 조회·주문 제출 재검증 필요(이번 세션은 TWS 미기동 환경이라 에러 경로까지만 확인).
+- 옵션 전용 리스크가드(그릭스/만기 기반 한도) — 아직 주식과 동일한 `max_order_notional`/`max_order_qty`만 적용, 옵션 특유 리스크(감마/베가 익스포저) 미반영.
+- Greeks/IV 표시를 주문 폼에 붙일지(현재 `/options/greeks`는 계산기 페이지에만 노출) — 사용자 결정 대기.
+
+---
+
+## Phase 142 — 사용자 6개 버그리포트 일괄 수정 (2026-07-05) ✅ SHIPPED
+
+사용자가 한 번에 6개 문제 제기: HUD 박살남, DART 오토파일럿 예산초과, 카피트레이드 총예산 미설정, 계좌현황 부풀림, 백테스트 싱글전략 잔존, 옵션매매 가능여부.
+
+### 완료된 작업
+
+**1. DART 기업행위 오토파일럿 예산 초과 (버그, 수정)**
+- `api_server/dart_autobot.py` — `tick()`이 매 이벤트마다 `budget * weight`(최대 1.5배)를 예산 클램프 없이 반복 매수 → 실제 매수 총액이 설정 예산(100만원)을 훨씬 초과. `cfg["spent"]` 누적 필드 추가, 매수 전 `remaining = budget - spent`로 클램프, 소진 시 매수 중단(다음 tick 재평가 위해 acted 처리 안 함).
+- `/dart-auto` 페이지 — 누적 지출/잔여 예산 표시 + "예산 소진" 경고 + "누적 지출 리셋" 버튼.
+- **주의**: 이미 쌓인 기존 모의계좌 보유분(₩10M+)은 소급 정리 안 됨 — 이 수정은 향후 신규 초과매수만 차단. 기존 잔고 리셋은 KIS 모의계좌 자체를 초기화해야 함(사용자 결정 필요).
+
+**2. 카피트레이드 총예산 미설정 (버그, 수정)**
+- `app/copytrade/page.tsx` — "전체 포트폴리오 팔로우"가 종목당 고정 500 미러였음. `totalBudget`(localStorage 영속) 신규 → 총예산 ÷ 보유종목수로 종목당 배분. 개별 종목 퀵미러(`mirrorOne`)는 기존 "개별 미러 금액" 그대로 유지.
+
+**3. 계좌현황 부풀림 (사용자 가설: 배정/매수해도 돈이 안 사라짐)**
+- `/portfolio`, `/agents/accounts/balances`, 멀티에이전트 사이징 로직 전체 확인 — 설계상 정상(각 에이전트 cash = alloc - invested, 실제 브로커 잔고와 별개 추상 배정). 실제 원인은 위 1·2번(DART/카피트레이드가 설정 예산보다 많이 실제 매수)로 결론.
+- 추가 안전장치: `/agents` 신규 에이전트 생성 시 "배정 합계가 실제 브로커 잔고 초과" 가드 신규 추가(`app/agents/page.tsx` `venueBucket()` + 사전 체크, 클라이언트 전용 — 이미 30초 주기로 폴링 중인 잔고 데이터 재사용, 추가 네트워크 호출 0). 최초 백엔드(`router_autopilot.py` `create_agent()`)에 넣었다가 라이브 브로커 호출 의존성 때문에 `test_agents_api.py` 3건 회귀 → 리버트 후 프론트로 재배치.
+
+**4. 백테스트 싱글전략 잔존 (버그, 수정)**
+- 원인: 모든 백테스트 실행이 `lib/experiment-storage.ts`에 자동저장되지만 유일한 조회/삭제 UI인 `/experiments`가 `redirect("/notebooks")`로 죽어있어 영구 비가시·삭제불가 상태였음(`/notebooks`엔 experiments 기능 자체가 없음).
+- `app/experiments/page.tsx` 신규 작성 — 기존에 이미 완성돼 있었지만 어디서도 안 쓰이던 `ExperimentTable`/`ExperimentCompare` 컴포넌트를 연결(조회·정렬·검색·메모수정·삭제·2개 비교·전체삭제).
+
+**5. HUD 홈 UI (Phase 141 WIP 위에서 추가 버그 발견·수정)**
+- Phase 141에서 이미 리디자인된 `/hud`를 브라우저로 실사용 검증 중 발견: `components/AccountBalances.tsx`의 `money()`가 `toLocaleString(undefined, ...)`을 사용 → 이 환경 Intl 기본 로케일이 유럽식(마침표=천단위, 쉼표=소수점)으로 해석되어 "₩10.065.931", "$100.034,55"처럼 표시(프로젝트 다른 곳은 전부 `"en-US"`/`"ko-KR"` 명시 — 이 파일만 예외). `"en-US"` 명시로 수정(hud/page.tsx의 유닛로스터 배분 표시도 동일 수정).
+- 계좌 카드 미니그리드가 `sm:grid-cols-3`(뷰포트 기준)라서 HUD 3단 레이아웃의 좁은 중앙 컬럼(약 420px) 안에 3열이 끼여 "배정/잔여" 라벨·숫자가 겹쳐 보이는 문제 → `grid-cols-2` 고정 + 배정/잔여를 가로배치에서 세로배치로 변경(어떤 폭에서도 겹침 없음).
+- 위 로케일 버그가 사용자가 말한 "박살남"의 실질 원인일 가능성 높음(숫자 포맷이 깨져 보이고 카드 텍스트가 겹쳐 보임). 수정 후 실브라우저 스크린샷으로 확인 — 정상.
+
+**6. 옵션 매매 가능 여부 (조사만, 미구현)**
+- 결론: 실행 경로 전무. `options/pricer.py`+`/options/greeks|chain|iv-surface`는 계산 전용, IB `order_client.py`는 `Stock` 계약만 하드코딩(Option 계약 지원 0), risk-governor/exec-gateway(Phase113)도 옵션 자산군 인지 없음, 전략/에이전트 레이어도 옵션 신호 생성 안 함.
+- 구현하려면: IB Option 계약빌더+주문클라이언트 확장 / risk-governor 그릭스 기반 한도 / 전략레이어 옵션 신호 — 별도 phase급. 사용자 결정 대기(아직 진행 안 함).
+
+**부수 수정**: `tests/test_event_families_s1.py` — 이전 세션에서 `control_change`의 `pblntf_ty`를 실측 근거로 `"B"→"I"`로 고친 것(families.py, 주석에 근거 기록됨)에 테스트가 안 맞아 회귀 표시 중이던 것을 발견, 테스트를 family별 기대값으로 수정.
+
+### 변경된 파일
+- BE: `api_server/dart_autobot.py`, `tests/test_event_families_s1.py`
+- FE: `app/dart-auto/page.tsx`, `app/copytrade/page.tsx`, `app/agents/page.tsx`, `app/experiments/page.tsx`(신규 작성), `components/AccountBalances.tsx`, `app/hud/page.tsx`, `lib/api.ts`
+
+### 검증
+- `npx tsc --noEmit` clean, `npm test` 190 pass, `pytest tests/ -q` 659 pass(pre-existing 4개 제외: test_auth.py×3, test_backtest_happy_path).
+- `/hud` 브라우저 실사용 확인(스크린샷, 수정 전/후) — 계좌카드 포맷/레이아웃 정상, 콘솔 에러 없음.
+
+### 다음 할 일 (미착수, 사용자 결정 대기)
+- DART/카피트레이드 기존 모의계좌 잔고를 소급 리셋할지 여부.
+- 옵션 매매 실행경로 신규 구축 여부(별도 phase 후보).
+- (Phase 141에서 이미 넘어온 항목) 백테스트 싱글모드를 composite 조건식 빌더로 흡수 후 싱글모드 페이지 제거, InstrumentSelect 하드코딩 종목 개선.
+- **이전 세션부터 대기 중인 원 요청**: `control_change` 재pull 백그라운드 잡(PID 6782, `pblntf_ty=I` 수정 반영) 완료 확인 → `research.autoresearch.engine.run_batch()` 실행 → LabEngine 큐에서 `real_control_change` 제외 확인. 이번 세션에서 사용자가 6개 버그리포트로 화제 전환하여 미착수 상태 유지.
+
+---
+
+## Phase 141 — 페어트레이딩 큐 재등장 버그 수정 + HUD 홈 리디자인 (2026-07-05) ✅ SHIPPED
+
+### 배경
+- "페어트레이딩 stat-arb 예전에 REJECT 했는데 왜 아직 큐에 있나" — `research/lab/pipeline.py`의 `_seed()`가 `data_mode=="blocked"`인 가설을 무조건 큐에 재포함하는데, 이미 REJECT 판정이 난 `pairs_statarb_v1`이 여전히 `blocked`로 태깅되어 있어 영구 재등장.
+- "HUD 정보가 실제와 안 맞고 쓸데없는 게 많다. 자비스 이런거 안 보여줘도 되고 포트폴리오/계좌 현황이나 중요 지수를 보여달라" — 홈(`/hud`)의 장식용 아크리액터 오브·헥사곤 인디케이터·로그 티커·정적 "Jarvis 거버넌스" 패널을 정리하고 실제로 매일 볼 정보로 교체.
+
+### 백엔드
+- `research/lab/hypotheses.py` — `pairs_statarb_v1`의 `data_mode`를 `"blocked"` → `"real_registry"`로 재태깅(이미 `experiment_registry.jsonl`에 REJECT 판정 존재). `_seed()`가 `blocked`만 필터링하므로 이 변경만으로 큐에서 영구 제외되고, 향후 리플레이 시에도 `evaluate_precomputed()` 경로로 실제 REJECT 판정을 정확히 보여줌.
+- 검증: `pairs_statarb_v1`이 `_seed()` 결과에서 빠짐, 관련 21개 테스트 pass.
+
+### 프론트엔드 — 공유 컴포넌트 추출
+- `lib/agent-level.ts` (신규) — `displayLevel()`을 `app/agents/page.tsx`에서 분리. 두 페이지(agents/hud)가 동일 레벨 정규화 로직을 쓰도록 통합(드리프트 방지).
+- `components/AccountBalances.tsx` (신규) — `BalanceCard`/`Balances`를 `app/agents/page.tsx`에서 분리해 `/hud`에서도 재사용.
+
+### 프론트엔드 — HUD(`app/hud/page.tsx`) 리디자인
+- 제거: 헥사곤 인디케이터 행, 듀얼 ArcReactor 오브(AI/BOT), RadialGauge 3종, "Jarvis 거버넌스" 패널(자율레벨/전략레지스트리 — 정적·중복 정보), 하단 로그 티커 마퀴.
+- 추가: 중앙 컬럼에 계좌 현황(`Balances`, 실제 브로커 잔액) + 주요 지수(`MarketOverviewWidget` 재사용 — KOSPI/KOSDAQ/S&P500/NASDAQ/USD-KRW/BTC/VIX/Gold). "돈길 — 엣지 생존" 패널에 리스크거버너/live집행 상태를 통합(삭제된 거버넌스 패널의 실질 정보만 이관).
+- 버그 수정: 유닛 로스터가 레거시 raw `Lv${a.autonomy}`(1~5) 대신 `displayLevel()` 정규화 값을 표시하도록 수정.
+- **실사용 버그 발견·수정**: `getAccountBalances()`를 기존 4초 주기 `Promise.all` 폴링 루프에 그대로 추가했더니 전체 피드가 영구 멈추는 회귀 발생. 원인 — KIS/IB 등 외부 브로커 API 호출이 10~30초+ 걸리는데, `abortRef.current?.abort()` → 새 컨트롤러 생성 → `Promise.all` 대기 → 다음 tick이 같은 컨트롤러를 abort하는 구조라서, balances 호출이 매번 "직전 컨트롤러가 스스로를 abort할 때"에야 settle되고 그 시점엔 이미 `c.signal.aborted===true`라 `setF()`가 영원히 스킵됨(balances뿐 아니라 lab/jarvis 등 다른 필드도 전부 멈춤). 수정: balances를 별도 `useEffect`로 분리, abort 없이 30초 주기 + in-flight 가드로 독립 폴링.
+- 브라우저로 `/hud`·`/agents` 실사용 검증(스크린샷) — 피드 정상 갱신, 레벨 배지 정상, 계좌/지수 패널 정상, 콘솔 에러 없음.
+
+### 검증
+- `npx tsc --noEmit` clean.
+- Chrome으로 `/hud`, `/agents` 실제 렌더링 확인(스크린샷 비교, 수정 전/후).
+
+### 다음 할 일 (사용자 확정, 미착수)
+- 백테스트 싱글모드(MACD/RSI/XGB) 로직을 composite 조건식 빌더에 흡수 후 싱글모드 페이지 제거.
+- `components/InstrumentSelect.tsx`의 하드코딩 4종목 드롭다운을 검색-즉시표시 방식으로 교체 + 백테스트 실행 시점에 온디맨드 데이터 fetch(로딩바) — 현재 `/bars`는 사전 적재된 `ParquetDataCatalog` 6종목만 서빙, 새 종목은 백엔드에 온디맨드 fetch 경로 필요.
+
+---
+
+## Phase 140 — 에이전트 레벨 재편(1/2/3) + Lv1 조건식 승격 + God Mode 승급 플로우 (2026-07-05) ✅ SHIPPED
+
+### 배경
+- 에이전트 자율레벨 체계 재정의: 구Lv2/3/4가 기능상 동일함이 확인되어 통합, God Mode를 "생성 시 토글"에서 "실적 기반 승급 플로우"로 전환.
+- 새 레벨: **Lv1**=조건식(백테스트에서 자연어→조건식 검증 후 승격, 그대로 페이퍼 포워드) / **Lv2**=AI 전략가(구Lv2·3·4 통합) / **Lv3**=자가학습(구Lv5). God Mode는 Lv3가 최근 실적 3조건을 통과하면 사람 확인 클릭으로 live 전환하는 별도 승급 플로우.
+
+### 백엔드
+- `api_server/god_mode.py` (신규) — God Mode 승급 3조건 심사: ①최근30일 순수익 > 벤치마크(SPY.ARCA/KOSPI.XKRX buy&hold) ②MDD≤15% ③반으로 쪼갠 미니 워크포워드 후반이 전반보다 안 나쁨. `agent_store.read_cycles`+`agent_perf.compute_performance`의 실현손익 이벤트만으로 재구성(별도 mark-to-market 데이터 없음). 데이터 부족 시 전부 fail-safe False.
+- `api_server/agent_store.py` — `autonomous`/`kr_macro` 프로필 `autonomy: 5→3`, `create_agent()`에 `condition`/`instrument_id` 파라미터 추가(Lv1 전용) 및 `god_mode` 생성 파라미터 제거, `promote_to_god_mode()` 신규(Lv3만, paper→live 전환).
+- `api_server/router_autopilot.py` — `GET/POST /agents/{id}/god-mode/eligibility|promote` 신규(서버가 항상 재검증, 클라이언트 신뢰 안 함), `autonomy_lv>=5`→`>=3` 5곳 renumbering.
+- `jarvis/execution/agent_gate.py` — `enforce_paper()`에 God Mode 예외 경로 추가(`god_mode=True and autonomy>=3` → live 허용). 기존 arm_criteria_v1 registry 게이트와는 별개 트랙(대체 아님).
+- `tests/test_god_mode.py` (신규, 6개) — 전체 654 passed 확인(기존 known-failure 1개 제외, 회귀 없음).
+
+### 프론트엔드
+- `app/agents/page.tsx` — `displayLevel()`로 레거시 autonomy(1~5) 값을 신규 3단계로 정규화(DB 마이그레이션 불필요), 생성 폼에서 God Mode 토글 제거하고 Lv2/Lv3만 선택, `GodModePanel` 컴포넌트 신규(에이전트 상세 대시보드 탭에 Lv3일 때만 노출 — 3조건 표시 + `confirm()` 확인 후 승급 버튼).
+- `components/ReactorCore.tsx` — `lvToOrbVariant()` 6단계→3단계(Lv3=red, 구Lv5 계승).
+- `lib/api.ts` — `GodModeEligibility`/`getGodModeEligibility`/`promoteToGodMode` 추가, `createAgent()`에 `conditionArgs` 파라미터 추가.
+- `app/backtest/page.tsx` — "Lv1 승급" 패널 신규(composite 모드 백테스트 결과 있을 때만 노출) — 검증된 rule을 `buildSpawnRules()`로 그대로 직렬화해 `condition_lv1` 에이전트로 생성, 조건식/EMA 크로스 로직이 백테스트와 100% 동일하게 재사용됨.
+
+### 검증
+- 백엔드: `pytest tests/ -q --ignore=tests/test_auth.py` → 654 passed, 1 pre-existing failure(무관).
+- 프론트: `npx tsc --noEmit` clean, `godMode`/`isLv5Style`/`isLv5Agent` 잔재 grep 0건.
+
+### 다음 할 일
+- (낮은 우선순위, 미착수) 주문 멱등성 + IB 연결 풀링, OMS 레이어, 실시간 PnL 대시보드
+- God Mode 실사용 사례 나오면 3조건 임계값(30일/15%/워크포워드 split) 재검토
+
+---
+
+## Phase 139 — LKG 뉴스소스 강화 + 밸류에이션 모듈 + 소형주 엣지 탐색 4연속 REJECT (2026-07-05)
+
+### 배경
+- LKG(Living Knowledge Graph) 15/15 AI 업데이트 사이클 전부 "변경없음" — 뉴스가 구조적 신호를 못 줘서 판단 자체가 안 일어남(코드 버그 아님).
+- "알림용 스코프다운" 대신 "AI 스스로 파악한 공급망 매매" 유지 결정 → 뉴스소스 강화로 방향 확정.
+
+### LKG 뉴스소스 강화 (`api_server/graph_api.py`)
+- `_fetch_8k_headlines()` — SEC EDGAR 8-K 최근 5일 (1.01/2.01/2.03/8.01 item만, 절차적 항목 제외)
+- `_fetch_dart_capex_headlines()` — DART 유형자산양수결정 공시 (LKG KR 노드: SK하이닉스/삼성전자/한전/LS일렉트릭/효성중공업/HD현대일렉트릭)
+- `_fetch_news_headlines()` — structural(8-K+DART) 뉴스를 40개 캡 앞에 배치, 일반 Finnhub 뉴스에 밀려나지 않게 고정
+- `research/data/sec_edgar.py` — `fetch_8k_events()` 신규
+- `research/data/kr_dart_events.py` — EVENT_DEFS에 `capex`(유형자산양수결정/비유동자산취득결정) 추가
+
+### 범용 밸류에이션 모듈 (`research/data/kr_valuation.py`, 신규)
+- DART 실측 자본총계/당기순이익(CFS우선/OFS폴백) + KRX 공식 시총 → PBR/PER
+- PIT 안전: rcept_no 앞 8자리=실공시일 이용, asof_date 이후 공시는 컷(lookahead 없음)
+- corp_code 매핑: DART corpCode.xml 벌크 다운로드 캐시(30일), 재무제표는 영구캐시(과거값 불변)
+- 검증: 경인전자 2026-06-19 시점 PBR 0.48/PER 10.3 실측 확인
+
+### 소형주 엣지 탐색 — 4개 전부 REJECT (사전등록, registry 기록)
+| 가설 | hypothesis_id | 결과 |
+|---|---|---|
+| capex 공시 후 20일 드리프트 (n=357) | `kr_capex_drift_v1_PIT` | REJECT (pct=29, WF 부호반전) |
+| ↳ 저PBR 서브그룹 (n=111) | `kr_capex_pbr_split_v1_PIT` | REJECT (pct=0.8, random보다 못함). 고PBR은 pct=97.4로 튀었으나 사전등록 안 된 사후비교라 폐기 — 새로 사전등록해야 씀 |
+| VCP류 변동성수축+거래대금돌파 (n=11871) | `kr_vcp_breakout_v1_PIT` | REJECT (pct=0.0 — 랜덤보다 확실히 나쁨. 돌파시점=이미 늦은 진입일 가능성) |
+| 매집구간(OBV+CCI+매집봉) 100일보유 (n=641) | `kr_accumulation_v1_PIT` | REJECT (절대수익 +2.88%지만 random 매칭 중앙값 +5.76%보다 낮음 — 이 필터가 랜덤보다 못한 종목을 고름) |
+
+### DART 인프라 버그 수정 (`research/data/dart_nps.py`)
+- 3개월 API 제한 미고려로 연간 pull 시 0건 반환 → 85일 청크로 수정
+- 네트워크 재시도 없어서 SSL/connection 에러시 한 해 통째로 유실 → 재시도 루프 추가
+- 재실행 결과: **미완료**. 지분공시(pblntf_ty=D) 시장전체 문서 하나하나 다운받아 "국민연금" 텍스트검색하는 구조라 원천적으로 느림(report_nm으로 사전필터 불가). 1시간 반 넘게 실행 중, 다음 세션에 이어서 확인 또는 설계 재검토 필요.
+
+### 다음
+- dart_nps 완료 확인 (또는 유니버스 좁혀서 재설계 — 예: 대형주만/특정 종목만 대상)
+- 소형주 엣지: capex/VCP/매집 3개 정의 다 막힘 — "대주주 보유율(품절주)" 차원 미검증 남음(DART 최대주주현황 API 신규 필요), 시도할지는 미정
+- 고PBR 튐(pct=97.4)은 흥미롭지만 사후관찰이라 새 사전등록+가능하면 새 데이터로 재검정해야 씀
+
+---
+
 ## Phase 138 — Lv5 에이전틱 고도화 + Telegram 알림 (2026-07-04) ✅ SHIPPED
 
 ### 알파카 할당 버그 수정

@@ -18,7 +18,7 @@ export type MAType        = typeof MA_TYPES[number];
 export type BBBand        = typeof BB_BANDS[number];
 export type CompOp        = typeof OPS[number];
 export type Combinator    = "AND" | "OR";
-export type Mode          = "single" | "composite" | "portfolio";
+export type Mode          = "composite" | "portfolio";
 
 export interface IndicatorOp {
   indicator:   IndicatorType;
@@ -78,6 +78,34 @@ export function newRule(): SpawnRuleState {
     comparisons: [newComp()],
     fast: 10,
     slow: 20,
+  };
+}
+
+export function ruleFromNlResult(result: {
+  combinator: Combinator;
+  comparisons: {
+    left: IndicatorOp;
+    op: CompOp;
+    rightType: "literal" | "indicator";
+    rightLiteral: number;
+    rightIndicator: IndicatorOp;
+  }[];
+  fast: number;
+  slow: number;
+}): SpawnRuleState {
+  return {
+    id: crypto.randomUUID(),
+    combinator: result.combinator,
+    comparisons: result.comparisons.map(c => ({
+      id: crypto.randomUUID(),
+      left: c.left,
+      op: c.op,
+      rightType: c.rightType,
+      rightLiteral: c.rightLiteral,
+      rightIndicator: c.rightIndicator,
+    })),
+    fast: result.fast,
+    slow: result.slow,
   };
 }
 

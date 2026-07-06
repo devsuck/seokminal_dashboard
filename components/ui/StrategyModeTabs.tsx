@@ -8,7 +8,6 @@ interface StrategyModeTabsProps {
 }
 
 const TABS: { value: Mode; label: string }[] = [
-  { value: "single",    label: "Single Strategy" },
   { value: "composite", label: "Composite / Gated" },
   { value: "portfolio", label: "Portfolio" },
 ];
