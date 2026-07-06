@@ -1,9 +1,188 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { listAgents, getAgentCycles, type TradingAgent, type AgentCycle } from "@/lib/api";
+import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  listAgents, getAgentCycles, getFREDSeries, getECOSSeries,
+  type TradingAgent, type AgentCycle, type FREDObservation, type ECOSObservation,
+} from "@/lib/api";
 
 type Market = "KR" | "US";
+
+// ── 실시간 매크로 지표 (FRED/ECOS 이미 연동된 백엔드 그대로 소비) ─────────────
+
+interface MacroMetricConfig {
+  seriesId: string;
+  label: string;
+  unit: string;
+  polarity: 1 | -1; // 1=값 상승이 리스크온, -1=값 상승이 리스크오프
+}
+
+const US_METRICS: MacroMetricConfig[] = [
+  { seriesId: "T10Y2Y", label: "10Y-2Y 스프레드", unit: "%", polarity: 1 },
+  { seriesId: "VIXCLS", label: "VIX", unit: "pt", polarity: -1 },
+  { seriesId: "BAMLH0A0HYM2", label: "하이일드 스프레드", unit: "%", polarity: -1 },
+  { seriesId: "FEDFUNDS", label: "Fed Funds", unit: "%", polarity: -1 },
+];
+
+const KR_METRICS: MacroMetricConfig[] = [
+  { seriesId: "BOK_BASE_RATE", label: "한은 기준금리", unit: "%", polarity: -1 },
+  { seriesId: "KOSPI", label: "KOSPI", unit: "pt", polarity: 1 },
+  { seriesId: "KRW_USD", label: "원/달러", unit: "₩", polarity: -1 },
+  { seriesId: "CPI", label: "소비자물가지수", unit: "idx", polarity: -1 },
+  { seriesId: "EXPORT_IDX", label: "수출금액지수", unit: "idx", polarity: 1 },
+  { seriesId: "IMPORT_IDX", label: "수입금액지수", unit: "idx", polarity: -1 },
+  { seriesId: "M2", label: "M2 통화량", unit: "십억원", polarity: -1 },
+];
+
+const REFRESH_MS = 30 * 60 * 1000; // 30분 — FRED/ECOS는 일/월 단위 지표라 이 이상 잦은 갱신은 무의미
+const TREND_LOOKBACK = 20; // 최근 관측치 기준 ~20개 전 값과 비교 (일별 시리즈 기준 대략 1개월)
+
+interface MacroMetricState {
+  config: MacroMetricConfig;
+  latest: number | null;
+  latestDate: string | null;
+  delta: number | null;
+  error: boolean;
+}
+
+function pickTrend(obs: (FREDObservation | ECOSObservation)[]): { latest: number | null; latestDate: string | null; delta: number | null } {
+  const clean = obs.filter(o => o.value !== null) as { date: string; value: number }[];
+  if (clean.length === 0) return { latest: null, latestDate: null, delta: null };
+  const latest = clean[clean.length - 1];
+  const priorIdx = Math.max(0, clean.length - 1 - TREND_LOOKBACK);
+  const prior = clean[priorIdx];
+  const delta = clean.length > 1 ? latest.value - prior.value : null;
+  return { latest: latest.value, latestDate: latest.date, delta };
+}
+
+function regimeScore(metrics: MacroMetricState[]): number {
+  const withDelta = metrics.filter(m => m.delta !== null);
+  if (withDelta.length === 0) return 50;
+  const sum = withDelta.reduce((acc, m) => acc + Math.sign(m.delta!) * m.config.polarity, 0);
+  return Math.round(50 + (sum / withDelta.length) * 50);
+}
+
+function regimeLabel(score: number): { label: string; cls: string } {
+  if (score >= 65) return { label: "Risk-On", cls: "text-pos" };
+  if (score <= 35) return { label: "Risk-Off", cls: "text-neg" };
+  return { label: "Neutral", cls: "text-warn" };
+}
+
+function LiveMacroPanel({ market }: { market: Market }) {
+  const [metrics, setMetrics] = useState<MacroMetricState[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const load = useCallback(async () => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true);
+    try {
+      const end = new Date().toISOString().slice(0, 10);
+      const start = new Date(Date.now() - 2 * 365 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const configs = market === "US" ? US_METRICS : KR_METRICS;
+      const results = await Promise.all(configs.map(async cfg => {
+        try {
+          const res = market === "US"
+            ? await getFREDSeries(cfg.seriesId, start, end, ctrl.signal)
+            : await getECOSSeries(cfg.seriesId, start, end, ctrl.signal);
+          const trend = pickTrend(res.observations);
+          return { config: cfg, ...trend, error: false } as MacroMetricState;
+        } catch (e) {
+          if (e instanceof DOMException && e.name === "AbortError") throw e;
+          return { config: cfg, latest: null, latestDate: null, delta: null, error: true } as MacroMetricState;
+        }
+      }));
+      if (!ctrl.signal.aborted) {
+        setMetrics(results);
+        setLastFetched(new Date());
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+    } finally {
+      if (!ctrl.signal.aborted) setLoading(false);
+    }
+  }, [market]);
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, REFRESH_MS);
+    return () => {
+      clearInterval(interval);
+      abortRef.current?.abort();
+    };
+  }, [load]);
+
+  const score = regimeScore(metrics);
+  const regime = regimeLabel(score);
+
+  return (
+    <div className="bg-panel border border-border rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <p className="text-text-2 text-sm font-medium">실시간 지표</p>
+          <span className="text-text-3 text-[10px]">({market === "US" ? "FRED" : "ECOS"})</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastFetched && (
+            <span className="text-text-3 text-[10px]">
+              {lastFetched.toLocaleTimeString("ko-KR")} 갱신
+            </span>
+          )}
+          <button onClick={load} disabled={loading}
+            className="text-[10px] px-2 py-0.5 rounded border border-border text-text-3 hover:text-text-2 hover:border-text-3 transition-colors disabled:opacity-40">
+            {loading ? "갱신 중…" : "새로고침"}
+          </button>
+        </div>
+      </div>
+
+      {/* 종합 레짐 스코어 */}
+      <div className="bg-bg border border-border rounded-lg px-3 py-2.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-text-3 text-[10px] uppercase tracking-wider">종합 레짐 스코어</span>
+          <span className={`text-xs font-semibold ${regime.cls}`}>{regime.label} · {score}</span>
+        </div>
+        <div className="h-1.5 bg-panel-2 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${score >= 65 ? "bg-pos" : score <= 35 ? "bg-neg" : "bg-warn"}`}
+            style={{ width: `${score}%` }} />
+        </div>
+        <p className="text-text-3 text-[9px] mt-1">자동 산출 — 최근 추세({TREND_LOOKBACK}개 관측치 기준) 방향 합산, 참고용</p>
+      </div>
+
+      {/* 지표 카드 */}
+      <div className="grid grid-cols-2 gap-2">
+        {metrics.map(m => {
+          const up = m.delta !== null && m.delta > 0;
+          const down = m.delta !== null && m.delta < 0;
+          const goodDirection = m.delta !== null ? Math.sign(m.delta) * m.config.polarity : 0;
+          const deltaCls = goodDirection > 0 ? "text-pos" : goodDirection < 0 ? "text-neg" : "text-text-3";
+          return (
+            <div key={m.config.seriesId} className="bg-bg border border-border rounded-lg px-2.5 py-2">
+              <p className="text-text-3 text-[10px]">{m.config.label}</p>
+              {m.error ? (
+                <p className="text-text-3 text-xs mt-0.5">—</p>
+              ) : (
+                <>
+                  <p className="text-text-1 text-sm font-data mt-0.5">
+                    {m.latest !== null ? m.latest.toLocaleString("ko-KR", { maximumFractionDigits: 2 }) : "—"}
+                    <span className="text-text-3 text-[10px] ml-1">{m.config.unit}</span>
+                  </p>
+                  {m.delta !== null && (
+                    <p className={`text-[10px] font-data ${deltaCls}`}>
+                      {up ? "▲" : down ? "▼" : "·"} {Math.abs(m.delta).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const KR_FOCUS = [
   { key: "AI기본법", label: "AI 기본법", desc: "고위험 AI 규제·데이터 거버넌스 의무화 (2026 시행)" },
@@ -204,8 +383,11 @@ export default function MacroPage() {
           </div>
         </div>
 
-        {/* 메인: 저널 + 분석 로그 */}
+        {/* 메인: 실시간 지표 + 저널 + 분석 로그 */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {/* 실시간 지표 (FRED/ECOS, 30분 자동 갱신) */}
+          <LiveMacroPanel market={market} />
+
           {/* 개인 저널 */}
           <div className="bg-panel border border-border rounded-xl p-4">
             <JournalEditor market={market} />

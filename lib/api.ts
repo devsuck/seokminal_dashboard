@@ -1,3 +1,5 @@
+import type { IndicatorOp, CompOp, Combinator } from "./backtest-types";
+
 export class ApiError extends Error {
   status: number;
 
@@ -270,6 +272,31 @@ export async function getAiRecommendation(
   const params = new URLSearchParams({ instrument_id: instrumentId, start, end });
   return handleResponse<AiRecommendation>(
     await fetch(`${API_URL}/ai/strategy-recommend?${params.toString()}`, { signal })
+  );
+}
+
+export interface NlComparisonResult {
+  left: IndicatorOp;
+  op: CompOp;
+  rightType: "literal" | "indicator";
+  rightLiteral: number;
+  rightIndicator: IndicatorOp;
+}
+export interface NlConditionResult {
+  combinator: Combinator;
+  comparisons: NlComparisonResult[];
+  fast: number;
+  slow: number;
+}
+
+export async function nlToCondition(text: string, signal?: AbortSignal): Promise<NlConditionResult> {
+  return handleResponse<NlConditionResult>(
+    await fetch(`${API_URL}/ai/nl-to-condition`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+      signal,
+    })
   );
 }
 
@@ -1286,7 +1313,14 @@ export async function getTradingMode(signal?: AbortSignal): Promise<TradingMode>
 
 // ── AI agents (multi-agent trading) ───────────────────────────────────────────
 
-export type AgentType = "swing" | "longterm" | "daytrade" | "hl_daytrade" | "kr_daytrade" | "autonomous" | "kr_macro";
+export type AgentType = "condition_lv1" | "option_lv1" | "swing" | "longterm" | "daytrade" | "hl_daytrade" | "kr_daytrade" | "autonomous" | "kr_macro";
+
+export interface OptionAgentSpec {
+  expiry: string;   // YYYYMMDD
+  strike: number;
+  right: "C" | "P";
+  contracts: number;
+}
 
 export interface TradingAgent {
   id: string;
@@ -1295,14 +1329,48 @@ export interface TradingAgent {
   account_alloc: number;
   status: "running" | "stopped";
   paper: boolean;
-  autonomy: number; // 1=fixed rules, 2=AI strategist, 3=full autonomy
+  autonomy: number; // 1=조건식(백테스트 승격) / 2=AI 전략가(구2·3·4 통합) / 3=자가학습(구Lv5)
   market: "US" | "KR" | "MIXED";
+  god_mode?: boolean;   // God Mode 승급됨 — Lv3 에이전트가 3조건 심사+사람 확인 통과 후 live 전환
+  condition_json?: string | null;
+  instrument_id?: string | null;
+  option_expiry?: string | null;
+  option_strike?: number | null;
+  option_right?: "C" | "P" | null;
+  option_contracts?: number | null;
   created_at: string;
   protected?: boolean;  // 잠금 — 삭제 시 이름 확인 필요
   profile: { label?: string; cadence_seconds?: number; buy_score_threshold?: number; venue?: string };
   session_live?: boolean;
   validated?: boolean;          // registry 검증 전략 여부 — false면 live 차단(페이퍼 강제)
   validation_reason?: string;
+}
+
+export interface GodModeCondition {
+  key: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface GodModeEligibility {
+  agent_id: string;
+  eligible: boolean;
+  conditions: GodModeCondition[];
+  window_days: number;
+  as_of: string;
+}
+
+export async function getGodModeEligibility(agentId: string, signal?: AbortSignal): Promise<GodModeEligibility> {
+  const r = await fetch(`${API_URL}/agents/${agentId}/god-mode/eligibility`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function promoteToGodMode(agentId: string): Promise<TradingAgent> {
+  const r = await fetch(`${API_URL}/agents/${agentId}/god-mode/promote`, { method: "POST" });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
 }
 
 export interface AgentCycle {
@@ -1324,11 +1392,20 @@ export async function listAgents(signal?: AbortSignal): Promise<{ agents: Tradin
   return r.json();
 }
 
-export async function createAgent(name: string, type: AgentType, account_alloc: number, paper: boolean, autonomy: number, market: "US" | "KR" | "MIXED" = "US"): Promise<TradingAgent> {
+export async function createAgent(
+  name: string, type: AgentType, account_alloc: number, paper: boolean, autonomy: number,
+  market: "US" | "KR" | "MIXED" = "US",
+  conditionArgs?: { condition: Record<string, unknown>; instrument_id: string; option?: OptionAgentSpec },
+): Promise<TradingAgent> {
   const r = await fetch(`${API_URL}/agents`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, type, account_alloc, paper, autonomy, market }),
+    body: JSON.stringify({
+      name, type, account_alloc, paper, autonomy, market,
+      condition: conditionArgs?.condition ?? null,
+      instrument_id: conditionArgs?.instrument_id ?? null,
+      option: conditionArgs?.option ?? null,
+    }),
   });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
@@ -1679,6 +1756,76 @@ export async function cancelUSOrder(
     signal,
   });
   return handleResponse<USOrderResponse>(r);
+}
+
+// ── Options Orders (IB) ──────────────────────────────────────────────────────
+
+export interface OptionOrderRequest {
+  symbol: string;
+  expiry: string;       // YYYYMMDD
+  strike: number;
+  right: "C" | "P";
+  side: "BUY" | "SELL";
+  quantity: number;      // 계약 수 (1계약=100주)
+  order_type: "MARKET" | "LIMIT";
+  limit_price?: number;
+  paper?: boolean;       // true=IB paper(7497), false=IB live(7496)
+}
+
+export interface OptionOrderResponse {
+  order_id: number;
+  status: string;
+  filled: number;
+  remaining: number;
+}
+
+export async function placeOptionOrder(
+  req: OptionOrderRequest,
+  signal?: AbortSignal,
+): Promise<OptionOrderResponse> {
+  const r = await fetch(`${API_URL}/orders/options`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<OptionOrderResponse>(r);
+}
+
+export async function cancelOptionOrder(
+  orderId: number,
+  signal?: AbortSignal,
+): Promise<OptionOrderResponse> {
+  const r = await fetch(`${API_URL}/orders/options/${orderId}/cancel`, {
+    method: "POST",
+    signal,
+  });
+  return handleResponse<OptionOrderResponse>(r);
+}
+
+export interface IBOptionChainRow {
+  strike: number;
+  right: "C" | "P";
+  bid: number | null;
+  ask: number | null;
+  last: number | null;
+  volume: number | null;
+  open_interest: number | null;
+  iv: number | null;
+  delta: number | null;
+}
+
+export interface IBOptionChainResponse {
+  symbol: string;
+  chain: Record<string, IBOptionChainRow[]>;
+}
+
+export async function getIBOptionChain(
+  symbol: string,
+  signal?: AbortSignal,
+): Promise<IBOptionChainResponse> {
+  const r = await fetch(`${API_URL}/ib/options/chain?symbol=${encodeURIComponent(symbol)}`, { signal });
+  return handleResponse<IBOptionChainResponse>(r);
 }
 
 // ── Alert System ──────────────────────────────────────────────
@@ -2207,14 +2354,14 @@ export interface DartBotLog {
   action?: string; qty?: number; price?: number; msg?: string;
 }
 export interface DartBotStatus {
-  enabled: boolean; budget: number; interval_sec: number;
+  enabled: boolean; budget: number; spent: number; remaining: number; interval_sec: number;
   last_run: string | null; market_open: boolean; acted_count: number; log: DartBotLog[];
 }
 export async function getDartBotStatus(signal?: AbortSignal): Promise<DartBotStatus> {
   const r = await fetch(`${API_URL}/dart/auto/status`, { signal });
   return handleResponse<DartBotStatus>(r);
 }
-export async function setDartBotConfig(cfg: { enabled?: boolean; budget?: number; interval_sec?: number }): Promise<{ ok: boolean }> {
+export async function setDartBotConfig(cfg: { enabled?: boolean; budget?: number; interval_sec?: number; reset_spent?: boolean }): Promise<{ ok: boolean }> {
   const r = await fetch(`${API_URL}/dart/auto/config`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
   });
@@ -2823,17 +2970,28 @@ export async function getBuybackAnalysis(signal?: AbortSignal): Promise<BuybackA
 }
 
 // ── Living Knowledge Graph ────────────────────────────────────────────────────
+export type GraphDataSource = "disclosure" | "news" | "analyst_estimate" | "ai_estimate";
+export interface GraphFinancials {
+  market_cap_usd_m?: number | null; pe_ttm?: number | null;
+  revenue_growth_yoy_pct?: number | null; eps_growth_yoy_pct?: number | null;
+  as_of?: string;
+}
 export interface GraphNode {
   id: string; label: string; type: "company" | "policy" | "resource" | "technology";
   sector: string; country: string;
   bottleneck_score: number;
   supply_risk: number; demand_pressure: number; policy_risk: number;
   note?: string; last_updated?: string;
+  source?: GraphDataSource; confidence?: number;
+  financials?: GraphFinancials;
 }
 export interface GraphEdge {
   source: string; target: string;
   relation: string; type: string;
   weight: number; bottleneck: boolean;
+  relation_category?: "supply" | "competition" | "regulation" | "equity";
+  dependency_pct?: number | null; substitutable?: boolean | null;
+  data_source?: GraphDataSource; confidence?: number;
   evidence?: string; last_updated?: string;
 }
 export interface KnowledgeGraph {
@@ -2841,9 +2999,18 @@ export interface KnowledgeGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
+export interface GraphHistoryPoint {
+  ts: string; node_id: string;
+  bottleneck_score: number | null; supply_risk: number | null;
+  demand_pressure: number | null; policy_risk: number | null;
+}
 export async function getKnowledgeGraph(signal?: AbortSignal): Promise<KnowledgeGraph> {
   const r = await fetch(`${API_URL}/graph`, { signal });
   return handleResponse<KnowledgeGraph>(r);
+}
+export async function getGraphNodeHistory(nodeId: string, signal?: AbortSignal): Promise<{ node_id: string; history: GraphHistoryPoint[] }> {
+  const r = await fetch(`${API_URL}/graph/history/${encodeURIComponent(nodeId)}`, { signal });
+  return handleResponse(r);
 }
 export async function patchKnowledgeGraph(patch: { nodes?: Partial<GraphNode>[]; edges?: Partial<GraphEdge>[]; summary?: string }): Promise<{ status: string; update_count: number }> {
   const r = await fetch(`${API_URL}/graph/patch`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });

@@ -64,6 +64,13 @@ function BacktestPageInner() {
   const [promoted, setPromoted]             = useState(false);
   const [promoteError, setPromoteError]     = useState<string | null>(null);
 
+  // Lv1 승급 — 옵션 계약으로 실행 (기초자산 신호는 동일, 체결만 옵션 콜/풋)
+  const [promoteAsOption, setPromoteAsOption] = useState(false);
+  const [optExpiry, setOptExpiry]     = useState("");
+  const [optStrike, setOptStrike]     = useState("");
+  const [optRight, setOptRight]       = useState<"C" | "P">("C");
+  const [optContracts, setOptContracts] = useState("1");
+
   const abortRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -209,15 +216,33 @@ function BacktestPageInner() {
     const rule = rules[promoteRuleIdx];
     const alloc = parseFloat(promoteAlloc);
     if (!rule || !alloc || alloc <= 0) { setPromoteError("배정 금액 입력"); return; }
+    if (promoteAsOption) {
+      const strike = parseFloat(optStrike);
+      const contracts = parseInt(optContracts, 10);
+      if (!/^\d{8}$/.test(optExpiry)) { setPromoteError("만기일은 YYYYMMDD 형식"); return; }
+      if (!strike || strike <= 0) { setPromoteError("행사가 입력"); return; }
+      if (!contracts || contracts < 1) { setPromoteError("계약 수 입력"); return; }
+    }
     setPromoting(true); setPromoteError(null);
     try {
       const spawnRule = buildSpawnRules([rule], instrumentId)[0];
       const market = instrumentId.endsWith(".XKRX") ? "KR" : "US";
-      await createAgent(
-        promoteName.trim() || `${instrumentId} 조건식`,
-        "condition_lv1", alloc, true, 1, market,
-        { condition: spawnRule, instrument_id: instrumentId },
-      );
+      if (promoteAsOption) {
+        await createAgent(
+          promoteName.trim() || `${instrumentId} 옵션 조건식`,
+          "option_lv1", alloc, true, 1, market,
+          {
+            condition: spawnRule, instrument_id: instrumentId,
+            option: { expiry: optExpiry, strike: parseFloat(optStrike), right: optRight, contracts: parseInt(optContracts, 10) },
+          },
+        );
+      } else {
+        await createAgent(
+          promoteName.trim() || `${instrumentId} 조건식`,
+          "condition_lv1", alloc, true, 1, market,
+          { condition: spawnRule, instrument_id: instrumentId },
+        );
+      }
       setPromoted(true);
     } catch (e) {
       setPromoteError(e instanceof Error ? e.message : String(e));
@@ -562,9 +587,43 @@ function BacktestPageInner() {
                       placeholder="배정 금액" inputMode="decimal"
                       className="w-24 bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs" />
                   </div>
+
+                  {!instrumentId.endsWith(".XKRX") && (
+                    <label className="flex items-center gap-1.5 text-text-3 text-[11px] cursor-pointer">
+                      <input type="checkbox" checked={promoteAsOption}
+                        onChange={e => setPromoteAsOption(e.target.checked)} />
+                      옵션 계약으로 실행 (기초자산 신호 → 콜/풋 매수·청산, IB paper 전용)
+                    </label>
+                  )}
+
+                  {promoteAsOption && (
+                    <div className="flex gap-1.5 items-center flex-wrap">
+                      <input value={optExpiry} onChange={e => setOptExpiry(e.target.value)}
+                        placeholder="만기 YYYYMMDD" inputMode="numeric"
+                        className="w-28 bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs" />
+                      <input value={optStrike} onChange={e => setOptStrike(e.target.value)}
+                        placeholder="행사가" inputMode="decimal"
+                        className="w-20 bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs" />
+                      <div className="inline-flex bg-bg border border-border rounded overflow-hidden">
+                        {(["C", "P"] as const).map(r => (
+                          <button key={r} onClick={() => setOptRight(r)} type="button"
+                            className={[
+                              "px-2 py-1 text-xs border-0 cursor-pointer",
+                              optRight === r ? "bg-accent/10 text-accent" : "bg-transparent text-text-3",
+                            ].join(" ")}>
+                            {r === "C" ? "Call" : "Put"}
+                          </button>
+                        ))}
+                      </div>
+                      <input value={optContracts} onChange={e => setOptContracts(e.target.value)}
+                        placeholder="계약수" inputMode="numeric"
+                        className="w-16 bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs" />
+                    </div>
+                  )}
+
                   <button onClick={handlePromoteToLv1} disabled={promoting || rules.length === 0}
                     className="w-full text-xs px-3 py-1.5 rounded bg-accent text-black font-medium disabled:opacity-40">
-                    {promoting ? "생성 중…" : "Lv1 에이전트로 승급 (페이퍼)"}
+                    {promoting ? "생성 중…" : promoteAsOption ? "Lv1 옵션 에이전트로 승급 (페이퍼)" : "Lv1 에이전트로 승급 (페이퍼)"}
                   </button>
                   {promoteError && <p className="text-neg text-[10px]">{promoteError}</p>}
                 </div>
