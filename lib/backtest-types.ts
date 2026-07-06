@@ -114,6 +114,59 @@ export function pnlClass(v: number | null | undefined): string {
   return v == null ? "text-text-3" : v >= 0 ? "text-pos" : "text-neg";
 }
 
+// ── 차트 지표 스펙 — 조건식에 쓰인 지표를 차트에 그대로 표시 ────────
+export type ChartIndicatorSpec =
+  | { kind: "MA"; period: number; maType: MAType }
+  | { kind: "BB"; period: number; k: number }
+  | { kind: "EMA_CROSS"; fast: number; slow: number }
+  | { kind: "RSI"; period: number }
+  | { kind: "MACD"; fast: number; slow: number }
+  | { kind: "CCI"; period: number }
+  | { kind: "OBV" };
+
+export function specLabel(s: ChartIndicatorSpec): string {
+  switch (s.kind) {
+    case "MA":        return `${s.maType === "SIMPLE" ? "SMA" : "EMA"} ${s.period}`;
+    case "BB":        return `BB ${s.period}/${s.k}σ`;
+    case "EMA_CROSS": return `EMA ${s.fast}/${s.slow}`;
+    case "RSI":       return `RSI ${s.period}`;
+    case "MACD":      return `MACD ${s.fast}/${s.slow}`;
+    case "CCI":       return `CCI ${s.period}`;
+    case "OBV":       return "OBV";
+  }
+}
+
+function specFromIndicatorOp(op: IndicatorOp): ChartIndicatorSpec | null {
+  switch (op.indicator) {
+    case "MA":   return { kind: "MA", period: op.period, maType: op.ma_type };
+    case "BB":   return { kind: "BB", period: op.period, k: op.k };
+    case "RSI":  return { kind: "RSI", period: op.period };
+    case "MACD": return { kind: "MACD", fast: op.fast_period, slow: op.slow_period };
+    case "CCI":  return { kind: "CCI", period: op.period };
+    case "OBV":  return { kind: "OBV" };
+    default:     return null;
+  }
+}
+
+/** 조건식 Rule들에서 차트에 그릴 지표 스펙 추출 (좌변 + 지표 우변 + 전략 EMA 크로스, 중복 제거). */
+export function chartSpecsFromRules(rules: SpawnRuleState[]): ChartIndicatorSpec[] {
+  const specs: ChartIndicatorSpec[] = [];
+  const seen = new Set<string>();
+  const push = (s: ChartIndicatorSpec | null) => {
+    if (!s) return;
+    const key = JSON.stringify(s);
+    if (!seen.has(key)) { seen.add(key); specs.push(s); }
+  };
+  for (const r of rules) {
+    for (const c of r.comparisons) {
+      push(specFromIndicatorOp(c.left));
+      if (c.rightType === "indicator") push(specFromIndicatorOp(c.rightIndicator));
+    }
+    push({ kind: "EMA_CROSS", fast: r.fast, slow: r.slow });
+  }
+  return specs;
+}
+
 // ── JSON Serialization (preserved exactly from original) ───────────
 export function indToJson(op: IndicatorOp, barType: string) {
   const p: Record<string, unknown> = {};

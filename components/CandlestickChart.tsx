@@ -11,6 +11,7 @@ import {
   type SeriesMarker,
 } from "lightweight-charts";
 import type { BarOut, TradeRecord } from "@/lib/api";
+import type { ChartIndicatorSpec } from "@/lib/backtest-types";
 
 interface CandlestickChartProps {
   bars: BarOut[];
@@ -20,6 +21,9 @@ interface CandlestickChartProps {
   sma?: number;
   bollingerPeriod?: number;
   bollingerStd?: number;
+  /** 조건식에서 추출한 지표 스펙 — 오버레이(MA/BB/EMA)는 가격 페인,
+      오실레이터(RSI/MACD/CCI/OBV)는 하단 서브페인에 렌더. */
+  specs?: ChartIndicatorSpec[];
 }
 
 function computeSMA(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
@@ -59,9 +63,83 @@ function computeEMA(bars: BarOut[], period: number): { time: UTCTimestamp; value
   return result;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd }: CandlestickChartProps) {
+function barTime(b: BarOut): UTCTimestamp {
+  return Math.floor(b.ts_event / 1e9) as UTCTimestamp;
+}
+
+function computeRSI(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
+  if (bars.length <= period) return [];
+  const out: { time: UTCTimestamp; value: number }[] = [];
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = bars[i].close - bars[i - 1].close;
+    if (d >= 0) avgGain += d; else avgLoss -= d;
+  }
+  avgGain /= period; avgLoss /= period;
+  out.push({ time: barTime(bars[period]), value: avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss) });
+  for (let i = period + 1; i < bars.length; i++) {
+    const d = bars[i].close - bars[i - 1].close;
+    avgGain = (avgGain * (period - 1) + Math.max(d, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-d, 0)) / period;
+    out.push({ time: barTime(bars[i]), value: avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss) });
+  }
+  return out;
+}
+
+function computeMACD(bars: BarOut[], fast: number, slow: number, signalPeriod = 9): {
+  macd: { time: UTCTimestamp; value: number }[];
+  signal: { time: UTCTimestamp; value: number }[];
+} {
+  const fastE = computeEMA(bars, fast);
+  const slowE = computeEMA(bars, slow);
+  const slowByTime = new Map(slowE.map(p => [p.time, p.value]));
+  const macd = fastE
+    .filter(p => slowByTime.has(p.time))
+    .map(p => ({ time: p.time, value: p.value - (slowByTime.get(p.time) as number) }));
+  // signal = macd의 EMA
+  const signal: { time: UTCTimestamp; value: number }[] = [];
+  if (macd.length >= signalPeriod) {
+    const k = 2 / (signalPeriod + 1);
+    let ema = macd.slice(0, signalPeriod).reduce((s, p) => s + p.value, 0) / signalPeriod;
+    signal.push({ time: macd[signalPeriod - 1].time, value: ema });
+    for (let i = signalPeriod; i < macd.length; i++) {
+      ema = macd[i].value * k + ema * (1 - k);
+      signal.push({ time: macd[i].time, value: ema });
+    }
+  }
+  return { macd, signal };
+}
+
+function computeCCI(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
+  if (bars.length < period) return [];
+  const tp = bars.map(b => (b.high + b.low + b.close) / 3);
+  const out: { time: UTCTimestamp; value: number }[] = [];
+  for (let i = period - 1; i < bars.length; i++) {
+    const window = tp.slice(i - period + 1, i + 1);
+    const mean = window.reduce((s, v) => s + v, 0) / period;
+    const meanDev = window.reduce((s, v) => s + Math.abs(v - mean), 0) / period;
+    out.push({ time: barTime(bars[i]), value: meanDev === 0 ? 0 : (tp[i] - mean) / (0.015 * meanDev) });
+  }
+  return out;
+}
+
+function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
+  const out: { time: UTCTimestamp; value: number }[] = [];
+  let obv = 0;
+  for (let i = 0; i < bars.length; i++) {
+    if (i > 0) {
+      if (bars[i].close > bars[i - 1].close) obv += bars[i].volume ?? 0;
+      else if (bars[i].close < bars[i - 1].close) obv -= bars[i].volume ?? 0;
+    }
+    out.push({ time: barTime(bars[i]), value: obv });
+  }
+  return out;
+}
+
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const specsKey = JSON.stringify(specs ?? []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -165,8 +243,80 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       }
     }
 
+    // ── 조건식 지표 스펙 렌더 — 오버레이는 가격 페인, 오실레이터는 서브페인 ──
+    const OVERLAY_COLORS = ["#FF9F1C", "#3B82F6", "#a855f7", "#14b8a6", "#eab308"];
+    let overlayCi = 0;
+    let paneIdx = 1;
+    const line = (data: { time: UTCTimestamp; value: number }[], color: string, pane = 0, dashed = false) => {
+      if (!data.length) return null;
+      const s = chart.addSeries(LineSeries, {
+        color, lineWidth: 1, lineStyle: dashed ? 2 : 0,
+        priceLineVisible: false, lastValueVisible: pane > 0,
+      }, pane);
+      s.setData(data);
+      return s;
+    };
+    for (const spec of specs ?? []) {
+      switch (spec.kind) {
+        case "MA": {
+          const data = spec.maType === "SIMPLE" ? computeSMA(bars, spec.period) : computeEMA(bars, spec.period);
+          line(data, OVERLAY_COLORS[overlayCi++ % OVERLAY_COLORS.length]);
+          break;
+        }
+        case "EMA_CROSS": {
+          line(computeEMA(bars, spec.fast), OVERLAY_COLORS[overlayCi++ % OVERLAY_COLORS.length]);
+          line(computeEMA(bars, spec.slow), OVERLAY_COLORS[overlayCi++ % OVERLAY_COLORS.length]);
+          break;
+        }
+        case "BB": {
+          const bb = computeBollingerBands(bars, spec.period, spec.k);
+          if (bb.length) {
+            line(bb.map(d => ({ time: d.time, value: d.upper })), "#94A3B8", 0, true);
+            line(bb.map(d => ({ time: d.time, value: d.middle })), "#94A3B8");
+            line(bb.map(d => ({ time: d.time, value: d.lower })), "#94A3B8", 0, true);
+          }
+          break;
+        }
+        case "RSI": {
+          const s = line(computeRSI(bars, spec.period), "#a855f7", paneIdx++);
+          if (s) {
+            s.createPriceLine({ price: 70, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "70" });
+            s.createPriceLine({ price: 30, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "30" });
+          }
+          break;
+        }
+        case "MACD": {
+          const { macd, signal } = computeMACD(bars, spec.fast, spec.slow);
+          const p = paneIdx++;
+          const s = line(macd, "#3B82F6", p);
+          line(signal, "#FF9F1C", p);
+          if (s) s.createPriceLine({ price: 0, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "" });
+          break;
+        }
+        case "CCI": {
+          const s = line(computeCCI(bars, spec.period), "#14b8a6", paneIdx++);
+          if (s) {
+            s.createPriceLine({ price: 100, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "100" });
+            s.createPriceLine({ price: -100, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "-100" });
+          }
+          break;
+        }
+        case "OBV": {
+          line(computeOBV(bars), "#eab308", paneIdx++);
+          break;
+        }
+      }
+    }
+    // 서브페인이 생기면 가격 페인이 눌리지 않게 전체 높이 보정
+    if (paneIdx > 1) {
+      const panes = chart.panes();
+      panes[0]?.setStretchFactor(3);
+      for (let i = 1; i < panes.length; i++) panes[i]?.setStretchFactor(1);
+    }
+
     return () => { chart.remove(); chartRef.current = null; };
-  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey]);
 
   return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }

@@ -10,6 +10,7 @@ import { saveBacktestResult } from "@/lib/backtest-result-storage";
 import { toast } from "@/lib/toast";
 import {
   buildSpawnRules,
+  chartSpecsFromRules,
   newRule,
   type Mode,
   type SpawnRuleState,
@@ -48,6 +49,11 @@ function BacktestPageInner() {
   const [benchmarkId, setBenchmarkId] = useState("");
   const [rules, setRules]             = useState<SpawnRuleState[]>([newRule()]);
   const [bars, setBars]               = useState<BarOut[]>([]);
+  // 조건식에 쓰인 지표 → 차트 오버레이/서브페인 스펙 (composite 모드만)
+  const chartSpecs = useMemo(
+    () => (mode === "composite" ? chartSpecsFromRules(rules) : []),
+    [mode, rules],
+  );
   const [result, setResult]           = useState<BacktestResponse | null>(null);
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
@@ -498,6 +504,7 @@ function BacktestPageInner() {
           trades={result?.trades ?? []}
           symbol={instrumentId}
           timeframe={timeframe}
+          specs={chartSpecs}
         />
 
         {/* Right: Stats + Trade Log */}
