@@ -2353,15 +2353,20 @@ export interface DartBotLog {
   ts: string; kind: string; corp?: string; code?: string;
   action?: string; qty?: number; price?: number; msg?: string;
 }
+export interface DartBotPosition {
+  code: string; corp: string; qty: number; entry_price: number; entry_ts: string;
+}
 export interface DartBotStatus {
   enabled: boolean; budget: number; spent: number; remaining: number; interval_sec: number;
   last_run: string | null; market_open: boolean; acted_count: number; log: DartBotLog[];
+  tp_pct: number; sl_pct: number; max_hold_days: number;
+  positions: DartBotPosition[];
 }
 export async function getDartBotStatus(signal?: AbortSignal): Promise<DartBotStatus> {
   const r = await fetch(`${API_URL}/dart/auto/status`, { signal });
   return handleResponse<DartBotStatus>(r);
 }
-export async function setDartBotConfig(cfg: { enabled?: boolean; budget?: number; interval_sec?: number; reset_spent?: boolean }): Promise<{ ok: boolean }> {
+export async function setDartBotConfig(cfg: { enabled?: boolean; budget?: number; interval_sec?: number; reset_spent?: boolean; tp_pct?: number; sl_pct?: number; max_hold_days?: number }): Promise<{ ok: boolean }> {
   const r = await fetch(`${API_URL}/dart/auto/config`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
   });
@@ -2404,6 +2409,23 @@ export async function mirrorCopyTrade(ticker: string, notional: number): Promise
   const r = await fetch(`${API_URL}/copytrade/mirror`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticker, notional }),
+  });
+  return handleResponse(r);
+}
+
+export async function closeCopyPosition(ticker: string): Promise<{ ticker: string; status: string }> {
+  const r = await fetch(`${API_URL}/copytrade/close/${encodeURIComponent(ticker)}`, { method: "POST" });
+  return handleResponse(r);
+}
+
+export interface CopyAutoExitResult {
+  closed: { ticker: string; pl_pct: number; reason: string }[];
+  count: number;
+}
+export async function copyAutoExit(tpPct: number, slPct: number): Promise<CopyAutoExitResult> {
+  const r = await fetch(`${API_URL}/copytrade/auto-exit`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tp_pct: tpPct, sl_pct: slPct }),
   });
   return handleResponse(r);
 }

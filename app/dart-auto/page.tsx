@@ -71,6 +71,14 @@ export default function DartAutoPage() {
     } catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
   }
 
+  async function resetSpent() {
+    try {
+      await setDartBotConfig({ reset_spent: true });
+      flash("누적 지출 리셋 — 예산 전액 다시 사용 가능");
+      loadBot();
+    } catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+  }
+
   async function buy(s: DartSignal) {
     if (!s.ticker) { flash("종목코드 없음"); return; }
     const amt = Math.round((parseFloat(krw) || 1000000) * (s.weight || 1));
@@ -115,6 +123,39 @@ export default function DartAutoPage() {
           </div>
         )}
       </div>
+      {bot && (
+        <div className="bg-panel border border-border rounded-lg px-4 py-2.5 flex items-center gap-3 flex-wrap text-[11px]">
+          <span className="text-text-3">누적 지출 <span className="text-text-1 font-data">₩{Math.round(bot.spent).toLocaleString()}</span> / ₩{Math.round(bot.budget).toLocaleString()}</span>
+          <span className={`font-data ${bot.remaining < 1 ? "text-neg" : "text-pos"}`}>잔여 ₩{Math.round(bot.remaining).toLocaleString()}</span>
+          {bot.remaining < 1 && <span className="text-warn">예산 소진 — 매도되면 자동 회수됨</span>}
+          <button onClick={resetSpent} className="ml-auto text-text-3 hover:text-accent border border-border rounded px-2 py-1">누적 지출 리셋</button>
+        </div>
+      )}
+
+      {/* 매도 규칙 + 봇 보유 포지션 — 규칙 충족 시 자동 매도되고 예산이 회수됨 */}
+      {bot && (
+        <div className="bg-panel border border-border rounded-lg px-4 py-2.5 flex items-center gap-3 flex-wrap text-[11px]">
+          <span className="text-text-2 font-semibold">자동 매도 규칙</span>
+          <label className="text-text-3">익절%</label>
+          <input defaultValue={Math.round((bot.tp_pct ?? 0.15) * 100)} inputMode="numeric"
+            onBlur={e => setDartBotConfig({ tp_pct: (parseFloat(e.target.value) || 15) / 100 })}
+            className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 font-data outline-none focus:border-accent" />
+          <label className="text-text-3">손절%</label>
+          <input defaultValue={Math.round((bot.sl_pct ?? 0.07) * 100)} inputMode="numeric"
+            onBlur={e => setDartBotConfig({ sl_pct: (parseFloat(e.target.value) || 7) / 100 })}
+            className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 font-data outline-none focus:border-accent" />
+          <label className="text-text-3">최대보유(일)</label>
+          <input defaultValue={bot.max_hold_days ?? 20} inputMode="numeric"
+            onBlur={e => setDartBotConfig({ max_hold_days: parseInt(e.target.value) || 20 })}
+            className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 font-data outline-none focus:border-accent" />
+          <span className="text-text-3 ml-auto">
+            봇 보유 {bot.positions?.length ?? 0}종목
+            {(bot.positions?.length ?? 0) > 0 && (
+              <span className="font-data"> — {bot.positions.slice(0, 6).map(p => p.corp || p.code).join(" · ")}{bot.positions.length > 6 ? " 외" : ""}</span>
+            )}
+          </span>
+        </div>
+      )}
       {on && !bot?.market_open && (
         <p className="text-text-3 text-[11px] px-1">ℹ 장 마감 중 — 자사주 신규 공시는 다음 개장 때 매수됨 (7일 내 공시 추적).</p>
       )}

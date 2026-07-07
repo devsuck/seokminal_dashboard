@@ -4,11 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ApiError, getCopyTraders, getCopyPositions, mirrorCopyTrade,
+  closeCopyPosition, copyAutoExit,
   type TraderCard, type CopyPosition,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
 
 const NOTIONAL_KEY = "copytrade-notional";
+const TOTAL_BUDGET_KEY = "copytrade-total-budget";
+const AUTO_EXIT_KEY = "copytrade-auto-exit";
+const TP_KEY = "copytrade-tp-pct";
+const SL_KEY = "copytrade-sl-pct";
 
 // 이름 → 안정적 색상 (아바타 배경)
 const AVATAR_COLORS = [
@@ -29,6 +34,7 @@ function retStr(v: number | null | undefined): string {
   if (v == null) return "—";
   return `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
+function round2(n: number): number { return Math.round(n * 100) / 100; }
 
 export default function CopyTradePage() {
   const [traders, setTraders] = useState<TraderCard[]>([]);
@@ -36,6 +42,10 @@ export default function CopyTradePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notional, setNotional] = useState("500");
+  const [totalBudget, setTotalBudget] = useState("5000");
+  const [autoExit, setAutoExit] = useState(false);
+  const [tpPct, setTpPct] = useState("15");
+  const [slPct, setSlPct] = useState("7");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<"return" | "recent">("return");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -44,7 +54,13 @@ export default function CopyTradePage() {
   const tCtrl = useRef<AbortController | null>(null);
   const pCtrl = useRef<AbortController | null>(null);
 
-  useEffect(() => { const n = localStorage.getItem(NOTIONAL_KEY); if (n) setNotional(n); }, []);
+  useEffect(() => {
+    const n = localStorage.getItem(NOTIONAL_KEY); if (n) setNotional(n);
+    const b = localStorage.getItem(TOTAL_BUDGET_KEY); if (b) setTotalBudget(b);
+    const a = localStorage.getItem(AUTO_EXIT_KEY); if (a) setAutoExit(a === "true");
+    const t = localStorage.getItem(TP_KEY); if (t) setTpPct(t);
+    const s = localStorage.getItem(SL_KEY); if (s) setSlPct(s);
+  }, []);
 
   const loadPositions = useCallback(() => {
     pCtrl.current?.abort();
@@ -71,16 +87,18 @@ export default function CopyTradePage() {
 
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2800); }
 
-  // 트레이더 포트폴리오 전체를 페이퍼로 팔로우 (보유 종목 각각 미러)
+  // 트레이더 포트폴리오 전체를 페이퍼로 팔로우 — 총 예산을 보유 종목 수로 나눠 배분
+  // (종목당 고정 금액이 아님 — 종목 수만큼 곱해져 총예산을 초과하지 않게).
   async function follow(t: TraderCard) {
-    const amt = parseFloat(notional) || 500;
+    const budget = parseFloat(totalBudget) || 5000;
+    const amt = t.holdings.length > 0 ? round2(budget / t.holdings.length) : 0;
     setBusy(t.source + t.name);
     let ok = 0;
     for (const h of t.holdings) {
       try { await mirrorCopyTrade(h.ticker, amt); ok++; } catch { /* skip */ }
     }
     setBusy(null);
-    flash(`${t.name} 팔로우 — ${ok}/${t.holdings.length}종목 페이퍼 매수 ($${amt}씩)`);
+    flash(`${t.name} 팔로우 — ${ok}/${t.holdings.length}종목 페이퍼 매수 (총 $${budget} ÷ ${t.holdings.length}종목 = $${amt}씩)`);
     loadPositions();
   }
 
@@ -91,6 +109,32 @@ export default function CopyTradePage() {
     catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
     finally { setBusy(null); }
   }
+
+  async function closeOne(ticker: string) {
+    setBusy(`close:${ticker}`);
+    try { await closeCopyPosition(ticker); flash(`${ticker} 전량 청산 주문`); loadPositions(); }
+    catch (e) { flash(`청산 실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+    finally { setBusy(null); }
+  }
+
+  const runAutoExit = useCallback(async () => {
+    try {
+      const r = await copyAutoExit(parseFloat(tpPct) || 15, parseFloat(slPct) || 7);
+      if (r.count > 0) {
+        flash(`자동청산 ${r.count}건: ${r.closed.map(c => `${c.ticker}(${c.reason})`).join(", ")}`);
+        loadPositions();
+      }
+    } catch { /* 다음 주기에 재시도 */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tpPct, slPct, loadPositions]);
+
+  // 자동청산 ON이면 포지션 폴링 주기(60초)마다 TP/SL 규칙 적용
+  useEffect(() => {
+    if (!autoExit) return;
+    runAutoExit();
+    const iv = setInterval(runAutoExit, 60_000);
+    return () => clearInterval(iv);
+  }, [autoExit, runAutoExit]);
 
   const totalPl = positions.reduce((a, p) => a + p.unrealized_pl, 0);
 
@@ -114,14 +158,24 @@ export default function CopyTradePage() {
       </div>
 
       <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
-        <label className="text-text-3 text-xs">종목당 미러 금액</label>
+        <label className="text-text-3 text-xs">총 팔로우 예산</label>
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">$</span>
-          <input value={notional}
-            onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setNotional(v); localStorage.setItem(NOTIONAL_KEY, v); }}
-            inputMode="decimal"className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+          <input value={totalBudget}
+            onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setTotalBudget(v); localStorage.setItem(TOTAL_BUDGET_KEY, v); }}
+            inputMode="decimal" className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
         </div>
-        <span className="text-text-3 text-[11px]">팔로우 = 해당 인물 보유 종목 각각 이 금액만큼 페이퍼 매수</span>
+        <span className="text-text-3 text-[11px]">팔로우 = 이 총액을 보유 종목 수로 나눠 각각 페이퍼 매수 (종목 수와 무관하게 총액 고정)</span>
+
+        <div className="flex items-center gap-1.5">
+          <label className="text-text-3 text-xs">개별 미러 금액</label>
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">$</span>
+            <input value={notional}
+              onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setNotional(v); localStorage.setItem(NOTIONAL_KEY, v); }}
+              inputMode="decimal" className="w-24 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+          </div>
+        </div>
 
         <div className="flex items-center gap-2 ml-auto flex-wrap">
           {/* 이름 검색 */}
@@ -217,12 +271,29 @@ export default function CopyTradePage() {
               {totalPl >= 0 ? "+" : ""}${totalPl.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </div>
+          {/* 자동청산 규칙 — TP/SL 넘으면 자동 매도, 예산 회수 */}
+          <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 flex-wrap">
+            <button onClick={() => { const v = !autoExit; setAutoExit(v); localStorage.setItem(AUTO_EXIT_KEY, String(v)); }}
+              className={`text-[11px] px-2.5 py-1 rounded border ${autoExit ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
+              {autoExit ? "● 자동청산 ON" : "자동청산 OFF"}
+            </button>
+            <label className="text-text-3 text-[10px]">익절%</label>
+            <input value={tpPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setTpPct(v); localStorage.setItem(TP_KEY, v); }}
+              inputMode="decimal" className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 text-xs font-data outline-none focus:border-accent" />
+            <label className="text-text-3 text-[10px]">손절%</label>
+            <input value={slPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setSlPct(v); localStorage.setItem(SL_KEY, v); }}
+              inputMode="decimal" className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 text-xs font-data outline-none focus:border-accent" />
+            <button onClick={runAutoExit}
+              className="text-[10px] px-2 py-1 rounded border border-border text-text-3 hover:text-accent hover:border-accent ml-auto">
+              지금 적용
+            </button>
+          </div>
           {positions.length === 0 ? (
             <div className="p-6"><EmptyState message="보유 없음" hint="트레이더를 팔로우하면 여기 표시" /></div>
           ) : (
             <div className="divide-y divide-border/50">
               {positions.map(p => (
-                <div key={p.ticker} className="px-4 py-2.5 flex items-center justify-between">
+                <div key={p.ticker} className="px-4 py-2.5 flex items-center justify-between gap-2">
                   <div>
                     <div className="font-data text-text-1 text-sm font-semibold">{p.ticker}</div>
                     <div className="text-text-3 text-[10px] font-data">{p.qty.toFixed(4)}주 · 평단 ${p.avg_price.toFixed(2)}</div>
@@ -235,6 +306,10 @@ export default function CopyTradePage() {
                       {p.unrealized_plpc >= 0 ? "+" : ""}{p.unrealized_plpc.toFixed(2)}%
                     </div>
                   </div>
+                  <button onClick={() => closeOne(p.ticker)} disabled={busy === `close:${p.ticker}`}
+                    className="text-[10px] px-2 py-1 rounded border border-neg/30 text-neg hover:bg-neg/10 disabled:opacity-40 shrink-0">
+                    청산
+                  </button>
                 </div>
               ))}
             </div>

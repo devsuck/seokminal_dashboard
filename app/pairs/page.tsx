@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ApiError, getPairsBacktest, type PairsResult } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
+import { SymbolSearchInput } from "@/components/SymbolSearchInput";
 
 const PRESETS: [string, string][] = [
   ["AAPL.NASDAQ", "MSFT.NASDAQ"],
@@ -59,11 +60,9 @@ export default function PairsPage() {
       </div>
 
       <div className="flex items-center gap-2 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
-        <input value={a} onChange={e => setA(e.target.value.toUpperCase())}
-          className="w-40 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+        <SymbolSearchInput value={a} onChange={setA} className="w-52" placeholder="티커/회사명 (예: 애플, apple)" />
         <span className="text-text-3">/</span>
-        <input value={b} onChange={e => setB(e.target.value.toUpperCase())}
-          className="w-40 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+        <SymbolSearchInput value={b} onChange={setB} className="w-52" placeholder="티커/회사명" />
         <button onClick={() => run()} className="text-sm px-4 py-1.5 rounded bg-accent text-black font-medium">분석</button>
         <div className="flex gap-1.5 ml-2 flex-wrap">
           {PRESETS.map(([x, y]) => (
