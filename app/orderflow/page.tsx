@@ -4,8 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { LivePulse } from "@/components/Jarvis";
-import { FootprintChart } from "@/components/orderflow/FootprintChart";
-import { LiquidityHeatmap } from "@/components/orderflow/LiquidityHeatmap";
+import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
 import { getOrderflowSymbols } from "@/lib/api";
 
@@ -56,14 +55,7 @@ export default function OrderflowPage() {
           <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
-      <div>
-        <h2 className="text-text-2 text-sm mb-2">풋프린트</h2>
-        <FootprintChart cells={footprint} />
-      </div>
-      <div>
-        <h2 className="text-text-2 text-sm mb-2">유동성 히트맵</h2>
-        <LiquidityHeatmap cells={heatmap} />
-      </div>
+      <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} />
     </div>
   );
 }
