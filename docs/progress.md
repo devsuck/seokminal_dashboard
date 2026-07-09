@@ -1,3 +1,27 @@
+## Phase 154 — Orderflow Chart Overlay (2026-07-09~10) ✅ DONE
+
+플랜: `docs/superpowers/plans/2026-07-09-orderflow-chart-overlay.md`, 스펙: `docs/superpowers/specs/2026-07-09-orderflow-chart-overlay-design.md`. SDD 방식 7태스크. 커밋 `2cdfcf8`(플랜)~`795a506`(최종 수정), 원장은 `.superpowers/sdd/progress.md`.
+
+### 변경 내용
+`/orderflow` 페이지를 v1(FootprintChart+LiquidityHeatmap 개별 스택 캔버스 패널) → v2(lightweight-charts v5 Series Primitives로 캔들차트 위에 footprint/heatmap 직접 오버레이)로 전면 교체. v1 컴포넌트 삭제.
+- `lib/chart-bars.ts`: `ChartTab.tsx`에서 `fetchBarsForSymbol` 공용 헬퍼 추출(벤뉴 라우팅 보존, 리팩터 중 XKRX-intraday 에러 메시지 회귀 발견→수정).
+- `lib/orderflow-chart-coords.ts`: 순수 좌표 매핑 함수(footprintColumnX 등).
+- `components/CandlestickChart.tsx`: `onSeriesReady` 콜백 노출(차트/캔들시리즈 생성 직후 호출, primitive attach용).
+- `components/orderflow/{HeatmapPrimitive,FootprintPrimitive}.ts`: Series Primitive 배경/전경 레이어. footprint는 barSpacing<40px에서 숫자 숨김.
+- `components/orderflow/OrderflowChart.tsx`: 조합 컴포넌트(30초 폴링 캔들 + primitive 데이터 갱신).
+
+### 최종 전체브랜치 리뷰 (opus) — Important 1건 발견·수정
+30초마다 새 `bars` 배열이 `CandlestickChart`의 이펙트 의존성에 걸려 차트 전체가 destroy→recreate됨 → 줌/팬 상태가 30초마다 초기화 → footprint 숫자를 보려고 40px 이상 줌인해도 30초 안에 리셋되는 문제(핵심 신규 기능이 사실상 지속 사용 불가). 수정(`795a506`): `CandlestickChart.tsx`에 `visibleRangeRef`(`useRef<LogicalRange|null>`) 추가 — cleanup에서 `getVisibleLogicalRange()` 저장, 다음 마운트에서 `setVisibleLogicalRange()`로 복원, null-guard라 다른 3개 소비처(`ChartTab`/`ChartPanel`/forex 페이지) 첫 마운트 동작은 무변화. 부수로 `FootprintPrimitive.ts`의 죽은 `computeFootprintLayout()` 호출, `ChartTab.tsx`의 죽은 `TIMEFRAMES.bar/.dur` 필드도 함께 정리. 재리뷰 클린(tsc/vitest 181/181).
+
+### 브라우저 수동 확인 (컨트롤러 직접, subagent 아님)
+BTC.HL 1분봉 렌더링, WS 연결상태 배지(라이브/재연결중/오류), 심볼 전환(BTC.HL↔NQ) 잔상 없이 클린 — 전부 확인. **미확인**: 히트맵 배경 틴트(60초 캔들 대비 2초 버킷이라 슬리버 폭 0.2~1.3px, 육안 확인 어려움 — 리뷰어가 코드 레벨로는 정상 확인), footprint 줌인 숫자(브라우저 자동화 scroll-to-zoom이 차트 캔버스에 안 먹힘, 크로스헤어 마우스무브는 정상 동작해서 툴 한계로 판단, 코드 레벨은 검증됨).
+
+`git push origin main` 완료 (`795a506`, origin이 202커밋 뒤처져있던 것 포함 전체 push).
+
+### 다음 할 일
+- 위 미확인 2건(히트맵 틴트 육안, footprint 줌인 숫자) 유저 직접 스팟체크 권장 — `/orderflow`에서 BTC.HL 진입 후 스크롤로 barSpacing 40px 이상 확대.
+- 스택된 채 미착수: HUD Phase 1 프로세스 가시성 변경(`git stash@{0}`, "wip: HUD phase1 process-visibility") — 이번 오더플로우 작업과 무관, 다음 세션에서 pop 후 이어가기.
+
 ## Phase 153 — 아크리액터 오브 제거 (2026-07-09) ✅ DONE
 
 커밋 `6a3afc7`. 유저 지적: 캔버스 파티클 오브(ReactorCore, Iron-Man 아크리액터)가 블룸버그 톤과 안 어울림. "오브 버려도 됨" 확인받고 직접 수정(작은 UI 교체, subagent/plan 안 씀).
