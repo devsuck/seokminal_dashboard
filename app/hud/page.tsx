@@ -50,18 +50,14 @@ interface Unit { kind: "AI" | "BOT"; name: string; running: boolean; detail: str
 function UnitCard({ u }: { u: Unit }) {
   return (
     <Link href={u.href}
-      className={`block border p-3 no-underline transition-colors ${
-        u.running ? "border-pos/40 bg-pos/5 hover:bg-pos/10" : "border-border bg-panel-2/40 hover:bg-panel-2"}`}>
-      <div className="flex items-center gap-2">
-        <StatusDot tone={u.running ? "pos" : "text-3"} />
-        <span className="text-xs font-semibold text-text-1 truncate flex-1">{u.name}</span>
-        <span className={`text-[8px] px-1 py-0.5 border font-data ${
-          u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
-      </div>
-      <div className="mt-1.5 flex items-center justify-between font-data text-[10px]">
-        <span className="text-text-3 truncate">{u.detail}</span>
-        <span className={u.running ? "text-pos" : "text-text-3"}>{u.running ? "가동" : "정지"}</span>
-      </div>
+      className={`flex items-center gap-2 border-b border-border px-2 py-1 no-underline transition-colors hover:bg-panel-2 ${
+        u.running ? "bg-pos/5" : ""}`}>
+      <StatusDot tone={u.running ? "pos" : "text-3"} />
+      <span className="text-[11px] font-data text-text-1 truncate flex-1">{u.name}</span>
+      <span className="text-[10px] font-data text-text-3 truncate">{u.detail}</span>
+      <span className={`text-[8px] px-1 border font-data shrink-0 ${
+        u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
+      <span className={`text-[10px] font-data w-7 text-right shrink-0 ${u.running ? "text-pos" : "text-text-3"}`}>{u.running ? "ON" : "OFF"}</span>
     </Link>
   );
 }
@@ -150,13 +146,13 @@ export default function HudPage() {
   const wd = sys?.research_service?.watchdog;
 
   return (
-    <div className="min-h-screen p-4 sm:p-6">
+    <div className="min-h-screen p-2 sm:p-3 font-data">
       {/* 상단 상태 스트립 */}
-      <Panel className="mb-4">
+      <Panel className="mb-2">
         <PanelHeader right={<span className="tabular-nums tracking-widest">{clock}</span>}>
           시스템 상태
         </PanelHeader>
-        <div className="flex items-center gap-3 px-3 py-2">
+        <div className="flex items-center gap-3 px-2 py-1.5">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "PROCESSING" : active ? "ONLINE" : "STANDBY"} />
           {arm && (
             <Link href="/lab/execution"
@@ -174,35 +170,35 @@ export default function HudPage() {
       </Panel>
 
       {/* 유닛 로스터 — 메인. 뭐가 돌고 있는지 한 눈에 */}
-      <Panel className="mb-4">
+      <Panel className="mb-2">
         <PanelHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
           유닛 로스터
         </PanelHeader>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3">
+        <div>
           {units.map((u, i) => <UnitCard key={`${u.name}-${i}`} u={u} />)}
         </div>
       </Panel>
 
       {/* 계좌 + 돈길 핵심 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
         {bal ? <Balances bal={bal} /> : (
-          <div className="bg-panel border border-border p-3 text-text-3 text-[11px]">계좌 정보 로딩 중…</div>
+          <div className="bg-panel border border-border p-2 text-text-3 text-[11px]">계좌 정보 로딩 중…</div>
         )}
         <Panel>
-          <PanelHeader right={<Link href="/lab/execution" className="text-black no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
+          <PanelHeader right={<Link href="/lab/execution" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
             돈길
           </PanelHeader>
-          <div className="grid grid-cols-3 gap-2 text-center p-3">
-            <div className="bg-panel-2/40 p-2">
-              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-1">엣지</p>
+          <div className="grid grid-cols-3 text-center divide-x divide-border">
+            <div className="p-1.5">
+              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">엣지</p>
               <p className={`font-data text-xs ${edgeTone}`}>{edgeLabel}</p>
             </div>
-            <div className="bg-panel-2/40 p-2">
-              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-1">페이퍼 기간</p>
+            <div className="p-1.5">
+              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">페이퍼 기간</p>
               <p className={`font-data text-xs ${paperMo >= paperMin ? "text-pos" : "text-info"}`}>{paperMo}/{paperMin}mo</p>
             </div>
-            <div className="bg-panel-2/40 p-2">
-              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-1">Live 집행</p>
+            <div className="p-1.5">
+              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">Live 집행</p>
               <p className={`font-data text-xs ${jarvis?.live_execution === "blocked" ? "text-neg" : "text-pos"}`}>
                 {jarvis?.live_execution ?? "—"}
               </p>
