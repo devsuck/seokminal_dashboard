@@ -99,9 +99,9 @@ function AlpacaPositions({ positions }: { positions: AlpacaPosition[] }) {
             <td className="py-1 font-mono text-text-2">{p.qty}</td>
             <td className="py-1 font-mono text-text-2">${p.avg_entry_price.toFixed(2)}</td>
             <td className="py-1 font-mono text-text-2">${p.current_price.toFixed(2)}</td>
-            <td className={`py-1 font-mono ${p.unrealized_pl >= 0 ? "text-pos" : "text-neg"}`}>
+            <td className={`py-1 font-mono px-1 font-bold ${p.unrealized_pl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
               {p.unrealized_pl >= 0 ? "+" : ""}${p.unrealized_pl.toFixed(2)}
-              <span className="text-text-3 ml-1">({(p.unrealized_plpc * 100).toFixed(1)}%)</span>
+              <span className="text-text-3 ml-1 font-normal">({(p.unrealized_plpc * 100).toFixed(1)}%)</span>
             </td>
           </tr>
         ))}
@@ -138,7 +138,7 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
                 </td>
                 <td className="py-1 font-mono text-text-2">${p.entry_price.toFixed(2)}</td>
                 <td className="py-1 font-mono text-text-2">${p.value.toLocaleString()}</td>
-                <td className={`py-1 font-mono ${p.score_delta > 0 ? "text-pos" : "text-neg"}`}>
+                <td className={`py-1 font-mono px-1 font-bold ${p.score_delta > 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                   {p.score_delta > 0 ? "+" : ""}{p.score_delta.toFixed(3)}
                 </td>
               </tr>
@@ -148,7 +148,7 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
       )}
       {paper.closed.length > 0 && (
         <div className="pt-1">
-          <p className="text-text-3 text-[10px] mb-1">실현 손익: <span className={`${totalPnl >= 0 ? "text-pos" : "text-neg"} font-mono`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
+          <p className="text-text-3 text-[10px] mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ import {
   type ExecutionConsole, type ExecutionEdge, type PortfolioBook,
 } from "@/lib/api";
 import { LivePulse } from "@/components/Jarvis";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 /* 집행 콘솔 — 질문 하나: "지금 arm해도 되나?"
    ARM 판정(GO/WAIT/KILL)을 최상단에 크게. 그 판단 근거(엣지 생존·기대치·제약)가 아래로.
@@ -134,7 +135,8 @@ export default function ExecutionPage() {
                   <>
                     {" "}· median {pct(ea.event_level.oos_median)} vs in-sample {pct(ea.event_level.in_sample_median)}
                     {" "}· p_worse{" "}
-                    <span className={ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 ? "text-neg" : "text-pos"}>
+                    <span className={`px-1 font-bold ${
+                      ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 ? "bg-neg/20 text-neg" : "bg-pos/20 text-pos"}`}>
                       {ea.event_level.p_worse ?? "—"}
                     </span>
                     {ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 && <span className="text-neg"> ← 소멸 조기경보</span>}
@@ -152,50 +154,55 @@ export default function ExecutionPage() {
       </div>
 
       {/* 정직한 엣지 (기대치) */}
-      <div className="hud-frame bg-panel border border-info/25 rounded-lg p-4">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">엣지 기대치 (정직)</div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kv k="중앙값(기대)" v={pct(d.edge.net_median)} tone={d.edge.net_median >= 0 ? "pos" : "neg"} />
-          <Kv k="평균(팻테일)" v={pct(d.edge.net_mean)} tone="warn" />
-          <Kv k="trimmed10%" v={pct(d.edge.trimmed10)} />
-          <Kv k="p(중앙값)" v={String(d.edge.p_median)} tone="pos" />
+      <Panel>
+        <PanelHeader>엣지 기대치 (정직)</PanelHeader>
+        <div className="p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Kv k="중앙값(기대)" v={pct(d.edge.net_median)} tone={d.edge.net_median >= 0 ? "pos" : "neg"} />
+            <Kv k="평균(팻테일)" v={pct(d.edge.net_mean)} tone="warn" />
+            <Kv k="trimmed10%" v={pct(d.edge.trimmed10)} />
+            <Kv k="p(중앙값)" v={String(d.edge.p_median)} tone="pos" />
+          </div>
+          <div className="mt-2 text-[11px] text-warn leading-relaxed">⚠ {d.edge.honest_note}</div>
         </div>
-        <div className="mt-2 text-[11px] text-warn leading-relaxed">⚠ {d.edge.honest_note}</div>
-      </div>
+      </Panel>
 
       {/* 생존자 포트폴리오 (돈=조합) */}
       {book && book.combined && (
-        <div className="hud-frame bg-panel border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] uppercase tracking-wider text-text-3">생존자 포트폴리오 (무상관 조합)</div>
-            {/* 북 상세 카드는 Lab Task 페이지에 있음 — /lab/portfolio는 백엔드 endpoint(페이지 아님) */}
-            <a href="/lab/tasks" className="text-[11px] text-accent hover:underline">전체 →</a>
+        <Panel>
+          {/* 북 상세 카드는 Lab Task 페이지에 있음 — /lab/portfolio는 백엔드 endpoint(페이지 아님) */}
+          <PanelHeader right={<a href="/lab/tasks" className="no-underline hover:underline">전체 →</a>}>
+            생존자 포트폴리오 (무상관 조합)
+          </PanelHeader>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {book.sleeves.map(s => (
+                <span key={s.name} className="text-[11px] px-2 py-1 rounded border border-border font-data text-text-2">
+                  {s.name} <span className="text-text-1">Sh {s.sharpe.toFixed(2)}</span> <span className="px-1 font-bold bg-neg/20 text-neg">MDD {pct(s.mdd, 0)}</span>
+                </span>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <Kv k="상관" v={typeof book.correlation === "number" ? book.correlation.toFixed(2) : "—"} tone="pos" />
+              <Kv k="등가중 Sharpe" v={book.combined.equal_weight.sharpe.toFixed(2)} tone="pos" />
+              <Kv k="등가중 MDD" v={pct(book.combined.equal_weight.mdd, 0)} tone="neg" />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {book.sleeves.map(s => (
-              <span key={s.name} className="text-[11px] px-2 py-1 rounded border border-border font-data text-text-2">
-                {s.name} <span className="text-text-1">Sh {s.sharpe.toFixed(2)}</span> <span className="text-neg">MDD {pct(s.mdd, 0)}</span>
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Kv k="상관" v={typeof book.correlation === "number" ? book.correlation.toFixed(2) : "—"} tone="pos" />
-            <Kv k="등가중 Sharpe" v={book.combined.equal_weight.sharpe.toFixed(2)} tone="pos" />
-            <Kv k="등가중 MDD" v={pct(book.combined.equal_weight.mdd, 0)} tone="neg" />
-          </div>
-        </div>
+        </Panel>
       )}
 
       {/* 실전 준비 제약 */}
-      <div className="hud-frame bg-panel border border-border rounded-lg p-4">
-        <div className="text-[10px] uppercase tracking-wider text-text-3 mb-2">실전 준비 제약 (동결)</div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Kv k="월 수용력(소자본)" v={`${lr.monthly_capacity_eok}억`} />
-          <Kv k="1일 지연 시" v={pct(lr.timing_delay_1d_pct / 100)} tone="neg" />
-          <Kv k="분산" v={lr.diversification === "required" ? "필수" : lr.diversification} />
+      <Panel>
+        <PanelHeader>실전 준비 제약 (동결)</PanelHeader>
+        <div className="p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Kv k="월 수용력(소자본)" v={`${lr.monthly_capacity_eok}억`} />
+            <Kv k="1일 지연 시" v={pct(lr.timing_delay_1d_pct / 100)} tone="neg" />
+            <Kv k="분산" v={lr.diversification === "required" ? "필수" : lr.diversification} />
+          </div>
+          <div className="mt-2 text-[11px] text-text-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
         </div>
-        <div className="mt-2 text-[11px] text-text-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
-      </div>
+      </Panel>
 
     </div>
   );

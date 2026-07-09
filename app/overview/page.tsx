@@ -7,6 +7,7 @@ import {
   type TradingAgent, type AgentPerformance, type BuybackBot, type ExecutionConsole, type LabTask,
 } from "@/lib/api";
 import { LivePulse, AnimatedNumber } from "@/components/Jarvis";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 /* 총 포트폴리오 — 지금 얼마가 어떤 AI에 가있는지 + 각 AI 수익률·매매기록.
    + 연구 트랙(페이퍼 돈길) 스트립: 라이브 배분 0이어도 진짜 돈길은 여기서 보이게. */
@@ -94,7 +95,7 @@ export default function OverviewPage() {
           <span className="text-[11px] font-data text-text-1">buyback {bot.version}</span>
           <span className="text-[11px] font-data text-text-3">보유 {bot.open} · 청산 {bot.closed}</span>
           {bot.cum_paper_pnl != null && (
-            <span className={`text-[11px] font-data ${bot.cum_paper_pnl >= 0 ? "text-pos" : "text-neg"}`}>
+            <span className={`text-[11px] font-data px-1 font-bold ${bot.cum_paper_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
               누적 {bot.cum_paper_pnl >= 0 ? "+" : ""}{bot.cum_paper_pnl.toFixed(2)}%
             </span>
           )}
@@ -124,16 +125,18 @@ export default function OverviewPage() {
 
       {/* 배분 막대 */}
       {rows && rows.length > 0 && totalAlloc > 0 && (
-        <div className="bg-panel border border-border rounded-lg p-3">
-          <div className="text-[10px] uppercase tracking-wider text-text-3 mb-1.5">AI별 자본 배분</div>
-          <div className="flex h-4 rounded overflow-hidden border border-border">
-            {rows.map((r, i) => {
-              const w = ((r.perf?.alloc ?? r.agent.account_alloc ?? 0) / totalAlloc) * 100;
-              const colors = ["bg-accent/70", "bg-info/70", "bg-pos/70", "bg-warn/70", "bg-neg/60"];
-              return <div key={r.agent.id} className={`${colors[i % colors.length]} ${widthClass(w)}`} title={`${r.agent.name} ${w.toFixed(0)}%`} />;
-            })}
+        <Panel>
+          <PanelHeader>AI별 자본 배분</PanelHeader>
+          <div className="p-3">
+            <div className="flex h-4 rounded overflow-hidden border border-border">
+              {rows.map((r, i) => {
+                const w = ((r.perf?.alloc ?? r.agent.account_alloc ?? 0) / totalAlloc) * 100;
+                const colors = ["bg-accent/70", "bg-info/70", "bg-pos/70", "bg-warn/70", "bg-neg/60"];
+                return <div key={r.agent.id} className={`${colors[i % colors.length]} ${widthClass(w)}`} title={`${r.agent.name} ${w.toFixed(0)}%`} />;
+              })}
+            </div>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* AI별 카드 */}
@@ -159,7 +162,7 @@ export default function OverviewPage() {
                   <div className="text-[11px] text-text-3">배분 {won(p?.alloc ?? r.agent.account_alloc)} · 자율 Lv{r.agent.autonomy}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className={`text-sm font-data ${(p?.return_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>{pct(p?.return_pct)}</div>
+                  <div className={`text-sm font-data px-1 font-bold inline-block ${(p?.return_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{pct(p?.return_pct)}</div>
                   <div className="text-[11px] text-text-3 font-data">{won(p?.total_pnl)} · {p?.trades?.length ?? 0}건</div>
                 </div>
                 <span className={`text-text-3 transition-transform ${open ? "rotate-90" : ""}`}>›</span>
@@ -181,7 +184,7 @@ export default function OverviewPage() {
                         <div key={i} className="flex items-center justify-between text-[11px] font-data py-0.5">
                           <Link href={`/market?symbol=${encodeURIComponent(o.symbol)}`} className="text-accent no-underline">{o.symbol}</Link>
                           <span className="text-text-3">{o.qty}주 @ {o.avg_price}</span>
-                          <span className={(o.unrealized_pnl ?? 0) >= 0 ? "text-pos" : "text-neg"}>{won(o.unrealized_pnl)}</span>
+                          <span className={`px-1 font-bold ${(o.unrealized_pnl ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{won(o.unrealized_pnl)}</span>
                         </div>
                       ))}
                     </div>
@@ -193,10 +196,10 @@ export default function OverviewPage() {
                       {p.trades.slice(-15).reverse().map((t, i) => (
                         <div key={i} className="flex items-center gap-2 text-[11px] font-data">
                           <span className="text-text-3 w-24 shrink-0 truncate">{t.ts?.slice(5, 16) ?? "—"}</span>
-                          <span className={`w-8 shrink-0 ${t.side === "buy" ? "text-pos" : "text-neg"}`}>{t.side === "buy" ? "매수" : "매도"}</span>
+                          <span className={`w-8 shrink-0 px-1 font-bold ${t.side === "buy" ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{t.side === "buy" ? "매수" : "매도"}</span>
                           <Link href={`/market?symbol=${encodeURIComponent(t.symbol)}`} className="text-accent no-underline w-14 shrink-0 truncate">{t.symbol}</Link>
                           <span className="text-text-3">{t.qty}@{t.price}</span>
-                          {t.realized_pnl !== null && <span className={`ml-auto ${t.realized_pnl >= 0 ? "text-pos" : "text-neg"}`}>{won(t.realized_pnl)}</span>}
+                          {t.realized_pnl !== null && <span className={`ml-auto px-1 font-bold ${t.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{won(t.realized_pnl)}</span>}
                         </div>
                       ))}
                       {p.trades.length === 0 && <div className="text-[11px] text-text-3">아직 매매 없음</div>}
