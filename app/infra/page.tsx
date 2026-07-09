@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import {
   getKnowledgeGraph, resetKnowledgeGraph, triggerAiUpdate, getGraphUpdateStatus,
-  getPaperState, resetPaperState, closePaperPosition,
+  getPaperState, resetPaperState, closePaperPosition, getGraphNodeHistory,
   type KnowledgeGraph, type GraphNode, type GraphEdge, type GraphUpdateStatus,
-  type PaperState, type PaperPosition,
+  type PaperState, type PaperPosition, type GraphHistoryPoint,
 } from "@/lib/api";
 
 // ── 색상 시스템 ───────────────────────────────────────────────────────────────
@@ -29,6 +29,20 @@ const TYPE_SHAPE: Record<string, string> = {
 };
 function sectorColor(s: string) { return SECTOR_COLOR[s] ?? "#5f6b7a"; }
 
+// ── 시계열 스파크라인 (#2 추세) ────────────────────────────────────────────────
+function sparklinePath(values: number[], w: number, h: number): string {
+  if (values.length < 2) return "";
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  return values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
 // ── D3 시뮬레이션 노드/링크 타입 ──────────────────────────────────────────────
 interface SimNode extends d3.SimulationNodeDatum, GraphNode { r: number; }
 interface SimLink extends d3.SimulationLinkDatum<SimNode> {
@@ -50,6 +64,14 @@ const RELATION_LABEL: Record<string, string> = {
   regulates: "규제", competes: "경쟁",
 };
 
+// ── 데이터 출처 레이블/색상 (#7 신선도·신뢰도) ────────────────────────────────
+const SOURCE_LABEL: Record<string, string> = {
+  disclosure: "공시", news: "뉴스", analyst_estimate: "애널리스트 추정", ai_estimate: "AI 추정",
+};
+const SOURCE_COLOR: Record<string, string> = {
+  disclosure: "#22c55e", news: "#3b82f6", analyst_estimate: "#eab308", ai_estimate: "#5f6b7a",
+};
+
 export default function InfraGraphPage() {
   const svgRef = useRef<SVGSVGElement>(null);
   const simRef = useRef<d3.Simulation<SimNode, SimLink> | null>(null);
@@ -64,6 +86,8 @@ export default function InfraGraphPage() {
   const [lastUpdate, setLastUpdate] = useState<string>("");
   const [paper, setPaper] = useState<PaperState | null>(null);
   const [paperResetting, setPaperResetting] = useState(false);
+  const [history, setHistory] = useState<GraphHistoryPoint[]>([]);
+  const historyCtrl = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -82,6 +106,18 @@ export default function InfraGraphPage() {
     const iv = setInterval(poll, 30_000);
     return () => clearInterval(iv);
   }, []);
+
+  // 선택 노드 시계열 (#2 추세) 로드
+  useEffect(() => {
+    historyCtrl.current?.abort();
+    if (!selected) { setHistory([]); return; }
+    const c = new AbortController(); historyCtrl.current = c;
+    getGraphNodeHistory(selected.id, c.signal)
+      .then(r => { if (!c.signal.aborted) setHistory(r.history); })
+      .catch(e => { if (!c.signal.aborted && e?.name !== "AbortError") setHistory([]); });
+    return () => c.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
 
   // 업데이트 상태 폴링 (running 중이면 5초, 아니면 30초)
   useEffect(() => {
@@ -114,6 +150,8 @@ export default function InfraGraphPage() {
     // 시뮬레이션 노드/링크 준비
     const nodes: SimNode[] = visNodes.map(n => ({
       ...n,
+      label: n.label ?? n.id,
+      sector: n.sector ?? "",
       r: 10 + n.bottleneck_score * 22,
       x: W / 2 + (Math.random() - 0.5) * 200,
       y: H / 2 + (Math.random() - 0.5) * 200,
@@ -144,12 +182,12 @@ export default function InfraGraphPage() {
         .attr("fill", kind === "bottleneck" ? "#ef4444" : "#5f6b7a");
     });
 
-    // 링크
+    // 링크 — 경쟁(#4) 엣지는 무방향(화살표 없음)·회색 점선으로 공급 엣지와 구분
     const link = g.append("g").selectAll("line").data(links).join("line")
-      .attr("stroke", l => l.data.bottleneck ? "#ef444460" : "#242a3580")
-      .attr("stroke-width", l => 1 + l.data.weight * 2.5)
-      .attr("stroke-dasharray", l => l.data.bottleneck ? "none" : "4 3")
-      .attr("marker-end", l => `url(#arrow-${l.data.bottleneck ? "bottleneck" : "normal"})`);
+      .attr("stroke", l => l.data.relation_category === "competition" ? "#5f6b7a70" : l.data.bottleneck ? "#ef444460" : "#242a3580")
+      .attr("stroke-width", l => l.data.relation_category === "competition" ? 1 : 1 + l.data.weight * 2.5)
+      .attr("stroke-dasharray", l => l.data.relation_category === "competition" ? "2 3" : l.data.bottleneck ? "none" : "4 3")
+      .attr("marker-end", l => l.data.relation_category === "competition" ? null : `url(#arrow-${l.data.bottleneck ? "bottleneck" : "normal"})`);
 
     // 링크 레이블
     const linkLabel = g.append("g").selectAll("text").data(links).join("text")
@@ -234,7 +272,7 @@ export default function InfraGraphPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graph, filterSector]);
 
-  const sectors = graph ? [...new Set(graph.nodes.map(n => n.sector))] : [];
+  const sectors = graph ? [...new Set(graph.nodes.map(n => String(n.sector ?? "")).filter(Boolean))] : [];
 
   async function handleReset() {
     setResetting(true);
@@ -380,6 +418,7 @@ export default function InfraGraphPage() {
             <div className="border-t border-border pt-1 mt-1 space-y-0.5">
               <div className="flex items-center gap-1.5"><span className="text-neg">─</span><span className="text-text-3">병목 엣지</span></div>
               <div className="flex items-center gap-1.5"><span className="text-text-3">- -</span><span className="text-text-3">일반 엣지</span></div>
+              <div className="flex items-center gap-1.5"><span className="text-text-3">···</span><span className="text-text-3">경쟁 관계(무방향)</span></div>
               <div className="flex items-center gap-1.5"><span className="text-text-3 font-data">원 크기</span><span className="text-text-3">= 병목 스코어</span></div>
             </div>
           </div>
@@ -395,6 +434,42 @@ export default function InfraGraphPage() {
               </div>
               <button onClick={() => setSelected(null)} className="text-text-3 hover:text-text-1 text-lg leading-none">×</button>
             </div>
+
+            {/* 데이터 출처/신뢰도 (#7) — AI 추정치 vs 확인된 사실 구분 */}
+            {selected.source && (
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded" style={{ background: (SOURCE_COLOR[selected.source] ?? "#5f6b7a") + "22", color: SOURCE_COLOR[selected.source] ?? "#5f6b7a" }}>
+                  {SOURCE_LABEL[selected.source] ?? selected.source}
+                </span>
+                {selected.confidence != null && (
+                  <span className="text-text-3">신뢰도 {(selected.confidence * 100).toFixed(0)}%</span>
+                )}
+              </div>
+            )}
+
+            {/* 재무/밸류에이션 (#1) */}
+            {selected.financials && (
+              <div className="bg-panel-2 rounded p-2.5 text-[10px] space-y-1">
+                <p className="text-text-3 uppercase tracking-wider mb-1">밸류에이션</p>
+                <div className="grid grid-cols-2 gap-1">
+                  <span className="text-text-3">시가총액</span>
+                  <span className="text-text-1 font-data text-right">
+                    {selected.financials.market_cap_usd_m != null ? `$${(selected.financials.market_cap_usd_m / 1000).toFixed(1)}B` : "—"}
+                  </span>
+                  <span className="text-text-3">포워드 PER</span>
+                  <span className="text-text-1 font-data text-right">
+                    {selected.financials.pe_ttm != null ? selected.financials.pe_ttm.toFixed(1) : "—"}
+                  </span>
+                  <span className="text-text-3">매출성장률(YoY)</span>
+                  <span className={`font-data text-right ${(selected.financials.revenue_growth_yoy_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
+                    {selected.financials.revenue_growth_yoy_pct != null ? `${selected.financials.revenue_growth_yoy_pct.toFixed(1)}%` : "—"}
+                  </span>
+                </div>
+                {selected.financials.as_of && (
+                  <p className="text-text-3 text-[9px] pt-0.5">기준: {new Date(selected.financials.as_of).toLocaleString("ko-KR")}</p>
+                )}
+              </div>
+            )}
 
             {/* 병목 스코어 */}
             <div>
@@ -434,6 +509,26 @@ export default function InfraGraphPage() {
               })}
             </div>
 
+            {/* 시계열 추세 (#2) — 병목 스코어 변화, 이벤트 시점은 update_log에서 확인 */}
+            {history.length >= 2 && (
+              <div className="bg-panel-2 rounded p-2.5">
+                <div className="flex justify-between text-[10px] mb-1">
+                  <span className="text-text-3 uppercase tracking-wider">병목 스코어 추세</span>
+                  <span className="text-text-3">{history.length}개 스냅샷</span>
+                </div>
+                <svg width="100%" height="36" viewBox="0 0 220 36" preserveAspectRatio="none">
+                  <path
+                    d={sparklinePath(history.map(h => h.bottleneck_score ?? 0), 220, 32)}
+                    fill="none" stroke="#ef4444" strokeWidth={1.5}
+                  />
+                </svg>
+                <div className="flex justify-between text-[9px] text-text-3 mt-0.5">
+                  <span>{new Date(history[0].ts).toLocaleDateString("ko-KR")}</span>
+                  <span>{new Date(history[history.length - 1].ts).toLocaleDateString("ko-KR")}</span>
+                </div>
+              </div>
+            )}
+
             {/* 분석 노트 */}
             {selected.note && (
               <div className="bg-panel-2 rounded p-2.5 text-[11px] text-text-2 leading-relaxed">
@@ -450,15 +545,36 @@ export default function InfraGraphPage() {
                   <p className="text-text-3 text-[10px] uppercase tracking-wider mb-1.5">연결 관계 ({related.length})</p>
                   <div className="space-y-1">
                     {related.map((e, i) => {
+                      const isCompetition = e.relation_category === "competition";
                       const isSource = e.source === selected.id;
                       const otherId = isSource ? e.target : e.source;
                       const other = graph.nodes.find(n => n.id === otherId);
                       return (
-                        <div key={i} className={`text-[10px] px-2 py-1 rounded border ${e.bottleneck ? "border-neg/30 bg-neg/5" : "border-border"}`}>
-                          <span className="text-text-3">{isSource ? "→" : "←"}</span>
-                          <span className="text-text-2 ml-1">{other?.label ?? otherId}</span>
-                          <span className="text-text-3 ml-1">({RELATION_LABEL[e.relation] ?? e.relation})</span>
-                          {e.bottleneck && <span className="ml-1 text-neg">⚠</span>}
+                        <div key={i} className={`text-[10px] px-2 py-1 rounded border ${isCompetition ? "border-border" : e.bottleneck ? "border-neg/30 bg-neg/5" : "border-border"}`}>
+                          <div>
+                            <span className="text-text-3">{isCompetition ? "↔" : isSource ? "→" : "←"}</span>
+                            <span className="text-text-2 ml-1">{other?.label ?? otherId}</span>
+                            <span className="text-text-3 ml-1">({RELATION_LABEL[e.relation] ?? e.relation})</span>
+                            {e.bottleneck && <span className="ml-1 text-neg">⚠</span>}
+                          </div>
+                          {(e.dependency_pct != null || e.substitutable != null) && (
+                            <div className="text-text-3 mt-0.5 flex items-center gap-2">
+                              {e.dependency_pct != null && <span>의존도 {e.dependency_pct}%</span>}
+                              {e.substitutable != null && (
+                                <span className={e.substitutable ? "text-pos" : "text-neg"}>
+                                  {e.substitutable ? "대체 가능" : "대체 불가"}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {e.data_source && (
+                            <div className="mt-0.5">
+                              <span className="text-[9px]" style={{ color: SOURCE_COLOR[e.data_source] ?? "#5f6b7a" }}>
+                                {SOURCE_LABEL[e.data_source] ?? e.data_source}
+                                {e.confidence != null ? ` · 신뢰도 ${(e.confidence * 100).toFixed(0)}%` : ""}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

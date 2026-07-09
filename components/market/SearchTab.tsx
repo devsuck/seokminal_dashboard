@@ -5,6 +5,7 @@ import {
   ApiError, searchKR, searchUS,
   type KRSearchResult, type USSearchResult,
 } from "@/lib/api";
+import { setSymbolName } from "@/lib/symbol-names";
 
 interface SearchTabProps {
   onGoToChart: (instrumentId: string) => void;
@@ -130,7 +131,7 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
                   <div className="flex gap-1.5 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-[10px] text-text-3 self-center font-data">{instrId}</span>
                     <button
-                      onClick={() => onGoToChart(instrId)}
+                      onClick={() => { setSymbolName(instrId, r.name); onGoToChart(instrId); }}
                       className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0">
                       차트 →
                     </button>
@@ -160,7 +161,7 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
                   <div className="flex gap-1.5 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-[10px] text-text-3 self-center font-data">{instrId}</span>
                     <button
-                      onClick={() => onGoToChart(instrId)}
+                      onClick={() => { setSymbolName(instrId, r.name); onGoToChart(instrId); }}
                       className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0">
                       차트 →
                     </button>

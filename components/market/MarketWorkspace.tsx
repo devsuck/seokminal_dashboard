@@ -15,6 +15,7 @@ import {
   DEFAULT_SYMBOLS,
 } from "@/lib/watchlist-storage";
 import { DEFAULT_INDICATORS, activeIndicatorCount, type IndicatorState } from "@/lib/indicators";
+import { getSymbolName } from "@/lib/symbol-names";
 
 type Tab = "chart" | "compare" | "search";
 type Side = "trade" | "alert" | "indicators";
@@ -111,7 +112,9 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
             </button>
           ))}
           {activeTab === "chart" && (
-            <span className="ml-auto text-text-3 text-xs font-data">{activeSymbol}</span>
+            <span className="ml-auto text-text-3 text-xs font-data">
+              {getSymbolName(activeSymbol) ? `${getSymbolName(activeSymbol)} · ${activeSymbol}` : activeSymbol}
+            </span>
           )}
         </div>
 

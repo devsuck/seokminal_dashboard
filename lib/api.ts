@@ -3086,3 +3086,163 @@ export async function closePaperPosition(nodeId: string): Promise<PaperClosed> {
   const r = await fetch(`${API_URL}/graph/paper/close/${nodeId}`, { method: "POST" });
   return handleResponse<PaperClosed>(r);
 }
+
+// ── VRP 아이언 콘도어 옵션 봇 (정의된 리스크, paper) ─────────────────────────────
+export interface VrpLeg { strike: number; right: string; side: string; contracts: number; fill?: number | null; }
+export interface VrpPosition {
+  symbol: string; expiry: string; legs: VrpLeg[];
+  credit_received: number; max_loss: number; entry_ts: string; entry_vrp_pct: number;
+}
+export interface VrpBotLog { ts: string; kind: string; [k: string]: unknown; }
+export interface VrpBotStatus {
+  enabled: boolean; interval_sec: number; symbols: string[]; contracts: number;
+  target_dte_min: number; target_dte_max: number; short_delta: number; wing_width_pct: number;
+  min_spread_pct: number; profit_target_pct: number; stop_multiple: number; exit_dte: number;
+  max_positions: number; spent: number; realized_pnl: number;
+  positions: VrpPosition[]; last_run: string | null; log: VrpBotLog[];
+}
+export interface VrpBotConfig {
+  enabled?: boolean; interval_sec?: number; symbols?: string[]; contracts?: number;
+  target_dte_min?: number; target_dte_max?: number; short_delta?: number; wing_width_pct?: number;
+  min_spread_pct?: number; profit_target_pct?: number; stop_multiple?: number; exit_dte?: number;
+  max_positions?: number;
+}
+
+export async function getVrpBotStatus(signal?: AbortSignal): Promise<VrpBotStatus> {
+  const r = await fetch(`${API_URL}/vrp/status`, { signal });
+  return handleResponse<VrpBotStatus>(r);
+}
+export async function setVrpBotConfig(cfg: VrpBotConfig): Promise<{ ok: boolean }> {
+  const r = await fetch(`${API_URL}/vrp/config`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
+  });
+  return handleResponse(r);
+}
+export async function runVrpBotNow(): Promise<Record<string, unknown>> {
+  const r = await fetch(`${API_URL}/vrp/run-now`, { method: "POST" });
+  return handleResponse(r);
+}
+
+// ── Polymarket 다각화 배스킷 봇 (무엣지, paper) ─────────────────────────────────
+export interface PolymarketPosition {
+  condition_id: string; question: string; event_id: string; side: string;
+  entry_price: number; usd: number; shares: number; end_date: string; entry_ts: string;
+}
+export interface PolymarketBotLog { ts: string; kind: string; [k: string]: unknown; }
+export interface PolymarketBotStatus {
+  enabled: boolean; interval_sec: number; budget: number; per_market_usd: number;
+  max_positions: number; min_liquidity: number; min_price: number; max_price: number;
+  min_days_to_resolution: number; side: string; spent: number; realized_pnl: number;
+  remaining: number; positions: PolymarketPosition[]; last_run: string | null;
+  log: PolymarketBotLog[]; note: string;
+}
+export interface PolymarketBotConfig {
+  enabled?: boolean; interval_sec?: number; budget?: number; per_market_usd?: number;
+  max_positions?: number; min_liquidity?: number; min_price?: number; max_price?: number;
+  min_days_to_resolution?: number; side?: string; reset_spent?: boolean;
+}
+
+export async function getPolymarketBotStatus(signal?: AbortSignal): Promise<PolymarketBotStatus> {
+  const r = await fetch(`${API_URL}/polymarket/status`, { signal });
+  return handleResponse<PolymarketBotStatus>(r);
+}
+export async function setPolymarketBotConfig(cfg: PolymarketBotConfig): Promise<{ ok: boolean }> {
+  const r = await fetch(`${API_URL}/polymarket/config`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
+  });
+  return handleResponse(r);
+}
+export async function runPolymarketBotNow(): Promise<Record<string, unknown>> {
+  const r = await fetch(`${API_URL}/polymarket/run-now`, { method: "POST" });
+  return handleResponse(r);
+}
+
+// ── ICT 프리미티브 자유조합 백테스트(탐색용) ─────────────────────────────────
+export interface IctSymbolsResponse {
+  symbols: Record<string, string[]>;
+  live_symbols: string[];
+}
+
+export async function getIctSymbols(signal?: AbortSignal): Promise<IctSymbolsResponse> {
+  const r = await fetch(`${API_URL}/ict/symbols`, { signal });
+  return handleResponse<IctSymbolsResponse>(r);
+}
+
+export interface IctBacktestRequest {
+  symbol: string;
+  timeframe: string;
+  start?: string;
+  end?: string;
+  primitives: string[];
+  direction: "bullish" | "bearish";
+  hold: number;
+  cost_bps: number;
+  lookback: number;
+  swing_k: number;
+  kz_start_hour: number;
+  kz_end_hour: number;
+  window: number;
+  near: number;
+  min_run: number;
+  confirm: number;
+}
+
+export interface IctBacktestResponse {
+  n_entries: number;
+  n_eligible: number | null;
+  net: number | null;
+  percentile: number | null;
+  p: number | null;
+  rand_median: number | null;
+  wf_first: number | null;
+  wf_second: number | null;
+  entries_ts: number[];
+  verdict: string | null;
+}
+
+export async function runIctBacktest(
+  req: IctBacktestRequest,
+  signal?: AbortSignal
+): Promise<IctBacktestResponse> {
+  const r = await fetch(`${API_URL}/ict/backtest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<IctBacktestResponse>(r);
+}
+
+export interface IctBar {
+  ts: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+}
+
+export interface IctEvent {
+  idx: number;
+  idx_end?: number;
+  type?: "bullish" | "bearish";
+  lo?: number;
+  hi?: number;
+}
+
+export interface IctEventsResponse {
+  bars: IctBar[];
+  events: Record<string, IctEvent[]>;
+}
+
+export async function getIctEvents(
+  req: IctBacktestRequest,
+  signal?: AbortSignal
+): Promise<IctEventsResponse> {
+  const r = await fetch(`${API_URL}/ict/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  return handleResponse<IctEventsResponse>(r);
+}

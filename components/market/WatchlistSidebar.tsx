@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBars } from "@/lib/api";
+import { getSymbolName } from "@/lib/symbol-names";
 
 interface SymbolPrice {
   close: number | null;
@@ -103,7 +104,7 @@ export function WatchlistSidebar({
             >
               <div className="flex items-center justify-between mb-0.5">
                 <span className={`text-xs font-semibold truncate max-w-[110px] ${isActive ? "text-text-1" : "text-text-2"}`}>
-                  {symbol.split(".")[0]}
+                  {getSymbolName(symbol) ?? symbol.split(".")[0]}
                   <span className="text-text-3 font-normal text-[9px] ml-1">{symbol.split(".")[1]}</span>
                 </span>
                 <button

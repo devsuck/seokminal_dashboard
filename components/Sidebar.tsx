@@ -138,6 +138,8 @@ export function Sidebar() {
         { href: "/risk-guard",     label: "리스크 관리" },
         { href: "/dart-auto",      label: "DART 자동매매" },
         { href: "/copytrade",      label: "카피트레이드" },
+        { href: "/vrp",            label: "VRP 옵션 (아이언 콘도어)" },
+        { href: "/polymarket",     label: "Polymarket 다각화" },
       ],
     },
     // 리서치 — 가설·인사이트 탐색
@@ -157,6 +159,7 @@ export function Sidebar() {
       items: [
         { href: "/validation",   label: "검증 터미널" },
         { href: "/backtest",     label: t("nav.backtest") },
+        { href: "/ict",          label: "ICT 조합 백테스트" },
         { href: "/event-study",  label: t("nav.event-study") },
         { href: "/signal",       label: "스마트 시그널" },
         { href: "/data-quality", label: t("nav.data-quality") },
