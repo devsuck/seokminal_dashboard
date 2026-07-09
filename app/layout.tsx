@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NAUTILUS",
+  title: "SEOKMINAL",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
