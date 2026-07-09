@@ -7,6 +7,7 @@ import {
   CandlestickSeries,
   LineSeries,
   type IChartApi,
+  type ISeriesApi,
   type UTCTimestamp,
   type SeriesMarker,
 } from "lightweight-charts";
@@ -24,6 +25,9 @@ interface CandlestickChartProps {
   /** 조건식에서 추출한 지표 스펙 — 오버레이(MA/BB/EMA)는 가격 페인,
       오실레이터(RSI/MACD/CCI/OBV)는 하단 서브페인에 렌더. */
   specs?: ChartIndicatorSpec[];
+  /** 차트/캔들시리즈 생성 직후 호출 — 외부에서 series primitive를 attach하려는 소비자용.
+      bars 등이 바뀌어 차트가 통째로 재생성될 때마다 다시 호출된다. */
+  onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
 }
 
 function computeSMA(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
@@ -136,7 +140,7 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, onSeriesReady }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const specsKey = JSON.stringify(specs ?? []);
@@ -181,6 +185,8 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         open: b.open, high: b.high, low: b.low, close: b.close,
       }))
     );
+
+    onSeriesReady?.(chart, candleSeries);
 
     if (trades.length > 0) {
       const markers: SeriesMarker<UTCTimestamp>[] = [];
