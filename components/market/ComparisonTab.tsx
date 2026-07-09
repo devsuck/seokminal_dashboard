@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { ComparisonChart, SERIES_CONFIG } from "@/components/market/ComparisonChart";
 import { ApiError, getBars, type BarOut } from "@/lib/api";
-import { logActivity } from "@/lib/dashboard-storage";
 
 interface ComparisonTabProps {
   symbols: string[];
@@ -47,8 +46,6 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
       const newData: Record<string, BarOut[]> = {};
       for (const [s, bars] of results) newData[s] = bars;
       setData(newData);
-      const labels = symbols.map(s => s.split(".")[0]).join(", ");
-      logActivity({ type: "experiment", label: `Compare: ${labels}`, href: "/market" });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof ApiError ? e.message : "Failed to load comparison data");

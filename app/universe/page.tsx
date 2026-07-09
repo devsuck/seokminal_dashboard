@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { getKRXStockBase, ApiError, type KRXStockBaseRow } from "@/lib/api";
 import { addToWatchlist, getWatchlist } from "@/lib/watchlist-storage";
-import { updateWorkflow } from "@/lib/workflow-storage";
-import { useRouter } from "next/navigation";
 
 type Market = "KOSPI" | "KOSDAQ";
 
@@ -27,7 +25,6 @@ export default function UniversePage() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [addedSet, setAddedSet] = useState<Set<string>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
-  const router = useRouter();
 
   // Cleanup on unmount
   useEffect(() => () => { abortRef.current?.abort(); }, []);
@@ -88,15 +85,6 @@ export default function UniversePage() {
     addToWatchlist(id);
     setAddedSet(prev => new Set(prev).add(isu_cd));
   };
-
-  function handleWorkflowNext() {
-    updateWorkflow({
-      instrumentIds: getWatchlist(),
-      start: "2022-01-01",
-      end: new Date().toISOString().slice(0, 10),
-    });
-    router.push("/factor");
-  }
 
   return (
     <div className="p-6 space-y-4 max-w-[1200px]">
@@ -250,21 +238,6 @@ export default function UniversePage() {
         </div>
       )}
 
-      {(watchlist.length > 0 || addedSet.size > 0) && (
-        <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
-          <div>
-            <div className="text-text-3 text-[10px] uppercase tracking-wider">Workflow</div>
-            <p className="text-text-1 text-sm font-medium mt-0.5">
-              {watchlist.length} instrument{watchlist.length !== 1 ? "s" : ""} in watchlist — ready for Factor Analysis
-            </p>
-          </div>
-          <button
-            onClick={handleWorkflowNext}
-            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0">
-            → Factor Analysis
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -12,15 +12,11 @@
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
-    "@types/react-plotly.js": "^2.6.4",
     "d3": "^7.9.0",
     "lightweight-charts": "5.2.0",
     "next": "16.2.9",
-    "plotly.js": "^3.6.0",
     "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "react-markdown": "^10.1.0",
-    "react-plotly.js": "^4.0.0"
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.1",

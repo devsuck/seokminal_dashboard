@@ -3,9 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { updateWorkflow } from "@/lib/workflow-storage";
 import { ApiError, getBars, getBacktest, runPortfolioBacktest, createAgent, type BarOut, type BacktestResponse, type PortfolioBacktestResponse, type TradeRecord } from "@/lib/api";
-import { logActivity } from "@/lib/dashboard-storage";
 import { saveBacktestResult } from "@/lib/backtest-result-storage";
 import { toast } from "@/lib/toast";
 import {
@@ -139,19 +137,9 @@ function BacktestPageInner() {
       const sharpeStr = btRes.sharpe_ratio != null ? ` | Sharpe ${btRes.sharpe_ratio.toFixed(2)}` : "";
       const pnlStr = btRes.total_pnl_pct != null ? ` | PnL ${btRes.total_pnl_pct >= 0 ? "+" : ""}${btRes.total_pnl_pct.toFixed(1)}%` : "";
       toast.show(`백테스트 완료 ${sharpeStr}${pnlStr}`, "success");
-      updateWorkflow({
-        backtestSharpe: btRes.sharpe_ratio ?? null,
-        backtestPnlPct: btRes.total_pnl_pct ?? null,
-        strategyId: strategy,
-      });
       setSaveLabel(`${instrumentId} Gated(${rules.length}R) ${start}→${end}`);
       setShowSaveResult(false);
       setResultSaved(false);
-      logActivity({
-        type: "backtest",
-        label: `${instrumentId} Gated (${rules.length} rule${rules.length !== 1 ? "s" : ""})`,
-        href: "/backtest",
-      });
       const experimentLabel = { strategy: "gated" as ExperimentStrategy, instrumentId, rulesCount: rules.length };
       const experimentParams: Record<string, any> = { rulesCount: rules.length };
       saveExperiment({
@@ -258,10 +246,6 @@ function BacktestPageInner() {
   }
 
   function handleWorkflowNext() {
-    updateWorkflow({
-      backtestSharpe: result?.sharpe_ratio ?? null,
-      backtestPnlPct: result?.total_pnl_pct ?? null,
-    });
     router.push("/portfolio");
   }
 
@@ -523,7 +507,7 @@ function BacktestPageInner() {
                   Save Result
                 </button>
                 <button
-                  onClick={() => router.push(`/orders?symbol=${encodeURIComponent(instrumentId)}`)}
+                  onClick={() => router.push(`/market?symbol=${encodeURIComponent(instrumentId)}`)}
                   className="px-3 h-6 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0">
                   주문하기 →
                 </button>
