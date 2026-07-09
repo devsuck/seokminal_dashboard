@@ -69,6 +69,13 @@ interface Feed {
 
 interface Unit { kind: "AI" | "BOT"; name: string; running: boolean; detail: string; href: string; }
 
+function formatAge(ageSec: number | null): string {
+  if (ageSec == null) return "데이터 없음";
+  if (ageSec < 60) return `${ageSec}s 전`;
+  if (ageSec < 3600) return `${Math.floor(ageSec / 60)}분 전`;
+  return `${Math.floor(ageSec / 3600)}시간 전`;
+}
+
 function UnitCard({ u }: { u: Unit }) {
   return (
     <Link href={u.href}
@@ -165,6 +172,14 @@ export default function HudPage() {
   units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: `보유 ${bot?.open ?? 0}`, href: "/lab/tasks" });
   if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "enabled" : "off", href: "/dart-auto" });
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} tick`, href: "/lab" });
+  if (sys?.processes?.polymarket_tick) units.push({
+    kind: "BOT", name: "폴리마켓 틱 수집기", running: sys.processes.polymarket_tick.running,
+    detail: formatAge(sys.processes.polymarket_tick.age_sec), href: "/lab",
+  });
+  if (sys?.processes?.polymarket_arb) units.push({
+    kind: "BOT", name: "폴리마켓 arb 스캐너", running: sys.processes.polymarket_arb.running,
+    detail: formatAge(sys.processes.polymarket_arb.age_sec), href: "/lab",
+  });
 
   const nRunning = units.filter(u => u.running).length;
   const wd = sys?.research_service?.watchdog;

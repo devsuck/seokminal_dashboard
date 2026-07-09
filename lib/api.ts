@@ -2315,6 +2315,11 @@ export interface LabStatus {
     pull_queue?: { pending: number; running: string | null };
   };
   congress: { type: string; note: string };
+  processes?: {
+    polymarket_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_arb?: { running: boolean; last_write: string | null; age_sec: number | null };
+    error?: string;
+  };
 }
 export interface ScannerFamily {
   family: string; status: string; n: number | null; net: number | null; percentile: number | null; p: number | null;
