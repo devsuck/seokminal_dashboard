@@ -41,14 +41,15 @@ export default function ReportPage() {
       {/* 지표별 */}
       <div className="space-y-2">
         {METRICS.map(m => (
-          <div key={m.name} className="bg-panel border border-border rounded-lg p-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-text-1">{m.name}</span>
-              <span className="text-[11px] text-pos">좋은 값: {m.good}</span>
+          <Panel key={m.name}>
+            <PanelHeader right={<span>좋은 값: {m.good}</span>}>
+              {m.name}
+            </PanelHeader>
+            <div className="p-4">
+              <div className="text-[13px] text-text-2">{m.what}</div>
+              <div className="text-[12px] text-text-3 mt-1"><b className="text-warn">함정:</b> {m.trap}</div>
             </div>
-            <div className="text-[13px] text-text-2 mt-1">{m.what}</div>
-            <div className="text-[12px] text-text-3 mt-1"><b className="text-warn">함정:</b> {m.trap}</div>
-          </div>
+          </Panel>
         ))}
       </div>
 

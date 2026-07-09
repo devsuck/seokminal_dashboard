@@ -266,7 +266,7 @@ export default function OptionsLearnPage() {
           </div>
 
           <Panel>
-            <PanelHeader right={<span className="normal-case tracking-normal font-normal">{strat.ko}</span>}>
+            <PanelHeader right={<span>{strat.ko}</span>}>
               {strat.name}
             </PanelHeader>
             <div className="p-3 space-y-2">
