@@ -7,7 +7,7 @@ import type {
   UTCTimestamp,
 } from "lightweight-charts";
 import { footprintColumnX } from "@/lib/orderflow-chart-coords";
-import { computeFootprintLayout, type FootprintCell } from "@/lib/orderflow-data";
+import type { FootprintCell } from "@/lib/orderflow-data";
 
 const MIN_BAR_SPACING_FOR_TEXT = 40;
 
@@ -22,7 +22,6 @@ class FootprintPaneRenderer implements IPrimitivePaneRenderer {
       const barSpacing = chart.timeScale().options().barSpacing;
       if (barSpacing < MIN_BAR_SPACING_FOR_TEXT) return;
 
-      const layout = computeFootprintLayout(cells);
       const timeToX = (ts: number) => chart.timeScale().timeToCoordinate(ts as UTCTimestamp);
       const priceToY = (price: number) => series.priceToCoordinate(price);
 

@@ -10,6 +10,7 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
   type SeriesMarker,
+  type LogicalRange,
 } from "lightweight-charts";
 import type { BarOut, TradeRecord } from "@/lib/api";
 import type { ChartIndicatorSpec } from "@/lib/backtest-types";
@@ -143,6 +144,7 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
 export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, onSeriesReady }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const visibleRangeRef = useRef<LogicalRange | null>(null);
   const specsKey = JSON.stringify(specs ?? []);
 
   useEffect(() => {
@@ -185,6 +187,10 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         open: b.open, high: b.high, low: b.low, close: b.close,
       }))
     );
+
+    if (visibleRangeRef.current) {
+      chart.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+    }
 
     onSeriesReady?.(chart, candleSeries);
 
@@ -320,7 +326,11 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       for (let i = 1; i < panes.length; i++) panes[i]?.setStretchFactor(1);
     }
 
-    return () => { chart.remove(); chartRef.current = null; };
+    return () => {
+      visibleRangeRef.current = chart.timeScale().getVisibleLogicalRange();
+      chart.remove();
+      chartRef.current = null;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey]);
 

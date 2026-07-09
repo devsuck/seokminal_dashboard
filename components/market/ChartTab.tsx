@@ -32,12 +32,12 @@ interface ChartTabProps {
 
 // 바 간격 타임프레임. US=IB(전부), KR=하루/1달(KIS).
 const TIMEFRAMES = [
-  { id: "1m",  label: "1분",   bar: "1 min" as const,   dur: "2 D" },
-  { id: "15m", label: "15분",  bar: "15 mins" as const, dur: "5 D" },
-  { id: "1h",  label: "1시간", bar: "1 hour" as const,  dur: "1 M" },
-  { id: "4h",  label: "4시간", bar: "4 hours" as const, dur: "3 M" },
-  { id: "1d",  label: "하루",  bar: "1 day" as const,   dur: "2 Y" },
-  { id: "1M",  label: "1달",   bar: "1 month" as const, dur: "10 Y" },
+  { id: "1m",  label: "1분" },
+  { id: "15m", label: "15분" },
+  { id: "1h",  label: "1시간" },
+  { id: "4h",  label: "4시간" },
+  { id: "1d",  label: "하루" },
+  { id: "1M",  label: "1달" },
 ];
 
 function oneYearAgo(): string {
