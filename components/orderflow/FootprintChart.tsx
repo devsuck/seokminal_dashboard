@@ -29,7 +29,8 @@ export function FootprintChart({ cells }: FootprintChartProps) {
       layout.buckets.length !== prevLayout.buckets.length ||
       layout.prices.length !== prevLayout.prices.length ||
       layout.buckets.some((b, i) => b !== prevLayout.buckets[i]) ||
-      layout.prices.some((p, i) => p !== prevLayout.prices[i]);
+      layout.prices.some((p, i) => p !== prevLayout.prices[i]) ||
+      cells.length !== prevCellsRef.current.length;
 
     const width = LABEL_GUTTER + layout.buckets.length * CELL_WIDTH;
     const height = layout.prices.length * CELL_HEIGHT;
