@@ -147,7 +147,6 @@ export default function HudPage() {
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} tick`, href: "/lab" });
 
   const nRunning = units.filter(u => u.running).length;
-  const allUp = units.length > 0 && nRunning === units.length;
   const wd = sys?.research_service?.watchdog;
 
   return (
