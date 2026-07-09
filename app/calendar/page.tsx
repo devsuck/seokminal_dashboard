@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getEconomicCalendar, type EconomicEvent } from "@/lib/api";
 import { GroqSummaryPanel } from "@/components/GroqSummaryPanel";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Week = "this" | "next";
 type ImpactFilter = "all" | "High" | "Medium" | "Low";
@@ -58,7 +59,7 @@ function ValueCell({ val, prev, forecast }: { val: string | null; prev: string |
   const foreNum = parseFloat((forecast ?? "").replace(/[^0-9.-]/g, ""));
   let color = "text-text-1";
   if (!isNaN(actNum) && !isNaN(foreNum)) {
-    color = actNum >= foreNum ? "text-pos" : "text-neg";
+    color = actNum >= foreNum ? "px-1 bg-pos/20 text-pos" : "px-1 bg-neg/20 text-neg";
   }
   return <span className={`font-data font-semibold text-xs ${color}`}>{val}</span>;
 }
@@ -137,7 +138,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap gap-2 items-center bg-panel border border-border rounded-lg px-4 py-3">
+      <Panel className="flex flex-wrap gap-2 items-center px-4 py-3">
 
         {/* Week toggle */}
         <div className="flex gap-0.5 mr-2">
@@ -198,7 +199,7 @@ export default function CalendarPage() {
             <span className="text-text-3 text-[11px]">총 {filtered.length}건</span>
           </>
         )}
-      </div>
+      </Panel>
 
       {error && <p className="text-neg text-sm">{error}</p>}
       {loading && (
@@ -218,18 +219,16 @@ export default function CalendarPage() {
         const { day, weekday } = formatDate(dayEvents[0].date);
         const hasHigh = dayEvents.some(e => e.impact === "High");
         return (
-          <div key={dateKey} className="bg-panel border border-border rounded-lg overflow-hidden">
+          <Panel key={dateKey}>
             {/* Day header */}
-            <div className={`flex items-center gap-3 px-4 py-2.5 border-b border-border ${hasHigh ? "bg-neg/5" : "bg-panel-2"}`}>
-              <span className="text-text-1 text-sm font-semibold">{day}</span>
-              <span className="text-text-3 text-xs">{weekday}</span>
-              {hasHigh && (
-                <span className="ml-auto flex items-center gap-1 text-neg text-[10px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neg" />
-                  High Impact
-                </span>
-              )}
-            </div>
+            <PanelHeader right={hasHigh && (
+              <span className="flex items-center gap-1 text-neg">
+                <span className="w-1.5 h-1.5 rounded-full bg-neg" />
+                High Impact
+              </span>
+            )}>
+              {day} · {weekday}
+            </PanelHeader>
 
             {/* Events table */}
             <table className="w-full text-xs">
@@ -274,7 +273,7 @@ export default function CalendarPage() {
                 })}
               </tbody>
             </table>
-          </div>
+          </Panel>
         );
       })}
       </div>{/* end left */}

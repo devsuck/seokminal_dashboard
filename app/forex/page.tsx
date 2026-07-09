@@ -11,6 +11,7 @@ import {
 import { PageBanner } from "@/components/PageBanner";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState, LoadingState } from "@/components/ui";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 function ibBarToBarOut(b: IBBar): BarOut {
   return { ts_event: b.ts_ms * 1_000_000, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume };
@@ -35,7 +36,7 @@ function structureCls(s: string): string {
 }
 
 function signCls(v: number): string {
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-3";
+  return v > 0 ? "bg-pos/20 text-pos" : v < 0 ? "bg-neg/20 text-neg" : "text-text-3";
 }
 
 function Err({ msg }: { msg: string | null }) {
@@ -54,7 +55,7 @@ function InputRow({
   loading: boolean;
 }) {
   return (
-    <div className="bg-panel border border-border rounded-lg p-4">
+    <Panel className="p-4">
       <div className="flex gap-3 flex-wrap items-end">
         {fields.map(({ label, value, set }) => (
           <div key={label} className="space-y-1">
@@ -72,7 +73,7 @@ function InputRow({
           {loading ? "Computing…" : "Compute"}
         </button>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -132,15 +133,14 @@ function ForwardTab() {
         loading={loading}
       />
       <Err msg={error} />
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">FX Forward Pricer</span>
-          {result && (
-            <span className={`text-[11px] font-semibold uppercase tracking-wider ${structureCls(result.market_structure)}`}>
-              {result.market_structure}
-            </span>
-          )}
-        </div>
+      <Panel>
+        <PanelHeader right={result && (
+          <span className={structureCls(result.market_structure)}>
+            {result.market_structure}
+          </span>
+        )}>
+          FX Forward Pricer
+        </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
             {FORWARD_ROWS.map(row => {
@@ -158,7 +158,7 @@ function ForwardTab() {
             })}
           </tbody>
         </table>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -176,7 +176,7 @@ const CARRY_ROWS: {
   { label: "Carry Rate (Ann.) %",  key: "carry_rate",            fmt: fmt4, cls: signCls,              desc: "(r_d − r_f) × 100" },
   { label: "Net Carry %",          key: "net_carry_pct",         fmt: fmt4, cls: signCls,              desc: "carry_rate × T" },
   { label: "Breakeven Move %",     key: "breakeven_move_pct",    fmt: fmt4, cls: () => "text-text-2",  desc: "spot move that wipes carry" },
-  { label: "UIP Expected Move %",  key: "uip_expected_move_pct", fmt: fmt4, cls: (v) => v > 0 ? "text-neg" : v < 0 ? "text-pos" : "text-text-3", desc: "(F − S) / S × 100" },
+  { label: "UIP Expected Move %",  key: "uip_expected_move_pct", fmt: fmt4, cls: (v) => v > 0 ? "bg-neg/20 text-neg" : v < 0 ? "bg-pos/20 text-pos" : "text-text-3", desc: "(F − S) / S × 100" },
 ];
 
 function CarryTab() {
@@ -221,15 +221,14 @@ function CarryTab() {
         loading={loading}
       />
       <Err msg={error} />
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">Carry Analysis</span>
-          {result && (
-            <span className={`text-[11px] font-semibold uppercase tracking-wider ${result.favorable ? "text-pos" : "text-neg"}`}>
-              {result.favorable ? "FAVORABLE" : "UNFAVORABLE"}
-            </span>
-          )}
-        </div>
+      <Panel>
+        <PanelHeader right={result && (
+          <span className={result.favorable ? "text-pos" : "text-neg"}>
+            {result.favorable ? "FAVORABLE" : "UNFAVORABLE"}
+          </span>
+        )}>
+          Carry Analysis
+        </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
             {CARRY_ROWS.map(row => {
@@ -247,7 +246,7 @@ function CarryTab() {
             })}
           </tbody>
         </table>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -496,19 +495,19 @@ function ForexChart({ pair }: { pair: string }) {
   }, [pair, barSize]);
 
   return (
-    <div className="bg-panel border border-border rounded-lg overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3 flex-wrap">
-        <span className="font-data text-sm text-text-1 font-medium">{pair}</span>
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">IB IDEALPRO</span>
-        <div className="ml-auto flex gap-1">
+    <Panel>
+      <PanelHeader right={
+        <div className="flex gap-1">
           {FX_BAR_SIZES.map(bs => (
             <button key={bs} onClick={() => setBarSize(bs)}
-              className={`text-[11px] px-2 py-1 rounded border ${barSize === bs ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+              className={`text-[11px] px-2 py-1 rounded border normal-case tracking-normal font-normal ${barSize === bs ? "border-black text-black bg-black/10" : "border-black/30 text-black/70 hover:bg-black/10"}`}>
               {bs}
             </button>
           ))}
         </div>
-      </div>
+      }>
+        <span className="font-data font-medium">{pair}</span> · IB IDEALPRO
+      </PanelHeader>
       {error ? (
         <div className="p-2"><EmptyState message={`'${pair}' 차트 로드 실패`} hint={error} /></div>
       ) : loading ? (
@@ -518,7 +517,7 @@ function ForexChart({ pair }: { pair: string }) {
       ) : (
         <EmptyState message="데이터 없음" hint="IB TWS/Gateway 연결 필요" />
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -572,7 +571,7 @@ function LiveRatesTab() {
                     {fmtRate(pair, d?.rate ?? null)}
                   </div>
                   <div className="flex items-center gap-3 mt-2">
-                    <span className={`text-xs font-data font-semibold ${isPos ? "text-pos" : "text-neg"}`}>
+                    <span className={`text-xs font-data font-semibold px-1 ${isPos ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                       {pct != null ? `${pct >= 0 ? "+" : ""}${pct.toFixed(3)}%` : "—"}
                     </span>
                     {pct5d != null && (

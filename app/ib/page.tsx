@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "lightweight-charts";
 import { ApiError, getIBBars, IB_BAR_SIZES, type IBBarsResponse, type IBBarSize } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type AssetTab = "stock" | "forex" | "future" | "option" | "crypto";
 
@@ -80,21 +81,18 @@ function CandleChart({ result }: { result: IBBarsResponse }) {
   const last = result.bars.at(-1);
 
   return (
-    <div className="bg-panel border border-border rounded-lg overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-4">
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">
-          {result.symbol} · {result.count} bars
+    <Panel>
+      <PanelHeader right={last && (
+        <span className="font-data">
+          Last: {fmtPrice(last.close)}
         </span>
-        {last && (
-          <span className="text-text-2 text-xs font-data">
-            Last: <span className="text-text-1 font-semibold">{fmtPrice(last.close)}</span>
-          </span>
-        )}
-      </div>
+      )}>
+        {result.symbol} · {result.count} bars
+      </PanelHeader>
       <div className="p-3">
         <div ref={chartRef} style={{ height: "320px" }} />
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -108,7 +106,7 @@ interface FormShellProps {
 
 function FormShell({ children, onLoad, loading }: FormShellProps) {
   return (
-    <div className="bg-panel border border-border rounded-lg p-4">
+    <Panel className="p-4">
       <div className="flex gap-3 flex-wrap items-end">
         {children}
         <button
@@ -118,7 +116,7 @@ function FormShell({ children, onLoad, loading }: FormShellProps) {
           {loading ? "Loading…" : "Load"}
         </button>
       </div>
-    </div>
+    </Panel>
   );
 }
 

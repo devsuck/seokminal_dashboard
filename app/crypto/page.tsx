@@ -30,11 +30,11 @@ function fmtVolume(v: number): string {
 }
 
 function changeCls(v: number): string {
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-3";
+  return v > 0 ? "bg-pos/20 text-pos" : v < 0 ? "bg-neg/20 text-neg" : "text-text-3";
 }
 
 function fundingCls(v: number): string {
-  return v > 0 ? "text-warn" : v < 0 ? "text-info" : "text-text-3";
+  return v > 0 ? "bg-warn/20 text-warn" : v < 0 ? "bg-info/20 text-info" : "text-text-3";
 }
 
 type AssetRow = CryptoAssetsResponse["assets"][number];
@@ -111,14 +111,14 @@ function CryptoSidebar({
                   {d ? fmtPrice(d.mid_price) : "…"}
                 </span>
                 {d && (
-                  <span className={`text-[10px] font-data ${pos ? "text-pos" : "text-neg"}`}>
+                  <span className={`text-[10px] font-data px-1 ${changeCls(d.day_change_pct)}`}>
                     {pos ? "+" : ""}{d.day_change_pct.toFixed(2)}%
                   </span>
                 )}
               </div>
               {d && (
                 <div className="mt-0.5">
-                  <span className={`text-[9px] font-data ${fundingCls(d.funding_rate_8h)}`}>
+                  <span className={`text-[9px] font-data px-1 ${fundingCls(d.funding_rate_8h)}`}>
                     F {d.funding_rate_8h >= 0 ? "+" : ""}{d.funding_rate_8h.toFixed(4)}%
                   </span>
                 </div>

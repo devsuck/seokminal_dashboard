@@ -9,6 +9,7 @@ import {
   type OptionsIvSurfaceResponse,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Tab = "greeks" | "chain" | "surface";
 
@@ -18,7 +19,7 @@ function fmt4(v: number): string { return v.toFixed(4); }
 function fmt6(v: number): string { return v.toFixed(6); }
 
 function signCls(v: number): string {
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-3";
+  return v > 0 ? "bg-pos/20 text-pos" : v < 0 ? "bg-neg/20 text-neg" : "text-text-3";
 }
 
 function Err({ msg }: { msg: string | null }) {
@@ -74,7 +75,7 @@ function GreeksTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="bg-panel border border-border rounded-lg p-4">
+      <Panel className="p-4">
         <div className="flex gap-3 flex-wrap items-end">
           {/* Option type */}
           <div className="space-y-1">
@@ -115,17 +116,15 @@ function GreeksTab() {
             {loading ? "Computing…" : "Compute"}
           </button>
         </div>
-      </div>
+      </Panel>
 
       <Err msg={error} />
 
       {/* Results table */}
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">
-            {optionType.toUpperCase()} Option Results
-          </span>
-        </div>
+      <Panel>
+        <PanelHeader>
+          {optionType.toUpperCase()} Option Results
+        </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
             {GREEK_ROWS.map(row => {
@@ -142,7 +141,7 @@ function GreeksTab() {
             })}
           </tbody>
         </table>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -187,7 +186,7 @@ function ChainTab() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-panel border border-border rounded-lg p-4">
+      <Panel className="p-4">
         <div className="flex gap-3 flex-wrap items-end">
           {[
             { label: "Spot (S)", value: spot, set: setSpot },
@@ -210,7 +209,7 @@ function ChainTab() {
             {loading ? "Computing…" : "Compute"}
           </button>
         </div>
-      </div>
+      </Panel>
 
       <Err msg={error} />
 
@@ -424,7 +423,7 @@ function IvSurfaceTab() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-panel border border-border rounded-lg p-4">
+      <Panel className="p-4">
         <div className="flex gap-3 flex-wrap items-end">
           {[
             { label: "Spot (S)", value: spot, set: setSpot },
@@ -446,7 +445,7 @@ function IvSurfaceTab() {
             {loading ? "Computing…" : "Compute"}
           </button>
         </div>
-      </div>
+      </Panel>
 
       <Err msg={error} />
 

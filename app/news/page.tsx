@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { NewsPanel } from "@/components/news/NewsPanel";
 import { GroqSummaryPanel } from "@/components/GroqSummaryPanel";
+import { Panel } from "@/components/ui/Panel";
 
 const CATEGORIES = ["general", "forex", "crypto", "merger"] as const;
 
@@ -32,7 +33,7 @@ export default function NewsPage() {
           </div>
 
           {/* Controls */}
-          <div className="flex flex-wrap gap-2 items-center bg-panel border border-border rounded-lg px-4 py-3">
+          <Panel className="flex flex-wrap gap-2 items-center px-4 py-3">
             <div className="flex gap-0.5">
               {CATEGORIES.map(c => (
                 <button
@@ -68,17 +69,17 @@ export default function NewsPage() {
                 </button>
               )}
             </div>
-          </div>
+          </Panel>
 
           {/* News list */}
-          <div className="bg-panel border border-border rounded-lg p-4" style={{ minHeight: "400px" }}>
+          <Panel className="p-4 min-h-[400px]">
             <NewsPanel
               key={activeTicker ?? category}
               ticker={activeTicker}
               maxItems={30}
               onHeadlinesLoaded={(headlines) => { headlinesRef.current = headlines; }}
             />
-          </div>
+          </Panel>
         </div>
 
         {/* Right: Groq summary */}

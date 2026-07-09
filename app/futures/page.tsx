@@ -9,6 +9,7 @@ import {
   type FuturesCalendarResponse,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Tab = "pricer" | "curve" | "roll";
 
@@ -24,7 +25,7 @@ function structureCls(s: string): string {
 }
 
 function rollCostCls(v: number): string {
-  return v > 0 ? "text-neg" : v < 0 ? "text-pos" : "text-text-3";
+  return v > 0 ? "bg-neg/20 text-neg" : v < 0 ? "bg-pos/20 text-pos" : "text-text-3";
 }
 
 function Err({ msg }: { msg: string | null }) {
@@ -43,7 +44,7 @@ function InputRow({
   loading: boolean;
 }) {
   return (
-    <div className="bg-panel border border-border rounded-lg p-4">
+    <Panel className="p-4">
       <div className="flex gap-3 flex-wrap items-end">
         {fields.map(({ label, value, set }) => (
           <div key={label} className="space-y-1">
@@ -61,7 +62,7 @@ function InputRow({
           {loading ? "Computing…" : "Compute"}
         </button>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -116,15 +117,14 @@ function PricerTab() {
         loading={loading}
       />
       <Err msg={error} />
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">Futures Pricer</span>
-          {result && (
-            <span className={`text-[11px] font-semibold uppercase tracking-wider ${structureCls(result.market_structure)}`}>
-              {result.market_structure}
-            </span>
-          )}
-        </div>
+      <Panel>
+        <PanelHeader right={result && (
+          <span className={structureCls(result.market_structure)}>
+            {result.market_structure}
+          </span>
+        )}>
+          Futures Pricer
+        </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
             {PRICER_ROWS.map(row => {
@@ -132,7 +132,7 @@ function PricerTab() {
               return (
                 <tr key={row.label} className="border-b border-border last:border-0">
                   <td className="px-4 py-2 text-accent text-[13px] w-[220px]">{row.label}</td>
-                  <td className={`px-4 py-2 text-sm font-data font-bold w-32 ${loading ? "text-text-3/30" : v !== null ? (v >= 0 ? "text-pos" : "text-neg") : "text-text-3"}`}>
+                  <td className={`px-4 py-2 text-sm font-data font-bold w-32 ${loading ? "text-text-3/30" : v !== null ? (v >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg") : "text-text-3"}`}>
                     {loading ? "…" : v !== null ? row.fmt(v) : "—"}
                   </td>
                   <td className="px-4 py-2 text-text-3 text-xs">{row.desc}</td>
@@ -141,7 +141,7 @@ function PricerTab() {
             })}
           </tbody>
         </table>
-      </div>
+      </Panel>
     </div>
   );
 }
