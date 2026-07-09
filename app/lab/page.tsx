@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { LivePulse, ThinkingLine } from "@/components/Jarvis";
 import AutoResearchPanel from "@/components/AutoResearchPanel";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 // ── 진행바 폭: style={{}} 금지 → 리터럴 Tailwind 폭 클래스 룩업(10% 스텝) ──
 const WIDTHS = [
@@ -134,36 +135,39 @@ export default function LabPage() {
 
       {/* Jarvis 거버넌스 스트립 */}
       {jarvis && (
-        <div className="flex items-center gap-3 flex-wrap text-xs bg-panel border border-border rounded px-3 py-2">
-          <span className="font-semibold text-text-1">Jarvis Quant OS</span>
-          <span className="text-text-3">·</span>
-          <span className="text-text-2">Level {jarvis.autonomy_level} <span className="text-text-3">{jarvis.autonomy_name}</span></span>
-          <span className="text-text-3">·</span>
-          <span className="text-pos">research {jarvis.research_automation}</span>
-          <span className="text-pos">paper {jarvis.paper_monitoring}</span>
-          <span className={jarvis.live_execution === "disabled" ? "text-warn" : "text-neg"}>
-            live {jarvis.live_execution}
-          </span>
-          <span className="text-text-3">·</span>
-          <span className="text-text-2 font-data">registry {jarvis.registry_total}</span>
-          <span className="text-text-3">·</span>
-          <span className="text-info">risk governor {jarvis.risk_governor}</span>
-        </div>
+        <Panel>
+          <PanelHeader>Jarvis Quant OS</PanelHeader>
+          <div className="flex items-center gap-3 flex-wrap text-xs px-3 py-2">
+            <span className="text-text-2">Level {jarvis.autonomy_level} <span className="text-text-3">{jarvis.autonomy_name}</span></span>
+            <span className="text-text-3">·</span>
+            <span className="text-pos">research {jarvis.research_automation}</span>
+            <span className="text-pos">paper {jarvis.paper_monitoring}</span>
+            <span className={jarvis.live_execution === "disabled" ? "text-warn" : "text-neg"}>
+              live {jarvis.live_execution}
+            </span>
+            <span className="text-text-3">·</span>
+            <span className="text-text-2 font-data">registry {jarvis.registry_total}</span>
+            <span className="text-text-3">·</span>
+            <span className="text-info">risk governor {jarvis.risk_governor}</span>
+          </div>
+        </Panel>
       )}
 
       {/* Guardrail */}
-      <div className="flex items-center gap-2 text-xs text-warn bg-warn/5 border border-warn/25 rounded px-3 py-2">
-        <span className="font-semibold uppercase tracking-wider">가드레일</span>
-        <span className="text-text-2">
-          live 매매 자동 실행 없음 (guard: <span className="text-warn font-data">{st?.live_guard ?? "disarmed"}</span>).
-          집행은 판정·기록까지만. paper→live는 사람 승인.
-        </span>
-      </div>
+      <Panel>
+        <PanelHeader>가드레일</PanelHeader>
+        <div className="text-xs px-3 py-2">
+          <span className="text-text-2">
+            live 매매 자동 실행 없음 (guard: <span className="text-warn font-data">{st?.live_guard ?? "disarmed"}</span>).
+            집행은 판정·기록까지만. paper→live는 사람 승인.
+          </span>
+        </div>
+      </Panel>
 
       {err && <div className="text-xs text-neg border border-neg/30 rounded px-3 py-2">연결 오류: {err}</div>}
 
       {/* Stage flow */}
-      <div className="bg-panel border border-border rounded-lg p-4">
+      <Panel className="p-4">
         <div className="flex items-stretch gap-2">
           {STAGES.map((sg, i) => {
             const active = st?.stage === sg.key;
@@ -197,7 +201,7 @@ export default function LabPage() {
             );
           })}
         </div>
-      </div>
+      </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left: current hypothesis + live log */}
@@ -247,55 +251,54 @@ function statusChip(f: ScannerFamily): { label: string; cls: string } {
 function ScannerPanel({ scan }: { scan: ScannerResult }) {
   const pct = scan.total ? Math.round((scan.done / scan.total) * 7) : 0;
   return (
-    <div className="bg-panel border border-accent/30 rounded-lg p-4 space-y-3">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+    <Panel>
+      <PanelHeader right={<span>완료 {scan.done}/{scan.total} · CLEARED {scan.cleared}</span>}>이벤트 family 스캐너</PanelHeader>
+      <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2 text-accent">
             <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-70 animate-ping" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
           </span>
-          <span className="text-base font-semibold text-text-1">이벤트 family 스캐너</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10">실 발굴 · 레드팀</span>
         </div>
-        <span className="text-[10px] text-text-3 font-data">완료 {scan.done}/{scan.total} · CLEARED {scan.cleared}</span>
-      </div>
 
-      {/* 진행바 */}
-      <div className="h-1.5 rounded-full bg-panel-2 overflow-hidden">
-        <div className={`h-full bg-accent rounded-full transition-all duration-500 ${SCAN_W[Math.max(0, Math.min(7, pct))]}`} />
-      </div>
-      {scan.current && (
-        <div className="text-[11px] text-accent flex items-center gap-1.5">
-          <span className="animate-pulse">▶</span> 현재 <b>{scan.current}</b> pull 중 (~35분/family)
+        {/* 진행바 */}
+        <div className="h-1.5 rounded-full bg-panel-2 overflow-hidden">
+          <div className={`h-full bg-accent rounded-full transition-all duration-500 ${SCAN_W[Math.max(0, Math.min(7, pct))]}`} />
         </div>
-      )}
-      <p className="text-[11px] text-text-3">경제논리 family → 실데이터 → 이벤트스터디 → 레드팀 전통제. CLEARED만 진짜 후보.</p>
+        {scan.current && (
+          <div className="text-[11px] text-accent flex items-center gap-1.5">
+            <span className="animate-pulse">▶</span> 현재 <b>{scan.current}</b> pull 중 (~35분/family)
+          </div>
+        )}
+        <p className="text-[11px] text-text-3">경제논리 family → 실데이터 → 이벤트스터디 → 레드팀 전통제. CLEARED만 진짜 후보.</p>
 
-      <div className="space-y-1 max-h-[300px] overflow-y-auto">
-        {scan.families.map(f => {
-          const chip = statusChip(f);
-          return (
-            <div key={f.family} className={`border rounded px-3 py-2 ${f.family === scan.current ? "border-accent/40 bg-accent/5" : "border-border bg-panel-2"}`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-text-1 truncate">{f.family}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${chip.cls}`}>{chip.label}</span>
-              </div>
-              {f.net !== null ? (
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] font-data text-text-3">
-                  <span>n{f.n}</span>
-                  <span className={(f.net ?? 0) >= 0 ? "text-pos" : "text-neg"}>net {((f.net ?? 0) * 100).toFixed(2)}%</span>
-                  <span>pct {f.percentile}</span>
-                  <span>p {f.p}</span>
-                  <span>방향 {f.direction}</span>
+        <div className="space-y-1 max-h-[300px] overflow-y-auto">
+          {scan.families.map(f => {
+            const chip = statusChip(f);
+            return (
+              <div key={f.family} className={`border rounded px-3 py-2 ${f.family === scan.current ? "border-accent/40 bg-accent/5" : "border-border bg-panel-2"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-text-1 truncate">{f.family}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${chip.cls}`}>{chip.label}</span>
                 </div>
-              ) : (
-                <div className="text-[10px] text-text-3 mt-0.5 truncate">{f.thesis}</div>
-              )}
-            </div>
-          );
-        })}
+                {f.net !== null ? (
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] font-data text-text-3">
+                    <span>n{f.n}</span>
+                    <span className={`px-1 font-bold ${(f.net ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>net {((f.net ?? 0) * 100).toFixed(2)}%</span>
+                    <span>pct {f.percentile}</span>
+                    <span>p {f.p}</span>
+                    <span>방향 {f.direction}</span>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-text-3 mt-0.5 truncate">{f.thesis}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -329,12 +332,9 @@ function JarvisPanel({ detail }: { detail: JarvisDetail | null }) {
   const counts: Record<string, number> = {};
   for (const s of detail.strategies) counts[s.status] = (counts[s.status] ?? 0) + 1;
   return (
-    <div className="bg-panel border border-border rounded-lg p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-text-1">Jarvis 파이프라인 거버넌스</span>
-        <span className="text-[10px] text-text-3">think freely · test harshly · paper first · execute only approved</span>
-      </div>
-
+    <Panel>
+      <PanelHeader right={<span>think freely · test harshly · paper first · execute only approved</span>}>Jarvis 파이프라인 거버넌스</PanelHeader>
+      <div className="p-4 space-y-4">
       {/* 생애주기 퍼널 */}
       <div className="flex items-center gap-1 flex-wrap">
         {LIFECYCLE.map((s, i) => (
@@ -385,7 +385,8 @@ function JarvisPanel({ detail }: { detail: JarvisDetail | null }) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Panel>
   );
 }
 
@@ -396,10 +397,10 @@ function CurrentCard({ st }: { st: LabState | null }) {
   const busy = st?.busy ?? false;
   if (!h) {
     return (
-      <div className="bg-panel border border-border rounded-lg p-6 text-center">
+      <Panel className="p-6 text-center">
         <div className="text-text-2 text-sm">대기 중 — <span className="text-text-1 font-medium">▶ 다음 가설 검토</span>를 눌러 루프 시작.</div>
         <div className="text-text-3 text-xs mt-1">큐의 가설을 하나씩 자체생각→검토→집행→학습으로 돌린다.</div>
-      </div>
+      </Panel>
     );
   }
   const badge = modeBadge(h.data_mode);
@@ -413,7 +414,7 @@ function CurrentCard({ st }: { st: LabState | null }) {
   );
   const pct = m.percentile ?? null;
   return (
-    <div className="bg-panel border border-border rounded-lg p-4">
+    <Panel className="p-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-base font-semibold text-text-1">{h.name}</span>
@@ -425,25 +426,22 @@ function CurrentCard({ st }: { st: LabState | null }) {
       <p className="text-text-2 text-sm mt-2 leading-relaxed">{h.thesis}</p>
       <p className="text-text-3 text-xs mt-1"><span className="text-warn">사망조건:</span> {h.kill}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
-        {cell("전략 net", fmt(m.net), m.net !== undefined && m.net !== null, (m.net ?? 0) >= 0 ? "text-pos" : "text-neg")}
+        {cell("전략 net", fmt(m.net), m.net !== undefined && m.net !== null, (m.net ?? 0) >= 0 ? "bg-pos/20 text-pos px-1 font-bold" : "bg-neg/20 text-neg px-1 font-bold")}
         {cell("random pct", pct !== null ? `${pct}%` : "—", pct !== null, (pct ?? 0) >= 95 ? "text-pos" : (pct ?? 0) >= 80 ? "text-warn" : "text-text-1")}
         {cell("p-value", fmt(m.p, 4), m.p !== undefined && m.p !== null, (m.p ?? 1) < 0.05 ? "text-pos" : "text-text-1")}
-        {cell("WF 전반", fmt(m.wf_first), m.wf_first !== undefined && m.wf_first !== null, (m.wf_first ?? 0) >= 0 ? "text-pos" : "text-neg")}
-        {cell("WF 후반", fmt(m.wf_second), m.wf_second !== undefined && m.wf_second !== null, (m.wf_second ?? 0) >= 0 ? "text-pos" : "text-neg")}
+        {cell("WF 전반", fmt(m.wf_first), m.wf_first !== undefined && m.wf_first !== null, (m.wf_first ?? 0) >= 0 ? "bg-pos/20 text-pos px-1 font-bold" : "bg-neg/20 text-neg px-1 font-bold")}
+        {cell("WF 후반", fmt(m.wf_second), m.wf_second !== undefined && m.wf_second !== null, (m.wf_second ?? 0) >= 0 ? "bg-pos/20 text-pos px-1 font-bold" : "bg-neg/20 text-neg px-1 font-bold")}
         {cell("거래수", fmt(m.n_trades, 0), m.n_trades !== undefined && m.n_trades !== null)}
       </div>
-    </div>
+    </Panel>
   );
 }
 
 // ── 라이브 로그(터미널) ────────────────────────────────────────
 function LiveLog({ log, endRef }: { log: LabLogLine[]; endRef: React.RefObject<HTMLDivElement | null> }) {
   return (
-    <div className="bg-panel border border-border rounded-lg">
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
-        <span className="text-xs uppercase tracking-wider text-text-3 font-semibold">라이브 로그</span>
-        <span className="text-[10px] text-text-3">{log.length} lines</span>
-      </div>
+    <Panel>
+      <PanelHeader right={<span>{log.length} lines</span>}>라이브 로그</PanelHeader>
       <div className="h-[340px] overflow-y-auto px-4 py-3 font-data text-xs leading-relaxed">
         {log.length === 0 && <div className="text-text-3">— 로그 없음 —</div>}
         {log.map((l, i) => (
@@ -455,7 +453,7 @@ function LiveLog({ log, endRef }: { log: LabLogLine[]; endRef: React.RefObject<H
         ))}
         <div ref={endRef} />
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -482,8 +480,8 @@ function StatsRow({ st }: { st: LabState | null }) {
 // ── 판정 피드 ──────────────────────────────────────────────────
 function VerdictFeed({ verdicts }: { verdicts: LabVerdict[] }) {
   return (
-    <div className="bg-panel border border-border rounded-lg">
-      <div className="px-4 py-2 border-b border-border text-xs uppercase tracking-wider text-text-3 font-semibold">판정 피드 (세션)</div>
+    <Panel>
+      <PanelHeader>판정 피드 (세션)</PanelHeader>
       <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
         {verdicts.length === 0 && <div className="px-4 py-3 text-xs text-text-3">아직 판정 없음</div>}
         {verdicts.map((v, i) => (
@@ -504,15 +502,15 @@ function VerdictFeed({ verdicts }: { verdicts: LabVerdict[] }) {
           </div>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
 // ── 큐 ─────────────────────────────────────────────────────────
 function QueueList({ queue, currentId }: { queue: LabHypothesis[]; currentId?: string }) {
   return (
-    <div className="bg-panel border border-border rounded-lg">
-      <div className="px-4 py-2 border-b border-border text-xs uppercase tracking-wider text-text-3 font-semibold">가설 큐 ({queue.length})</div>
+    <Panel>
+      <PanelHeader>가설 큐 ({queue.length})</PanelHeader>
       <div className="max-h-[200px] overflow-y-auto divide-y divide-border">
         {queue.length === 0 && <div className="px-4 py-3 text-xs text-text-3">큐 비어있음 (실행 시 재시드)</div>}
         {queue.map(h => (
@@ -522,7 +520,7 @@ function QueueList({ queue, currentId }: { queue: LabHypothesis[]; currentId?: s
           </div>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -531,16 +529,14 @@ function KnowledgePanel({ knowledge }: { knowledge: { status: string }[] }) {
   const counts: Record<string, number> = {};
   for (const k of knowledge) counts[k.status] = (counts[k.status] ?? 0) + 1;
   return (
-    <div className="bg-panel border border-border rounded-lg">
-      <div className="px-4 py-2 border-b border-border text-xs uppercase tracking-wider text-text-3 font-semibold">
-        축적 지식 · 실제 검증 registry ({knowledge.length})
-      </div>
+    <Panel>
+      <PanelHeader>축적 지식 · 실제 검증 registry ({knowledge.length})</PanelHeader>
       <div className="px-4 py-3 flex flex-wrap gap-1.5">
         {Object.entries(counts).map(([s, n]) => (
           <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded border ${verdictStyle(s)}`}>{s} {n}</span>
         ))}
         {knowledge.length === 0 && <span className="text-xs text-text-3">registry 비어있음</span>}
       </div>
-    </div>
+    </Panel>
   );
 }

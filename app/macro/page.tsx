@@ -5,6 +5,7 @@ import {
   listAgents, getAgentCycles, getFREDSeries, getECOSSeries,
   type TradingAgent, type AgentCycle, type FREDObservation, type ECOSObservation,
 } from "@/lib/api";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Market = "KR" | "US";
 
@@ -62,10 +63,10 @@ function regimeScore(metrics: MacroMetricState[]): number {
   return Math.round(50 + (sum / withDelta.length) * 50);
 }
 
-function regimeLabel(score: number): { label: string; cls: string } {
-  if (score >= 65) return { label: "Risk-On", cls: "text-pos" };
-  if (score <= 35) return { label: "Risk-Off", cls: "text-neg" };
-  return { label: "Neutral", cls: "text-warn" };
+function regimeLabel(score: number): { label: string; cls: string; bg: string } {
+  if (score >= 65) return { label: "Risk-On", cls: "text-pos", bg: "bg-pos/20" };
+  if (score <= 35) return { label: "Risk-Off", cls: "text-neg", bg: "bg-neg/20" };
+  return { label: "Neutral", cls: "text-warn", bg: "bg-warn/20" };
 }
 
 function LiveMacroPanel({ market }: { market: Market }) {
@@ -119,30 +120,24 @@ function LiveMacroPanel({ market }: { market: Market }) {
   const regime = regimeLabel(score);
 
   return (
-    <div className="bg-panel border border-border rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <p className="text-text-2 text-sm font-medium">실시간 지표</p>
-          <span className="text-text-3 text-[10px]">({market === "US" ? "FRED" : "ECOS"})</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {lastFetched && (
-            <span className="text-text-3 text-[10px]">
-              {lastFetched.toLocaleTimeString("ko-KR")} 갱신
-            </span>
-          )}
+    <Panel>
+      <PanelHeader right={
+        <span className="flex items-center gap-2 normal-case tracking-normal font-normal">
+          {lastFetched && <span>{lastFetched.toLocaleTimeString("ko-KR")} 갱신</span>}
           <button onClick={load} disabled={loading}
-            className="text-[10px] px-2 py-0.5 rounded border border-border text-text-3 hover:text-text-2 hover:border-text-3 transition-colors disabled:opacity-40">
+            className="text-[10px] px-2 py-0.5 rounded border border-black/30 text-black hover:bg-black/10 transition-colors disabled:opacity-40">
             {loading ? "갱신 중…" : "새로고침"}
           </button>
-        </div>
-      </div>
-
+        </span>
+      }>
+        실시간 지표 <span className="normal-case tracking-normal font-normal">({market === "US" ? "FRED" : "ECOS"})</span>
+      </PanelHeader>
+      <div className="p-4 space-y-3">
       {/* 종합 레짐 스코어 */}
       <div className="bg-bg border border-border rounded-lg px-3 py-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-text-3 text-[10px] uppercase tracking-wider">종합 레짐 스코어</span>
-          <span className={`text-xs font-semibold ${regime.cls}`}>{regime.label} · {score}</span>
+          <span className={`text-xs font-semibold px-1 ${regime.bg} ${regime.cls}`}>{regime.label} · {score}</span>
         </div>
         <div className="h-1.5 bg-panel-2 rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${score >= 65 ? "bg-pos" : score <= 35 ? "bg-neg" : "bg-warn"}`}
@@ -157,7 +152,7 @@ function LiveMacroPanel({ market }: { market: Market }) {
           const up = m.delta !== null && m.delta > 0;
           const down = m.delta !== null && m.delta < 0;
           const goodDirection = m.delta !== null ? Math.sign(m.delta) * m.config.polarity : 0;
-          const deltaCls = goodDirection > 0 ? "text-pos" : goodDirection < 0 ? "text-neg" : "text-text-3";
+          const deltaCls = goodDirection > 0 ? "bg-pos/20 text-pos" : goodDirection < 0 ? "bg-neg/20 text-neg" : "text-text-3";
           return (
             <div key={m.config.seriesId} className="bg-bg border border-border rounded-lg px-2.5 py-2">
               <p className="text-text-3 text-[10px]">{m.config.label}</p>
@@ -170,7 +165,7 @@ function LiveMacroPanel({ market }: { market: Market }) {
                     <span className="text-text-3 text-[10px] ml-1">{m.config.unit}</span>
                   </p>
                   {m.delta !== null && (
-                    <p className={`text-[10px] font-data ${deltaCls}`}>
+                    <p className={`text-[10px] font-data px-1 font-bold inline-block ${deltaCls}`}>
                       {up ? "▲" : down ? "▼" : "·"} {Math.abs(m.delta).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}
                     </p>
                   )}
@@ -180,7 +175,8 @@ function LiveMacroPanel({ market }: { market: Market }) {
           );
         })}
       </div>
-    </div>
+      </div>
+    </Panel>
   );
 }
 
@@ -228,26 +224,27 @@ function JournalEditor({ market }: { market: Market }) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-text-3 text-[10px] uppercase tracking-wider">현재 테제 · 메모</span>
+    <Panel>
+      <PanelHeader right={
         <button onClick={save}
-          className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${saved ? "border-pos text-pos" : "border-border text-text-3 hover:border-text-3 hover:text-text-2"}`}>
+          className={`text-[10px] px-2 py-0.5 rounded border normal-case tracking-normal font-normal transition-colors ${saved ? "border-pos text-pos bg-black/10" : "border-black/30 text-black hover:bg-black/10"}`}>
           {saved ? "저장됨 ✓" : "저장"}
         </button>
+      }>현재 테제 · 메모</PanelHeader>
+      <div className="p-4 space-y-2">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder={market === "KR"
+            ? "한국 시장 현재 뷰 기록...\n예: '한은 동결 지속, 원화 약세 헤징 필요. 반도체 인프라 섹터 비중 ↑'"
+            : "US 시장 현재 뷰 기록...\n예: 'Fed 9월 인하 50% 확률. AI capex 사이클 아직 초기. 빅테크 롱 유지.'"}
+          rows={5}
+          onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); save(); } }}
+          className="w-full px-3 py-2.5 text-xs bg-bg border border-border rounded-lg text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-none leading-relaxed"
+        />
+        <p className="text-text-3 text-[9px]">Cmd+S 로 저장 · 브라우저 로컬 저장</p>
       </div>
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder={market === "KR"
-          ? "한국 시장 현재 뷰 기록...\n예: '한은 동결 지속, 원화 약세 헤징 필요. 반도체 인프라 섹터 비중 ↑'"
-          : "US 시장 현재 뷰 기록...\n예: 'Fed 9월 인하 50% 확률. AI capex 사이클 아직 초기. 빅테크 롱 유지.'"}
-        rows={5}
-        onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); save(); } }}
-        className="w-full px-3 py-2.5 text-xs bg-bg border border-border rounded-lg text-text-1 placeholder:text-text-3 outline-none focus:border-accent resize-none leading-relaxed"
-      />
-      <p className="text-text-3 text-[9px]">Cmd+S 로 저장 · 브라우저 로컬 저장</p>
-    </div>
+    </Panel>
   );
 }
 
@@ -389,9 +386,7 @@ export default function MacroPage() {
           <LiveMacroPanel market={market} />
 
           {/* 개인 저널 */}
-          <div className="bg-panel border border-border rounded-xl p-4">
-            <JournalEditor market={market} />
-          </div>
+          <JournalEditor market={market} />
 
           {/* 에이전트 분석 로그 */}
           <div>
@@ -404,14 +399,14 @@ export default function MacroPage() {
             {macroAgent ? (
               <CycleLog cycles={cycles} />
             ) : (
-              <div className="bg-panel border border-border/50 rounded-xl p-6 text-center space-y-2">
+              <Panel className="p-6 text-center space-y-2">
                 <p className="text-text-2 text-sm">
                   {market === "KR" ? "KR 거시 전략 AI" : "US 매크로"} 에이전트가 없습니다.
                 </p>
                 <p className="text-text-3 text-xs">
                   에이전트 페이지에서 {market === "KR" ? "kr_macro" : "swing/autonomous"} 타입을 생성하면 분석 기록이 여기 쌓입니다.
                 </p>
-              </div>
+              </Panel>
             )}
           </div>
         </div>

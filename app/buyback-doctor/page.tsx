@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getBuybackAnalysis, type BuybackAnalysis } from "@/lib/api";
 import { ArcReactor, RadialGauge } from "@/components/Hud";
 import { LivePulse } from "@/components/Jarvis";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 /* Buyback 손실 진단 — 왜 깨졌는지(결정적 진단) + 더 정교한 청산룰이 기대치를 올리나(시뮬).
    v1(hold20) 동결 → 청산룰은 v2 섀도 후보로만 평가. */
@@ -68,10 +69,10 @@ export default function BuybackDoctorPage() {
 
       {err && <div className="text-xs text-neg border border-neg/30 rounded px-3 py-2">오류: {err}</div>}
       {pending && (
-        <div className="bg-panel border border-info/30 rounded-lg p-4 flex items-center gap-3">
+        <Panel className="p-4 flex items-center gap-3">
           <LivePulse tone="accent" />
           <span className="text-sm text-text-2">{a?.note ?? "가격 시리즈 빌드 중(~80s)…"} 자동 새로고침.</span>
-        </div>
+        </Panel>
       )}
 
       {/* 핵심 결론 배너 */}
@@ -89,10 +90,8 @@ export default function BuybackDoctorPage() {
 
       {/* 청산룰 시뮬 표 */}
       {a && !pending && rules.length > 0 && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2 border-b border-border text-[10px] uppercase tracking-wider text-text-3">
-            청산룰 시뮬 (닫힌 {base?.n ?? 0}개 · 전체 경로 재적용)
-          </div>
+        <Panel>
+          <PanelHeader>청산룰 시뮬 (닫힌 {base?.n ?? 0}개 · 전체 경로 재적용)</PanelHeader>
           <table className="w-full text-[12px]">
             <thead><tr className="text-text-3 border-b border-border">
               <th className="text-left px-4 py-2 font-medium">룰</th>
@@ -111,8 +110,8 @@ export default function BuybackDoctorPage() {
                       {isBest && <span className="ml-1.5 text-[9px] text-pos">★ 최선</span>}
                       {isBase && !isBest && <span className="ml-1.5 text-[9px] text-text-3">기준</span>}
                     </td>
-                    <td className={`text-right px-3 py-2 ${(s.mean ?? 0) >= (base?.mean ?? 0) ? "text-pos" : "text-neg"}`}>{pct(s.mean)}</td>
-                    <td className={`text-right px-3 py-2 ${(s.median ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>{pct(s.median)}</td>
+                    <td className={`text-right px-3 py-2 font-bold ${(s.mean ?? 0) >= (base?.mean ?? 0) ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{pct(s.mean)}</td>
+                    <td className={`text-right px-3 py-2 font-bold ${(s.median ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{pct(s.median)}</td>
                     <td className="text-right px-3 py-2 text-text-2">{s.win_rate != null ? `${(s.win_rate * 100).toFixed(0)}%` : "—"}</td>
                     <td className="text-right px-4 py-2 text-text-2">{pct(s.cum, 1)}</td>
                   </tr>
@@ -120,7 +119,7 @@ export default function BuybackDoctorPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </Panel>
       )}
 
       {/* 손실 포지션 진단 */}

@@ -17,6 +17,7 @@ import {
   type GovContract,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { Panel } from "@/components/ui/Panel";
 
 type Market = "us" | "kr" | "congress" | "gov";
 type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
@@ -109,7 +110,7 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
           {trades.map((t, i) => {
             const isBuy  = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
-            const valClass = isBuy ? "text-pos" : isSell ? "text-neg" : "text-text-2";
+            const valClass = isBuy ? "bg-pos/20 text-pos" : isSell ? "bg-neg/20 text-neg" : "text-text-2";
             return (
               <tr
                 key={i}
@@ -130,7 +131,7 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
                 <td className="px-3 py-1.5 text-right font-data text-text-2 whitespace-nowrap">
                   {t.price_per_share != null ? `$${t.price_per_share.toFixed(2)}` : "—"}
                 </td>
-                <td className={`px-3 py-1.5 text-right font-data whitespace-nowrap ${valClass}`}>
+                <td className={`px-3 py-1.5 text-right font-data font-bold whitespace-nowrap ${valClass}`}>
                   {fmtShares(t.shares)}
                 </td>
                 <td className={`px-3 py-1.5 text-right font-data font-bold whitespace-nowrap text-sm ${valClass}`}>
@@ -308,7 +309,7 @@ function SummaryBar({ trades, market }: { trades: InsiderTrade[]; market: Market
       {market === "us" && buyVal + sellVal > 0 && (
         <div>
           <span className="text-text-3 uppercase tracking-wider text-[10px]">Net</span>
-          <span className={`ml-2 font-data font-medium ${buyVal - sellVal >= 0 ? "text-pos" : "text-neg"}`}>
+          <span className={`ml-2 font-data font-medium px-1 font-bold ${buyVal - sellVal >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
             {buyVal - sellVal >= 0 ? "+" : ""}{fmt$(buyVal - sellVal)}
           </span>
         </div>
@@ -670,9 +671,9 @@ export default function InsiderPage() {
           {congError && <p className="text-neg text-sm px-1">{congError}</p>}
           {congLoading && <p className="text-text-3 text-sm px-1">로딩 중…</p>}
           {!congLoading && (
-            <div className="bg-panel border border-border rounded-lg overflow-hidden">
+            <Panel>
               <CongressTable trades={congData} />
-            </div>
+            </Panel>
           )}
         </>
       )}
@@ -683,9 +684,9 @@ export default function InsiderPage() {
           {govError && <p className="text-neg text-sm px-1">{govError}</p>}
           {govLoading && <p className="text-text-3 text-sm px-1">로딩 중… (USASpending)</p>}
           {!govLoading && (
-            <div className="bg-panel border border-border rounded-lg overflow-hidden">
+            <Panel>
               <GovTable rows={govData} />
-            </div>
+            </Panel>
           )}
         </>
       )}
@@ -704,7 +705,7 @@ export default function InsiderPage() {
 
       {/* ── US/KR Results ───────────────────────────────────────────────── */}
       {(market === "us" || market === "kr") && (filtered.length > 0 || rawData.length > 0) ? (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
+        <Panel>
           <SummaryBar trades={filtered} market={market} />
           {market === "us" ? (
             <USTable trades={filtered} />
@@ -716,12 +717,12 @@ export default function InsiderPage() {
               필터 적용 결과: {filtered.length} / {rawData.length}건
             </div>
           )}
-        </div>
+        </Panel>
       ) : (
         (market === "us" || market === "kr") && !usLoading && !krLoading && (rawData.length === 0) && (
-          <div className="bg-panel border border-border rounded-lg p-12 text-center">
+          <Panel className="p-12 text-center">
             <p className="text-text-3 text-sm">데이터 없음</p>
-          </div>
+          </Panel>
         )
       )}
     </div>

@@ -461,7 +461,7 @@ export default function InfraGraphPage() {
                     {selected.financials.pe_ttm != null ? selected.financials.pe_ttm.toFixed(1) : "—"}
                   </span>
                   <span className="text-text-3">매출성장률(YoY)</span>
-                  <span className={`font-data text-right ${(selected.financials.revenue_growth_yoy_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
+                  <span className={`font-data text-right px-1 font-bold ${(selected.financials.revenue_growth_yoy_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                     {selected.financials.revenue_growth_yoy_pct != null ? `${selected.financials.revenue_growth_yoy_pct.toFixed(1)}%` : "—"}
                   </span>
                 </div>
@@ -561,7 +561,7 @@ export default function InfraGraphPage() {
                             <div className="text-text-3 mt-0.5 flex items-center gap-2">
                               {e.dependency_pct != null && <span>의존도 {e.dependency_pct}%</span>}
                               {e.substitutable != null && (
-                                <span className={e.substitutable ? "text-pos" : "text-neg"}>
+                                <span className={`px-1 font-bold ${e.substitutable ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                                   {e.substitutable ? "대체 가능" : "대체 불가"}
                                 </span>
                               )}
@@ -606,7 +606,7 @@ export default function InfraGraphPage() {
               <span className="text-xs font-mono">
                 포지션 <span className="text-text-1">${paperPositionsValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               </span>
-              <span className={`text-xs font-mono ${paperPnl >= 0 ? "text-pos" : "text-neg"}`}>
+              <span className={`text-xs font-mono px-1 font-bold ${paperPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 실현P&L {paperPnl >= 0 ? "+" : ""}${paperPnl.toFixed(2)}
               </span>
             </>
@@ -650,7 +650,7 @@ export default function InfraGraphPage() {
                     <td className="px-3 py-1.5 font-mono text-text-2">{pos.qty}</td>
                     <td className="px-3 py-1.5 font-mono text-text-1">${pos.value.toLocaleString()}</td>
                     <td className="px-3 py-1.5 font-mono">
-                      <span className={pos.score_delta > 0 ? "text-pos" : "text-neg"}>
+                      <span className={`px-1 font-bold ${pos.score_delta > 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                         {pos.score_delta > 0 ? "+" : ""}{pos.score_delta.toFixed(3)}
                       </span>
                       <span className="text-text-3 ml-1 text-[9px]">
