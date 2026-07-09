@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { ComparisonChart, SERIES_CONFIG } from "@/components/market/ComparisonChart";
 import { ApiError, getBars, type BarOut } from "@/lib/api";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 interface ComparisonTabProps {
   symbols: string[];
@@ -102,12 +103,10 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
           <p className="text-text-3 text-sm">Add symbols to your watchlist to compare</p>
         </div>
       ) : (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">Normalized Return (%)</span>
-          </div>
+        <Panel>
+          <PanelHeader>Normalized Return (%)</PanelHeader>
           <ComparisonChart data={data} symbols={chartSymbols} />
-        </div>
+        </Panel>
       )}
     </div>
   );
