@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 /* 결과 읽는 법 — 백테스트/검증 결과의 숫자를 초보가 해석하는 가이드.
    각 지표: 뭔지 / 좋은 값 / 함정. */
@@ -27,15 +28,15 @@ export default function ReportPage() {
       </div>
 
       {/* 판정 요약 규칙 */}
-      <div className="bg-panel border border-border rounded-lg p-4">
-        <div className="text-sm font-semibold text-text-1 mb-2">한눈 판정 규칙</div>
-        <div className="space-y-1.5 text-[13px]">
+      <Panel>
+        <PanelHeader>한눈 판정 규칙</PanelHeader>
+        <div className="p-4 space-y-1.5 text-[13px]">
           <div className="flex gap-2"><span className="text-pos font-semibold w-24 shrink-0">CLEARED</span><span className="text-text-2">net&gt;0 · pct≥95 · p&lt;0.05 · WF 양쪽+ · 비용스트레스 통과 · 통제 다 통과</span></div>
           <div className="flex gap-2"><span className="text-warn font-semibold w-24 shrink-0">WATCHLIST</span><span className="text-text-2">양수인데 pct 80~95 or WF 약함 → 관찰만</span></div>
           <div className="flex gap-2"><span className="text-neg font-semibold w-24 shrink-0">REJECT</span><span className="text-text-2">랜덤과 구분 안 됨 or 비용후 음수 or 통제 실패</span></div>
           <div className="flex gap-2"><span className="text-info font-semibold w-24 shrink-0">BLOCKED</span><span className="text-text-2">필요한 통제/데이터를 아직 안 돌림(수정주가 등)</span></div>
         </div>
-      </div>
+      </Panel>
 
       {/* 지표별 */}
       <div className="space-y-2">

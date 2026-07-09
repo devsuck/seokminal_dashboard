@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 // ── 페이오프 계산 ───────────────────────────────────────────────────────────────
 function callPayoff(S: number, K: number, premium: number): number {
@@ -34,28 +35,30 @@ function PayoffChart({
   const colorClass = color.replace("text-", "");
 
   return (
-    <div className="bg-panel-2 border border-border rounded-lg p-3">
-      <div className="text-[11px] text-text-3 mb-1.5">{label}</div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: "100px" }}>
-        {/* 제로선 */}
-        <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="currentColor" strokeWidth="0.5"
-          className="text-border" strokeDasharray="4,2" />
-        {/* 행사가 수직선 */}
-        <line x1={toX(30)} y1="0" x2={toX(30)} y2={H} stroke="currentColor" strokeWidth="0.5"
-          className="text-text-3" strokeDasharray="2,2" />
-        {/* 페이오프 곡선 */}
-        <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5"
-          className={`text-${colorClass}`} />
-        {/* K 라벨 */}
-        <text x={toX(30) + 2} y="10" className="text-text-3" fill="currentColor"
-          fontSize="8">K={K}</text>
-      </svg>
-      <div className="flex justify-between text-[10px] text-text-3 mt-1">
-        <span>{(S0 * 0.7).toFixed(0)}</span>
-        <span>주가</span>
-        <span>{(S0 * 1.3).toFixed(0)}</span>
+    <Panel>
+      <PanelHeader>{label}</PanelHeader>
+      <div className="p-3">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: "100px" }}>
+          {/* 제로선 */}
+          <line x1="0" y1={zeroY} x2={W} y2={zeroY} stroke="currentColor" strokeWidth="0.5"
+            className="text-border" strokeDasharray="4,2" />
+          {/* 행사가 수직선 */}
+          <line x1={toX(30)} y1="0" x2={toX(30)} y2={H} stroke="currentColor" strokeWidth="0.5"
+            className="text-text-3" strokeDasharray="2,2" />
+          {/* 페이오프 곡선 */}
+          <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5"
+            className={`text-${colorClass}`} />
+          {/* K 라벨 */}
+          <text x={toX(30) + 2} y="10" className="text-text-3" fill="currentColor"
+            fontSize="8">K={K}</text>
+        </svg>
+        <div className="flex justify-between text-[10px] text-text-3 mt-1">
+          <span>{(S0 * 0.7).toFixed(0)}</span>
+          <span>주가</span>
+          <span>{(S0 * 1.3).toFixed(0)}</span>
+        </div>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -200,14 +203,14 @@ export default function OptionsLearnPage() {
             </div>
           </Section>
 
-          <div className="bg-panel-2 border border-accent/20 rounded-lg p-3">
-            <div className="text-[11px] text-accent font-semibold mb-1">이 시스템과 관련성</div>
-            <p className="text-[12px] text-text-2 leading-relaxed">
+          <Panel>
+            <PanelHeader>이 시스템과 관련성</PanelHeader>
+            <p className="p-3 text-[12px] text-text-2 leading-relaxed">
               buyback 공시 → 20일 drift 예측 있음 →{" "}
               <span className="text-pos">콜 매수</span>로 레버리지 효과 (주식 직접 매수 대비 프리미엄만 리스크).
               지연 데이터(15분)로도 D+1 진입 전략에 충분.
             </p>
-          </div>
+          </Panel>
         </div>
       )}
 
@@ -234,15 +237,15 @@ export default function OptionsLearnPage() {
             example="Vega $0.15 → IV +1% → 옵션 +$0.15"
             color="text-pos" />
 
-          <div className="bg-panel border border-border rounded-lg p-3 space-y-1.5">
-            <div className="text-[11px] text-text-3 font-semibold uppercase tracking-wide">실전 요약</div>
-            <div className="space-y-1 text-[12px] text-text-2">
+          <Panel>
+            <PanelHeader>실전 요약</PanelHeader>
+            <div className="p-3 space-y-1 text-[12px] text-text-2">
               <div>• 방향성 베팅 → <span className="text-accent">Delta</span> 가장 중요</div>
               <div>• 장기 보유 → <span className="text-warn">Theta</span> 적은 게 유리 (시간가치 안 녹도록)</div>
               <div>• 변동성 터질 것 같으면 → <span className="text-pos">Vega</span> 높은 옵션</div>
               <div>• 델타 헤징 시 → <span className="text-info">Gamma</span> 추적 필요</div>
             </div>
-          </div>
+          </Panel>
         </div>
       )}
 
@@ -262,29 +265,30 @@ export default function OptionsLearnPage() {
             ))}
           </div>
 
-          <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-semibold ${strat.color}`}>{strat.name}</span>
-              <span className="text-[11px] text-text-3">{strat.ko}</span>
-            </div>
-            <p className="text-[12px] text-text-2">{strat.desc}</p>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="bg-panel-2 border border-border rounded px-2 py-1.5">
-                <div className="text-[10px] text-text-3 uppercase tracking-wide">언제?</div>
-                <div className="text-text-1">{strat.when}</div>
-              </div>
-              <div className="space-y-1">
-                <div className="bg-panel-2 border border-neg/30 rounded px-2 py-1">
-                  <span className="text-[10px] text-text-3">리스크: </span>
-                  <span className="text-neg text-[11px]">{strat.risk}</span>
+          <Panel>
+            <PanelHeader right={<span className="normal-case tracking-normal font-normal">{strat.ko}</span>}>
+              {strat.name}
+            </PanelHeader>
+            <div className="p-3 space-y-2">
+              <p className="text-[12px] text-text-2">{strat.desc}</p>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-panel-2 border border-border rounded px-2 py-1.5">
+                  <div className="text-[10px] text-text-3 uppercase tracking-wide">언제?</div>
+                  <div className="text-text-1">{strat.when}</div>
                 </div>
-                <div className="bg-panel-2 border border-pos/30 rounded px-2 py-1">
-                  <span className="text-[10px] text-text-3">보상: </span>
-                  <span className="text-pos text-[11px]">{strat.reward}</span>
+                <div className="space-y-1">
+                  <div className="bg-panel-2 border border-neg/30 rounded px-2 py-1">
+                    <span className="text-[10px] text-text-3">리스크: </span>
+                    <span className="text-neg text-[11px]">{strat.risk}</span>
+                  </div>
+                  <div className="bg-panel-2 border border-pos/30 rounded px-2 py-1">
+                    <span className="text-[10px] text-text-3">보상: </span>
+                    <span className="text-pos text-[11px]">{strat.reward}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Panel>
 
           <PayoffChart
             fn={strat.payoffFn} K={100} S0={S0}
@@ -349,9 +353,9 @@ export default function OptionsLearnPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
-      <div className="text-[11px] uppercase tracking-wider text-text-3 font-semibold">{title}</div>
-      {children}
-    </div>
+    <Panel>
+      <PanelHeader>{title}</PanelHeader>
+      <div className="p-3 space-y-2">{children}</div>
+    </Panel>
   );
 }

@@ -8,6 +8,7 @@ import {
   KRSearchResult, USSearchResult, KRBar, KISTick,
   ApiError, runScreener, type ScreenerResult,
 } from "@/lib/api";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 // ── Search constants ──────────────────────────────────────────────────────────
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -220,7 +221,7 @@ export default function SearchPage() {
   }
 
   const changeCls = liveTick
-    ? liveTick.change > 0 ? "text-pos" : liveTick.change < 0 ? "text-neg" : "text-text-3": "text-text-3";
+    ? liveTick.change > 0 ? "bg-pos/20 text-pos" : liveTick.change < 0 ? "bg-neg/20 text-neg" : "text-text-3": "text-text-3";
 
   // ── 스크리너 handlers ───────────────────────────────────────────────────────
   async function handleRun() {
@@ -326,7 +327,7 @@ export default function SearchPage() {
                   {liveTick && (
                     <>
                       <span className="text-text-1 font-data text-lg">{liveTick.price.toLocaleString()}</span>
-                      <span className={`text-sm font-data ${changeCls}`}>
+                      <span className={`text-sm font-data px-1 font-bold ${changeCls}`}>
                         {liveTick.change > 0 ? "+" : ""}{liveTick.change.toLocaleString()} ({liveTick.change_rate.toFixed(2)}%)
                       </span>
                       <span className="text-text-3 text-xs">Vol {liveTick.trade_volume.toLocaleString()}</span>
@@ -347,7 +348,8 @@ export default function SearchPage() {
             )}
 
             {/* Chart area */}
-            <div className="bg-panel border border-border rounded-lg overflow-hidden">
+            <Panel>
+              <PanelHeader>차트</PanelHeader>
               {loadingBars && (
                 <div className="flex items-center justify-center h-[320px] text-text-3 text-sm">Loading chart...</div>
               )}
@@ -362,7 +364,7 @@ export default function SearchPage() {
                   Search a stock above to load the chart
                 </div>
               )}
-            </div>
+            </Panel>
           </div>
         )}
 
@@ -438,10 +440,8 @@ export default function SearchPage() {
 
             {/* Results */}
             {screenerResults.length > 0 && (
-              <div className="bg-panel border border-border rounded-lg overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-border bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
-                  {screenerResults.length}개 종목 조건 충족
-                </div>
+              <Panel>
+                <PanelHeader>{screenerResults.length}개 종목 조건 충족</PanelHeader>
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-text-3 text-[10px] uppercase border-b border-border">
@@ -462,12 +462,16 @@ export default function SearchPage() {
                         <tr key={i} className="border-t border-border hover:bg-panel-2 transition-colors">
                           <td className="px-4 py-2 font-data font-semibold text-accent">{r.instrument_id}</td>
                           <td className="px-3 py-2 text-right font-data text-text-1">{r.last_price.toLocaleString()}</td>
-                          <td className={`px-3 py-2 text-right font-data ${chgPos ? "text-pos" : "text-neg"}`}>
-                            {r.change_pct != null ? `${chgPos ? "+" : ""}${r.change_pct.toFixed(2)}%` : "—"}
+                          <td className="px-3 py-2 text-right font-data">
+                            <span className={`px-1 font-bold ${chgPos ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                              {r.change_pct != null ? `${chgPos ? "+" : ""}${r.change_pct.toFixed(2)}%` : "—"}
+                            </span>
                           </td>
-                          <td className={`px-3 py-2 text-right font-data font-medium ${
-                            r.rsi14 == null ? "text-text-3": r.rsi14 < 30 ? "text-pos": r.rsi14 > 70 ? "text-neg": "text-text-1"}`}>
-                            {r.rsi14 != null ? r.rsi14.toFixed(1) : "—"}
+                          <td className="px-3 py-2 text-right font-data font-medium">
+                            <span className={`px-1 ${
+                              r.rsi14 == null ? "text-text-3": r.rsi14 < 30 ? "bg-pos/20 text-pos font-bold": r.rsi14 > 70 ? "bg-neg/20 text-neg font-bold": "text-text-1"}`}>
+                              {r.rsi14 != null ? r.rsi14.toFixed(1) : "—"}
+                            </span>
                           </td>
                           <td className="px-3 py-2 text-right font-data text-text-2">
                             {r.ema12 != null ? r.ema12.toLocaleString() : "—"}
@@ -485,7 +489,7 @@ export default function SearchPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
+              </Panel>
             )}
 
             {!screenerLoading && screenerResults.length === 0 && instruments && !screenerError && (

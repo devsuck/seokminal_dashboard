@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Panel } from "@/components/ui/Panel";
 
 /* 전략 만들기 연습 — 초보가 직접 전략 하나를 처음부터 끝까지 만들어보는 가이드.
    quant(개념) → 여기(실습) → report(결과읽기) 순서. */
@@ -58,7 +59,7 @@ export default function NotebooksPage() {
 
       <div className="space-y-2">
         {STEPS.map(s => (
-          <div key={s.n} className="bg-panel border border-border rounded-lg p-4 flex gap-3">
+          <Panel key={s.n} className="p-4 flex gap-3">
             <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-semibold font-data shrink-0">{s.n}</div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-text-1">{s.title}</div>
@@ -69,7 +70,7 @@ export default function NotebooksPage() {
                 </Link>
               )}
             </div>
-          </div>
+          </Panel>
         ))}
       </div>
 
