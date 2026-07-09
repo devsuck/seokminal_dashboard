@@ -318,9 +318,6 @@ function CumBar({ m, maxCum }: { m: BookMonthly; maxCum: number }) {
   );
 }
 
-function pctColor(n: number | null | undefined): string {
-  return typeof n === "number" ? (n >= 0 ? "text-pos" : "text-neg") : "text-text-3";
-}
 function pctBgColor(n: number | null | undefined): string {
   return typeof n === "number" ? (n >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg") : "text-text-3";
 }

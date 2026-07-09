@@ -439,7 +439,7 @@ function BacktestPageInner() {
                         {portfolioResult.results.map(r => (
                           <tr key={r.instrument_id} className="border-b border-border last:border-0">
                             <td className="px-3 py-2 text-text-1">{r.instrument_id}</td>
-                            <td className={`px-3 py-2 text-right font-bold ${r.sharpe_ratio != null && r.sharpe_ratio >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                            <td className={`px-3 py-2 text-right font-bold ${r.sharpe_ratio == null ? "text-text-2" : r.sharpe_ratio >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                               {r.sharpe_ratio != null ? r.sharpe_ratio.toFixed(2) : "—"}
                             </td>
                             <td className={`px-3 py-2 text-right font-bold ${r.total_pnl != null && r.total_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>

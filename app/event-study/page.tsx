@@ -243,13 +243,13 @@ export default function EventStudyPage() {
             </div>
             <div className="text-text-3">
               Hit Rate:{" "}
-              <span className={`px-1 font-bold font-data ${result.stats.hitRate !== null && result.stats.hitRate >= 0.5 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+              <span className={`px-1 font-bold font-data ${result.stats.hitRate === null ? "text-text-2" : result.stats.hitRate >= 0.5 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 {result.stats.hitRate !== null ? `${(result.stats.hitRate * 100).toFixed(1)}%` : "—"}
               </span>
             </div>
             <div className="text-text-3">
               Avg Return (+{result.stats.windowDays}d):{" "}
-              <span className={`px-1 font-bold font-data ${result.stats.avgReturns[result.stats.windowDays * 2] !== null && (result.stats.avgReturns[result.stats.windowDays * 2] ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+              <span className={`px-1 font-bold font-data ${result.stats.avgReturns[result.stats.windowDays * 2] === null ? "text-text-2" : (result.stats.avgReturns[result.stats.windowDays * 2] ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 {pct(result.stats.avgReturns[result.stats.windowDays * 2])}
               </span>
             </div>

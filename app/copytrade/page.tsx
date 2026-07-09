@@ -27,10 +27,6 @@ function colorFor(name: string): string {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-function retCls(v: number | null | undefined): string {
-  if (v == null) return "text-text-3";
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
-}
 function retStr(v: number | null | undefined): string {
   if (v == null) return "—";
   return `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
@@ -221,7 +217,7 @@ export default function CopyTradePage() {
                           <div className="text-text-3 text-[11px] truncate">{t.role ?? "—"}</div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className={`text-lg font-data font-bold leading-none ${retCls(t.avg_return_pct)}`}>{retStr(t.avg_return_pct)}</div>
+                          <div className={`inline-block text-lg font-data font-bold leading-none px-1 rounded ${t.avg_return_pct == null ? "text-text-3" : t.avg_return_pct > 0 ? "bg-pos/20 text-pos" : t.avg_return_pct < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>{retStr(t.avg_return_pct)}</div>
                           <div className="text-text-3 text-[10px] mt-0.5">{t.num_buys}종목</div>
                         </div>
                       </div>
