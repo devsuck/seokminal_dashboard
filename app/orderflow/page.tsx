@@ -33,13 +33,19 @@ export default function OrderflowPage() {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    let cancelled = false;
     getOrderflowSymbols(ctrl.signal)
-      .then((res) => setActiveSymbols(res.symbols))
+      .then((res) => {
+        if (!cancelled) setActiveSymbols(res.symbols);
+      })
       .catch((e) => {
-        if ((e as Error).name !== "AbortError") setActiveSymbols([]);
+        if (!cancelled && (e as Error).name !== "AbortError") setActiveSymbols([]);
       });
-    return () => ctrl.abort();
-  }, [symbol]);
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+    };
+  }, []);
 
   return (
     <div className="p-6 space-y-4">

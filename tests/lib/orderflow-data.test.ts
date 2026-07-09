@@ -9,6 +9,7 @@ import {
   diffHeatmapCells,
   computeFootprintLayout,
   computeHeatmapLayout,
+  MAX_TIME_BUCKETS,
 } from "../../lib/orderflow-data";
 
 describe("applySnapshot", () => {
@@ -52,6 +53,60 @@ describe("applyHeatmapDelta", () => {
     state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: 0, price: 99, size: 5 });
     state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: 0, price: 99, size: 8 });
     expect(state.heatmap.get("0:99")).toEqual({ ts: 0, price: 99, size: 8 });
+  });
+});
+
+describe("time bucket eviction", () => {
+  it("applyFootprintDelta drops the oldest bucket_ts once distinct buckets exceed MAX_TIME_BUCKETS", () => {
+    let state = emptyOrderflowState();
+    for (let bucketTs = 0; bucketTs < MAX_TIME_BUCKETS; bucketTs++) {
+      state = applyFootprintDelta(state, {
+        type: "footprint_delta", bucket_ts: bucketTs, price: 100, side: "buy", delta_vol: 1,
+      });
+    }
+    expect(state.footprint.get("0:100")).toBeDefined();
+    expect(state.footprint.size).toBe(MAX_TIME_BUCKETS);
+
+    // one more distinct bucket pushes count to MAX_TIME_BUCKETS + 1 -> oldest (bucket 0) evicted
+    state = applyFootprintDelta(state, {
+      type: "footprint_delta", bucket_ts: MAX_TIME_BUCKETS, price: 100, side: "buy", delta_vol: 1,
+    });
+    expect(state.footprint.get("0:100")).toBeUndefined();
+    expect(state.footprint.get("1:100")).toBeDefined();
+    expect(state.footprint.get(`${MAX_TIME_BUCKETS}:100`)).toBeDefined();
+    expect(state.footprint.size).toBe(MAX_TIME_BUCKETS);
+  });
+
+  it("applyHeatmapDelta drops the oldest ts once distinct buckets exceed MAX_TIME_BUCKETS", () => {
+    let state = emptyOrderflowState();
+    for (let ts = 0; ts < MAX_TIME_BUCKETS; ts++) {
+      state = applyHeatmapDelta(state, { type: "heatmap_delta", ts, price: 99, size: 5 });
+    }
+    expect(state.heatmap.get("0:99")).toBeDefined();
+    expect(state.heatmap.size).toBe(MAX_TIME_BUCKETS);
+
+    state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: MAX_TIME_BUCKETS, price: 99, size: 5 });
+    expect(state.heatmap.get("0:99")).toBeUndefined();
+    expect(state.heatmap.get("1:99")).toBeDefined();
+    expect(state.heatmap.get(`${MAX_TIME_BUCKETS}:99`)).toBeDefined();
+    expect(state.heatmap.size).toBe(MAX_TIME_BUCKETS);
+  });
+
+  it("applySnapshot caps footprint and heatmap to the newest MAX_TIME_BUCKETS distinct buckets", () => {
+    const footprint = [];
+    const heatmap = [];
+    for (let i = 0; i < MAX_TIME_BUCKETS + 5; i++) {
+      footprint.push({ bucket_ts: i, price: 100, buy_vol: 1, sell_vol: 0 });
+      heatmap.push({ ts: i, price: 99, size: 5 });
+    }
+    const state = applySnapshot({ footprint, heatmap });
+    expect(state.footprint.size).toBe(MAX_TIME_BUCKETS);
+    expect(state.heatmap.size).toBe(MAX_TIME_BUCKETS);
+    expect(state.footprint.get("0:100")).toBeUndefined();
+    expect(state.footprint.get("4:100")).toBeUndefined();
+    expect(state.footprint.get("5:100")).toBeDefined();
+    expect(state.heatmap.get("0:99")).toBeUndefined();
+    expect(state.heatmap.get("5:99")).toBeDefined();
   });
 });
 

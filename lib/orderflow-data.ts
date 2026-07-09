@@ -43,12 +43,38 @@ export interface OrderflowState {
   heatmap: Map<string, HeatmapCell>;
 }
 
+export const MAX_TIME_BUCKETS = 300;
+
 function footprintKey(bucketTs: number, price: number): string {
   return `${bucketTs}:${price}`;
 }
 
 function heatmapKey(ts: number, price: number): string {
   return `${ts}:${price}`;
+}
+
+function evictOldestFootprintBuckets(footprint: Map<string, FootprintCell>): Map<string, FootprintCell> {
+  const distinctBuckets = Array.from(new Set(Array.from(footprint.values()).map((c) => c.bucketTs))).sort(
+    (a, b) => a - b
+  );
+  if (distinctBuckets.length <= MAX_TIME_BUCKETS) return footprint;
+  const toEvict = new Set(distinctBuckets.slice(0, distinctBuckets.length - MAX_TIME_BUCKETS));
+  const next = new Map<string, FootprintCell>();
+  for (const [key, cell] of footprint) {
+    if (!toEvict.has(cell.bucketTs)) next.set(key, cell);
+  }
+  return next;
+}
+
+function evictOldestHeatmapBuckets(heatmap: Map<string, HeatmapCell>): Map<string, HeatmapCell> {
+  const distinctBuckets = Array.from(new Set(Array.from(heatmap.values()).map((c) => c.ts))).sort((a, b) => a - b);
+  if (distinctBuckets.length <= MAX_TIME_BUCKETS) return heatmap;
+  const toEvict = new Set(distinctBuckets.slice(0, distinctBuckets.length - MAX_TIME_BUCKETS));
+  const next = new Map<string, HeatmapCell>();
+  for (const [key, cell] of heatmap) {
+    if (!toEvict.has(cell.ts)) next.set(key, cell);
+  }
+  return next;
 }
 
 export function emptyOrderflowState(): OrderflowState {
@@ -69,7 +95,7 @@ export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
   for (const c of snapshot.heatmap) {
     heatmap.set(heatmapKey(c.ts, c.price), { ts: c.ts, price: c.price, size: c.size });
   }
-  return { footprint, heatmap };
+  return { footprint: evictOldestFootprintBuckets(footprint), heatmap: evictOldestHeatmapBuckets(heatmap) };
 }
 
 export function applyFootprintDelta(state: OrderflowState, msg: FootprintDeltaMsg): OrderflowState {
@@ -87,15 +113,17 @@ export function applyFootprintDelta(state: OrderflowState, msg: FootprintDeltaMs
         buyVol: msg.side === "buy" ? msg.delta_vol : 0,
         sellVol: msg.side === "sell" ? msg.delta_vol : 0,
       };
-  const footprint = new Map(state.footprint);
+  let footprint = new Map(state.footprint);
   footprint.set(key, next);
+  footprint = evictOldestFootprintBuckets(footprint);
   return { ...state, footprint };
 }
 
 export function applyHeatmapDelta(state: OrderflowState, msg: HeatmapDeltaMsg): OrderflowState {
   const key = heatmapKey(msg.ts, msg.price);
-  const heatmap = new Map(state.heatmap);
+  let heatmap = new Map(state.heatmap);
   heatmap.set(key, { ts: msg.ts, price: msg.price, size: msg.size });
+  heatmap = evictOldestHeatmapBuckets(heatmap);
   return { ...state, heatmap };
 }
 
