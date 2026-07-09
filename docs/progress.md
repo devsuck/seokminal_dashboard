@@ -1,3 +1,27 @@
+## Phase 152 — 블룸버그 터미널 리디자인 Phase 2 (2026-07-09) ✅ DONE
+
+플랜: `docs/superpowers/plans/2026-07-09-bloomberg-redesign-phase2.md`, SDD 방식(subagent-driven-development) 7태스크 실행. 커밋 `db017d8`(플랜)~`c124905`(최종 리뷰 수정), 전 과정 `.superpowers/sdd/progress.md` 원장 참고.
+
+### 1. Task 1-6 — 나머지 ~40개 페이지 Panel/PanelHeader 전환
+- 그룹별(집행/포트폴리오, AI에이전트, 리서치, 검증/백테스트, 마켓/자산군, 교육/기타) 순차 실행. 각 태스크: implementer subagent → task reviewer → 발견사항 수정 → 재리뷰 클린.
+- 정착된 규칙: 정적 색상 박스도 패턴A 대상(동적 데이터 기반 GO/WAIT/KILL 배너만 예외), 아코디언 토글 헤더는 PanelHeader 비대화형이라 예외, PanelHeader `right` 슬롯은 `text-black text-[10px] font-data`만 상속(uppercase/bold/tracking 없음 — 거기 넣는 override 클래스는 죽은 코드), 패턴B(부호조건 틴트)는 헤드라인 스탯뿐 아니라 테이블 컬럼·리스트 각 행까지 전부 적용 대상(태스크 전반에서 가장 자주 놓친 부분), `space-y-2` 수직 카드 스택은 카드그리드 예외 대상이 아니라 일반 패턴A 대상.
+- 세션 중 implementer subagent가 API 세션 한도로 2번(Task5, Task6) 도중 끊김 → 재디스패치 대신 직접 `git status`로 남은 diff 확인→tsc/test 직접 재검증→나머지 파일 직접 완료→커밋 후 리뷰어만 디스패치하는 방식으로 복구(중복 작업/재한도 방지).
+
+### 2. Task 7 — 최종 검증
+- `npx tsc --noEmit` 클린, `npm run build` 45라우트 전부 정상, `npm test -- --run` 151/151.
+- 브라우저 6페이지 샘플 점검(`/lab/execution`, `/agents`, `/lab`(Jarvis 모션 CSS 클래스 보존 확인), `/backtest`, `/crypto`, `/quant`) 전부 정상, 이슈 없음.
+
+### 3. 전체브랜치 최종 리뷰 (opus) — Minor 3건 발견·수정
+- `app/lab/tasks/page.tsx`: 미사용 `pctColor()` 삭제.
+- `app/copytrade/page.tsx`: 트레이더 카드 헤드라인 수익률(`avg_return_pct`)에 패턴B 틴트 누락 — 같은 카드의 보유종목별 수익률은 이미 틴트 적용돼있어 불일치. 수정.
+- `app/backtest/page.tsx`, `app/event-study/page.tsx`: `null` 값이 `>= 0` 삼항연산 폴스루로 빨강(neg)으로 잘못 렌더되던 3곳 → `== null` 가드 추가, `text-text-2`로 중립화.
+- 수정 후 tsc/build/test 재확인 클린. 커밋 `c124905`.
+
+### 다음 할 일
+- Phase 3 후보(범위 밖으로 명시적 보류): 카드그리드→테이블로우 밀도 전환, `/hud` 전용 위젯(월드클락 등) 다른 페이지 확장, 헤더 색상 다양화(현재 전패널 오렌지 단색), 스파크라인 인라인.
+- Task 1-6에서 로그된 pre-existing dead code(`normal-case tracking-normal font-normal` in `right` 슬롯, `app/macro/page.tsx:125,230`, `app/ict/page.tsx:335,362`, `app/validation/page.tsx:137`, `app/forex/page.tsx:500`) — 아직 미수정, 향후 정리 후보.
+- `/hud` 계좌 정보 "로딩 중…" 멈춤 현상(Phase 1에서 미확인 상태로 남김) — 여전히 미점검.
+
 ## Phase 151 — 블룸버그 터미널 리디자인 Phase 1 (2026-07-09) ✅ DONE (Phase 2 대기)
 
 커밋: `1e5cec5`(Phase1 완료), `028b85e`(밀도 패스), `3ac81ad`(HUD 정보밀도 보강).
