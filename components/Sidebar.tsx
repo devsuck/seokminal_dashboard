@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage, type Lang } from "@/lib/i18n";
 import { ShutdownButton } from "@/components/ShutdownButton";
+import { JokerLogo } from "@/components/JokerLogo";
 
 const LANGS: { code: Lang; label: string }[] = [
   { code: "ko", label: "한" },
@@ -214,19 +215,11 @@ export function Sidebar() {
       <div className={`flex items-center h-12 border-b border-border shrink-0 ${collapsed ? "px-0 justify-center" : "px-3"}`}>
         {!collapsed && (
           <span className="flex items-center gap-2 flex-1 select-none">
-            <span className="relative inline-flex w-2 h-2">
-              <span className="absolute inset-0 rounded-full bg-accent/60 animate-[ring_2s_ease-out_infinite]" />
-              <span className="relative inline-flex w-2 h-2 rounded-full bg-accent animate-[orb_3s_ease-in-out_infinite]" />
-            </span>
-            <span className="text-text-1 font-semibold text-sm tracking-widest uppercase">NAUTILUS</span>
+            <JokerLogo size={20} />
+            <span className="text-text-1 font-semibold text-sm tracking-widest uppercase">SEOKMINAL</span>
           </span>
         )}
-        {collapsed && (
-          <span className="relative inline-flex w-2 h-2">
-            <span className="absolute inset-0 rounded-full bg-accent/60 animate-[ring_2s_ease-out_infinite]" />
-            <span className="relative inline-flex w-2 h-2 rounded-full bg-accent" />
-          </span>
-        )}
+        {collapsed && <JokerLogo size={18} />}
         <button
           onClick={() => setCollapsed(c => !c)}
           className="w-6 h-6 flex items-center justify-center text-text-3 hover:text-text-1 rounded transition-colors bg-transparent border-0 cursor-pointer"title={collapsed ? "Expand" : "Collapse"}
