@@ -1,3 +1,14 @@
+## Phase 155 — HUD 프로세스 가시성 (폴리마켓 틱/arb) (2026-07-10) ✅ DONE
+
+이전 세션에서 스택(`wip: HUD phase1 process-visibility`)해뒀던 작업 pop해서 완료. SDD/subagent 안 씀 — 2파일 프론트 + 1파일 백엔드 소품 변경.
+- 백엔드(`seokminal-multi-venue` `api_server/lab_api.py`, 커밋 `2481709`): `_tmux_process_status(session, data_dir)` — tmux 세션 생존 + 최신 jsonl mtime으로 `polymarket-tick`/`polymarket-arb` 상태 판정, `/lab/status` 응답에 `processes` 필드 추가.
+- 프론트(`lib/api.ts` `LabStatus.processes` 타입, `app/hud/page.tsx` `formatAge()` + 유닛 로스터 2건 추가, 커밋 `c0089f0`).
+- 검증: 백엔드 uvicorn --reload 상태에서 `/lab/status` curl로 실제 값 확인(둘 다 running, age 0~수초), 프론트 tsc 클린, 브라우저로 `/hud` 렌더 확인(로스터에 "폴리마켓 틱 수집기"/"폴리마켓 arb 스캐너" 정상 표시, 9/11 가동).
+- `seokminal-multi-venue` 쪽 나머지 uncommitted 변경(`graph_api.py`, jarvis state jsonl, research 데이터)은 이번 작업과 무관 — 손대지 않고 그대로 둠.
+
+### 다음 할 일
+- `/hud` "계좌 정보 로딩 중…" 멈춤 현상 (Phase 152부터 미점검 상태로 계속 이월) — 아직 미착수.
+
 ## Phase 154 — Orderflow Chart Overlay (2026-07-09~10) ✅ DONE
 
 플랜: `docs/superpowers/plans/2026-07-09-orderflow-chart-overlay.md`, 스펙: `docs/superpowers/specs/2026-07-09-orderflow-chart-overlay-design.md`. SDD 방식 7태스크. 커밋 `2cdfcf8`(플랜)~`795a506`(최종 수정), 원장은 `.superpowers/sdd/progress.md`.
