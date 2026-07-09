@@ -6,28 +6,12 @@ import { useRouter } from "next/navigation";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState } from "@/components/ui";
 import {
-  getBars, getKRBars, getIBBars, getQuote, getCryptoCandles, getCryptoBook, WS_URL,
-  type BarOut, type KRBar, type IBBar, type CryptoCandle,
+  getQuote, getCryptoBook, WS_URL,
+  type BarOut,
 } from "@/lib/api";
+import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import { isUSMarketOpen } from "@/lib/market-hours";
 import { activeIndicatorChips, type IndicatorState } from "@/lib/indicators";
-
-function krBarToBarOut(bar: KRBar): BarOut {
-  const d = bar.date;
-  const tsMs = new Date(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`).getTime();
-  return { ts_event: tsMs * 1_000_000, open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume };
-}
-
-function ibBarToBarOut(bar: IBBar): BarOut {
-  return { ts_event: bar.ts_ms * 1_000_000, open: bar.open, high: bar.high, low: bar.low, close: bar.close, volume: bar.volume };
-}
-
-function cryptoCandleToBarOut(c: CryptoCandle): BarOut {
-  return { ts_event: c.time_ms * 1_000_000, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume };
-}
-
-// 크립토 타임프레임별 조회 일수 (crypto 페이지와 동일)
-const CRYPTO_DAYS: Record<string, number> = { "1m": 1, "15m": 5, "1h": 30, "4h": 90, "1d": 180, "1M": 365 };
 import { RSIChart } from "./RSIChart";
 import { MACDChart } from "./MACDChart";
 import { StochasticChart } from "./StochasticChart";
@@ -86,42 +70,10 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
     const cfg = TIMEFRAMES.find(t => t.id === tfId) ?? TIMEFRAMES[4];
     const venue = symbol.split(".").slice(1).join(".");
     const isDaily = tfId === "1d";
-    const isIntraday = ["1m", "15m", "1h", "4h"].includes(tfId);
 
     try {
-      if (venue === "HL") {
-        // 크립토: Hyperliquid 캔들 (전 타임프레임 지원)
-        const code = symbol.split(".")[0];
-        const res = await getCryptoCandles(code, tfId, CRYPTO_DAYS[tfId] ?? 90, ctrl.signal);
-        if (res.candles.length === 0) throw new Error("빈 응답");
-        setBars(res.candles.map(cryptoCandleToBarOut));
-      } else if (venue === "XKRX") {
-        // KR: 하루/1달만 (KIS 일봉). 인트라데이 미지원.
-        if (isIntraday) {
-          setError("KR 인트라데이는 아직 미지원 — 하루/1달만 (미국은 IB로 분봉 지원)");
-          setLoading(false); return;
-        }
-        const code = symbol.split(".")[0];
-        const res = await getKRBars(code, tfId === "1M" ? 1800 : 730, ctrl.signal);
-        if (res.bars.length === 0) throw new Error("빈 응답");
-        setBars(res.bars.map(krBarToBarOut));
-      } else if (isDaily) {
-        // US 하루: 로컬 catalog 우선(빠름) → 없으면 IB 일봉
-        try {
-          const res = await getBars(symbol, oneYearAgo(), today(), undefined, ctrl.signal);
-          if (res.bars.length > 0) { setBars(res.bars); return; }
-        } catch (err) {
-          if (err instanceof DOMException && err.name === "AbortError") return;
-        }
-        const res = await getIBBars({ symbol: symbol.split(".")[0], asset_type: "stock", duration: "2 Y", bar_size: "1 day" }, ctrl.signal);
-        if (res.bars.length === 0) throw new Error("빈 응답");
-        setBars(res.bars.map(ibBarToBarOut));
-      } else {
-        // US 분봉/월봉: IB
-        const res = await getIBBars({ symbol: symbol.split(".")[0], asset_type: "stock", duration: cfg.dur, bar_size: cfg.bar }, ctrl.signal);
-        if (res.bars.length === 0) throw new Error("빈 응답 (IB 연결·구독 확인)");
-        setBars(res.bars.map(ibBarToBarOut));
-      }
+      const bars = await fetchBarsForSymbol(symbol, tfId, ctrl.signal);
+      setBars(bars);
     } catch (err2) {
       if (err2 instanceof DOMException && err2.name === "AbortError") return;
       const msg2 = err2 instanceof Error ? err2.message : String(err2);
