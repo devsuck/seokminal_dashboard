@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
-  getExecutionConsole, getExecutionEdge, getAccountBalances,
+  getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
-  type AccountBalances,
+  type AccountBalances, type TriggeredAlert,
 } from "@/lib/api";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -42,7 +42,7 @@ function StatusDot({ tone, label }: { tone: Tone; label?: string }) {
 interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
-  exec: ExecutionConsole | null; edge: ExecutionEdge | null;
+  exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
 }
 
 interface Unit { kind: "AI" | "BOT"; name: string; running: boolean; detail: string; href: string; }
@@ -63,7 +63,7 @@ function UnitCard({ u }: { u: Unit }) {
 }
 
 export default function HudPage() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null });
+  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [clock, setClock] = useState("--:--:--");
   const abortRef = useRef<AbortController | null>(null);
@@ -74,7 +74,7 @@ export default function HudPage() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -83,8 +83,9 @@ export default function HudPage() {
         getLabStatus(c.signal).catch(() => null),
         getExecutionConsole(c.signal).catch(() => null),
         getExecutionEdge(c.signal).catch(() => null),  // read_only 캐시 — 서버 계산 없음
+        getTriggeredAlerts(c.signal).catch(() => null),
       ]);
-      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge });
+      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts });
     }
     load();
     const iv = setInterval(load, 4000);
@@ -116,7 +117,7 @@ export default function HudPage() {
     return () => clearInterval(t);
   }, []);
 
-  const { lab, jarvis, ar, bot, agents, sys, exec, edge } = f;
+  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts } = f;
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -174,7 +175,7 @@ export default function HudPage() {
         <PanelHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
           유닛 로스터
         </PanelHeader>
-        <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2">
           {units.map((u, i) => <UnitCard key={`${u.name}-${i}`} u={u} />)}
         </div>
       </Panel>
@@ -207,8 +208,25 @@ export default function HudPage() {
         </Panel>
       </div>
 
-      {/* 로그 + 최근 체결 — 빈 공간 없이 실시간 활동 채움 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start mt-2">
+      {/* 로그 + 최근 체결 + 알림 — 빈 공간 없이 실시간 활동 채움 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-start mt-2">
+        <Panel>
+          <PanelHeader right={<span className="tabular-nums">{alerts?.length ?? 0}건</span>}>
+            최근 알림
+          </PanelHeader>
+          <div className="max-h-64 overflow-y-auto">
+            {(alerts ?? []).slice(0, 14).map((a, i) => (
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+                <span className="text-text-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
+                <span className="text-warn truncate flex-1">{a.rule_label}</span>
+                <span className="text-text-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
+              </div>
+            ))}
+            {(alerts?.length ?? 0) === 0 && (
+              <div className="px-2 py-3 text-text-3 text-[11px]">알림 없음</div>
+            )}
+          </div>
+        </Panel>
         <Panel>
           <PanelHeader right={<span className="tabular-nums">{lab?.log?.length ?? 0}줄</span>}>
             AI LAB 로그
