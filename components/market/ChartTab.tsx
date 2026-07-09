@@ -70,6 +70,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
     const cfg = TIMEFRAMES.find(t => t.id === tfId) ?? TIMEFRAMES[4];
     const venue = symbol.split(".").slice(1).join(".");
     const isDaily = tfId === "1d";
+    const isIntraday = ["1m", "15m", "1h", "4h"].includes(tfId);
 
     try {
       const bars = await fetchBarsForSymbol(symbol, tfId, ctrl.signal);
@@ -77,8 +78,11 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
     } catch (err2) {
       if (err2 instanceof DOMException && err2.name === "AbortError") return;
       const msg2 = err2 instanceof Error ? err2.message : String(err2);
+      // KR 인트라데이 미지원은 fetchBarsForSymbol이 이미 완결된 안내 메시지를 던짐 — 그대로 노출 (접두사 없음)
+      if (venue === "XKRX" && isIntraday) {
+        setError(msg2);
       // 미국 분봉/월봉은 IB(TWS) 필요 — 연결 안 되면 친절히 안내
-      if (!isDaily && venue !== "XKRX" && venue !== "HL") {
+      } else if (!isDaily && venue !== "XKRX" && venue !== "HL") {
         setError(`미국 ${cfg.label} 차트는 IB(TWS) 연결이 필요합니다. TWS를 켜고 다시 선택하세요. (하루봉은 TWS 없이도 표시)`);
       } else {
         setError(`'${symbol}' ${cfg.label} 로드 실패: ${msg2}`);
