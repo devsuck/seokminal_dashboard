@@ -39,6 +39,28 @@ function StatusDot({ tone, label }: { tone: Tone; label?: string }) {
   );
 }
 
+const WORLD_CITIES: { label: string; tz: string }[] = [
+  { label: "SEOUL", tz: "Asia/Seoul" },
+  { label: "NEW YORK", tz: "America/New_York" },
+  { label: "LONDON", tz: "Europe/London" },
+  { label: "TOKYO", tz: "Asia/Tokyo" },
+];
+
+function WorldClock({ now }: { now: Date }) {
+  return (
+    <div className="grid grid-cols-4 divide-x divide-border">
+      {WORLD_CITIES.map(c => (
+        <div key={c.tz} className="px-2 py-1 text-center">
+          <p className="text-text-3 text-[8px] uppercase tracking-widest">{c.label}</p>
+          <p className="text-text-1 text-xs font-data tabular-nums">
+            {now.toLocaleTimeString("en-GB", { timeZone: c.tz, hour12: false })}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
@@ -57,7 +79,8 @@ function UnitCard({ u }: { u: Unit }) {
       <span className="text-[10px] font-data text-text-3 truncate">{u.detail}</span>
       <span className={`text-[8px] px-1 border font-data shrink-0 ${
         u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
-      <span className={`text-[10px] font-data w-7 text-right shrink-0 ${u.running ? "text-pos" : "text-text-3"}`}>{u.running ? "ON" : "OFF"}</span>
+      <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${
+        u.running ? "bg-pos/20 text-pos" : "bg-neg/10 text-text-3"}`}>{u.running ? "ON" : "OFF"}</span>
     </Link>
   );
 }
@@ -65,7 +88,7 @@ function UnitCard({ u }: { u: Unit }) {
 export default function HudPage() {
   const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
-  const [clock, setClock] = useState("--:--:--");
+  const [now, setNow] = useState(new Date());
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -113,7 +136,7 @@ export default function HudPage() {
   }, []);
 
   useEffect(() => {
-    const t = setInterval(() => setClock(new Date().toLocaleTimeString("en-GB")), 1000);
+    const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -147,31 +170,34 @@ export default function HudPage() {
   const wd = sys?.research_service?.watchdog;
 
   return (
-    <div className="min-h-screen p-2 sm:p-3 font-data">
+    <div className="min-h-screen p-1 sm:p-1.5 font-data">
+      {/* 월드 클락 스트립 */}
+      <Panel className="mb-1">
+        <WorldClock now={now} />
+      </Panel>
+
       {/* 상단 상태 스트립 */}
-      <Panel className="mb-2">
-        <PanelHeader right={<span className="tabular-nums tracking-widest">{clock}</span>}>
-          시스템 상태
-        </PanelHeader>
-        <div className="flex items-center gap-3 px-2 py-1.5">
+      <Panel className="mb-1">
+        <PanelHeader>시스템 상태</PanelHeader>
+        <div className="flex items-center gap-3 px-2 py-1">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "PROCESSING" : active ? "ONLINE" : "STANDBY"} />
           {arm && (
             <Link href="/lab/execution"
-              className={`no-underline text-[11px] px-2 py-0.5 border font-data tracking-wider ${
-                arm.decision === "GO" ? "border-pos/50 text-pos bg-pos/10" :
-                arm.decision === "KILL" ? "border-neg/50 text-neg bg-neg/10 animate-blink" :
-                "border-info/40 text-info bg-info/10"}`}>
+              className={`no-underline text-[11px] px-2 py-0.5 border font-data font-bold tracking-wider ${
+                arm.decision === "GO" ? "border-pos/50 text-pos bg-pos/15" :
+                arm.decision === "KILL" ? "border-neg/50 text-neg bg-neg/15 animate-blink" :
+                "border-info/40 text-info bg-info/15"}`}>
               ARM {arm.decision}
             </Link>
           )}
           {wd?.critical && (
-            <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/10 animate-blink font-data">감시견 경보</span>
+            <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 animate-blink font-data font-bold">감시견 경보</span>
           )}
         </div>
       </Panel>
 
       {/* 유닛 로스터 — 메인. 뭐가 돌고 있는지 한 눈에 */}
-      <Panel className="mb-2">
+      <Panel className="mb-1">
         <PanelHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
           유닛 로스터
         </PanelHeader>
@@ -181,7 +207,7 @@ export default function HudPage() {
       </Panel>
 
       {/* 계좌 + 돈길 핵심 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 items-start">
         {bal ? <Balances bal={bal} /> : (
           <div className="bg-panel border border-border p-2 text-text-3 text-[11px]">계좌 정보 로딩 중…</div>
         )}
@@ -192,15 +218,15 @@ export default function HudPage() {
           <div className="grid grid-cols-3 text-center divide-x divide-border">
             <div className="p-1.5">
               <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">엣지</p>
-              <p className={`font-data text-xs ${edgeTone}`}>{edgeLabel}</p>
+              <p className={`font-data text-xs font-bold ${edgeTone}`}>{edgeLabel}</p>
             </div>
             <div className="p-1.5">
               <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">페이퍼 기간</p>
-              <p className={`font-data text-xs ${paperMo >= paperMin ? "text-pos" : "text-info"}`}>{paperMo}/{paperMin}mo</p>
+              <p className={`font-data text-xs font-bold ${paperMo >= paperMin ? "text-pos" : "text-info"}`}>{paperMo}/{paperMin}mo</p>
             </div>
             <div className="p-1.5">
               <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">Live 집행</p>
-              <p className={`font-data text-xs ${jarvis?.live_execution === "blocked" ? "text-neg" : "text-pos"}`}>
+              <p className={`font-data text-xs font-bold ${jarvis?.live_execution === "blocked" ? "text-neg" : "text-pos"}`}>
                 {jarvis?.live_execution ?? "—"}
               </p>
             </div>
@@ -209,14 +235,14 @@ export default function HudPage() {
       </div>
 
       {/* 로그 + 최근 체결 + 알림 — 빈 공간 없이 실시간 활동 채움 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-start mt-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 items-start mt-1">
         <Panel>
           <PanelHeader right={<span className="tabular-nums">{alerts?.length ?? 0}건</span>}>
             최근 알림
           </PanelHeader>
           <div className="max-h-64 overflow-y-auto">
             {(alerts ?? []).slice(0, 14).map((a, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
                 <span className="text-text-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
                 <span className="text-warn truncate flex-1">{a.rule_label}</span>
                 <span className="text-text-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
@@ -233,7 +259,7 @@ export default function HudPage() {
           </PanelHeader>
           <div className="max-h-64 overflow-y-auto">
             {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
                 <span className="text-text-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
                 <span className={`shrink-0 w-12 truncate ${
                   l.level === "error" ? "text-neg" : l.level === "warn" ? "text-warn" : "text-text-3"}`}>{l.stage}</span>
@@ -252,12 +278,12 @@ export default function HudPage() {
           </PanelHeader>
           <div className="max-h-64 overflow-y-auto">
             {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
                 <span className="text-text-1 truncate flex-1">{t.corp}</span>
                 <span className="text-text-3 shrink-0 w-20 truncate">{t.entry_date}</span>
                 <span className="text-text-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
-                <span className={`shrink-0 w-14 text-right ${
-                  (t.pnl_pct ?? 0) > 0 ? "text-pos" : (t.pnl_pct ?? 0) < 0 ? "text-neg" : "text-text-3"}`}>
+                <span className={`shrink-0 w-14 text-right px-1 font-bold ${
+                  (t.pnl_pct ?? 0) > 0 ? "bg-pos/20 text-pos" : (t.pnl_pct ?? 0) < 0 ? "bg-neg/20 text-neg" : "text-text-3"}`}>
                   {t.pnl_pct != null ? `${t.pnl_pct.toFixed(2)}%` : "—"}
                 </span>
               </div>
