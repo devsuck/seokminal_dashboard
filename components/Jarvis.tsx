@@ -3,31 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 /* Jarvis — 하이테크 HUD 컴포넌트 모음.
-   arc-reactor orb, live pulse, 카운트업 숫자, HUD 프레임.
+   live pulse, 카운트업 숫자, HUD 프레임.
    색은 디자인 토큰(accent/info/pos) + globals.css 애니메이션 토큰만 사용. */
-
-/* ── 아크 리액터 오브: "AI 살아있음" 지표 ─────────────────────────── */
-export function JarvisOrb({ size = 44, active = true }: { size?: 28 | 36 | 44 | 56 | 72; active?: boolean }) {
-  const box = SIZE_CLASS[size] ?? SIZE_CLASS[44];
-  const core = CORE_CLASS[size] ?? CORE_CLASS[44];
-  return (
-    <span className={`relative inline-flex items-center justify-center ${box}`} aria-hidden>
-      {/* 확장 링(active만) */}
-      {active && (
-        <>
-          <span className="absolute inset-0 rounded-full border border-accent/40 animate-[ring_2s_ease-out_infinite]" />
-          <span className="absolute inset-0 rounded-full border border-accent/30 animate-[ring_2s_ease-out_infinite] [animation-delay:1s]" />
-        </>
-      )}
-      {/* 회전 레이더 아크 */}
-      <span className={`absolute inset-1 rounded-full border-2 border-transparent border-t-accent/70 border-r-accent/30 ${active ? "animate-[radar_3.2s_linear_infinite]" : ""}`} />
-      {/* 코어 */}
-      <span className={`rounded-full bg-accent/80 ${core} ${active ? "animate-[orb_3s_ease-in-out_infinite]" : "opacity-40"}`} />
-    </span>
-  );
-}
-const SIZE_CLASS: Record<number, string> = { 28: "w-7 h-7", 36: "w-9 h-9", 44: "w-11 h-11", 56: "w-14 h-14", 72: "w-[72px] h-[72px]" };
-const CORE_CLASS: Record<number, string> = { 28: "w-2.5 h-2.5", 36: "w-3 h-3", 44: "w-4 h-4", 56: "w-5 h-5", 72: "w-6 h-6" };
 
 /* ── 라이브 펄스 점 (상태 표시) ──────────────────────────────────── */
 export function LivePulse({ tone = "pos", label }: { tone?: "pos" | "accent" | "info" | "neg" | "text-3"; label?: string }) {

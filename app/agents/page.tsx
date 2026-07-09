@@ -24,7 +24,7 @@ import {
   type GodModeEligibility,
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
-import { ReactorCore, lvToOrbVariant, type OrbVariant } from "@/components/ReactorCore";
+import { ArcReactor, type HudTone } from "@/components/Hud";
 import { displayLevel } from "@/lib/agent-level";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -54,6 +54,10 @@ const LV_CFG: Record<number, { color: string; bg: string; border: string; label:
   3: { color: "#ef4444", bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.5)",   label: "Lv3" },
 };
 function lvCfg(lv: number) { return LV_CFG[lv] ?? LV_CFG[2]; }
+function lvToTone(lv: number): HudTone {
+  const map: Record<number, HudTone> = { 1: "pos", 2: "info", 3: "neg" };
+  return map[lv] ?? "accent";
+}
 
 function LvBadge({ lv }: { lv: number }) {
   const c = lvCfg(lv);
@@ -734,7 +738,7 @@ export default function AgentsPage() {
             {agents.map(a => {
               const lv = displayLevel(a);
               const cfg = lvCfg(lv);
-              const orbVariant = lvToOrbVariant(lv);
+              const tone = lvToTone(lv);
               const isHighLv = lv >= 3; // Lv3(자가학습) shows orb
               return (
               <div key={a.id}
@@ -743,7 +747,7 @@ export default function AgentsPage() {
                 style={selected === a.id ? { borderColor: cfg.color + "80" } : undefined}>
                 {isHighLv && (
                   <div className="flex items-center gap-3 mb-2">
-                    <ReactorCore size={84} active={a.status === "running"} variant={orbVariant} />
+                    <ArcReactor size={84} active={a.status === "running"} tone={tone} label={cfg.label} />
                     <div className="min-w-0 flex-1">
                       <div className="text-text-1 text-sm font-medium truncate">{a.name}</div>
                       <div className="text-[10px] mt-0.5 font-semibold" style={{ color: cfg.color }}>

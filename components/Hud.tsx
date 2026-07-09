@@ -1,9 +1,26 @@
 "use client";
 
-import { ReactorCore } from "@/components/ReactorCore";
+/* Hud — Jarvis 스타일 상태 리드아웃(테두리 박스 + 회전 타겟팅 링 + LED) / 방사 게이지.
+   구 ArcReactor는 캔버스 파티클 오브(ReactorCore)를 썼으나 블룸버그 순흑/각짐 톤과 안 어울려 제거.
+   지금은 SVG 링 + font-data 텍스트만(오브 없음), 색은 디자인 토큰만 사용. */
 
-/* Hud — Iron-Man/Jarvis HUD. 중심 오브 = 캔버스 파티클 구체(ReactorCore),
-   주변 = SVG 링/게이지. 게이지 색은 시안(--color-hud), 오브는 앰버. */
+export type HudTone = "accent" | "pos" | "info" | "neg";
+
+const TONE_VAR: Record<HudTone, string> = {
+  accent: "var(--color-accent)", pos: "var(--color-pos)", info: "var(--color-info)", neg: "var(--color-neg)",
+};
+const TONE_TEXT: Record<HudTone, string> = {
+  accent: "text-accent", pos: "text-pos", info: "text-info", neg: "text-neg",
+};
+const TONE_TEXT_DIM: Record<HudTone, string> = {
+  accent: "text-accent/60", pos: "text-pos/60", info: "text-info/60", neg: "text-neg/60",
+};
+const TONE_BORDER: Record<HudTone, string> = {
+  accent: "border-accent/35", pos: "border-pos/35", info: "border-info/35", neg: "border-neg/35",
+};
+const TONE_DOT: Record<HudTone, string> = {
+  accent: "bg-accent amber-glow", pos: "bg-pos green-glow", info: "bg-info blue-glow", neg: "bg-neg red-glow",
+};
 
 // 방사 틱 마크 좌표 생성(게이지용).
 // 좌표는 3자리 반올림 — 풀정밀 float은 SSR/클라이언트 마지막 자리 차이로 hydration mismatch 발생.
@@ -16,25 +33,24 @@ function ticks(cx: number, cy: number, rIn: number, rOut: number, n: number) {
   });
 }
 
-/* ── 아크리액터 중심 오브 (캔버스 파티클 구체 + HUD 링) ─────────────── */
-export function ArcReactor({ size = 132, active = true, label, sub }:
-  { size?: number; active?: boolean; label?: string; sub?: string }) {
+/* ── 상태 리드아웃 박스(테두리 + 회전 타겟팅 링 + LED, 톤별 색상) ────── */
+export function ArcReactor({ size = 132, active = true, label, sub, tone = "accent" }:
+  { size?: number; active?: boolean; label?: string; sub?: string; tone?: HudTone }) {
   const box = SIZE[size] ?? SIZE[132];
+  const col = active ? TONE_VAR[tone] : "var(--color-text-3)";
   return (
-    <div className={`relative ${box} shrink-0 flex items-center justify-center`}>
-      {/* 캔버스 파티클 구체 = 진짜 부피감 */}
-      <ReactorCore size={size} active={active} />
-      {/* 얇은 HUD 링 오버레이(타겟팅 프레임) */}
+    <div className={`relative ${box} shrink-0 flex items-center justify-center border bg-panel-2 ${active ? TONE_BORDER[tone] : "border-border"}`}>
       <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden>
-        <circle cx="50" cy="50" r="48" fill="none" stroke="var(--color-accent)" strokeOpacity="0.22"
+        <circle cx="50" cy="50" r="46" fill="none" stroke={col} strokeOpacity={active ? 0.3 : 0.15}
           strokeWidth="0.5" strokeDasharray="1 4" className={active ? "spin-cw-slow" : ""} />
-        <circle cx="50" cy="50" r="43" fill="none" stroke="var(--color-accent)" strokeOpacity="0.5"
-          strokeWidth="0.7" strokeDasharray="24 90" strokeLinecap="round" className={active ? "spin-ccw" : ""} />
+        <circle cx="50" cy="50" r="40" fill="none" stroke={col} strokeOpacity={active ? 0.6 : 0.2}
+          strokeWidth="0.8" strokeDasharray="22 90" strokeLinecap="round" className={active ? "spin-ccw" : ""} />
       </svg>
+      {active && <span className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full animate-pulse ${TONE_DOT[tone]}`} />}
       {(label || sub) && (
-        <div className="absolute left-0 right-0 bottom-1 flex flex-col items-center pointer-events-none">
-          {label && <span className="font-data text-[11px] font-bold text-accent leading-none drop-shadow">{label}</span>}
-          {sub && <span className="font-data text-[7px] uppercase tracking-widest text-accent/60 mt-0.5">{sub}</span>}
+        <div className="flex flex-col items-center pointer-events-none">
+          {label && <span className={`font-data text-sm font-bold leading-none ${active ? TONE_TEXT[tone] : "text-text-3"}`}>{label}</span>}
+          {sub && <span className={`font-data text-[7px] uppercase tracking-widest mt-1 ${active ? TONE_TEXT_DIM[tone] : "text-text-3"}`}>{sub}</span>}
         </div>
       )}
     </div>
