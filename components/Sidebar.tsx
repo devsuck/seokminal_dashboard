@@ -172,10 +172,11 @@ export function Sidebar() {
     {
       label: "마켓", icon: <IconMarket />,
       items: [
-        { href: "/market",   label: t("nav.market") },
-        { href: "/news",     label: t("nav.news") },
-        { href: "/calendar", label: t("nav.calendar") },
-        { href: "/ib",       label: t("nav.ib") },
+        { href: "/market",    label: t("nav.market") },
+        { href: "/news",      label: t("nav.news") },
+        { href: "/calendar",  label: t("nav.calendar") },
+        { href: "/ib",        label: t("nav.ib") },
+        { href: "/orderflow", label: "오더플로우" },
       ],
     },
     // 교육 — 학습·연습
