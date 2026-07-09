@@ -3,7 +3,7 @@
 /* ── Design Tokens ───────────────────────────────────────────────── */
 @theme {
   /* Colors */
-  --color-bg:       #080A0F;
+  --color-bg:       #05070B;
   --color-panel:    #0F131A;
   --color-panel-2:  #151A23;
   --color-border:   #242A35;
@@ -16,6 +16,17 @@
   --color-neg:      #EF4444;
   --color-warn:     #F59E0B;
   --color-info:     #3B82F6;
+
+  /* Corners — Bloomberg 무드: 전역 각짐. rounded-full은 별도 고정 유틸이라 미적용 */
+  --radius:     0px;
+  --radius-xs:  0px;
+  --radius-sm:  0px;
+  --radius-md:  0px;
+  --radius-lg:  0px;
+  --radius-xl:  0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
 
   /* Fonts */
   --font-ui:   var(--font-inter), system-ui, sans-serif;
