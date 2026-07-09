@@ -1,3 +1,14 @@
+## Phase 153 — 아크리액터 오브 제거 (2026-07-09) ✅ DONE
+
+커밋 `6a3afc7`. 유저 지적: 캔버스 파티클 오브(ReactorCore, Iron-Man 아크리액터)가 블룸버그 톤과 안 어울림. "오브 버려도 됨" 확인받고 직접 수정(작은 UI 교체, subagent/plan 안 씀).
+- `components/ReactorCore.tsx` 삭제. `components/Hud.tsx`의 `ArcReactor`를 SVG 타겟팅 링 + 톤별(accent/pos/info/neg) 테두리 박스 + LED 펄스로 재설계 — 파티클 캔버스 없음, 색은 디자인 토큰만.
+- 사용처 3곳: `/agents`(Lv3 자율학습 에이전트, 레벨→톤 매핑 `lvToTone`), `/buyback-doctor`(DX 박스), `/lab`·`/auto-research`(AutoResearchPanel) — 후자 둘은 prop 시그니처 그대로라 무변경.
+- 부수 정리: 미사용 `JarvisOrb`(components/Jarvis.tsx) 및 관련 `radar`/`orb` keyframe·`--animate-radar`/`--animate-orb` 삭제, ReactorCore 전용이던 고아 `*-glow-lg` 클래스(green/blue/yellow/orange/red/pink/amber) 정리.
+- tsc/build(45라우트)/test(151/151) 클린, `/agents`·`/buyback-doctor` 브라우저 확인 완료.
+
+### 다음 할 일
+- `/lab`의 AutoResearchPanel ArcReactor는 코드 리뷰로 확인, 브라우저 스크린샷으로는 미확인(스크롤 위치상 안 보임) — 다음 세션에서 필요시 확인.
+
 ## Phase 152 — 블룸버그 터미널 리디자인 Phase 2 (2026-07-09) ✅ DONE
 
 플랜: `docs/superpowers/plans/2026-07-09-bloomberg-redesign-phase2.md`, SDD 방식(subagent-driven-development) 7태스크 실행. 커밋 `db017d8`(플랜)~`c124905`(최종 리뷰 수정), 전 과정 `.superpowers/sdd/progress.md` 원장 참고.
