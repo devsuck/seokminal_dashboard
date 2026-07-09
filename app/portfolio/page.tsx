@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState } from "@/lib/api";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Tab = "accounts" | "optimizer";
 
@@ -301,13 +302,15 @@ export default function PortfolioPage() {
 
         {tab === "optimizer" && (
           <div className="max-w-2xl mx-auto">
-            <div className="bg-panel border border-warn/30 rounded-xl p-4 mb-4">
-              <p className="text-warn text-xs font-semibold mb-1">교육용 · 실전 배분 아님</p>
-              <p className="text-text-2 text-xs leading-relaxed">
-                마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
-                실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
-              </p>
-            </div>
+            <Panel className="mb-4">
+              <PanelHeader>교육용 · 실전 배분 아님</PanelHeader>
+              <div className="p-4">
+                <p className="text-warn text-xs leading-relaxed">
+                  마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
+                  실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
+                </p>
+              </div>
+            </Panel>
             <a href="/portfolio/optimizer"
               className="block text-center py-3 border border-border rounded-xl text-text-3 text-sm hover:text-text-2 hover:border-text-3 transition-colors">
               최적화 도구 열기 →
