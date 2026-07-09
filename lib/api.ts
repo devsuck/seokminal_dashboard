@@ -167,6 +167,16 @@ export async function getQuote(symbol: string, signal?: AbortSignal): Promise<Qu
   return handleResponse<Quote>(response);
 }
 
+export interface OrderflowSymbolsResponse {
+  symbols: string[];
+}
+
+/** 오더플로우 백엔드가 현재 수집 중인 심볼 목록. */
+export async function getOrderflowSymbols(signal?: AbortSignal): Promise<OrderflowSymbolsResponse> {
+  const response = await fetch(`${API_URL}/orderflow/symbols`, { signal });
+  return handleResponse<OrderflowSymbolsResponse>(response);
+}
+
 export async function getBacktest(
   instrumentId: string,
   start: string,
