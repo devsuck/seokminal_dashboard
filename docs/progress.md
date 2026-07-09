@@ -7,7 +7,7 @@
 - `seokminal-multi-venue` 쪽 나머지 uncommitted 변경(`graph_api.py`, jarvis state jsonl, research 데이터)은 이번 작업과 무관 — 손대지 않고 그대로 둠.
 
 ### 다음 할 일
-- `/hud` "계좌 정보 로딩 중…" 멈춤 현상 (Phase 152부터 미점검 상태로 계속 이월) — 아직 미착수.
+- (완료) `/hud` "계좌 정보 로딩 중…" 재확인: 버그 아님. IB Gateway 로컬 미실행 → `getAccountBalances()` 응답이 `[Errno 61] Connection refused` 대기로 ~6~8초 걸리는 동안만 로딩 문구 표시, 이후 6개 계좌 전부 정상 렌더(IB만 error 필드로 표시). 콘솔 에러/네트워크 실패 없음. 이월 항목에서 제거.
 
 ## Phase 154 — Orderflow Chart Overlay (2026-07-09~10) ✅ DONE
 
