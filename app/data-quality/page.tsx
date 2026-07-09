@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { getBars, ApiError } from "@/lib/api";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 interface SourceMeta {
   source: string;
@@ -198,10 +199,8 @@ export default function DataQualityPage() {
       </div>
 
       {/* Source metadata table */}
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">Data Sources</span>
-        </div>
+      <Panel>
+        <PanelHeader>Data Sources</PanelHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -231,7 +230,7 @@ export default function DataQualityPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
 
       {/* Instrument coverage checker */}
       <div className="bg-panel border border-border rounded-lg p-4 space-y-3">
@@ -263,10 +262,8 @@ export default function DataQualityPage() {
       </div>
 
       {checked && results.length > 0 && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">Coverage Results</span>
-          </div>
+        <Panel>
+          <PanelHeader>Coverage Results</PanelHeader>
           <div className="divide-y divide-border/50">
             {results.map(r => (
               <div key={r.instrumentId} className="px-4 py-3 space-y-2">
@@ -280,7 +277,7 @@ export default function DataQualityPage() {
                       <span>Expected <span className="text-text-2">{r.expectedBars}</span></span>
                       <span>
                         Missing{" "}
-                        <span className={r.missingPct === 0 ? "text-pos" : r.missingPct < 10 ? "text-warn" : "text-neg"}>
+                        <span className={`px-1 font-bold ${r.missingPct === 0 ? "bg-pos/20 text-pos" : r.missingPct < 10 ? "bg-warn/20 text-warn" : "bg-neg/20 text-neg"}`}>
                           {r.missingPct.toFixed(1)}%
                         </span>
                       </span>
@@ -301,7 +298,7 @@ export default function DataQualityPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Panel>
       )}
 
       {!checked && !loading && (

@@ -10,6 +10,7 @@ import {
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import type { TradeRecord } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const SERIES_COLORS = ["#FF9F1C", "#60A5FA", "#34D399", "#F472B6"] as const;
 const MAX_SELECTED = 4;
@@ -104,8 +105,8 @@ function cellColorClass(
   if (valid.length < 2) return "text-text-2";
   const best = higherBetter ? Math.max(...valid) : Math.min(...valid);
   const worst = higherBetter ? Math.min(...valid) : Math.max(...valid);
-  if (value === best) return "text-pos";
-  if (value === worst && best !== worst) return "text-neg";
+  if (value === best) return "bg-pos/20 text-pos font-bold";
+  if (value === worst && best !== worst) return "bg-neg/20 text-neg font-bold";
   return "text-text-2";
 }
 
@@ -171,12 +172,8 @@ export default function BacktestComparePage() {
         <div className="flex gap-4 items-start">
           {/* Left sidebar: result list */}
           <div className="w-72 flex-shrink-0">
-            <div className="bg-panel border border-border rounded-lg overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-                <span className="text-text-3 text-[11px] uppercase tracking-wider">
-                  Saved Results ({results.length})
-                </span>
-              </div>
+            <Panel>
+              <PanelHeader>Saved Results ({results.length})</PanelHeader>
               <div className="divide-y divide-border">
                 {results.map(r => {
                   const selIdx = selected.indexOf(r);
@@ -213,7 +210,7 @@ export default function BacktestComparePage() {
                   );
                 })}
               </div>
-            </div>
+            </Panel>
             {selectedIds.size >= MAX_SELECTED && (
               <p className="text-text-3 text-xs mt-2 px-1">
                 Max {MAX_SELECTED} results selected
@@ -232,12 +229,8 @@ export default function BacktestComparePage() {
             ) : (
               <>
                 {/* Metrics comparison table */}
-                <div className="bg-panel border border-border rounded-lg overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-                    <span className="text-text-3 text-[11px] uppercase tracking-wider">
-                      Metrics
-                    </span>
-                  </div>
+                <Panel>
+                  <PanelHeader>Metrics</PanelHeader>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
@@ -281,16 +274,13 @@ export default function BacktestComparePage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </Panel>
 
                 {/* Cumulative PnL chart */}
                 {hasPnlData && (
-                  <div className="bg-panel border border-border rounded-lg p-4">
-                    <div className="px-0 pb-3">
-                      <span className="text-text-3 text-[11px] uppercase tracking-wider">
-                        Cumulative PnL
-                      </span>
-                    </div>
+                  <Panel>
+                    <PanelHeader>Cumulative PnL</PanelHeader>
+                    <div className="p-4">
                     <div className="flex gap-4 mb-3 flex-wrap">
                       {selected.map((r, i) => (
                         <span key={r.id} className="flex items-center gap-1.5">
@@ -306,7 +296,8 @@ export default function BacktestComparePage() {
                       height={260}
                       yFormat={v => v.toFixed(0)}
                     />
-                  </div>
+                    </div>
+                  </Panel>
                 )}
               </>
             )}

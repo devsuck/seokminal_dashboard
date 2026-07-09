@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { computeEventStudy, type EventInput, type EventStudyResult } from "@/lib/event-study-utils";
 import { EventReturnChart } from "@/components/event-study/EventReturnChart";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type EventSource = "ksd_dividend" | "ksd_rights" | "fred" | "custom";
 
@@ -242,13 +243,13 @@ export default function EventStudyPage() {
             </div>
             <div className="text-text-3">
               Hit Rate:{" "}
-              <span className={result.stats.hitRate !== null && result.stats.hitRate >= 0.5 ? "text-pos font-data" : "text-neg font-data"}>
+              <span className={`px-1 font-bold font-data ${result.stats.hitRate !== null && result.stats.hitRate >= 0.5 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 {result.stats.hitRate !== null ? `${(result.stats.hitRate * 100).toFixed(1)}%` : "—"}
               </span>
             </div>
             <div className="text-text-3">
               Avg Return (+{result.stats.windowDays}d):{" "}
-              <span className={`font-data ${result.stats.avgReturns[result.stats.windowDays * 2] !== null && (result.stats.avgReturns[result.stats.windowDays * 2] ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
+              <span className={`px-1 font-bold font-data ${result.stats.avgReturns[result.stats.windowDays * 2] !== null && (result.stats.avgReturns[result.stats.windowDays * 2] ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 {pct(result.stats.avgReturns[result.stats.windowDays * 2])}
               </span>
             </div>
@@ -286,12 +287,8 @@ export default function EventStudyPage() {
           </div>
 
           {/* Events table */}
-          <div className="bg-panel border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-              <span className="text-text-3 text-[11px] uppercase tracking-wider">
-                Individual Events ({result.windows.length})
-              </span>
-            </div>
+          <Panel>
+            <PanelHeader>Individual Events ({result.windows.length})</PanelHeader>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -314,7 +311,7 @@ export default function EventStudyPage() {
                         <td
                           key={k}
                           className={`px-2 py-1.5 text-right font-data ${
-                            r === null ? "text-text-3" : r > 0 ? "text-pos" : r < 0 ? "text-neg" : "text-text-2"}`}
+                            r === null ? "text-text-3" : r > 0 ? "font-bold bg-pos/20 text-pos" : r < 0 ? "font-bold bg-neg/20 text-neg" : "text-text-2"}`}
                         >
                           {r === null ? "—" : `${(r * 100).toFixed(2)}%`}
                         </td>
@@ -324,7 +321,7 @@ export default function EventStudyPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </>
       )}
 

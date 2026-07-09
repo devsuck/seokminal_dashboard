@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { getKRXStockBase, ApiError, type KRXStockBaseRow } from "@/lib/api";
 import { addToWatchlist, getWatchlist } from "@/lib/watchlist-storage";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Market = "KOSPI" | "KOSDAQ";
 
@@ -167,13 +168,11 @@ export default function UniversePage() {
 
       {/* Results */}
       {filtered.length > 0 && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">
-              {filtered.length} instruments
-              {search || maxCap < mktcapMax ? ` (filtered from ${rows.length})` : ""}
-            </span>
-          </div>
+        <Panel>
+          <PanelHeader>
+            {filtered.length} instruments
+            {search || maxCap < mktcapMax ? ` (filtered from ${rows.length})` : ""}
+          </PanelHeader>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -225,7 +224,7 @@ export default function UniversePage() {
               </div>
             )}
           </div>
-        </div>
+        </Panel>
       )}
 
       {rows.length > 0 && filtered.length === 0 && (

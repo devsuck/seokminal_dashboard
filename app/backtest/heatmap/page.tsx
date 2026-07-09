@@ -6,6 +6,7 @@ import { getBacktest, type BacktestResponse } from "@/lib/api";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { PageBanner } from "@/components/PageBanner";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type HeatmapMetric = "sharpe" | "sortino" | "maxDrawdown" | "winRate";
 
@@ -287,17 +288,14 @@ export default function HeatmapPage() {
 
       {/* Heatmap grid */}
       {Object.keys(results).length > 0 && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">
-              {METRIC_LABELS[metric]} — Fast EMA (rows) × Slow EMA (columns)
+        <Panel>
+          <PanelHeader right={allValues.length > 0 ? (
+            <span className="tabular-nums">
+              min {formatValue(minVal, metric)} · max {formatValue(maxVal, metric)}
             </span>
-            {allValues.length > 0 && (
-              <span className="text-text-3 text-[10px] font-data">
-                min {formatValue(minVal, metric)} · max {formatValue(maxVal, metric)}
-              </span>
-            )}
-          </div>
+          ) : undefined}>
+            {METRIC_LABELS[metric]} — Fast EMA (rows) × Slow EMA (columns)
+          </PanelHeader>
           <div className="p-4 overflow-x-auto">
             {/* Column headers (Slow EMA values) */}
             <div className="flex gap-0.5 mb-1 ml-9">
@@ -375,7 +373,7 @@ export default function HeatmapPage() {
               <span className="text-text-3 text-[9px]">{invert ? "→ Worse" : "Better →"}</span>
             </div>
           </div>
-        </div>
+        </Panel>
       )}
     </div>
   );

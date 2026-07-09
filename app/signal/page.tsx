@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ApiError, getSmartSignal, type SmartSignal } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const PRESETS = ["AAPL.NASDAQ", "MSFT.NASDAQ", "SPY.ARCA", "005930.XKRX", "000660.XKRX"];
 
@@ -21,6 +22,12 @@ function regimeCls(r: string): string {
 function retCls(v: number | null | undefined) {
   if (v == null) return "text-text-1";
   return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
+}
+function retTintCls(v: number | null | undefined) {
+  if (v == null) return "text-text-2";
+  if (v > 0) return "px-1 font-bold bg-pos/20 text-pos";
+  if (v < 0) return "px-1 font-bold bg-neg/20 text-neg";
+  return "text-text-2";
 }
 
 export default function SmartSignalPage() {
@@ -101,13 +108,13 @@ export default function SmartSignalPage() {
                 </div>
                 <div className="bg-panel border border-border rounded-lg p-3">
                   <div className="text-text-3 text-[11px] uppercase tracking-wider">모멘텀 60일</div>
-                  <div className={`text-sm font-data font-semibold mt-1 ${retCls(data.momentum_60d_pct)}`}>
+                  <div className={`text-sm font-data font-semibold mt-1 inline-block ${retTintCls(data.momentum_60d_pct)}`}>
                     {data.momentum_60d_pct != null ? `${data.momentum_60d_pct > 0 ? "+" : ""}${data.momentum_60d_pct}%` : "—"}
                   </div>
                 </div>
                 <div className="bg-panel border border-border rounded-lg p-3">
                   <div className="text-text-3 text-[11px] uppercase tracking-wider">SMA50 대비</div>
-                  <div className={`text-sm font-data font-semibold mt-1 ${retCls(data.price_vs_sma50_pct)}`}>
+                  <div className={`text-sm font-data font-semibold mt-1 inline-block ${retTintCls(data.price_vs_sma50_pct)}`}>
                     {data.price_vs_sma50_pct != null ? `${data.price_vs_sma50_pct > 0 ? "+" : ""}${data.price_vs_sma50_pct}%` : "—"}
                   </div>
                 </div>
@@ -116,12 +123,12 @@ export default function SmartSignalPage() {
                   <div className="text-sm font-data font-semibold mt-1 text-text-1">{data.kelly_half ?? "—"}</div>
                 </div>
               </div>
-              <div className="bg-panel border border-border rounded-lg p-4">
-                <div className="text-text-3 text-[11px] uppercase tracking-wider mb-2">판단 근거</div>
-                <ul className="space-y-1">
+              <Panel>
+                <PanelHeader>판단 근거</PanelHeader>
+                <ul className="space-y-1 p-4">
                   {data.notes.map((n, i) => <li key={i} className="text-text-2 text-sm">· {n}</li>)}
                 </ul>
-              </div>
+              </Panel>
             </div>
           </div>
         )}

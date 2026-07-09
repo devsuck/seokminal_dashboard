@@ -7,6 +7,7 @@ import {
   type IctBacktestResponse, type IctEventsResponse,
 } from "@/lib/api";
 import { IctChart, ICT_LEGEND } from "@/components/ict/IctChart";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const PRIMITIVES: { id: string; label: string; desc: string }[] = [
   { id: "killzone", label: "Kill Zone", desc: "지정 UTC 시간창 안에서만" },
@@ -329,12 +330,11 @@ export default function IctPage() {
       )}
 
       {(chart || chartLoading) && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between flex-wrap gap-2">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">차트 (프리미티브 오버레이)</span>
-            <div className="flex gap-3 flex-wrap">
+        <Panel>
+          <PanelHeader right={
+            <div className="flex gap-3 flex-wrap normal-case tracking-normal font-normal">
               {ICT_LEGEND.filter(g => selected.includes(g.id)).map(g => (
-                <div key={g.id} className="flex items-center gap-1.5 text-[11px] text-text-3">
+                <div key={g.id} className="flex items-center gap-1.5 text-[11px]">
                   {g.kind === "zone" ? (
                     <span className="inline-block w-3 h-3 rounded-sm border" style={{ borderColor: g.color, backgroundColor: `${g.color}33` }} />
                   ) : (
@@ -344,36 +344,37 @@ export default function IctPage() {
                 </div>
               ))}
             </div>
-          </div>
+          }>
+            차트 (프리미티브 오버레이)
+          </PanelHeader>
           {chartLoading && !chart && (
             <div className="p-8 text-center text-text-3 text-sm">차트 로딩중…</div>
           )}
           {chart && chart.bars.length > 0 && (
             <IctChart bars={chart.bars} events={chart.events} />
           )}
-        </div>
+        </Panel>
       )}
 
       {result && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">결과 (참고치)</span>
-            {result.verdict === "UNDERPOWERED" && (
-              <span className="text-[11px] px-2 py-0.5 rounded border text-warn border-warn/50 bg-warn/10">
-                UNDERPOWERED
-              </span>
-            )}
-          </div>
+        <Panel>
+          <PanelHeader right={result.verdict === "UNDERPOWERED" ? (
+            <span className="text-[11px] px-2 py-0.5 rounded border normal-case tracking-normal font-normal text-warn border-warn bg-black/10">
+              UNDERPOWERED
+            </span>
+          ) : undefined}>
+            결과 (참고치)
+          </PanelHeader>
           <div className="p-4 flex gap-6 flex-wrap text-xs">
             <div className="text-text-3">진입수: <span className="text-text-2 font-data">{result.n_entries}</span></div>
             <div className="text-text-3">eligible: <span className="text-text-2 font-data">{result.n_eligible ?? "—"}</span></div>
             <div className="text-text-3">
-              net: <span className={`font-data ${result.net !== null && result.net > 0 ? "text-pos" : result.net !== null && result.net < 0 ? "text-neg" : "text-text-2"}`}>
+              net: <span className={`font-data px-1 font-bold ${result.net !== null && result.net > 0 ? "bg-pos/20 text-pos" : result.net !== null && result.net < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
                 {num(result.net)}
               </span>
             </div>
             <div className="text-text-3">
-              percentile(vs random): <span className={`font-data ${result.percentile !== null && result.percentile >= 90 ? "text-pos" : "text-text-2"}`}>
+              percentile(vs random): <span className={`font-data ${result.percentile !== null && result.percentile >= 90 ? "px-1 font-bold bg-pos/20 text-pos" : "text-text-2"}`}>
                 {result.percentile !== null && result.percentile !== undefined ? `${result.percentile}%` : "—"}
               </span>
             </div>
@@ -388,7 +389,7 @@ export default function IctPage() {
               단일 시도 결과일 뿐 — BH-FDR 다중검정 보정 없음(여러 조합 시도하면 우연 적중 확률 급증).
             </div>
           )}
-        </div>
+        </Panel>
       )}
 
       {!result && !loading && !error && (

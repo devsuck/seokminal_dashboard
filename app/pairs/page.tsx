@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ApiError, getPairsBacktest, type PairsResult } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
 import { SymbolSearchInput } from "@/components/SymbolSearchInput";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const PRESETS: [string, string][] = [
   ["AAPL.NASDAQ", "MSFT.NASDAQ"],
@@ -86,22 +87,24 @@ export default function PairsPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Metric label="공적분 p값" value={`${data.eg_pvalue}`} cls={data.eg_pvalue < 0.05 ? "text-pos" : "text-neg"} />
+              <Metric label="공적분 p값" value={`${data.eg_pvalue}`} cls={data.eg_pvalue < 0.05 ? "inline-block px-1 bg-pos/20 text-pos" : "inline-block px-1 bg-neg/20 text-neg"} />
               <Metric label="반감기(일)" value={`${data.half_life_days}`} />
               <Metric label="헤지비율" value={`${data.hedge_ratio}`} />
               <Metric label="거래수" value={`${data.num_trades}`} />
               <Metric label="수익률(비용반영)" value={data.total_return_pct != null ? `${data.total_return_pct}%` : "—"}
-                cls={(data.total_return_pct ?? 0) > 0 ? "text-pos" : "text-neg"} />
+                cls={(data.total_return_pct ?? 0) > 0 ? "inline-block px-1 bg-pos/20 text-pos" : "inline-block px-1 bg-neg/20 text-neg"} />
               <Metric label="Sharpe" value={data.sharpe_ratio != null ? `${data.sharpe_ratio}` : "—"}
-                cls={(data.sharpe_ratio ?? 0) >= 1 ? "text-pos" : "text-text-1"} />
+                cls={(data.sharpe_ratio ?? 0) >= 1 ? "inline-block px-1 bg-pos/20 text-pos" : "text-text-1"} />
               <Metric label="MDD" value={data.max_drawdown_pct != null ? `${data.max_drawdown_pct}%` : "—"} cls="text-neg" />
               <Metric label="승률" value={data.win_rate != null ? `${(data.win_rate * 100).toFixed(0)}%` : "—"} />
             </div>
 
-            <div className="bg-panel border border-border rounded-lg p-4">
-              <div className="text-text-3 text-[11px] uppercase tracking-wider mb-1">스프레드 z-score (±2 진입 / 0.5 청산)</div>
-              {data.zscore.length > 1 ? <ZChart z={data.zscore} /> : <p className="text-text-3 text-sm">데이터 없음</p>}
-            </div>
+            <Panel>
+              <PanelHeader>스프레드 z-score (±2 진입 / 0.5 청산)</PanelHeader>
+              <div className="p-4">
+                {data.zscore.length > 1 ? <ZChart z={data.zscore} /> : <p className="text-text-3 text-sm">데이터 없음</p>}
+              </div>
+            </Panel>
             <p className="text-text-3 text-[11px]">
               ※ 공적분 p&lt;0.05 + 반감기 1~60일이어야 적합. 그래도 실전 검증(페이퍼) 필수 — 과거 공적분이 미래 보장 아님.
             </p>

@@ -5,6 +5,7 @@ import {
   getExperiments, getTsmomForward,
   type Experiment, type ExperimentsResponse, type TsmomForward,
 } from "@/lib/api";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 function statusStyle(s: string): string {
   if (s.startsWith("paper_candidate")) return "border-pos/40 text-pos bg-pos/10";
@@ -87,10 +88,8 @@ export default function ValidationPage() {
 
       {/* 실험 테이블 */}
       {exp && (
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 text-text-2 text-sm font-medium">
-            검증 실험 ({exp.total})
-          </div>
+        <Panel>
+          <PanelHeader>검증 실험 ({exp.total})</PanelHeader>
           <div className="overflow-x-auto">
             <table className="w-full text-xs font-data">
               <thead>
@@ -115,7 +114,7 @@ export default function ValidationPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* TSMOM paper_candidate 상세 */}
@@ -133,12 +132,15 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
   const fwd = Object.entries(t.forward_months).sort();
 
   return (
-    <div className="bg-panel border border-border rounded-lg overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-2">
-        <span className="text-text-1 text-sm font-medium"> {t.version}</span>
-        <span className="px-2 py-0.5 rounded border border-pos/40 text-pos bg-pos/10 text-[10px]">{t.status}</span>
-        <span className="ml-auto text-text-3 text-xs">as of {t.as_of} · ⚠ PAPER, NO LIVE</span>
-      </div>
+    <Panel>
+      <PanelHeader right={
+        <span className="flex items-center gap-2 normal-case tracking-normal font-normal">
+          <span className="px-2 py-0.5 rounded border border-pos text-pos bg-black/10 text-[10px]">{t.status}</span>
+          <span>as of {t.as_of} · ⚠ PAPER, NO LIVE</span>
+        </span>
+      }>
+        {t.version}
+      </PanelHeader>
       <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric label="Backtest Sharpe" value={fmt(env.sharpe, 2)} tone="pos" />
         <Metric label="Max Drawdown" value={fmt(env.max_drawdown, 3)} tone="neg" />
@@ -163,7 +165,7 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
                 <div className="flex-1 h-3 bg-panel-2 rounded overflow-hidden">
                   <div className={`h-full ${sh >= 0 ? "bg-pos" : "bg-neg"}`} style={{ width: `${pct}%` }} />
                 </div>
-                <span className={`w-12 text-right font-data ${sh >= 0 ? "text-pos" : "text-neg"}`}>{fmt(sh, 2)}</span>
+                <span className={`w-12 text-right font-data px-1 font-bold ${sh >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{fmt(sh, 2)}</span>
               </div>
             );
           })}
@@ -178,13 +180,13 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
           : <div className="flex flex-wrap gap-1.5">
               {fwd.map(([m, v]) => {
                 const dev = t.envelope_deviation[m];
-                const tone = dev === "in_envelope" ? "text-text-2 border-border": dev === "ABOVE_P90" ? "text-pos border-pos/40" : "text-neg border-neg/40";
+                const tone = dev === "in_envelope" ? "text-text-2 border-border": dev === "ABOVE_P90" ? "text-pos border-pos/40 bg-pos/20 font-bold" : "text-neg border-neg/40 bg-neg/20 font-bold";
                 return <span key={m} className={`px-2 py-0.5 rounded border text-[11px] font-data ${tone}`}>
                   {m}: {(v * 100).toFixed(1)}%</span>;
               })}
             </div>}
       </div>
-    </div>
+    </Panel>
   );
 }
 

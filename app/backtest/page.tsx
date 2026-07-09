@@ -35,6 +35,7 @@ import { RollingChart, type RollingSeries } from "@/components/rolling/RollingCh
 import { PageBanner } from "@/components/PageBanner";
 import { computeRunningStats } from "@/lib/replay-utils";
 import { ReplayChart } from "@/components/replay/ReplayChart";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 function BacktestPageInner() {
   const [mode, setMode]               = useState<Mode>("composite");
@@ -399,23 +400,25 @@ function BacktestPageInner() {
                   </div>
 
                   {/* Equity curve */}
-                  <div className="bg-panel border border-border rounded-lg p-3">
-                    <p className="text-text-3 text-xs mb-2">Portfolio Equity Curve</p>
-                    <div style={{ height: "200px" }}>
-                      <RollingChart
-                        series={[{
-                          label: "Portfolio Equity",
-                          color: "#22C55E",
-                          points: portfolioResult.portfolio_equity.map(ep => ({
-                            ts_ns: ep.ts_ns,
-                            value: ep.equity,
-                          })),
-                        }]}
-                        yFormat={v => `$${v.toFixed(2)}`}
-                        height={200}
-                      />
+                  <Panel>
+                    <PanelHeader>Portfolio Equity Curve</PanelHeader>
+                    <div className="p-3">
+                      <div style={{ height: "200px" }}>
+                        <RollingChart
+                          series={[{
+                            label: "Portfolio Equity",
+                            color: "#22C55E",
+                            points: portfolioResult.portfolio_equity.map(ep => ({
+                              ts_ns: ep.ts_ns,
+                              value: ep.equity,
+                            })),
+                          }]}
+                          yFormat={v => `$${v.toFixed(2)}`}
+                          height={200}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  </Panel>
 
                   {/* Per-instrument summary table */}
                   <div className="bg-panel border border-border rounded-lg overflow-auto">
@@ -439,10 +442,10 @@ function BacktestPageInner() {
                             <td className="px-3 py-2 text-right text-text-2">
                               {r.sharpe_ratio != null ? r.sharpe_ratio.toFixed(2) : "—"}
                             </td>
-                            <td className={`px-3 py-2 text-right ${r.total_pnl != null && r.total_pnl >= 0 ? "text-pos" : "text-neg"}`}>
+                            <td className={`px-3 py-2 text-right font-bold ${r.total_pnl != null && r.total_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                               {r.total_pnl != null ? `$${r.total_pnl.toFixed(2)}` : "—"}
                             </td>
-                            <td className={`px-3 py-2 text-right ${r.total_pnl_pct != null && r.total_pnl_pct >= 0 ? "text-pos" : "text-neg"}`}>
+                            <td className={`px-3 py-2 text-right font-bold ${r.total_pnl_pct != null && r.total_pnl_pct >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                               {r.total_pnl_pct != null ? `${(r.total_pnl_pct * 100).toFixed(2)}%` : "—"}
                             </td>
                             <td className="px-3 py-2 text-right text-neg">
@@ -494,10 +497,8 @@ function BacktestPageInner() {
         {/* Right: Stats + Trade Log */}
         <div className="space-y-4">
           {/* KPI Metrics */}
-          <div className="bg-panel border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-              <span className="text-text-3 text-[11px] uppercase tracking-wider">Performance</span>
-            </div>
+          <Panel>
+            <PanelHeader>Performance</PanelHeader>
             <MetricGrid result={result} />
             {result !== null && !showSaveResult && !resultSaved && (
               <div className="px-4 py-2 border-t border-border flex items-center justify-between">
@@ -549,15 +550,14 @@ function BacktestPageInner() {
                 </div>
               </div>
             )}
-          </div>
+          </Panel>
 
           {/* Lv1 승급 — 검증된 조건식을 그대로 페이퍼 포워드 실행 */}
           {mode === "composite" && result !== null && (
-            <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
-              <div>
-                <span className="text-text-2 text-xs font-semibold">Lv1 승급</span>
-                <p className="text-text-3 text-[10px] mt-0.5">백테스트로 검증한 조건식을 그대로 페이퍼로 포워드 실행</p>
-              </div>
+            <Panel>
+              <PanelHeader>Lv1 승급</PanelHeader>
+              <div className="p-3 space-y-2">
+              <p className="text-text-3 text-[10px]">백테스트로 검증한 조건식을 그대로 페이퍼로 포워드 실행</p>
               {promoted ? (
                 <p className="text-pos text-xs">에이전트 생성 완료 ✓ — 에이전트 페이지에서 확인</p>
               ) : (
@@ -619,7 +619,8 @@ function BacktestPageInner() {
                   {promoteError && <p className="text-neg text-[10px]">{promoteError}</p>}
                 </div>
               )}
-            </div>
+              </div>
+            </Panel>
           )}
 
           {/* Trade Log */}
@@ -828,7 +829,7 @@ function ReplayContent() {
             ].map(s => (
               <div key={s.label} className="bg-panel border border-border rounded-lg px-4 py-3">
                 <div className="text-text-3 text-[10px] uppercase tracking-wider">{s.label}</div>
-                <div className={`text-sm font-data mt-1 ${s.colored ? (s.val >= 0 ? "text-pos" : "text-neg") : "text-text-1"}`}>
+                <div className={`text-sm font-data mt-1 ${s.colored ? `inline-block px-1 font-bold ${s.val >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}` : "text-text-1"}`}>
                   {s.value}
                 </div>
               </div>
@@ -839,14 +840,12 @@ function ReplayContent() {
           <div className="flex gap-4">
             {/* Chart column */}
             <div className="flex-1 min-w-0 space-y-3">
-              <div className="bg-bg border border-border rounded-lg overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-                  <span className="text-text-3 text-[11px] uppercase tracking-wider">{instrumentId} — {tradeLabel}</span>
-                </div>
+              <Panel>
+                <PanelHeader>{instrumentId} — {tradeLabel}</PanelHeader>
                 <div className="p-2">
                   <ReplayChart bars={bars} trades={trades} currentIndex={currentIndex} height={360} />
                 </div>
-              </div>
+              </Panel>
 
               {/* Playback controls */}
               <div className="bg-panel border border-border rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap">
@@ -892,10 +891,8 @@ function ReplayContent() {
 
             {/* Trade list panel */}
             <div className="w-56 shrink-0">
-              <div className="bg-panel border border-border rounded-lg overflow-hidden h-full">
-                <div className="px-3 py-2 border-b border-border bg-panel-2">
-                  <span className="text-text-3 text-[11px] uppercase tracking-wider">Trades</span>
-                </div>
+              <Panel className="h-full">
+                <PanelHeader>Trades</PanelHeader>
                 <div className="overflow-y-auto max-h-96">
                   {trades.map((t, i) => {
                     const isActive = i === currentIndex;
@@ -910,14 +907,14 @@ function ReplayContent() {
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-text-3 text-[10px]">#{i + 1}</span>
-                          <span className={`text-[10px] font-semibold ${t.side === "LONG" || t.side === "BUY" ? "text-pos" : "text-neg"}`}>
+                          <span className={`text-[10px] font-semibold px-1 ${t.side === "LONG" || t.side === "BUY" ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                             {t.side}
                           </span>
                         </div>
                         <div className="flex items-center justify-between mt-0.5">
                           <span className="text-text-3 text-[10px] font-data">{t.entry_price.toFixed(2)}</span>
                           {isCompleted ? (
-                            <span className={`text-[10px] font-data font-semibold ${isWin ? "text-pos" : "text-neg"}`}>
+                            <span className={`text-[10px] font-data font-semibold px-1 ${isWin ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                               {fmtPnl(t.pnl!)}
                             </span>
                           ) : (
@@ -928,7 +925,7 @@ function ReplayContent() {
                     );
                   })}
                 </div>
-              </div>
+              </Panel>
             </div>
           </div>
         </>
