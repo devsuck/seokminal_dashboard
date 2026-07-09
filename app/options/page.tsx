@@ -450,16 +450,14 @@ function IvSurfaceTab() {
       <Err msg={error} />
 
       {result && (
-        <div className="bg-bg border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">
-              Implied Volatility Surface — Spot {result.spot} · ATM Vol {(result.atm_vol * 100).toFixed(0)}%
-            </span>
-          </div>
+        <Panel>
+          <PanelHeader>
+            Implied Volatility Surface — Spot {result.spot} · ATM Vol {(result.atm_vol * 100).toFixed(0)}%
+          </PanelHeader>
           <div className="p-4">
             <svg ref={svgRef} width={560} height={300} className="block" />
           </div>
-        </div>
+        </Panel>
       )}
 
       {!result && !loading && !error && (

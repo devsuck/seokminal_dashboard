@@ -411,21 +411,18 @@ function CurveTab() {
       />
       <Err msg={error} />
       {result && (
-        <div className="bg-bg border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-3">
-            <span className="text-text-3 text-[11px] uppercase tracking-wider">
-              Forward Curve — Spot {result.spot}
+        <Panel>
+          <PanelHeader right={structure && (
+            <span className={structureCls(structure)}>
+              {structure}
             </span>
-            {structure && (
-              <span className={`text-[11px] font-semibold uppercase tracking-wider ${structureCls(structure)}`}>
-                {structure}
-              </span>
-            )}
-          </div>
+          )}>
+            Forward Curve — Spot {result.spot}
+          </PanelHeader>
           <div className="p-4">
             <svg ref={svgRef} width={560} height={280} className="block" />
           </div>
-        </div>
+        </Panel>
       )}
       {!result && !loading && !error && (
         <div className="text-center py-16 text-text-3 text-sm">
