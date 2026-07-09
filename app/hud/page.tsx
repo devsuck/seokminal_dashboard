@@ -206,6 +206,50 @@ export default function HudPage() {
           </div>
         </Panel>
       </div>
+
+      {/* 로그 + 최근 체결 — 빈 공간 없이 실시간 활동 채움 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start mt-2">
+        <Panel>
+          <PanelHeader right={<span className="tabular-nums">{lab?.log?.length ?? 0}줄</span>}>
+            AI LAB 로그
+          </PanelHeader>
+          <div className="max-h-64 overflow-y-auto">
+            {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+                <span className="text-text-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
+                <span className={`shrink-0 w-12 truncate ${
+                  l.level === "error" ? "text-neg" : l.level === "warn" ? "text-warn" : "text-text-3"}`}>{l.stage}</span>
+                <span className="text-text-2 truncate flex-1">{l.msg}</span>
+              </div>
+            ))}
+            {(lab?.log?.length ?? 0) === 0 && (
+              <div className="px-2 py-3 text-text-3 text-[11px]">로그 없음</div>
+            )}
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeader right={<span className="tabular-nums">{exec?.paper?.recent_closed?.length ?? 0}건</span>}>
+            최근 페이퍼 체결
+          </PanelHeader>
+          <div className="max-h-64 overflow-y-auto">
+            {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+                <span className="text-text-1 truncate flex-1">{t.corp}</span>
+                <span className="text-text-3 shrink-0 w-20 truncate">{t.entry_date}</span>
+                <span className="text-text-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
+                <span className={`shrink-0 w-14 text-right ${
+                  (t.pnl_pct ?? 0) > 0 ? "text-pos" : (t.pnl_pct ?? 0) < 0 ? "text-neg" : "text-text-3"}`}>
+                  {t.pnl_pct != null ? `${t.pnl_pct.toFixed(2)}%` : "—"}
+                </span>
+              </div>
+            ))}
+            {(exec?.paper?.recent_closed?.length ?? 0) === 0 && (
+              <div className="px-2 py-3 text-text-3 text-[11px]">체결 없음</div>
+            )}
+          </div>
+        </Panel>
+      </div>
     </div>
   );
 }
