@@ -9,8 +9,8 @@ import {
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
   type AccountBalances,
 } from "@/lib/api";
-import { LivePulse } from "@/components/Jarvis";
 import { Balances } from "@/components/AccountBalances";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { displayLevel } from "@/lib/agent-level";
 
 /* HUD 홈 — 미니멀 재설계.
@@ -19,6 +19,25 @@ import { displayLevel } from "@/lib/agent-level";
    2) 유닛 로스터(메인): N/M 가동 + 유닛별 가동/정지 카드
    3) 계좌 잔액 + 돈길 핵심 3줄
    상세 수치는 각 전용 페이지(/lab, /auto-research, /lab/execution)로 위임. */
+
+type Tone = "pos" | "accent" | "info" | "neg" | "text-3";
+const TONE: Record<Tone, { solid: string; text: string }> = {
+  pos:      { solid: "bg-pos",    text: "text-pos" },
+  accent:   { solid: "bg-accent", text: "text-accent" },
+  info:     { solid: "bg-info",   text: "text-info" },
+  neg:      { solid: "bg-neg",    text: "text-neg" },
+  "text-3": { solid: "bg-text-3", text: "text-text-3" },
+};
+
+function StatusDot({ tone, label }: { tone: Tone; label?: string }) {
+  const c = TONE[tone];
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`w-2 h-2 rounded-full inline-block ${c.solid}`} />
+      {label && <span className={`text-[11px] font-data ${c.text}`}>{label}</span>}
+    </span>
+  );
+}
 
 interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
@@ -31,13 +50,13 @@ interface Unit { kind: "AI" | "BOT"; name: string; running: boolean; detail: str
 function UnitCard({ u }: { u: Unit }) {
   return (
     <Link href={u.href}
-      className={`hud-frame block rounded-lg border p-3 no-underline transition-colors ${
+      className={`block border p-3 no-underline transition-colors ${
         u.running ? "border-pos/40 bg-pos/5 hover:bg-pos/10" : "border-border bg-panel-2/40 hover:bg-panel-2"}`}>
       <div className="flex items-center gap-2">
-        <LivePulse tone={u.running ? "pos" : "text-3"} />
+        <StatusDot tone={u.running ? "pos" : "text-3"} />
         <span className="text-xs font-semibold text-text-1 truncate flex-1">{u.name}</span>
-        <span className={`text-[8px] px-1 py-0.5 rounded border font-data ${
-          u.kind === "AI" ? "border-accent/40 text-accent" : "border-hud/40 text-hud"}`}>{u.kind}</span>
+        <span className={`text-[8px] px-1 py-0.5 border font-data ${
+          u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
       </div>
       <div className="mt-1.5 flex items-center justify-between font-data text-[10px]">
         <span className="text-text-3 truncate">{u.detail}</span>
@@ -112,7 +131,7 @@ export default function HudPage() {
   const edgeLabel = edge?.status === "confirmed" ? "생존 확인" : edge?.status === "drifting" ? "이탈 경고"
     : edge?.status === "accumulating" ? "누적 중" : edge?.status === "no_oos_yet" ? "OOS 대기" : "워밍 중";
   const edgeTone = edge?.status === "confirmed" ? "text-pos" : edge?.status === "drifting" ? "text-neg"
-    : edge?.status === "accumulating" ? "text-accent" : "text-hud";
+    : edge?.status === "accumulating" ? "text-accent" : "text-info";
 
   // 전 유닛 로스터 — 트레이딩 AI + 시스템 봇
   const units: Unit[] = [];
@@ -132,15 +151,17 @@ export default function HudPage() {
   const wd = sys?.research_service?.watchdog;
 
   return (
-    <div className="hud-bg tech-grid min-h-screen p-4 sm:p-6">
+    <div className="min-h-screen p-4 sm:p-6">
       {/* 상단 상태 스트립 */}
-      <div className="hud-frame flex items-center justify-between gap-3 border border-hud/25 rounded-lg px-4 py-2 mb-4 scanline-host">
-        <div className="flex items-center gap-3">
-          <span className="font-data text-sm uppercase tracking-[0.3em] text-text-1">대시보드</span>
-          <LivePulse tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "PROCESSING" : active ? "ONLINE" : "STANDBY"} />
+      <Panel className="mb-4">
+        <PanelHeader right={<span className="tabular-nums tracking-widest">{clock}</span>}>
+          시스템 상태
+        </PanelHeader>
+        <div className="flex items-center gap-3 px-3 py-2">
+          <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "PROCESSING" : active ? "ONLINE" : "STANDBY"} />
           {arm && (
             <Link href="/lab/execution"
-              className={`no-underline text-[11px] px-2 py-0.5 rounded border font-data tracking-wider ${
+              className={`no-underline text-[11px] px-2 py-0.5 border font-data tracking-wider ${
                 arm.decision === "GO" ? "border-pos/50 text-pos bg-pos/10" :
                 arm.decision === "KILL" ? "border-neg/50 text-neg bg-neg/10 animate-blink" :
                 "border-info/40 text-info bg-info/10"}`}>
@@ -148,57 +169,47 @@ export default function HudPage() {
             </Link>
           )}
           {wd?.critical && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded border border-neg/50 text-neg bg-neg/10 animate-blink font-data">감시견 경보</span>
+            <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/10 animate-blink font-data">감시견 경보</span>
           )}
         </div>
-        <span className="font-data text-lg text-hud tabular-nums tracking-widest hud-glow">{clock}</span>
-      </div>
+      </Panel>
 
       {/* 유닛 로스터 — 메인. 뭐가 돌고 있는지 한 눈에 */}
-      <div className="hud-frame border border-hud/20 rounded-lg p-4 bg-panel/40 backdrop-blur-sm mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-data text-[10px] uppercase tracking-[0.2em] text-hud/80">유닛 로스터</span>
-          <div className="flex items-center gap-2">
-            <span className={`font-data text-2xl tabular-nums ${allUp ? "text-pos" : nRunning > 0 ? "text-hud" : "text-text-3"}`}>
-              {nRunning}<span className="text-text-3 text-base">/{units.length}</span>
-            </span>
-            <span className="font-data text-[10px] text-text-3 uppercase tracking-wider">가동</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+      <Panel className="mb-4">
+        <PanelHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
+          유닛 로스터
+        </PanelHeader>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3">
           {units.map((u, i) => <UnitCard key={`${u.name}-${i}`} u={u} />)}
         </div>
-      </div>
+      </Panel>
 
       {/* 계좌 + 돈길 핵심 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {bal ? <Balances bal={bal} /> : (
-          <div className="bg-panel border border-border rounded-lg p-3 text-text-3 text-[11px]">계좌 정보 로딩 중…</div>
+          <div className="bg-panel border border-border p-3 text-text-3 text-[11px]">계좌 정보 로딩 중…</div>
         )}
-        <div className="hud-frame bg-panel/60 border border-hud/20 rounded-lg p-3 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-data text-[10px] uppercase tracking-[0.2em] text-hud/80">돈길</span>
-            <Link href="/lab/execution" className="font-data text-[10px] text-accent no-underline uppercase tracking-wider hover:underline">
-              집행 콘솔 →
-            </Link>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="bg-panel-2/40 rounded p-2">
+        <Panel>
+          <PanelHeader right={<Link href="/lab/execution" className="text-black no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
+            돈길
+          </PanelHeader>
+          <div className="grid grid-cols-3 gap-2 text-center p-3">
+            <div className="bg-panel-2/40 p-2">
               <p className="text-text-3 text-[9px] uppercase tracking-wider mb-1">엣지</p>
               <p className={`font-data text-xs ${edgeTone}`}>{edgeLabel}</p>
             </div>
-            <div className="bg-panel-2/40 rounded p-2">
+            <div className="bg-panel-2/40 p-2">
               <p className="text-text-3 text-[9px] uppercase tracking-wider mb-1">페이퍼 기간</p>
-              <p className={`font-data text-xs ${paperMo >= paperMin ? "text-pos" : "text-hud"}`}>{paperMo}/{paperMin}mo</p>
+              <p className={`font-data text-xs ${paperMo >= paperMin ? "text-pos" : "text-info"}`}>{paperMo}/{paperMin}mo</p>
             </div>
-            <div className="bg-panel-2/40 rounded p-2">
+            <div className="bg-panel-2/40 p-2">
               <p className="text-text-3 text-[9px] uppercase tracking-wider mb-1">Live 집행</p>
               <p className={`font-data text-xs ${jarvis?.live_execution === "blocked" ? "text-neg" : "text-pos"}`}>
                 {jarvis?.live_execution ?? "—"}
               </p>
             </div>
           </div>
-        </div>
+        </Panel>
       </div>
     </div>
   );
