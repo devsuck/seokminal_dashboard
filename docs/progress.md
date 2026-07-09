@@ -1,3 +1,25 @@
+## Phase 151 — 블룸버그 터미널 리디자인 Phase 1 (2026-07-09) ✅ DONE (Phase 2 대기)
+
+커밋: `1e5cec5`(Phase1 완료), `028b85e`(밀도 패스), `3ac81ad`(HUD 정보밀도 보강).
+
+### 1. SDD 8태스크 실행 (플랜: `docs/superpowers/plans/2026-07-09-bloomberg-redesign-phase1.md`)
+- 디자인 토큰(`app/globals.css`) 각짐(`--radius-*`=0), 색상 팔레트 재정의, NAUTILUS→SEOKMINAL 리브랜드.
+- `components/ui/Panel.tsx` 신규(`Panel`/`PanelHeader`, 오렌지 헤더바) — Phase 2에서 41개 페이지에 복제 예정.
+- `/hud`, `/market`(ComparisonTab) 파일럿 적용. 최종 전체브랜치 리뷰에서 PanelHeader `right` 슬롯 대비 버그 발견→수정(`text-black` 기본값화).
+
+### 2. 사용자 피드백 — "블룸버그 같지 않다" → 밀도 패스
+유저가 결과물이 스펙 충족에도 불구하고 블룸버그 터미널 느낌이 안 난다고 지적. 진단: (1) 카드형 레이아웃 vs 블룸버그의 밀집 테이블/그리드, (2) 폰트 — 모노스페이스가 일부 숫자에만 적용, (3) `--color-panel`이 배경과 너무 대비돼 "떠있는 카드"처럼 보임.
+- `--color-panel`/`--color-panel-2`를 배경에 가깝게 낮춤(플랫 서피스화).
+- `/hud`의 `UnitCard`를 패딩 카드 그리드→보더 구분 테이블 로우로 전환, 페이지 전체 `font-data` 적용.
+- 돈길 통계 셀도 개별 박스→`divide-x` 구분선 방식으로 전환.
+
+### 3. HUD 정보 밀도 보강
+유저가 재차 "여전히 블룸버그 같지 않다, HUD 메인이 정보가 너무 없어서 그런가?" 지적 → 돈길 패널 아래 빈 공간에 기존에 있지만 노출 안 하던 데이터(`lib/api.ts`의 `LabState.log`, `ExecutionConsole.paper.recent_closed`) 활용해 "AI LAB 로그"·"최근 페이퍼 체결" 패널 추가.
+
+### 다음 할 일
+- Phase 2: 나머지 41개 페이지 `<Panel>`/`<PanelHeader>` + 밀도 전환 — 별도 세션, 별도 plan.
+- `/hud` 추가 유저 피드백 있을 시 같은 패턴(직접 수정, subagent 안 씀 — 작은 반복 UI 폴리싱은 프로세스 극장 금지)으로 대응.
+
 ## Phase 150 — ICT 조합빌더 오버레이 + GC/ES/NQ/EURUSD/USDJPY/GOLD 인트라데이 데이터 (2026-07-08~09) ✅ DONE
 
 커밋(seokminal-multi-venue): `eeea0de`.
