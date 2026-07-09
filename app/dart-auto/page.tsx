@@ -8,6 +8,7 @@ import {
   type DartSignal, type DartPosition, type DartBotStatus,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const VERDICT: Record<string, string> = {
   BUY: "text-pos border-pos/40 bg-pos/10",
@@ -126,7 +127,7 @@ export default function DartAutoPage() {
       {bot && (
         <div className="bg-panel border border-border rounded-lg px-4 py-2.5 flex items-center gap-3 flex-wrap text-[11px]">
           <span className="text-text-3">누적 지출 <span className="text-text-1 font-data">₩{Math.round(bot.spent).toLocaleString()}</span> / ₩{Math.round(bot.budget).toLocaleString()}</span>
-          <span className={`font-data ${bot.remaining < 1 ? "text-neg" : "text-pos"}`}>잔여 ₩{Math.round(bot.remaining).toLocaleString()}</span>
+          <span className={`font-data px-1 font-bold ${bot.remaining < 1 ? "bg-neg/20 text-neg" : "bg-pos/20 text-pos"}`}>잔여 ₩{Math.round(bot.remaining).toLocaleString()}</span>
           {bot.remaining < 1 && <span className="text-warn">예산 소진 — 매도되면 자동 회수됨</span>}
           <button onClick={resetSpent} className="ml-auto text-text-3 hover:text-accent border border-border rounded px-2 py-1">누적 지출 리셋</button>
         </div>
@@ -162,11 +163,10 @@ export default function DartAutoPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
         {/* 공시 */}
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">기업행위 공시 (최근 14일)</span>
-            <span className="text-text-3 text-[11px]">{signals.length}건 · 1분 갱신</span>
-          </div>
+        <Panel>
+          <PanelHeader right={<span className="tabular-nums">{signals.length}건 · 1분 갱신</span>}>
+            기업행위 공시 (최근 14일)
+          </PanelHeader>
           {error ? <div className="p-2"><EmptyState message="공시 로드 실패" hint={error} /></div>
             : loading ? <LoadingState message="DART 공시 로딩 중…" />
             : signals.length === 0 ? <EmptyState message="기업행위 공시 없음" />
@@ -217,17 +217,18 @@ export default function DartAutoPage() {
                 </tbody>
               </table>
             )}
-        </div>
+        </Panel>
 
         {/* 우측: 보유 + 봇 로그 */}
         <div className="space-y-4">
-          <div className="bg-panel border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-              <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">모의 보유 (KIS)</span>
-              <span className={`text-xs font-data ${totalPl >= 0 ? "text-pos" : "text-neg"}`}>
+          <Panel>
+            <PanelHeader right={
+              <span className={totalPl >= 0 ? "text-pos" : "text-neg"}>
                 {totalPl >= 0 ? "+" : ""}₩{Math.round(totalPl).toLocaleString()}
               </span>
-            </div>
+            }>
+              모의 보유 (KIS)
+            </PanelHeader>
             {positions.length > 0 && (
               <div className="px-4 py-2 bg-warn/5 border-b border-warn/20 text-[11px] text-text-2 leading-relaxed">
                 <span className="text-warn font-semibold">매도 정책:</span> 현재 자동 매도 <b className="text-text-1">없음</b> — 공시 이벤트 매수만 하고 보유(mark-to-market).
@@ -250,20 +251,19 @@ export default function DartAutoPage() {
                       </div>
                       <div className="text-text-3 text-[10px] font-data">{p.qty}주 · 평단 ₩{p.avg_price.toLocaleString()}</div>
                     </div>
-                    <div className={`text-right font-data text-sm shrink-0 ${(p.return_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>
+                    <div className={`text-right font-data text-sm shrink-0 px-1 font-bold ${
+                      p.return_pct == null ? "text-text-3" : (p.return_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                       {p.return_pct != null ? `${p.return_pct >= 0 ? "+" : ""}${p.return_pct.toFixed(2)}%` : "—"}
                     </div>
                   </Link>
                 ))}
               </div>
             )}
-          </div>
+          </Panel>
 
           {/* 봇 실행 로그 */}
-          <div className="bg-panel border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-              <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">봇 실행 로그</span>
-            </div>
+          <Panel>
+            <PanelHeader>봇 실행 로그</PanelHeader>
             {!bot || bot.log.length === 0 ? (
               <div className="p-5"><EmptyState message="로그 없음" hint="자동봇이 매수하면 기록됨" /></div>
             ) : (
@@ -281,7 +281,7 @@ export default function DartAutoPage() {
                 ))}
               </div>
             )}
-          </div>
+          </Panel>
         </div>
       </div>
 

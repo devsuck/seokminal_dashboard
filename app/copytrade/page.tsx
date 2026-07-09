@@ -8,6 +8,7 @@ import {
   type TraderCard, type CopyPosition,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const NOTIONAL_KEY = "copytrade-notional";
 const TOTAL_BUDGET_KEY = "copytrade-total-budget";
@@ -236,7 +237,7 @@ export default function CopyTradePage() {
                               <span className="text-text-3 font-data text-[10px]">{h.date}</span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className={`font-data ${retCls(h.return_pct)}`}>{retStr(h.return_pct)}</span>
+                              <span className={`font-data px-1 font-bold ${h.return_pct == null ? "text-text-3" : h.return_pct > 0 ? "bg-pos/20 text-pos" : h.return_pct < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>{retStr(h.return_pct)}</span>
                               <button onClick={() => mirrorOne(h.ticker)} disabled={busy === h.ticker}
                                 className="text-[10px] px-1.5 py-0.5 rounded border border-border text-text-3 hover:text-pos hover:border-pos/40 disabled:opacity-40">
                                 미러
@@ -264,13 +265,14 @@ export default function CopyTradePage() {
         </div>
 
         {/* 내 페이퍼 포트폴리오 */}
-        <div className="bg-panel border border-border rounded-lg overflow-hidden h-fit">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">내 페이퍼 포트폴리오</span>
-            <span className={`text-xs font-data ${totalPl >= 0 ? "text-pos" : "text-neg"}`}>
+        <Panel className="h-fit">
+          <PanelHeader right={
+            <span className={totalPl >= 0 ? "text-pos" : "text-neg"}>
               {totalPl >= 0 ? "+" : ""}${totalPl.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
-          </div>
+          }>
+            내 페이퍼 포트폴리오
+          </PanelHeader>
           {/* 자동청산 규칙 — TP/SL 넘으면 자동 매도, 예산 회수 */}
           <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 flex-wrap">
             <button onClick={() => { const v = !autoExit; setAutoExit(v); localStorage.setItem(AUTO_EXIT_KEY, String(v)); }}
@@ -299,10 +301,10 @@ export default function CopyTradePage() {
                     <div className="text-text-3 text-[10px] font-data">{p.qty.toFixed(4)}주 · 평단 ${p.avg_price.toFixed(2)}</div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-data text-sm ${p.unrealized_pl >= 0 ? "text-pos" : "text-neg"}`}>
+                    <div className={`font-data text-sm px-1 font-bold ${p.unrealized_pl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                       {p.unrealized_pl >= 0 ? "+" : ""}${p.unrealized_pl.toFixed(2)}
                     </div>
-                    <div className={`text-[10px] font-data ${p.unrealized_plpc >= 0 ? "text-pos" : "text-neg"}`}>
+                    <div className={`text-[10px] font-data px-1 font-bold ${p.unrealized_plpc >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                       {p.unrealized_plpc >= 0 ? "+" : ""}{p.unrealized_plpc.toFixed(2)}%
                     </div>
                   </div>
@@ -314,7 +316,7 @@ export default function CopyTradePage() {
               ))}
             </div>
           )}
-        </div>
+        </Panel>
       </div>
 
       {toast && (

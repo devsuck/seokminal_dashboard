@@ -6,6 +6,7 @@ import {
   type PolymarketBotStatus,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
@@ -118,8 +119,8 @@ export default function PolymarketPage() {
       {bot && (
         <div className="bg-panel border border-border rounded-lg px-4 py-2.5 flex items-center gap-3 flex-wrap text-[11px]">
           <span className="text-text-3">누적 지출 <span className="text-text-1 font-data">${Math.round(bot.spent).toLocaleString()}</span> / ${Math.round(bot.budget).toLocaleString()}</span>
-          <span className={`font-data ${bot.remaining < 1 ? "text-neg" : "text-pos"}`}>잔여 ${Math.round(bot.remaining).toLocaleString()}</span>
-          <span className={`font-data ${bot.realized_pnl >= 0 ? "text-pos" : "text-neg"}`}>실현손익 {bot.realized_pnl >= 0 ? "+" : ""}${bot.realized_pnl.toLocaleString()}</span>
+          <span className={`font-data px-1 font-bold ${bot.remaining < 1 ? "bg-neg/20 text-neg" : "bg-pos/20 text-pos"}`}>잔여 ${Math.round(bot.remaining).toLocaleString()}</span>
+          <span className={`font-data px-1 font-bold ${bot.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>실현손익 {bot.realized_pnl >= 0 ? "+" : ""}${bot.realized_pnl.toLocaleString()}</span>
           <button onClick={resetSpent} className="ml-auto text-text-3 hover:text-accent border border-border rounded px-2 py-1">누적 지출 리셋</button>
         </div>
       )}
@@ -150,11 +151,8 @@ export default function PolymarketPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">보유 포지션</span>
-            <span className="text-text-3 text-[11px]">{bot?.positions.length ?? 0}건</span>
-          </div>
+        <Panel>
+          <PanelHeader right={<span>{bot?.positions.length ?? 0}건</span>}>보유 포지션</PanelHeader>
           {error ? <div className="p-2"><EmptyState message="상태 로드 실패" hint={error} /></div>
             : loading ? <LoadingState message="Polymarket 봇 상태 로딩 중…" />
             : !bot || bot.positions.length === 0 ? <EmptyState message="보유 포지션 없음" hint="필터 충족 시장이 있으면 자동 진입" />
@@ -182,12 +180,10 @@ export default function PolymarketPage() {
                 </tbody>
               </table>
             )}
-        </div>
+        </Panel>
 
-        <div className="bg-panel border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border bg-panel-2">
-            <span className="text-text-2 text-xs uppercase tracking-wider font-semibold">봇 실행 로그</span>
-          </div>
+        <Panel>
+          <PanelHeader>봇 실행 로그</PanelHeader>
           {!bot || bot.log.length === 0 ? (
             <div className="p-5"><EmptyState message="로그 없음" hint="봇이 진입/정산하면 기록됨" /></div>
           ) : (
@@ -206,7 +202,7 @@ export default function PolymarketPage() {
               ))}
             </div>
           )}
-        </div>
+        </Panel>
       </div>
 
       {bot && (

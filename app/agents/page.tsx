@@ -27,6 +27,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { ReactorCore, lvToOrbVariant, type OrbVariant } from "@/components/ReactorCore";
 import { displayLevel } from "@/lib/agent-level";
 import { Balances } from "@/components/AccountBalances";
+import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 /** God Mode 전용 아이콘 — 왕관(3-jewel). LIVE 승급 상태를 나타내는 유일한 자리에만 쓴다. */
 function IconCrown({ size = 14, className = "" }: { size?: number; className?: string }) {
@@ -248,10 +249,8 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
       {(perf.open_positions.length > 0 || perf.cash > 0) && <PortfolioPie perf={perf} />}
 
       {/* Open positions */}
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-3 py-2 border-b border-border bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
-          보유 포지션 ({perf.open_positions.length})
-        </div>
+      <Panel>
+        <PanelHeader>보유 포지션 ({perf.open_positions.length})</PanelHeader>
         {perf.open_positions.length === 0 ? (
           <p className="text-text-3 text-xs px-3 py-3">포지션 없음</p>
         ) : (
@@ -272,21 +271,23 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
                   <td className="px-3 py-1.5 text-right text-text-2">{p.qty}</td>
                   <td className="px-3 py-1.5 text-right text-text-2">${p.avg_price.toFixed(2)}</td>
                   <td className="px-3 py-1.5 text-right text-text-2">{p.current_price != null ? `$${p.current_price.toFixed(2)}` : "—"}</td>
-                  <td className={`px-3 py-1.5 text-right ${pnlColor(p.unrealized_pnl)}`}>
-                    {p.unrealized_pnl != null ? fmtMoney(p.unrealized_pnl) : "—"}
+                  <td className="px-3 py-1.5 text-right">
+                    <span className={`px-1 font-bold ${
+                      p.unrealized_pnl == null ? "text-text-2" :
+                      p.unrealized_pnl > 0 ? "bg-pos/20 text-pos" : p.unrealized_pnl < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                      {p.unrealized_pnl != null ? fmtMoney(p.unrealized_pnl) : "—"}
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </Panel>
 
       {/* Trade log with reasons */}
-      <div className="bg-panel border border-border rounded-lg overflow-hidden">
-        <div className="px-3 py-2 border-b border-border bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
-          매매 기록 ({perf.trades.length}) — 매수/매도 이유 포함
-        </div>
+      <Panel>
+        <PanelHeader>매매 기록 ({perf.trades.length}) — 매수/매도 이유 포함</PanelHeader>
         {perf.trades.length === 0 ? (
           <p className="text-text-3 text-xs px-3 py-3">거래 없음</p>
         ) : (
@@ -302,7 +303,10 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
                     <span className="text-text-3 text-[10px] font-data">{t.qty}주 @ ${t.price.toFixed(2)}</span>
                   </div>
                   {t.realized_pnl != null && (
-                    <span className={`text-[11px] font-data ${pnlColor(t.realized_pnl)}`}>{fmtMoney(t.realized_pnl)}</span>
+                    <span className={`text-[11px] font-data px-1 font-bold ${
+                      t.realized_pnl > 0 ? "bg-pos/20 text-pos" : t.realized_pnl < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                      {fmtMoney(t.realized_pnl)}
+                    </span>
                   )}
                 </div>
                 {t.reason && <p className="text-text-2 text-[11px] mt-1 leading-snug"> {t.reason}</p>}
@@ -310,7 +314,7 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
             ))}
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -356,34 +360,33 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
   }
 
   return (
-    <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-text-2 text-xs font-semibold inline-flex items-center gap-1">
-            <IconCrown size={12} />God Mode 승급 심사
-          </span>
-          <p className="text-text-3 text-[10px] mt-0.5">최근 {check?.window_days ?? 30}일 실적 3조건 — 전부 통과해야 승급 가능</p>
-        </div>
+    <Panel>
+      <PanelHeader right={
         <button onClick={handlePromote} disabled={!check?.eligible || promoting}
           className="text-[11px] px-3 py-1.5 rounded font-medium disabled:opacity-40"
           style={{ background: check?.eligible ? "#a855f7" : undefined, color: check?.eligible ? "#000" : undefined }}>
           {promoting ? "승급 중…" : "God Mode 승급 (LIVE 전환)"}
         </button>
+      }>
+        <IconCrown size={12} className="inline mr-1 -mt-0.5" />God Mode 승급 심사
+      </PanelHeader>
+      <div className="p-3 space-y-2">
+        <p className="text-text-3 text-[10px]">최근 {check?.window_days ?? 30}일 실적 3조건 — 전부 통과해야 승급 가능</p>
+        {loading && <p className="text-text-3 text-[10px]">심사 중…</p>}
+        {error && <p className="text-neg text-[10px]">{error}</p>}
+        {check && (
+          <div className="space-y-1 border-t border-border pt-2">
+            {check.conditions.map(c => (
+              <div key={c.key} className="flex items-center gap-2 text-[11px]">
+                <span className={c.passed ? "text-pos" : "text-text-3"}>{c.passed ? "✓" : "✗"}</span>
+                <span className={c.passed ? "text-text-1" : "text-text-3"}>{c.label}</span>
+                <span className="text-text-3 text-[10px] ml-auto font-data">{c.detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      {loading && <p className="text-text-3 text-[10px]">심사 중…</p>}
-      {error && <p className="text-neg text-[10px]">{error}</p>}
-      {check && (
-        <div className="space-y-1 border-t border-border pt-2">
-          {check.conditions.map(c => (
-            <div key={c.key} className="flex items-center gap-2 text-[11px]">
-              <span className={c.passed ? "text-pos" : "text-text-3"}>{c.passed ? "✓" : "✗"}</span>
-              <span className={c.passed ? "text-text-1" : "text-text-3"}>{c.label}</span>
-              <span className="text-text-3 text-[10px] ml-auto font-data">{c.detail}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </Panel>
   );
 }
 
@@ -409,11 +412,12 @@ function Overview({ ov, onSelect }: { ov: AgentsOverview; onSelect: (id: string)
             <button key={a.id} onClick={() => onSelect(a.id)}
               className="w-full flex items-center gap-2 text-left hover:bg-panel-2 rounded px-1 py-0.5">
               <span className="w-24 truncate text-[11px] text-text-2 shrink-0">{a.name}</span>
-              <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${a.paper ? "text-text-3" : "text-neg"}`}>{a.paper ? "P" : "L"}</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${a.paper ? "text-text-3" : "bg-neg/15 text-neg"}`}>{a.paper ? "P" : "L"}</span>
               <div className="flex-1 h-2.5 bg-panel-2 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${pos ? "bg-pos" : "bg-neg"}`} style={{ width: `${pct}%` }} />
               </div>
-              <span className={`w-20 text-right text-[10px] font-data shrink-0 ${pnlColor(a.realized_pnl)}`}>{fmtMoney(a.realized_pnl)}</span>
+              <span className={`w-20 text-right text-[10px] font-data shrink-0 px-1 font-bold ${
+                a.realized_pnl > 0 ? "bg-pos/20 text-pos" : a.realized_pnl < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>{fmtMoney(a.realized_pnl)}</span>
               <span className="w-14 text-right text-[9px] text-text-3 font-data shrink-0">{a.trades}건</span>
             </button>
           );
@@ -605,8 +609,9 @@ export default function AgentsPage() {
             {showCreate ? "− 생성 폼 닫기" : "+ 새 에이전트"}
           </button>
           {showCreate && (
-          <div className="bg-panel border border-border rounded-lg p-3 space-y-2">
-            <h2 className="text-text-2 text-xs uppercase tracking-wider font-semibold">새 에이전트</h2>
+          <Panel>
+            <PanelHeader>새 에이전트</PanelHeader>
+            <div className="p-3 space-y-2">
             <input
               value={name} onChange={e => setName(e.target.value)} placeholder="이름 (예: 모멘텀 단타봇)"className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent"/>
             {/* 투자 스타일 */}
@@ -720,7 +725,8 @@ export default function AgentsPage() {
               className={`w-full text-sm font-medium rounded py-1.5 disabled:opacity-40 ${paper ? "bg-accent text-black" : "bg-neg text-black"}`}>
               {creating ? "생성 중…" : paper ? "에이전트 생성 (모의)" : "에이전트 생성 (실거래)"}
             </button>
-          </div>
+            </div>
+          </Panel>
           )}
 
           <div className="space-y-2">
@@ -793,7 +799,7 @@ export default function AgentsPage() {
                   <span className="text-text-3 text-[10px] font-data">자본 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
                   <div className="flex gap-1.5">
                     <button onClick={e => { e.stopPropagation(); toggle(a); }}
-                      className={`text-[10px] px-2 py-0.5 rounded border ${a.status === "running" ? "border-warn/40 text-warn" : "border-pos/40 text-pos"}`}>
+                      className={`text-[10px] px-2 py-0.5 rounded border ${a.status === "running" ? "border-warn/40 text-warn bg-warn/10" : "border-pos/40 text-pos bg-pos/10"}`}>
                       {a.status === "running" ? "정지" : "시작"}
                     </button>
                     <button onClick={e => { e.stopPropagation(); onDelete(a); }}
@@ -839,36 +845,45 @@ export default function AgentsPage() {
                   })()}
 
                   {/* Strategy distillation — Lv3 자유탐색 → 검증된 규칙 전략 */}
-                  <div className="bg-panel border border-border rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-text-2 text-xs font-semibold"> 전략 증류</span>
-                        <p className="text-text-3 text-[10px] mt-0.5">거래로그 → 규칙 전략으로 증류 → 백테스트 검증</p>
-                      </div>
+                  <Panel>
+                    <PanelHeader right={
                       <button onClick={handleDistill} disabled={distilling}
-                        className="text-[11px] px-3 py-1.5 rounded bg-accent text-black font-medium disabled:opacity-40">
+                        className="text-[11px] px-3 py-1.5 rounded font-medium disabled:opacity-40">
                         {distilling ? "증류 중… (~1분)" : "증류 실행"}
                       </button>
-                    </div>
-                    {distill && (
-                      <div className="mt-3 border-t border-border pt-2.5 space-y-1.5">
-                        <div className={`text-xs font-semibold ${distill.validated ? "text-pos" : "text-neg"}`}>
-                          {distill.validated ? " " : "⚠ "}{distill.verdict}
-                        </div>
-                        <div className="text-[11px] font-data text-text-2 space-y-0.5">
-                          <div>전략: {distill.proposal.strategy} · {distill.proposal.instrument_id}</div>
-                          <div>파라미터: {JSON.stringify(distill.proposal.params)}</div>
-                          <div className="flex gap-3">
-                            <span className={pnlColor(distill.backtest.sharpe_ratio ?? null)}>Sharpe {distill.backtest.sharpe_ratio?.toFixed(2) ?? "—"}</span>
-                            <span className={pnlColor(distill.backtest.total_pnl_pct ?? null)}>수익 {distill.backtest.total_pnl_pct?.toFixed(2) ?? "—"}%</span>
-                            <span className="text-text-3">승률 {distill.backtest.win_rate != null ? (distill.backtest.win_rate * 100).toFixed(0) + "%" : "—"}</span>
+                    }>
+                      전략 증류
+                    </PanelHeader>
+                    <div className="p-3 space-y-2">
+                      <p className="text-text-3 text-[10px]">거래로그 → 규칙 전략으로 증류 → 백테스트 검증</p>
+                      {distill && (
+                        <div className="border-t border-border pt-2.5 space-y-1.5">
+                          <div className={`text-xs px-1 inline-block font-bold ${distill.validated ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                            {distill.validated ? " " : "⚠ "}{distill.verdict}
                           </div>
+                          <div className="text-[11px] font-data text-text-2 space-y-0.5">
+                            <div>전략: {distill.proposal.strategy} · {distill.proposal.instrument_id}</div>
+                            <div>파라미터: {JSON.stringify(distill.proposal.params)}</div>
+                            <div className="flex gap-3">
+                              <span className={`px-1 font-bold ${
+                                distill.backtest.sharpe_ratio == null ? "text-text-2" :
+                                distill.backtest.sharpe_ratio > 0 ? "bg-pos/20 text-pos" : distill.backtest.sharpe_ratio < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                                Sharpe {distill.backtest.sharpe_ratio?.toFixed(2) ?? "—"}
+                              </span>
+                              <span className={`px-1 font-bold ${
+                                distill.backtest.total_pnl_pct == null ? "text-text-2" :
+                                distill.backtest.total_pnl_pct > 0 ? "bg-pos/20 text-pos" : distill.backtest.total_pnl_pct < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                                수익 {distill.backtest.total_pnl_pct?.toFixed(2) ?? "—"}%
+                              </span>
+                              <span className="text-text-3">승률 {distill.backtest.win_rate != null ? (distill.backtest.win_rate * 100).toFixed(0) + "%" : "—"}</span>
+                            </div>
+                          </div>
+                          {distill.proposal.rationale && <p className="text-text-3 text-[10px] leading-snug"> {distill.proposal.rationale}</p>}
+                          <p className="text-text-3 text-[9px]">거래 {distill.trades_analyzed}건 분석</p>
                         </div>
-                        {distill.proposal.rationale && <p className="text-text-3 text-[10px] leading-snug"> {distill.proposal.rationale}</p>}
-                        <p className="text-text-3 text-[9px]">거래 {distill.trades_analyzed}건 분석</p>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  </Panel>
                 </div>
               )}
 
