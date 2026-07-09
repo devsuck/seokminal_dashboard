@@ -380,8 +380,16 @@ export default function IctPage() {
             </div>
             <div className="text-text-3">p-value: <span className="text-text-2 font-data">{num(result.p)}</span></div>
             <div className="text-text-3">random median: <span className="text-text-2 font-data">{num(result.rand_median)}</span></div>
-            <div className="text-text-3">WF1: <span className="text-text-2 font-data">{num(result.wf_first)}</span></div>
-            <div className="text-text-3">WF2: <span className="text-text-2 font-data">{num(result.wf_second)}</span></div>
+            <div className="text-text-3">
+              WF1: <span className={`font-data px-1 font-bold ${result.wf_first !== null && result.wf_first > 0 ? "bg-pos/20 text-pos" : result.wf_first !== null && result.wf_first < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                {num(result.wf_first)}
+              </span>
+            </div>
+            <div className="text-text-3">
+              WF2: <span className={`font-data px-1 font-bold ${result.wf_second !== null && result.wf_second > 0 ? "bg-pos/20 text-pos" : result.wf_second !== null && result.wf_second < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                {num(result.wf_second)}
+              </span>
+            </div>
           </div>
           {result.n_entries > 0 && result.verdict !== "UNDERPOWERED" && (
             <div className="px-4 pb-4 text-[11px] text-text-3">

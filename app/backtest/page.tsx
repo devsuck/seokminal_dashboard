@@ -375,7 +375,7 @@ function BacktestPageInner() {
                   <div className="flex gap-6 flex-wrap">
                     <div>
                       <p className="text-text-3 text-xs">Total PnL</p>
-                      <p className="text-text-1 text-sm font-medium">
+                      <p className={`text-sm font-medium ${portfolioResult.portfolio_total_pnl != null ? `inline-block px-1 font-bold ${portfolioResult.portfolio_total_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}` : "text-text-1"}`}>
                         {portfolioResult.portfolio_total_pnl != null
                           ? `$${portfolioResult.portfolio_total_pnl.toFixed(2)}`
                           : "—"}
@@ -391,7 +391,7 @@ function BacktestPageInner() {
                     </div>
                     <div>
                       <p className="text-text-3 text-xs">Sharpe</p>
-                      <p className="text-text-1 text-sm font-medium">
+                      <p className={`text-sm font-medium ${portfolioResult.portfolio_sharpe != null ? `inline-block px-1 font-bold ${portfolioResult.portfolio_sharpe >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}` : "text-text-1"}`}>
                         {portfolioResult.portfolio_sharpe != null
                           ? portfolioResult.portfolio_sharpe.toFixed(2)
                           : "—"}
@@ -439,7 +439,7 @@ function BacktestPageInner() {
                         {portfolioResult.results.map(r => (
                           <tr key={r.instrument_id} className="border-b border-border last:border-0">
                             <td className="px-3 py-2 text-text-1">{r.instrument_id}</td>
-                            <td className="px-3 py-2 text-right text-text-2">
+                            <td className={`px-3 py-2 text-right font-bold ${r.sharpe_ratio != null && r.sharpe_ratio >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                               {r.sharpe_ratio != null ? r.sharpe_ratio.toFixed(2) : "—"}
                             </td>
                             <td className={`px-3 py-2 text-right font-bold ${r.total_pnl != null && r.total_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
@@ -652,17 +652,17 @@ function BacktestPageInner() {
       </div>
 
       {result !== null && (
-        <div className="bg-accent/5 border border-accent/20 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
-          <div>
-            <div className="text-text-3 text-[10px] uppercase tracking-wider">Workflow</div>
-            <p className="text-text-1 text-sm font-medium mt-0.5">Backtest complete — optimise your portfolio weights next</p>
+        <Panel>
+          <PanelHeader>Workflow</PanelHeader>
+          <div className="px-4 py-3 flex items-center justify-between gap-4">
+            <p className="text-text-1 text-sm font-medium">Backtest complete — optimise your portfolio weights next</p>
+            <button
+              onClick={handleWorkflowNext}
+              className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0">
+              → Optimise Portfolio
+            </button>
           </div>
-          <button
-            onClick={handleWorkflowNext}
-            className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0">
-            → Optimise Portfolio
-          </button>
-        </div>
+        </Panel>
       )}
     </div>
   );

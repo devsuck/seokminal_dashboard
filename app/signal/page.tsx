@@ -19,10 +19,6 @@ function regimeLabel(r: string): string {
 function regimeCls(r: string): string {
   return r.startsWith("bull") ? "text-pos" : r === "bear_high_vol" ? "text-neg" : "text-warn";
 }
-function retCls(v: number | null | undefined) {
-  if (v == null) return "text-text-1";
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
-}
 function retTintCls(v: number | null | undefined) {
   if (v == null) return "text-text-2";
   if (v > 0) return "px-1 font-bold bg-pos/20 text-pos";
