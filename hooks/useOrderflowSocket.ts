@@ -50,6 +50,7 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
       };
 
       ws.onmessage = (evt) => {
+        if (closedByEffect) return;
         let msg: unknown;
         try {
           msg = JSON.parse(evt.data);
@@ -70,6 +71,7 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
       };
 
       ws.onerror = () => {
+        if (closedByEffect) return;
         setConnectionState("error");
       };
 
