@@ -20,7 +20,7 @@ v1은 캔들차트 없이 풋프린트/히트맵 캔버스 두 개를 세로로 
 
 1. **오버레이 방식** — lightweight-charts v5.2.0의 Series Primitives API(`series.attachPrimitive`, `zOrder: "bottom"|"top"`) 사용. 캔들 자체 렌더링(검증된 라이브러리 엔진)은 안 건드림.
 2. **캔들-풋프린트 버킷 1:1 매칭** — 백엔드 `footprint_bucket_sec=60`(고정, `orderflow/aggregator.py:8-18`) 확인됨. 캔들 타임프레임 **1분 고정**으로 맞춤. 히트맵은 `heatmap_bucket_sec=2`(더 촘촘함) — 캔들과 1:1 아니고 연속 배경 텍스처로 취급, 정렬 문제 없음.
-3. 기존 `getBars(instrumentId, start, end, "1m")` API 그대로 재사용 (신규 백엔드 작업 없음).
+3. 캔들 데이터는 심볼 접미사(`.HL`=Hyperliquid, `.XKRX`=한국, 그 외=IB)별로 다른 API를 쓰는 기존 `ChartTab.tsx`의 라우팅 로직을 그대로 따름(`BTC.HL`→`getCryptoCandles`, `NQ`→`getIBBars`). 이 로직이 `ChartTab.tsx`에만 있어 중복 위험 있음 — `lib/chart-bars.ts`로 추출해 `ChartTab`/`OrderflowChart` 둘 다 공유(플랜 Task 1, 기존 동작 100% 보존하는 리팩터). 신규 백엔드 작업 없음.
 
 ## 파일 구조
 
