@@ -193,7 +193,7 @@ export default function PolymarketPage() {
                   <span className="text-text-3 font-data text-[10px] shrink-0 w-16">{fmtTime(l.ts as string)}</span>
                   <span className="min-w-0 text-text-3">
                     {l.kind === "entry" ? <span className="text-pos">진입 {String(l.side)} @{Number(l.entry_price ?? 0).toFixed(2)} ${Number(l.usd ?? 0).toLocaleString()}</span>
-                      : l.kind === "resolve" ? <span className={Number(l.pnl ?? 0) >= 0 ? "text-pos" : "text-neg"}>정산 {String(l.side)} 손익 ${Number(l.pnl ?? 0).toLocaleString()}</span>
+                      : l.kind === "resolve" ? <span className={`px-1 font-bold ${Number(l.pnl ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>정산 {String(l.side)} 손익 ${Number(l.pnl ?? 0).toLocaleString()}</span>
                       : l.kind === "scan_fail" ? <span className="text-neg">스캔 실패 — {String(l.msg ?? "")}</span>
                       : l.kind === "config" ? "설정 변경"
                       : String(l.kind)}
