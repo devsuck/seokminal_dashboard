@@ -1,3 +1,82 @@
+## Phase 150 — ICT 조합빌더 오버레이 + GC/ES/NQ/EURUSD/USDJPY/GOLD 인트라데이 데이터 (2026-07-08~09) ✅ DONE
+
+커밋(seokminal-multi-venue): `eeea0de`.
+
+### 1. ICT 프리미티브 자유조합 백테스트 + 캔들차트 오버레이
+- 기존 ICT 프리셋 탭 제거 → 단일 조합빌더로 통합(`research/ict/combinator.py`, `api_server/router_ict.py`).
+- 캔들차트 위 FVG/OB 등 zone 실시간 오버레이(`research/ict/primitives.py` 직렬화 확장), 브라우저 실검증 완료.
+- `/ict/symbols`는 `data/intraday/*.parquet` glob 기반이라 신규 심볼 추가 시 프론트/백엔드 코드변경 불필요(파일만 놓으면 즉시 노출).
+
+### 2. IB 선물/FX 인트라데이 데이터 확보 (GC·ES·NQ·EURUSD·USDJPY)
+- IB 에러 162("다른 IP에서 연결됨")는 VPN이 아니라 IBKR 웹 Client Portal 동시 로그인 충돌이 원인 — 웹 포탈 로그아웃으로 해결.
+- `ContFuture`(GC/ES/NQ)는 `endDateTime=""` 단발요청만 허용, `Forex`(EURUSD/USDJPY)는 15m 커서 워크 + 1m/5m 실측 상한 단발요청으로 1m/5m/15m 전부 확보.
+- XAUUSD는 `Forex('XAUUSD')` qualify 자체 실패(계정 contract 미지원) — 보류.
+- 1h/4h는 별도 수집 불필요(기존 `_resample_from_15m()`이 15m 원본에서 자동 합성).
+- 상세: `seokminal-multi-venue/docs/progress.md` 세션7.
+
+### 3. XAUUSD 대안 — Hyperliquid GOLD 트랙 (xyz:GOLD)
+- IB XAUUSD 미해결 대안으로 HL 조사 → 기본 퍼프 유니버스엔 `PAXG`뿐(거래량 $440만/일, 얇음).
+- HL 빌더배포 dex(HIP-3) `"xyz"`에서 `xyz:GOLD` 발견 — 거래량 $4,390만/일(PAXG 10배), 가격도 GC와 거의 일치.
+- 기존 `hl_candle_loader.py`/`router_ict.py`가 prefix 붙은 빌더dex 심볼(`xyz:GOLD`)을 코드변경 없이 그대로 처리 — `LIQUID_PERPS` 한 줄 추가만으로 편입.
+- PAXG/xyz:GOLD 둘 다 1m/5m/15m parquet 캐시 확보 완료.
+
+### 다음 할 일
+- XAUUSD(IB 정식) 데이터는 `Commodity`/`CFD` contract 타입 재조사 필요 시에만 — `xyz:GOLD`로 사실상 대체돼 우선순위 낮음.
+- GC/ES/NQ/EURUSD/USDJPY/xyz:GOLD 주문 실행 코드는 아직 없음(`backends/ib/order_client.py`는 `Stock`만) — 집행은 범위 밖, 데이터/백테스트만.
+- ICT 조합빌더에서 이 심볼들로 유의미한 조합 나오면 BH-FDR 정식 파이프라인행 검토.
+
+## Phase 149 — Gold Haven 가설 (금 안전자산 단일자산 전략) 검증 → REJECT (2026-07-07) ✅ DONE
+
+커밋(seokminal-multi-venue): 스펙 `b41773b`, 계획 `3001d79`, Task1 `7f8b31b`, Task2 `6ecd4ba`, Task3 `77b7fee`.
+
+### 배경
+Phase 148 논의에서 나온 "금/비트코인 등 자산 한정(narrow-universe) 전략 트랙" 검토의 첫 시도.
+실질금리 하락 레짐 게이트 + VIX/신용스프레드 리스크오프 부스트(롱/플랫만, 매일 체크) 가설을
+SDD(Subagent-Driven Development)로 스펙→계획→3-task 구현→태스크별 리뷰→전체 브랜치 리뷰까지
+전체 파이프라인 실행.
+
+### 결과: REJECT
+GC 932일(2022-09-30~2026-07-01) 실행 — Sharpe 0.352 vs buyhold 1.257(패배), random baseline
+15th percentile/p=0.85(기준 미달), walk-forward 전반/후반 둘 다 양수(0.267/0.374, 이 기준은 통과),
+cost stress(20bps) Sharpe 0.145. 종합 REJECT — buyhold를 못 이긴 게 결정적.
+
+상세: `docs/superpowers/specs/2026-07-07-gold-haven-hypothesis-design.md`의 "결과(2026-07-07 실행)" 절.
+
+### 결론
+"금 단일자산 특화 로직이 광역 TSMOM(이미 GC 포함·검증통과)보다 낫다"는 가설은 이번 시도에서
+지지받지 못함. 스코프 밖 후보(DXY 역상관/이벤트트리거/레짐스코어 통합) 재시도는 보류 — 이번
+실패의 구체적 원인 분석 없이 재시도할 근거 없음. narrow-universe 트랙 자체는 이 결과 하나로
+폐기 판단하지 않음(다른 자산·다른 메커니즘으로 재검토 여지는 있음), 단 급하지 않음.
+
+## Phase 148 — 24/7 러너 맥북 롤백 + god_mode/condition_tick 복구 + Polymarket Layer1 라이브 착수 (2026-07-07) ✅ DONE
+
+커밋: 백엔드 `5b83417`(god_mode/condition_tick 복구). Polymarket 콜렉터·Seokminal.app 변경은 레포 밖(seokminal 루트 미git).
+
+### 1. 24/7 러너 데스크탑 → 맥북 롤백
+- Phase 147 #7의 "데스크탑 이전 완료"는 **취소됨**. 사용자 결정: 데스크탑 아니라 맥북 하나로 간다.
+- 맥북에서 `tmux` + `caffeinate -i`로 장시간 프로세스 직접 기동하는 방식으로 원복(SSH/터미널 닫아도 안 죽음).
+- 데스크탑(`100.93.202.127`) 현재 접속 자체가 안 됨(Network unreachable) — 켜져있는지/에이전트 루프가 아직 도는지 미확인. `deploy/wsl/` 키트는 참고용으로만 남김.
+
+### 2. god_mode / condition_tick 모듈 복구
+- 2026-07-06 커밋 `a244861`에서 도입됐던 `api_server/god_mode.py`, `api_server/condition_tick.py`가 소스는 커밋 안 되고 `.pyc`만 남아 `router_autopilot.py` import가 깨져있던 걸 발견, bytecode 역어셈블+문서 대조로 두 모듈과 테스트 전부 재구성.
+- 재구성 중 버그 1건 수정: 테스트 mock의 `KISOrderClient`/`place_order` 시그니처가 실제 호출부(`router_autopilot.py`)와 인자 개수 안 맞아 `TypeError`가 `try/except`에 먹혀 SKIP으로 위장됨 → `*args, **kwargs`로 수정.
+- 전체 테스트 725 passed (기존 알려진 실패 4건 제외 회귀 없음).
+
+### 3. Polymarket 구조적 엣지 봇 — Layer 1(YES+NO 무위험차익) 라이브 수집 착수
+- `research/run_polymarket_arb_scan.py`를 맥북 tmux 세션 `polymarket-arb`로 상시 기동, 스냅샷 JSONL 누적 확인.
+- `Seokminal.app` 실행 시 해당 tmux 세션이 없으면 자동 기동하도록 idempotent 체크 추가(레포 밖 파일이라 git에는 없음).
+- 목표: 2주 내외 라이브 스냅샷 축적 후 `research/run_polymarket_arb_validation.py`(커밋 `809cb98`, YES+NO 합가격 기회런 탐지+평가)로 실제 기회 빈도/margin 검증.
+
+### 4. Layer 2(마켓메이킹)/Layer 3(모델 기반 EV 배팅) — 의도적 보류
+- 사용자가 제안한 3계층 폴리마켓 봇 프롬프트 중 Layer 1만 진행 중. Layer 2/3는 Layer 1 라이브 검증 결과가 나오기 전까지 미착수.
+- 사유: 하우스 컨벤션(`random baseline p-value` + WF 안정성 + cost-robust 통과 전엔 알파 주장 금지, [[feedback_tsmom_paper_discipline]])을 그대로 적용 — Layer 1 페이퍼 후보 승격 여부가 갈리기 전에 Layer 2/3 스펙부터 짜는 건 순서가 안 맞음.
+
+### 다음 할 일
+- Layer 1 라이브 수집 ~2주 후 validation 재실행 → 기회 빈도/margin 확인, 페이퍼 후보 승격 여부 판단.
+- 승격되면 Layer 2/3 브레인스토밍(별도 spec) 착수, 기각되면 3계층 프롬프트 전체 재검토.
+- 데스크탑 상태 확인(켜져 있는지, 재사용할지 완전히 접을지) — 다음에 얘기 나오면 먼저 확인.
+- 금/비트코인 등 **자산 한정(narrow-universe) 전략 트랙**: 현재 autoresearch/Jarvis는 전 종목 대상 광역 탐색 — 특정 자산군(원자재/크립토) 한정 탐색이 별도 트랙으로 나을지 검토 예정 (2026-07-07 논의 시작, 미착수).
+
 ## Phase 147 — option_lv1·macro 라이브·UI 최적화·Lv3 기대값 전환·HL 사고 수습·데스크탑 이전 (2026-07-06) ✅ DONE
 
 하루 대형 세션. 커밋: 백엔드 `a244861`·`c14a0ec`·`f81107e`, 프론트 `b1f33eb`·`4556f9e`·`d4477d2`.
@@ -29,7 +108,7 @@
 - 수정: importlib 직접 로드+락+캐시, main.py에 레포 루트 sys.path 고정, agent_loop.sh curl --max-time 240. 복구 확인(사이클 재개+주문 실행).
 - 참고: 나머지 Lv3 에이전트 3개는 정상이었음(매크로 게이트 4<5 미달로 관망 중이었을 뿐).
 
-### 7. 데스크탑(독일, 윈도우+WSL2) 24/7 러너 이전 — 완료
+### 7. 데스크탑(독일, 윈도우+WSL2) 24/7 러너 이전 — 완료 (⚠️ Phase 148에서 롤백됨, 아래는 당시 기록)
 - 배경: 맥북 발열+이동성. `deploy/wsl/` 키트 신규(setup.sh, systemd 유닛 tpl, resume_agents.py, README).
 - 데스크탑: WSL2 Ubuntu 22.04(deadsnakes python3.12), 백엔드+에이전트 루프 4개 가동 확인. pyproject 밖 추가 의존성: yfinance/HL SDK/xgboost/openai/alpaca-py/statsmodels/hmmlearn 등(setup.sh에 반영).
 - 접속: Tailscale — 데스크탑 `100.93.202.127`, 백엔드 `--host 0.0.0.0`. 맥북 `.env.local`→`NEXT_PUBLIC_API_URL=http://100.93.202.127:8000`. 맥에서 대시보드 실동작 확인.

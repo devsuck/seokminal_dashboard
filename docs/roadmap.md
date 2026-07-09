@@ -1,6 +1,6 @@
 # Seokminal Dashboard — Roadmap
 
-**마지막 업데이트:** 2026-06-29  
+**마지막 업데이트:** 2026-07-09  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
 > 🧭 **알파/에이전트 진화 로드맵은 별도:** [`agentic-roadmap.md`](agentic-roadmap.md) — Lv1 룰봇 → Lv2 검증플랫폼(현재) → Lv3 자율리서치 → Lv4/5. 안전모델·검증표준·단계 게이팅. 이 파일(기능 로드맵)과 축이 다름.
@@ -117,6 +117,8 @@
 | 96 | ORB dormant 모듈+첫판정 | `research/features/*`(session/OR/vwap/rvol)+`event_backtester`+`strategies/orb_rvol_vwap`(고정임계·일봉차단·동일 opportunity set random). 실판정: ORB 광범위 엣지 없음(3/4 손실, TSLA만 약한 positive) | — |
 | 97 | ORB 유니버스 판정(REJECT)+agentic로드맵 | 15m 30종목 수집완료(29클린), `multiple_testing`(BH-FDR)+`run_orb_universe`(pooled+random null+OOS). **판정: ORB 엣지없음**(2004거래 pooled −5402, 랜덤보다 나쁨, BH생존0). `docs/agentic-roadmap.md`. 다음=수동 가설 3~5개 | — |
 | 98 | 수동 가설 5종(전부 REJECT) | 제네릭 `hypotheses/runner`+5 signal(VWAP-MR/실패돌파/갭/ATR압축/섹터상대). **6/6 REJECT**(전부 pooled 음수·BH생존0). 결론: 15m 대형주 롱온리 교과서 패턴 엣지 없음 → Lv3 진입 안 함, 자산군/타임프레임 재검. main 커밋 | — |
+| 149 | Gold Haven 가설 REJECT | 실질금리 레짐게이트+리스크오프 부스트, SDD 전체 파이프라인. buyhold 못 이김·random 15pct·p=.85 → REJECT | — |
+| 150 | ICT 조합빌더 오버레이 + GC/ES/NQ/EURUSD/USDJPY/GOLD 데이터 | `research/ict/combinator.py`(자유조합)+캔들 오버레이, IB 선물/FX 1m/5m/15m 확보(XAUUSD만 미해결), HL 빌더dex `xyz:GOLD`로 대체(PAXG 10배 유동성) | eeea0de(BE) |
 
 ## 다음 세션 최우선 (채팅 리셋 인수인계)
 0. **[알파검증 트랙 — Phase 97 후속] 수동 가설 3~5개** (agentic-roadmap Phase 2) — ORB는 REJECT 확정(pooled −5402, 랜덤보다 나쁨, BH생존0). 기존 하네스(`research/`)로 손으로 다음 검증, 고정파라미터·random 분포·비용·walk-forward: ① VWAP 평균회귀 ② ORB 실패돌파 반전 ③ 섹터상대 모멘텀 ④ 갭 페이드/지속 ⑤ ATR 압축돌파. 하나라도 net>0·95pct·p<.05·WF OOS 유지하면 → Phase 3 안전뼈대(퍼미션가드·스키마·registry) → Phase 4 제한 Lv3. **전부 REJECT면 데이터/자산군/타임프레임 재검(Lv3 아님).** 상세 `docs/agentic-roadmap.md`
@@ -131,7 +133,7 @@
 - **검증 인프라**: 성과페이지(SPY 초과수익)·비용백테스트·페어 공적분게이트
 - **계좌**: Alpaca페이퍼 / KIS모의(1천만)·실계좌 / IB(€100) / HL testnet·mainnet — 6/6 연동
 - **인증 없음** → 클라우드 배포 전 로그인/토큰 인증 선행 필수 (지금 로컬 전용)
-- 배포: 로컬만. 24/7은 나중 클라우드(리눅스 VPS+claude CLI API키). 데스크탑 배포는 접음(반납 예정)
+- 배포: 로컬만. 24/7은 나중 클라우드(리눅스 VPS+claude CLI API키). 데스크탑 24/7 러너는 2026-07-06 시도 후 **2026-07-07 롤백** — 맥북 tmux+caffeinate 단일 러너로 원복(Phase 148). 데스크탑 재사용 여부 미확정.
 
 ## 예정 기능 (미구현 — 우선순위 순)
 
@@ -218,6 +220,18 @@
 | 주문 멱등성 + IB 연결 풀링 (매 요청 connect/disconnect 제거) | Backend | 中 |
 | OMS 레이어 — 상태머신 + 부분체결 추적, `/orders/audit` UI 연결 | Backend+Frontend | 中 |
 | 실시간 포지션·PnL 대시보드 — 슬리피지/수수료 반영 실현 PnL | Backend+Frontend | 中 |
+
+### Polymarket 구조적 엣지 봇 (2026-07-07 착수, Phase 148)
+| 항목 | 내용 | 상태 |
+|---|---|---|
+| Layer 1 | YES+NO 합가격 무위험차익 — 라이브 수집(`research/run_polymarket_arb_scan.py`, tmux `polymarket-arb`, 맥북 상시) | 🟡 라이브 수집 중 (~2주) |
+| Layer 2 | 마켓메이킹(호가 스프레드 캡처) | 보류 — Layer1 검증 후 판단 |
+| Layer 3 | 모델 기반 EV 배팅(자체 확률 모델 vs 시장가) | 보류 — Layer1 검증 후 판단 |
+
+### 자산 한정(narrow-universe) 전략 트랙 — 1차 시도 REJECT (2026-07-07, Phase 149)
+- 문제의식: 현재 autoresearch/Jarvis는 전 종목 광역 탐색으로 엣지/알파를 찾음 — 특정 자산군(금/원자재, 비트코인 등) 한정 탐색이 오히려 엣지 발견에 유리할 수 있다는 가설
+- 1차 시도: 금(GC) 실질금리 레짐 게이트 + 리스크오프 부스트 가설 — SDD로 스펙→계획→구현→검증 완료. **VERDICT REJECT**(buyhold 못 이김, random baseline 15pct/p=0.85). 상세: [[project_phase102_tsmom_edge]] 옆에 기록된 `seokminal-dashboard/docs/progress.md` Phase 149.
+- 결론: "금 단일자산 특화 로직 > 광역 TSMOM(이미 GC 포함)" 가설은 지지 안 됨. narrow-universe 트랙 자체를 폐기하진 않되, 급하지 않음 — 재시도하려면 이번 실패와 다른 메커니즘/자산이 필요.
 
 ### 기타
 | 내용 | 비고 |
