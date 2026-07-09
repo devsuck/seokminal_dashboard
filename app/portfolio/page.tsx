@@ -305,7 +305,7 @@ export default function PortfolioPage() {
             <Panel className="mb-4">
               <PanelHeader>교육용 · 실전 배분 아님</PanelHeader>
               <div className="p-4">
-                <p className="text-warn text-xs leading-relaxed">
+                <p className="text-text-2 text-xs leading-relaxed">
                   마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
                   실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
                 </p>
