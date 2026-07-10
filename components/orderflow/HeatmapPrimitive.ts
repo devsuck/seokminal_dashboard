@@ -7,11 +7,10 @@ import type {
   UTCTimestamp,
 } from "lightweight-charts";
 import { heatmapCellRect } from "@/lib/orderflow-chart-coords";
-import { computeHeatmapLayout, type HeatmapCell } from "@/lib/orderflow-data";
+import { aggregateHeatmapByCandle, computeHeatmapLayout, type HeatmapCell } from "@/lib/orderflow-data";
 
-// orderflow/aggregator.py 기본값과 맞춰야 함 (footprint_bucket_sec=60.0, heatmap_bucket_sec=2.0)
+// orderflow/aggregator.py의 footprint_bucket_sec=60.0(캔들 간격)과 맞춰야 함
 const CANDLE_INTERVAL_SEC = 60;
-const HEATMAP_BUCKET_SEC = 2;
 
 class HeatmapPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: HeatmapPrimitive) {}
@@ -21,22 +20,15 @@ class HeatmapPaneRenderer implements IPrimitivePaneRenderer {
       const { cells, chart, series } = this.primitive;
       if (cells.length === 0) return;
 
-      const layout = computeHeatmapLayout(cells);
+      const aggregated = aggregateHeatmapByCandle(cells, CANDLE_INTERVAL_SEC);
+      const layout = computeHeatmapLayout(aggregated);
       const timeToX = (ts: number) => chart.timeScale().timeToCoordinate(ts as UTCTimestamp);
       const priceToY = (price: number) => series.priceToCoordinate(price);
       const barSpacing = chart.timeScale().options().barSpacing;
-      const maxSize = Math.max(1, ...cells.map((c) => c.size));
+      const maxSize = Math.max(1, ...aggregated.map((c) => c.size));
 
-      for (const cell of cells) {
-        const rect = heatmapCellRect(
-          cell,
-          CANDLE_INTERVAL_SEC,
-          HEATMAP_BUCKET_SEC,
-          layout.prices,
-          timeToX,
-          priceToY,
-          barSpacing
-        );
+      for (const cell of aggregated) {
+        const rect = heatmapCellRect(cell, CANDLE_INTERVAL_SEC, layout.prices, timeToX, priceToY, barSpacing);
         if (!rect) continue;
         const intensity = Math.min(1, cell.size / maxSize);
         ctx.fillStyle = `rgba(255, 159, 10, ${0.1 + intensity * 0.6})`;

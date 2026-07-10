@@ -19,17 +19,16 @@ function neighborDistance(
 }
 
 /**
- * heatmap 셀 1개를 캔들차트 좌표계의 사각형(x,y,width,height)으로 변환. 좌표 못 구하면 null.
+ * heatmap 셀 1개(aggregateHeatmapByCandle로 캔들당 1개로 합쳐진 것)를 캔들차트 좌표계의
+ * 사각형(x,y,width,height)으로 변환. 좌표 못 구하면 null.
  *
- * heatmap ts는 캔들 간격(candleIntervalSec)보다 촘촘한 버킷(heatmapBucketSec)이라 대부분
- * 캔들 open time과 일치하지 않는다 — timeToX(cell.ts)를 직접 호출하면 lightweight-charts가
- * 데이터에 없는 시각이라 null을 반환해 사실상 아무것도 안 그려진다. 그래서 캔들 open time으로
- * floor한 시각만 timeToX에 넘기고, 그 안에서의 위치는 barSpacing 비율로 보간한다.
+ * cell.ts는 이미 캔들 open time으로 floor되어 있어야 한다(aggregateHeatmapByCandle 참고) —
+ * 원본 2초 단위 ts를 그대로 넘기면 lightweight-charts의 timeToCoordinate가 데이터에 없는
+ * 시각이라 null을 반환해 아무것도 안 그려진다. 폭은 캔들 하나(barSpacing) 전체를 채운다.
  */
 export function heatmapCellRect(
   cell: { ts: number; price: number },
   candleIntervalSec: number,
-  heatmapBucketSec: number,
   sortedPrices: number[],
   timeToX: (ts: number) => number | null,
   priceToY: (price: number) => number | null,
@@ -41,12 +40,10 @@ export function heatmapCellRect(
   const y = priceToY(cell.price);
   if (x0 === null || priceIdx === -1 || y === null) return null;
 
-  const x = x0 + ((cell.ts - barTime) / candleIntervalSec) * barSpacing;
-  const width = (heatmapBucketSec / candleIntervalSec) * barSpacing;
   const height = neighborDistance(sortedPrices, priceIdx, priceToY);
   if (height === null) return null;
 
-  return { x: x - width / 2, y: y - height / 2, width, height };
+  return { x: x0 - barSpacing / 2, y: y - height / 2, width: barSpacing, height };
 }
 
 /** footprint 버킷(=캔들 1개) 하나의 x범위. barSpacing은 chart.timeScale().options().barSpacing. */

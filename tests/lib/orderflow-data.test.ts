@@ -9,6 +9,7 @@ import {
   diffHeatmapCells,
   computeFootprintLayout,
   computeHeatmapLayout,
+  aggregateHeatmapByCandle,
   MAX_TIME_BUCKETS,
 } from "../../lib/orderflow-data";
 
@@ -163,5 +164,41 @@ describe("computeHeatmapLayout", () => {
       { ts: 0, price: 101, size: 5 },
     ];
     expect(computeHeatmapLayout(cells)).toEqual({ buckets: [0, 2], prices: [101, 99] });
+  });
+});
+
+describe("aggregateHeatmapByCandle", () => {
+  it("collapses multiple raw buckets within one candle into a single cell per price", () => {
+    const cells = [
+      { ts: 0, price: 100, size: 3 },
+      { ts: 2, price: 100, size: 7 },
+      { ts: 58, price: 100, size: 4 },
+    ];
+    expect(aggregateHeatmapByCandle(cells, 60)).toEqual([{ ts: 0, price: 100, size: 7 }]);
+  });
+
+  it("takes the max size seen, not the sum (avoids double-counting the same resting order)", () => {
+    const cells = [
+      { ts: 0, price: 100, size: 10 },
+      { ts: 2, price: 100, size: 10 },
+    ];
+    expect(aggregateHeatmapByCandle(cells, 60)).toEqual([{ ts: 0, price: 100, size: 10 }]);
+  });
+
+  it("keeps separate candles and prices as distinct cells", () => {
+    const cells = [
+      { ts: 0, price: 100, size: 5 },
+      { ts: 60, price: 100, size: 6 },
+      { ts: 0, price: 101, size: 2 },
+    ];
+    const result = aggregateHeatmapByCandle(cells, 60);
+    expect(result).toHaveLength(3);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { ts: 0, price: 100, size: 5 },
+        { ts: 60, price: 100, size: 6 },
+        { ts: 0, price: 101, size: 2 },
+      ])
+    );
   });
 });

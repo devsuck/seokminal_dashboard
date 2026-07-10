@@ -160,3 +160,23 @@ export function computeHeatmapLayout(cells: HeatmapCell[]): { buckets: number[];
   const prices = Array.from(new Set(cells.map((c) => c.price))).sort((a, b) => b - a);
   return { buckets, prices };
 }
+
+/**
+ * 원본 heatmap은 캔들(candleIntervalSec)보다 훨씬 촘촘한 버킷(백엔드 기본 2초)이라 캔들당 셀
+ * 폭이 1px 미만이 되어 사실상 안 보인다. 캔들 구간별로 (price당) 최고 잔량만 남겨 한 칸 = 캔들
+ * 하나가 되도록 합친다. 합(sum)이 아니라 최댓값(max)을 쓰는 이유: 같은 잔량 주문이 여러 2초
+ * 스냅샷에 걸쳐 반복 관측되므로 합산하면 중복 계산됨 — 그 구간에 실제로 존재했던 피크 잔량이
+ * 의미 있는 값이다.
+ */
+export function aggregateHeatmapByCandle(cells: HeatmapCell[], candleIntervalSec: number): HeatmapCell[] {
+  const byKey = new Map<string, HeatmapCell>();
+  for (const c of cells) {
+    const barTime = Math.floor(c.ts / candleIntervalSec) * candleIntervalSec;
+    const key = heatmapKey(barTime, c.price);
+    const existing = byKey.get(key);
+    if (!existing || c.size > existing.size) {
+      byKey.set(key, { ts: barTime, price: c.price, size: c.size });
+    }
+  }
+  return Array.from(byKey.values());
+}
