@@ -78,3 +78,26 @@ export function footprintCellRect(
 
   return { x: col.left, y: y - height / 2, width: col.right - col.left, height };
 }
+
+/**
+ * COB(현재 오더북) 사이드 인셋 바 1개의 레이아웃을 차트 플롯 영역 기준 비율(0~1)로 계산.
+ * asks는 위에서 아래로, bids는 아래에서 위로 쌓는다(스프레드가 중앙에 오도록).
+ * size가 0이면 그릴 게 없으므로 null.
+ */
+export function bookBarLayout(
+  index: number,
+  maxVisibleSize: number,
+  size: number,
+  chartHeight: number,
+  side: "bid" | "ask",
+  levels: number
+): { widthFrac: number; yFrac: number } | null {
+  if (size <= 0 || maxVisibleSize <= 0) return null;
+  const widthFrac = Math.min(1, size / maxVisibleSize);
+  const rowHeight = chartHeight / 2 / levels;
+  const yFrac =
+    side === "ask"
+      ? (index * rowHeight) / chartHeight
+      : 1 - ((index + 1) * rowHeight) / chartHeight;
+  return { widthFrac, yFrac };
+}
