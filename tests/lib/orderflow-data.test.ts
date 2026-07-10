@@ -11,6 +11,7 @@ import {
   computeHeatmapLayout,
   aggregateHeatmapByCandle,
   MAX_TIME_BUCKETS,
+  currencyForSymbol,
 } from "../../lib/orderflow-data";
 
 describe("applySnapshot", () => {
@@ -200,5 +201,20 @@ describe("aggregateHeatmapByCandle", () => {
         { ts: 0, price: 101, size: 2 },
       ])
     );
+  });
+});
+
+describe("currencyForSymbol", () => {
+  it("BTC.HL -> BTC", () => {
+    expect(currencyForSymbol("BTC.HL")).toBe("BTC");
+  });
+
+  it("ETH.HL -> ETH", () => {
+    expect(currencyForSymbol("ETH.HL")).toBe("ETH");
+  });
+
+  it("그 외 심볼은 null(옵션플로우 패널 미지원)", () => {
+    expect(currencyForSymbol("NQ")).toBeNull();
+    expect(currencyForSymbol("SOL.HL")).toBeNull();
   });
 });

@@ -180,3 +180,10 @@ export function aggregateHeatmapByCandle(cells: HeatmapCell[], candleIntervalSec
   }
   return Array.from(byKey.values());
 }
+
+/** "BTC.HL"/"ETH.HL" -> "BTC"/"ETH", 그 외 심볼은 null(옵션플로우 패널 미지원, Deribit은 BTC/ETH만 취급). */
+export function currencyForSymbol(symbol: string): "BTC" | "ETH" | null {
+  if (symbol === "BTC.HL") return "BTC";
+  if (symbol === "ETH.HL") return "ETH";
+  return null;
+}

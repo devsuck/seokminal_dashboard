@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { LivePulse } from "@/components/Jarvis";
 import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
+import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
 import { getOrderflowSymbols } from "@/lib/api";
+import { currencyForSymbol } from "@/lib/orderflow-data";
 
 const CONNECTION_TONE: Record<OrderflowConnectionState, "pos" | "accent" | "neg"> = {
   connecting: "accent",
@@ -27,6 +29,7 @@ export default function OrderflowPage() {
   const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const { footprint, heatmap, connectionState } = useOrderflowSocket(symbol);
+  const currency = currencyForSymbol(symbol);
 
   useEffect(() => {
     abortRef.current?.abort();
@@ -56,6 +59,7 @@ export default function OrderflowPage() {
         )}
       </div>
       <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} />
+      {currency && <OptionsFlowPanel currency={currency} />}
     </div>
   );
 }
