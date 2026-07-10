@@ -1,3 +1,18 @@
+## Phase 160 — Orderflow GEX 패널 병합 + 차트 확대 + 버블 축소 (2026-07-10) ✅ DONE
+
+Phase 159 직후 유저 리포트: "옵션 겍스 차트 안으로 넣어주고 차트 키워줘. 히트맵 원이 너무 커서 서로 가려가지고 하나도 모르겠다" — SDD 없이 직접 수정(작은 변경, `feedback_no_process_theater` 컨벤션).
+
+### 변경 (`seokminal-dashboard`, 커밋 `786bbc2`)
+- `components/orderflow/OptionsFlowPanel.tsx` — 독립 D3 GEX 바 차트 제거(메인 차트에 `GexLevelsPrimitive`가 이미 스트라이크 라인+감마월을 그리므로 중복). spot/stale 배지 헤더 + 옵션 체결 티커만 남김, 자체 `border`/`rounded-lg` 제거(부모 카드에 흡수).
+- `components/orderflow/OrderflowChart.tsx` — `OptionsFlowPanel`을 캔들차트와 같은 `border border-border bg-panel` 래퍼 안에 `border-t` 구분선으로 붙여 렌더(기존엔 `app/orderflow/page.tsx`에서 별도 박스로 아래 렌더).
+- `app/orderflow/page.tsx` — 중복된 `OptionsFlowPanel` 렌더 제거(`OrderflowChart`가 대신 렌더).
+- `components/CandlestickChart.tsx` — `height` prop 추가(기본 480, 기존 4개 소비처 전부 하위호환). 오더플로우 차트만 `height={720}` 전달. 서브페인 스트레치팩터(`panes[0]=3, others=1`)는 기존 로직 그대로라 확대해도 비율 유지.
+- `components/orderflow/LargeLotPrimitive.ts` — `radiusFor()` 반경 범위 `6~24px → 4~12px`(스케일 계수도 3→2)로 축소, 버블이 흡수 마커/다른 버블과 겹쳐 안 보이던 문제 해결.
+- 검증: `npx tsc --noEmit` 클린, `npx vitest run` 214/214 통과. 브라우저 라이브 확인(`/orderflow` BTC.HL) — GEX 패널이 차트 카드 안에 붙어 렌더, 차트 높이 커짐, 감마월 점선 라인 정상 표시, 버블 크기 축소되어 겹침 해소, 콘솔 에러 없음.
+
+### 다음 할 일
+- 딱히 남은 후속 작업 없음. Phase 159의 미확인 항목(footprint 셀 숫자 고줌 렌더, 대량체결/흡수 임계값 백테스트)은 여전히 대기 중.
+
 ## Phase 159 — Orderflow 트레이딩 콕핏 5종 (2026-07-10) ✅ DONE
 
 유저 요청(잘 동안 무중단 자율 작업 지시): `/orderflow` 캔들차트에 Bookmap 스타일 실시간 트레이딩 UX 5종 추가 — "착 보고 착 매수/매도" 목표. 브레인스토밍(`docs/superpowers/specs/2026-07-10-orderflow-trading-cockpit-design.md`) → 플랜(`docs/superpowers/plans/2026-07-10-orderflow-trading-cockpit.md`, 9태스크) → `superpowers:subagent-driven-development`로 전 태스크+최종 전체 리뷰까지 자율 실행. 상세 태스크별 리뷰 로그: `.superpowers/sdd/progress.md` ("SDD Progress — 2026-07-10 Orderflow Trading Cockpit" 섹션).
