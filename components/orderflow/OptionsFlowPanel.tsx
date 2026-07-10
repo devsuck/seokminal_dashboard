@@ -92,8 +92,9 @@ export function OptionsFlowPanel({ currency }: OptionsFlowPanelProps) {
         .then((snapshot) => {
           if (!cancelled) setGex(snapshot);
         })
-        .catch((e) => {
-          if (!cancelled && (e as Error).name !== "AbortError") setGex(null);
+        .catch(() => {
+          // 일시적 폴링 실패는 조용히 무시 — 마지막 캐시값(gex)을 그대로 유지한다.
+          // (백엔드 orderflow/gex.py의 _cache가 upstream 실패 시 마지막 값을 보존하는 것과 동일한 동작)
         });
     }
 
@@ -107,12 +108,15 @@ export function OptionsFlowPanel({ currency }: OptionsFlowPanelProps) {
     };
   }, [currency]);
 
+  const isStale = gex != null && Date.now() - gex.updated_at * 1000 > 5 * 60_000;
+
   return (
     <div className="rounded-lg border border-border bg-panel p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-text-1 text-sm font-medium">{currency} 옵션 GEX</h3>
         <span className="text-text-3 text-xs">
           {gex ? `spot ${gex.spot.toLocaleString()}` : "로딩 중"}
+          {isStale && <span className="text-warn"> · 데이터 지연</span>}
         </span>
       </div>
       {gex && gex.levels.length > 0 ? (
