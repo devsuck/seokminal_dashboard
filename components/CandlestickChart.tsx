@@ -10,7 +10,8 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
   type SeriesMarker,
-  type LogicalRange,
+  type ISeriesMarkersPluginApi,
+  type Time,
 } from "lightweight-charts";
 import type { BarOut, TradeRecord } from "@/lib/api";
 import type { ChartIndicatorSpec } from "@/lib/backtest-types";
@@ -144,9 +145,14 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
 export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, onSeriesReady }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const visibleRangeRef = useRef<LogicalRange | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const overlaySeriesRef = useRef<ISeriesApi<"Line">[]>([]);
+  const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const specsKey = JSON.stringify(specs ?? []);
 
+  // 차트/캔들시리즈는 마운트 시 한 번만 생성한다. bars가 폴링(예: 오더플로우 30초 갱신)으로
+  // 바뀔 때마다 chart.remove()로 통째로 재생성하면 사용자가 확대한 줌이 매번 풀리는 문제가 있었다
+  // — 아래 데이터 갱신 effect는 차트 자체를 건드리지 않으므로 줌 상태가 유지된다.
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -180,6 +186,26 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       wickUpColor: "#22C55E",
       wickDownColor: "#EF4444",
     });
+    candleSeriesRef.current = candleSeries;
+
+    onSeriesReady?.(chart, candleSeries);
+
+    return () => {
+      chart.remove();
+      chartRef.current = null;
+      candleSeriesRef.current = null;
+      overlaySeriesRef.current = [];
+      markersRef.current = null;
+    };
+    // onSeriesReady는 마운트 시 1회만 호출 — 의도적으로 deps 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 데이터/지표 갱신 — 차트는 재생성하지 않고 시리즈 데이터만 교체한다.
+  useEffect(() => {
+    const chart = chartRef.current;
+    const candleSeries = candleSeriesRef.current;
+    if (!chart || !candleSeries) return;
 
     candleSeries.setData(
       bars.map((b) => ({
@@ -188,11 +214,8 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       }))
     );
 
-    if (visibleRangeRef.current) {
-      chart.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
-    }
-
-    onSeriesReady?.(chart, candleSeries);
+    for (const s of overlaySeriesRef.current) chart.removeSeries(s);
+    overlaySeriesRef.current = [];
 
     if (trades.length > 0) {
       const markers: SeriesMarker<UTCTimestamp>[] = [];
@@ -217,7 +240,10 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         }
       }
       markers.sort((a, b) => (a.time as number) - (b.time as number));
-      createSeriesMarkers(candleSeries, markers);
+      if (markersRef.current) markersRef.current.setMarkers(markers);
+      else markersRef.current = createSeriesMarkers(candleSeries, markers);
+    } else if (markersRef.current) {
+      markersRef.current.setMarkers([]);
     }
 
     if (emaFast && emaFast > 0) {
@@ -225,6 +251,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       if (fastData.length) {
         const s = chart.addSeries(LineSeries, { color: "#FF9F1C", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(fastData);
+        overlaySeriesRef.current.push(s);
       }
     }
     if (emaSlow && emaSlow > 0) {
@@ -232,6 +259,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       if (slowData.length) {
         const s = chart.addSeries(LineSeries, { color: "#3B82F6", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(slowData);
+        overlaySeriesRef.current.push(s);
       }
     }
 
@@ -240,6 +268,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       if (smaData.length) {
         const s = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(smaData);
+        overlaySeriesRef.current.push(s);
       }
     }
 
@@ -252,6 +281,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         middleSeries.setData(bbData.map(d => ({ time: d.time, value: d.middle })));
         const lowerSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
         lowerSeries.setData(bbData.map(d => ({ time: d.time, value: d.lower })));
+        overlaySeriesRef.current.push(upperSeries, middleSeries, lowerSeries);
       }
     }
 
@@ -266,6 +296,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         priceLineVisible: false, lastValueVisible: pane > 0,
       }, pane);
       s.setData(data);
+      overlaySeriesRef.current.push(s);
       return s;
     };
     for (const spec of specs ?? []) {
@@ -326,11 +357,6 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       for (let i = 1; i < panes.length; i++) panes[i]?.setStretchFactor(1);
     }
 
-    return () => {
-      visibleRangeRef.current = chart.timeScale().getVisibleLogicalRange();
-      chart.remove();
-      chartRef.current = null;
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey]);
 

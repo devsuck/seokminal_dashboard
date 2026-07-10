@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { heatmapCellRect, footprintColumnX } from "../../lib/orderflow-chart-coords";
+import { heatmapCellRect, footprintColumnX, footprintCellRect } from "../../lib/orderflow-chart-coords";
 
 describe("heatmapCellRect", () => {
   // candleIntervalSec=60, barSpacing=20px → 캔들 하나 폭 20px, 셀은 항상 캔들 폭 전체를 채움
@@ -44,5 +44,27 @@ describe("footprintColumnX", () => {
 
   it("timeToX가 null이면 null", () => {
     expect(footprintColumnX(-1, timeToX, 8)).toBeNull();
+  });
+});
+
+describe("footprintCellRect", () => {
+  const timeToX = (ts: number) => (ts < 0 ? null : ts * 10);
+  const priceToY = (p: number) => (p === -1 ? null : 100 - p);
+
+  it("컬럼 전체 폭(barSpacing)을 채우고 이웃 가격 거리로 높이를 계산한다", () => {
+    const rect = footprintCellRect({ bucketTs: 5, price: 50 }, [40, 50, 60], timeToX, priceToY, 8);
+    expect(rect).toEqual({ x: 46, y: 50 - 10 / 2, width: 8, height: 10 });
+  });
+
+  it("가격이 sortedPrices에 없으면 null", () => {
+    expect(footprintCellRect({ bucketTs: 5, price: 999 }, [40, 50, 60], timeToX, priceToY, 8)).toBeNull();
+  });
+
+  it("timeToX가 null이면 null", () => {
+    expect(footprintCellRect({ bucketTs: -1, price: 50 }, [40, 50, 60], timeToX, priceToY, 8)).toBeNull();
+  });
+
+  it("가격이 1개뿐이면(이웃 없음) null", () => {
+    expect(footprintCellRect({ bucketTs: 5, price: 50 }, [50], timeToX, priceToY, 8)).toBeNull();
   });
 });

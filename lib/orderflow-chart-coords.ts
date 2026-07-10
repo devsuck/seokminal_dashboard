@@ -56,3 +56,25 @@ export function footprintColumnX(
   if (center === null) return null;
   return { left: center - barSpacing / 2, right: center + barSpacing / 2, center };
 }
+
+/**
+ * footprint 셀 1개(bucketTs, price)를 캔들차트 좌표계의 사각형으로 변환 — 매수/매도 색 배경용.
+ * 좌표 못 구하면 null. 세로 높이는 heatmapCellRect와 동일하게 이웃 가격과의 거리로 계산.
+ */
+export function footprintCellRect(
+  cell: { bucketTs: number; price: number },
+  sortedPrices: number[],
+  timeToX: (ts: number) => number | null,
+  priceToY: (price: number) => number | null,
+  barSpacing: number
+): CellRect | null {
+  const col = footprintColumnX(cell.bucketTs, timeToX, barSpacing);
+  const priceIdx = sortedPrices.indexOf(cell.price);
+  const y = priceToY(cell.price);
+  if (col === null || priceIdx === -1 || y === null) return null;
+
+  const height = neighborDistance(sortedPrices, priceIdx, priceToY);
+  if (height === null) return null;
+
+  return { x: col.left, y: y - height / 2, width: col.right - col.left, height };
+}

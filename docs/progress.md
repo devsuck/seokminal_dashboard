@@ -1,3 +1,29 @@
+## Phase 157 — Orderflow 줌 리셋 + footprint 색 미표시 버그 (2026-07-10) ✅ DONE
+
+유저 리포트: "확대하면 알아서 줌 풀림(UX 매우 별로)" + "갈색(히트맵)만 뜨고 footprint 색은 안 보임". Phase 154의 `visibleRangeRef` 저장/복원 방식이 불안정했던 게 버그4, Phase 156에서 미확인으로 남긴 footprint 항목이 실은 진짜 버그(버그5)였음. SDD 안 씀 — 직접 디버깅.
+
+### 버그 4 — 30초 폴링마다 차트 전체 destroy→recreate, 줌 유실
+`CandlestickChart.tsx`가 `useEffect` 1개(`deps`에 `bars` 포함)에서 `createChart`~`chart.remove()`까지 다 처리 → `OrderflowChart`의 30초 폴링(`REFRESH_INTERVAL_MS`)마다 차트 객체 자체가 완전히 새로 생성됨. `visibleRangeRef` 저장/복원(Phase 154 수정)으로 땜질했지만 재현성 낮고 근본 원인 아님.
+- `components/CandlestickChart.tsx`: 이펙트 2개로 분리 — ① 마운트 1회만(`deps=[]`) 차트+캔들시리즈 생성, `onSeriesReady` 1회 호출, cleanup에서만 `chart.remove()`. ② `bars`/지표/스펙 변경 시(`deps=[bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey]`) 기존 차트에 `setData`/오버레이 시리즈만 갱신, `chart.remove()` 안 함 → `chart.timeScale()` 객체가 안 죽으니 줌/팬이 자동으로 유지됨(별도 저장/복원 로직 불필요, `visibleRangeRef` 제거).
+- 오버레이 라인시리즈는 `overlaySeriesRef`로 추적, 갱신마다 `chart.removeSeries()` 후 재생성. 마커는 `markersRef`(`ISeriesMarkersPluginApi<Time>`)에 저장해 `createSeriesMarkers` 재호출 대신 `.setMarkers()` 사용(중복 플러그인 스태킹 방지).
+- `onSeriesReady`는 4개 소비처 중 `OrderflowChart.tsx`만 사용(grep 확인) → 1회 호출로 변경해도 다른 3곳(`ChartTab`/`ChartPanel`/forex 페이지) 영향 없음.
+
+### 버그 5 — footprint 매수/매도 색 배경이 히트맵과 달리 저줌에서 전혀 안 그려짐
+`FootprintPrimitive.ts`가 `if (barSpacing < MIN_BAR_SPACING_FOR_TEXT) return;`을 렌더 함수 맨 앞에서 실행 → 숫자뿐 아니라 색 배경까지 통째로 스킵됨. 히트맵(`HeatmapPrimitive.ts`)엔 이런 게이트가 없어서 히트맵 틴트만 보이고 footprint는 아예 안 보였던 것.
+- `lib/orderflow-chart-coords.ts`: `footprintCellRect()` 추가 — `footprintColumnX`(캔들 폭 전체) + 기존 `neighborDistance`(이웃 가격 거리로 높이 계산)로 셀 사각형 산출.
+- `components/orderflow/FootprintPrimitive.ts`: 색 배경 렌더(매도=빨강/매수=초록, `sellVol`/`buyVol` 강도에 따라 opacity 스케일)를 줌 게이트보다 앞으로 빼서 항상 그리고, 숫자 텍스트만 기존처럼 `barSpacing<40`이면 스킵.
+- `tests/lib/orderflow-chart-coords.test.ts`: `footprintCellRect` 테스트 4건 추가(정상 계산/가격 없음/시간 범위 밖/이웃 없음).
+
+### 검증
+- `npx tsc --noEmit` 클린.
+- `npx vitest run tests/lib/orderflow-chart-coords.test.ts tests/lib/orderflow-data.test.ts` — 29/29 통과.
+- **미확인**: 브라우저 실줌인/장시간(30초+) 방치로 실제 zoom-persist 육안 재현 — 브라우저 자동화로 barSpacing 조작이 안 되는 기존 한계(Phase 156 버그3 참고) 그대로라 코드 레벨 검증까지만 함. 유저 직접 재확인 필요.
+
+### 다음 할 일
+- 유저 스팟체크: `/orderflow`에서 트랙패드 확대 후 30초+ 방치해도 줌 유지되는지, footprint 빨강/초록 배경이 보이는지.
+- Deribit 옵션플로우+GEX 스펙: 브레인스토밍 중 이번 버그리포트로 중단됨. 마지막 질문("`docs/superpowers/specs/2026-07-10-deribit-options-flow-gex-design.md`로 스펙 써도 될까?") 재확인 필요.
+- 델타/absorption: 기존 footprint 데이터로 바로 가능(신규 데이터 불필요), 미착수.
+
 ## Phase 156 — Orderflow 히트맵 미표시 버그 (2026-07-10) ✅ DONE
 
 유저 리포트: "/orderflow 캔들만 뜨고 나머지 안 보임". Phase 154가 "미확인"으로 남겼던 두 항목 중 하나(히트맵 틴트)를 직접 검증하다 실제 버그 2건 확인·수정. SDD 안 씀 — 직접 디버깅.

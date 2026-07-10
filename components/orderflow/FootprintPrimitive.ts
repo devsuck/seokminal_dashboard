@@ -6,9 +6,10 @@ import type {
   Time,
   UTCTimestamp,
 } from "lightweight-charts";
-import { footprintColumnX } from "@/lib/orderflow-chart-coords";
-import type { FootprintCell } from "@/lib/orderflow-data";
+import { footprintCellRect, footprintColumnX } from "@/lib/orderflow-chart-coords";
+import { computeFootprintLayout, type FootprintCell } from "@/lib/orderflow-data";
 
+// 이 값 아래 barSpacing에서는 매수/매도 숫자가 겹쳐서 안 보이므로 색 배경만 그림.
 const MIN_BAR_SPACING_FOR_TEXT = 40;
 
 class FootprintPaneRenderer implements IPrimitivePaneRenderer {
@@ -20,10 +21,25 @@ class FootprintPaneRenderer implements IPrimitivePaneRenderer {
       if (cells.length === 0) return;
 
       const barSpacing = chart.timeScale().options().barSpacing;
-      if (barSpacing < MIN_BAR_SPACING_FOR_TEXT) return;
-
       const timeToX = (ts: number) => chart.timeScale().timeToCoordinate(ts as UTCTimestamp);
       const priceToY = (price: number) => series.priceToCoordinate(price);
+
+      // 매수/매도 색 배경 — 항상 그림(저줌에서도 보여야 함, 숫자는 확대시에만).
+      const layout = computeFootprintLayout(cells);
+      const maxVol = Math.max(1, ...cells.map((c) => Math.max(c.buyVol, c.sellVol)));
+      for (const cell of cells) {
+        const rect = footprintCellRect(cell, layout.prices, timeToX, priceToY, barSpacing);
+        if (!rect) continue;
+        const halfWidth = rect.width / 2;
+        const sellIntensity = Math.min(1, cell.sellVol / maxVol);
+        const buyIntensity = Math.min(1, cell.buyVol / maxVol);
+        ctx.fillStyle = `rgba(239, 68, 68, ${0.08 + sellIntensity * 0.35})`;
+        ctx.fillRect(rect.x, rect.y, halfWidth, rect.height);
+        ctx.fillStyle = `rgba(34, 197, 94, ${0.08 + buyIntensity * 0.35})`;
+        ctx.fillRect(rect.x + halfWidth, rect.y, halfWidth, rect.height);
+      }
+
+      if (barSpacing < MIN_BAR_SPACING_FOR_TEXT) return;
 
       ctx.font = "10px monospace";
       ctx.textBaseline = "middle";
