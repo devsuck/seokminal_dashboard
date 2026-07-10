@@ -1,3 +1,32 @@
+## Phase 158 — Deribit BTC/ETH 옵션플로우 + GEX (2026-07-10) ✅ DONE
+
+Phase 157 후 브레인스토밍 재개 → 스펙(`docs/superpowers/specs/2026-07-10-deribit-options-flow-gex-design.md`) → 플랜(`docs/superpowers/plans/2026-07-10-deribit-options-flow-gex.md`, 8태스크) → `superpowers:subagent-driven-development`로 실행(유저 선택: Subagent-Driven). 전 태스크 첫 시도에 구현/리뷰 통과(fix-재리뷰 사이클 0회), 최종 전체 리뷰에서 Important 1건 발견해 수정. 상세 태스크별 리뷰 로그: `.superpowers/sdd/progress.md`.
+
+### 백엔드 (`seokminal-multi-venue`, 커밋 `5faea81..ac37bca`)
+- `orderflow/deribit_adapter.py` — Deribit WS 체결 스트림 어댑터(`OptionTradeEvent`), `orderflow/hl_adapter.py` 패턴 그대로.
+- `orderflow/options_flow_manager.py` — 통화별 fan-out 매니저(구독/재연결 백오프), 기존 `orderflow/manager.py` 패턴 그대로.
+- `orderflow/gex.py` — 스트라이크별 감마 익스포저 계산(`fetch_gex_by_strike`, `options/pricer.py:bs_greeks` 재사용), 60초 REST 폴링 캐시(`gex_poll_loop`).
+- `api_server/router_options_flow.py` + `main.py` 배선(라우터 등록 + `gex_poll_loop` 백그라운드 태스크 1회 생성) — `GET /options-flow/gex/{currency}`, `WS /ws/options-flow/{currency}`.
+- 백엔드 전체 스위트: 823 passed, pre-existing 4개 실패(test_auth.py×3, test_backtest_happy_path)만 무시 대상, 신규 실패 0.
+
+### 프론트엔드 (`seokminal-dashboard`, 커밋 `52e63f1..e9fd36e`)
+- `lib/api.ts` — `getOptionsGex`/`GexSnapshot`/`GexLevel`.
+- `hooks/useOptionsFlowSocket.ts` — `useOrderflowSocket.ts`와 동일 패턴(재연결/cleanup) WS 훅.
+- `components/orderflow/OptionsFlowPanel.tsx` — GEX D3 바 차트(스트라이크별, spot 점선) + 옵션 체결 티커. 디자인 토큰만 사용(`var(--color-pos/neg/accent/border/text-2)` for D3, Tailwind 토큰 for 나머지).
+- `lib/orderflow-data.ts` — `currencyForSymbol("BTC.HL"→"BTC" / "ETH.HL"→"ETH" / else→null)`, `app/orderflow/page.tsx`에서 BTC/ETH 심볼일 때만 패널 노출.
+- 프론트 전체 스위트: 194/194 통과, tsc 클린.
+
+### 최종 전체 리뷰(opus)에서 발견·수정한 Important 1건
+GEX 폴링 실패 시 `setGex(null)`로 차트가 통째로 비워짐(백엔드는 실패 시 마지막 캐시 유지하는데 프론트만 안 그랬음) + 스펙이 요구한 `updated_at` 기준 stale 배지 미구현. → 커밋 `e9fd36e`: catch에서 더 이상 null 안 함(마지막 스냅샷 유지), `updated_at`(epoch seconds) 기준 5분 초과 시 `text-warn` "· 데이터 지연" 배지 추가. 재리뷰 승인.
+
+### Minor(안 고침, 기록만)
+"live" 상태는 재연결 후에만 브로드캐스트(최초 연결 시엔 안 함, 기존 `orderflow/manager.py`와 동일한 기존 동작), `gex_poll_loop`는 뷰어 유무 무관하게 항상 폴링(설계상 의도), `test_orderflow_gex.py` 미사용 `pytest` import, GEX 데이터 없을 때 헤더에 "spot 0" 표시(cosmetic).
+
+### 다음 할 일
+- 유저 브라우저 스팟체크: `/orderflow`에서 BTC.HL 선택 → GEX 바 차트(스트라이크별, spot 점선)와 옵션 체결 티커 렌더 확인, NQ 등으로 바꾸면 패널 사라지는지 확인. Deribit 실API 응답 필드명이 가정과 다르면 `orderflow/gex.py`/`orderflow/deribit_adapter.py` 파싱 부분만 조정 필요(스펙 범위 밖으로 명시됨).
+- Phase 157에서 넘어온 미확인 항목(줌 유지/footprint 색) 유저 재확인 아직 없음 — 계속 대기 중.
+- 델타/absorption 인디케이터: 기존 footprint 데이터로 바로 가능, 여전히 미착수.
+
 ## Phase 157 — Orderflow 줌 리셋 + footprint 색 미표시 버그 (2026-07-10) ✅ DONE
 
 유저 리포트: "확대하면 알아서 줌 풀림(UX 매우 별로)" + "갈색(히트맵)만 뜨고 footprint 색은 안 보임". Phase 154의 `visibleRangeRef` 저장/복원 방식이 불안정했던 게 버그4, Phase 156에서 미확인으로 남긴 footprint 항목이 실은 진짜 버그(버그5)였음. SDD 안 씀 — 직접 디버깅.
