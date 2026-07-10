@@ -15,14 +15,22 @@
 - 행 걸린 워커(PID 83281, 부모 39399) kill 후 서버 재기동 — 재기동 즉시 정상 응답.
 - pytest 7/7 통과. 커밋 `5faea81` (multi-venue).
 
+### 버그 3 — 히트맵 셀이 저줌에서 sub-pixel이라 안 보임 (버그1 고친 후 유저가 재확인, "still 안 보임")
+버그1 수정 후에도 유저가 여전히 아무것도 안 보인다고 재확인. 원인: heatmap 원본 2초 버킷 폭이 캔들(60초) 대비 `barSpacing/30` — 기본 줌(barSpacing≈6px)에서 0.2px, 사실상 렌더 자체가 안 보임(좌표 계산은 맞지만 폭이 없어서). 브라우저 자동화로 줌 조작 시도(실제 wheel, ctrl+wheel, 축 드래그, chart API `applyOptions({barSpacing:60})` 직접 호출까지 7가지) 전부 실패 — 앱이 mouse handleScale을 꺼둔 것으로 추정, 자동화로는 못 뚫음. 대신 **근본적으로 재설계**: 캔들 구간별로 (price당) 최댓값만 남겨 캔들 하나 = 셀 하나로 합치는 `aggregateHeatmapByCandle` 추가, 셀 폭을 늘 `barSpacing` 전체로 그림.
+- `lib/orderflow-data.ts`: `aggregateHeatmapByCandle(cells, candleIntervalSec)` — max 집계(sum 아님, 같은 잔량이 여러 2초 스냅샷에 중복 관측되는 걸 방지).
+- `lib/orderflow-chart-coords.ts`: `heatmapCellRect`에서 `heatmapBucketSec`/보간 로직 제거, 항상 `barSpacing` 폭 전체 채우도록 단순화.
+- `components/orderflow/HeatmapPrimitive.ts`: draw 전 `aggregateHeatmapByCandle` 호출.
+- 테스트 갱신+추가(`orderflow-data.test.ts` 3건, `orderflow-chart-coords.test.ts` 재작성), 커밋 `02ea554`.
+- **육안 확인 완료**: 기본 줌(barSpacing≈6px)에서도 최근 캔들 아래 주황/갈색 박스로 잔량 표시됨(스크린샷 확인).
+
 ### 검증
 - WS 프로브: 재기동 후 스냅샷 2.4KB(이전엔 1MB 초과로 끊김), heatmap_count 40(캡 정상 작동), footprint/heatmap delta 스트림 정상.
-- 브라우저 `/orderflow` 렌더 확인, 콘솔 에러 없음.
-- **미확인 유지**: 히트맵 틴트 육안 확인 + footprint 줌인 숫자 — Phase 154와 동일 사유(브라우저 자동화로 차트 줌 조작 불가, wheel/drag/React 내부 API 직접호출 다 시도했지만 barSpacing 불변). 코드/유닛테스트 레벨은 확인됨. 유저 직접 스팟체크 필요(`/orderflow` → BTC.HL → 마우스 스크롤로 확대, barSpacing≥40px에서 footprint 숫자·히트맵 색 확인).
+- 브라우저 `/orderflow` 렌더 확인, 콘솔 에러 없음, 히트맵 틴트 육안 확인 완료(위 버그3 참고).
+- **미확인 유지**: footprint 줌인 숫자(barSpacing≥40px에서만 표시) — 브라우저 자동화로 줌 자체가 안 되는 한계라 이건 여전히 못 봄. 코드 레벨(MIN_BAR_SPACING_FOR_TEXT=40 게이트)은 확인됨.
 
 ### 다음 할 일
-- 유저 스팟체크로 실제 시각적 렌더 최종 확인.
-- 유저가 추가로 물어본 델타/bookmap/depth chart/absorption/options flow/GEX level/CRL chart 지표 확장 가능성 검토 — 별도 스펙 필요시 브레인스토밍부터.
+- footprint 줌인 숫자 유저 직접 스팟체크(`/orderflow` → BTC.HL → 트랙패드로 확대).
+- 델타/absorption/options flow/GEX level 확장 — 델타·absorption은 기존 데이터로 바로 가능(신규 데이터 불필요), options flow/GEX는 크립토(Deribit, 무료 API)로 결정, 스펙 작성 예정.
 
 ## Phase 155 — HUD 프로세스 가시성 (폴리마켓 틱/arb) (2026-07-10) ✅ DONE
 
