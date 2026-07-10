@@ -1,3 +1,40 @@
+## Phase 159 — Orderflow 트레이딩 콕핏 5종 (2026-07-10) ✅ DONE
+
+유저 요청(잘 동안 무중단 자율 작업 지시): `/orderflow` 캔들차트에 Bookmap 스타일 실시간 트레이딩 UX 5종 추가 — "착 보고 착 매수/매도" 목표. 브레인스토밍(`docs/superpowers/specs/2026-07-10-orderflow-trading-cockpit-design.md`) → 플랜(`docs/superpowers/plans/2026-07-10-orderflow-trading-cockpit.md`, 9태스크) → `superpowers:subagent-driven-development`로 전 태스크+최종 전체 리뷰까지 자율 실행. 상세 태스크별 리뷰 로그: `.superpowers/sdd/progress.md` ("SDD Progress — 2026-07-10 Orderflow Trading Cockpit" 섹션).
+
+### 백엔드 (`seokminal-multi-venue`, 커밋 `ac37bca..d278a0c`)
+- `orderflow/aggregator.py` — `latest_book()`: L2 북 스냅샷을 가격순 정렬+상위 N레벨로 정리.
+- `orderflow/manager.py` — `book_snapshot` 브로드캐스트에 심볼별 150ms 스로틀 추가(`BOOK_SNAPSHOT_THROTTLE_SEC`).
+- 백엔드 전체 스위트: 829 passed, pre-existing 4개 실패(test_auth.py×3, test_backtest_happy_path)만, 신규 실패 0.
+
+### 프론트엔드 (`seokminal-dashboard`, 커밋 `6b6913c..dfcb323`, 12커밋)
+5개 기능 모두 기존 `ISeriesPrimitive` 패턴(`HeatmapPrimitive`/`FootprintPrimitive` 선례) 그대로 확장:
+1. **COB 뎁스 인셋** — `OrderBookPrimitive.ts`, 차트 우측 90px 독킹 바(빨강 ask/초록 bid).
+2. **아이스버그/대량체결 트래커** — `LargeLotPrimitive.ts` + `lib/orderflow-data.ts`(`applyLargeTradeTracking`, 롤링 중앙값 200틱 기준 3배 이상 시 플래그, 플래그된 체결은 베이스라인 갱신에서 제외 — 자기억제 버그 방지).
+3. **CVD 서브페인 + 셀별 델타** — `computeCvdSeries()`, `CandlestickChart.tsx`에 히스토그램 페인 추가, `FootprintPrimitive.ts`에 매수-매도 델타 숫자 라인 추가.
+4. **흡수(Absorption) 하이라이팅** — `detectAbsorption()`(우세비율 0.7 + 노이즈플로어 10배 + 가격방향 조건, `rollingMedian<=0` 시 fail-closed), 마커는 `CandlestickChart.tsx`의 기존 마커 파이프라인에 합류.
+5. **GEX 스트라이크 라인** — `GexLevelsPrimitive.ts`, `hooks/useGexSnapshot.ts`(Phase 158 `OptionsFlowPanel`에서 추출한 공용 훅)로 감마월(최대 |net_gex| 스트라이크) 강조선.
+- 프론트 전체 스위트: 214/214 통과, tsc 클린.
+
+### 리뷰 루프에서 발견·수정한 이슈
+- **Task 6 Critical**: CVD `HistogramSeries`가 매 이펙트 재실행마다 이전 시리즈 제거 없이 재생성 → `footprint`가 거의 매 WS 틱마다 바뀌므로 라이브 트레이딩 중 무한 시리즈 누적. `overlaySeriesRef`와 동일한 drain-then-rebuild로 수정.
+- **Task 7 Important**: `absorptionMarkers` useMemo가 별도 useEffect에서만 쓰이는 `medianSizeRef.current`를 읽어 항상 한 사이클 전 중앙값으로 평가(React가 이펙트 실행 전 모든 useMemo를 먼저 완료하기 때문). `detectAbsorption()` 호출을 중앙값을 계산하는 바로 그 이펙트 안으로 옮기고 `useState`로 전환해 수정.
+- **최종 전체 리뷰(opus) Important**: `largeTradeTrackerRef`/`prevFootprintRef`가 심볼 전환 시 리셋 안 됨(컴포넌트가 언마운트 안 되므로) → 두 심볼의 체결 크기 스케일이 섞여 대량체결/흡수 임계값이 왜곡되고, 이전 심볼의 잔여 버블 마커가 새 차트에 렌더될 수 있었음(실제 트레이딩 액션에서 흔히 발생, 신호 정확성에 직결). `[symbol]` 키 이펙트로 트래커/마커 리셋 추가해 수정.
+- **최종 전체 리뷰 Minor**: `OrderflowChart`와 `OptionsFlowPanel`이 `useGexSnapshot`을 각자 호출해 GEX 폴링 중복(암호화폐 심볼은 2배, 비암호화폐는 무의미한 404 폴링) → 훅 호출을 `app/orderflow/page.tsx`로 올려 `gex` prop으로 양쪽에 전달.
+
+### 브라우저 확인 (완료)
+`/orderflow` BTC.HL 라이브 상태에서 확인: COB 인셋(빨강/초록 바) 렌더, CVD 서브페인 값 실시간 변동(-0.18→-1.17), 대량체결 버블 실시간 색 변경, 흡수 마커("흡수" + 화살표) 실제 발화, GEX 패널(spot 표시) 정상. 콘솔 에러 없음. **미확인**: footprint 셀별 매수/매도 숫자·델타 라인(1분봉 저줌에서 40px bar-spacing 게이트 미충족, 브라우저 자동화로 캔버스 확대 불가 — Phase 157에서도 동일 제약 겪음, 코드 레벨로는 검증 완료).
+
+### Minor(안 고침, 기록만)
+- OrderBookPrimitive `zOrder: "top"` 최근접 부착으로 우측 끝 footprint 컬럼 몇 개를 코스메틱하게 덮음(Task 4에서 flagged).
+- 5개 프리미티브 모두 언마운트 시 명시적 `detachPrimitive()` 안 함 — `CandlestickChart.tsx`의 `chart.remove()`가 암묵적으로 정리하므로 실제 누수는 아님(최종 리뷰에서 확인).
+- 대량체결 임계값(3배 롤링 중앙값)/흡수 임계값(0.7 우세비율)은 전부 미백테스트 v1 상수.
+
+### 다음 할 일
+- 유저 브라우저 재확인: footprint 셀 숫자가 고줌(넓은 bar-spacing)에서 정상 렌더되는지, GEX 라인이 히트맵/COB/버블과 시각적으로 충돌 안 하는지 직접 스팟체크.
+- Phase 157/158에서 넘어온 미확인 항목(줌 유지 최종 확인, Deribit GEX 실API 필드명 검증) 여전히 대기 중.
+- 대량체결/흡수 임계값 백테스트 검증 — 미착수.
+
 ## Phase 158 — Deribit BTC/ETH 옵션플로우 + GEX (2026-07-10) ✅ DONE
 
 Phase 157 후 브레인스토밍 재개 → 스펙(`docs/superpowers/specs/2026-07-10-deribit-options-flow-gex-design.md`) → 플랜(`docs/superpowers/plans/2026-07-10-deribit-options-flow-gex.md`, 8태스크) → `superpowers:subagent-driven-development`로 실행(유저 선택: Subagent-Driven). 전 태스크 첫 시도에 구현/리뷰 통과(fix-재리뷰 사이클 0회), 최종 전체 리뷰에서 Important 1건 발견해 수정. 상세 태스크별 리뷰 로그: `.superpowers/sdd/progress.md`.
