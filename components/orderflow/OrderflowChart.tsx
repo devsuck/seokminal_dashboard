@@ -7,10 +7,13 @@ import { HeatmapPrimitive } from "@/components/orderflow/HeatmapPrimitive";
 import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
 import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
 import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
+import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
+import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
   computeCvdSeries,
+  currencyForSymbol,
   detectAbsorption,
   diffFootprintCells,
   emptyLargeTradeTracker,
@@ -38,6 +41,11 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   const footprintPrimitiveRef = useRef<FootprintPrimitive | null>(null);
   const bookPrimitiveRef = useRef<OrderBookPrimitive | null>(null);
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
+  const gexLevelsPrimitiveRef = useRef<GexLevelsPrimitive | null>(null);
+  const currency = currencyForSymbol(symbol);
+  const { gex } = useGexSnapshot(currency ?? "");
+  const gexRef = useRef(gex);
+  gexRef.current = gex;
   const prevFootprintRef = useRef<FootprintCell[]>([]);
   const largeTradeTrackerRef = useRef<LargeTradeTrackerState>(emptyLargeTradeTracker());
   const footprintRef = useRef(footprint);
@@ -120,22 +128,34 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
     );
   }, [heatmap, footprint, book, bars]);
 
+  useEffect(() => {
+    if (currency && gex) {
+      gexLevelsPrimitiveRef.current?.updateData(gex.levels);
+    } else {
+      gexLevelsPrimitiveRef.current?.updateData([]);
+    }
+  }, [currency, gex]);
+
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     const hp = new HeatmapPrimitive();
     const fp = new FootprintPrimitive();
     const bp = new OrderBookPrimitive();
     const lp = new LargeLotPrimitive();
+    const gp = new GexLevelsPrimitive();
     series.attachPrimitive(hp);
     series.attachPrimitive(fp);
     series.attachPrimitive(bp);
     series.attachPrimitive(lp);
+    series.attachPrimitive(gp);
     hp.updateData(heatmapRef.current);
     fp.updateData(footprintRef.current);
     bp.updateData(bookRef.current);
+    gp.updateData(currency && gexRef.current ? gexRef.current.levels : []);
     heatmapPrimitiveRef.current = hp;
     footprintPrimitiveRef.current = fp;
     bookPrimitiveRef.current = bp;
     largeLotPrimitiveRef.current = lp;
+    gexLevelsPrimitiveRef.current = gp;
   }
 
   if (error) {
