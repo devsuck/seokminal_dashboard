@@ -18,25 +18,33 @@ function neighborDistance(
   return Math.abs(c1 - c0);
 }
 
-/** heatmap 셀 1개를 캔들차트 좌표계의 사각형(x,y,width,height)으로 변환. 좌표 못 구하면 null. */
+/**
+ * heatmap 셀 1개를 캔들차트 좌표계의 사각형(x,y,width,height)으로 변환. 좌표 못 구하면 null.
+ *
+ * heatmap ts는 캔들 간격(candleIntervalSec)보다 촘촘한 버킷(heatmapBucketSec)이라 대부분
+ * 캔들 open time과 일치하지 않는다 — timeToX(cell.ts)를 직접 호출하면 lightweight-charts가
+ * 데이터에 없는 시각이라 null을 반환해 사실상 아무것도 안 그려진다. 그래서 캔들 open time으로
+ * floor한 시각만 timeToX에 넘기고, 그 안에서의 위치는 barSpacing 비율로 보간한다.
+ */
 export function heatmapCellRect(
   cell: { ts: number; price: number },
-  sortedBuckets: number[],
+  candleIntervalSec: number,
+  heatmapBucketSec: number,
   sortedPrices: number[],
   timeToX: (ts: number) => number | null,
-  priceToY: (price: number) => number | null
+  priceToY: (price: number) => number | null,
+  barSpacing: number
 ): CellRect | null {
-  const bucketIdx = sortedBuckets.indexOf(cell.ts);
+  const barTime = Math.floor(cell.ts / candleIntervalSec) * candleIntervalSec;
+  const x0 = timeToX(barTime);
   const priceIdx = sortedPrices.indexOf(cell.price);
-  if (bucketIdx === -1 || priceIdx === -1) return null;
-
-  const x = timeToX(cell.ts);
   const y = priceToY(cell.price);
-  if (x === null || y === null) return null;
+  if (x0 === null || priceIdx === -1 || y === null) return null;
 
-  const width = neighborDistance(sortedBuckets, bucketIdx, timeToX);
+  const x = x0 + ((cell.ts - barTime) / candleIntervalSec) * barSpacing;
+  const width = (heatmapBucketSec / candleIntervalSec) * barSpacing;
   const height = neighborDistance(sortedPrices, priceIdx, priceToY);
-  if (width === null || height === null) return null;
+  if (height === null) return null;
 
   return { x: x - width / 2, y: y - height / 2, width, height };
 }
