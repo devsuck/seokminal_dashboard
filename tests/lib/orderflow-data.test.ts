@@ -15,6 +15,8 @@ import {
   currencyForSymbol,
   applyLargeTradeTracking,
   emptyLargeTradeTracker,
+  computeCvdSeries,
+  type FootprintCell,
 } from "../../lib/orderflow-data";
 
 describe("applySnapshot", () => {
@@ -311,5 +313,24 @@ describe("applyLargeTradeTracking", () => {
     }
     expect(tracker.largeTrades).toHaveLength(50);
     expect(tracker.largeTrades[0].bucketTs).toBe(3005); // 처음 5개(3000~3004)는 밀려나감
+  });
+});
+
+describe("computeCvdSeries", () => {
+  it("returns an empty array for no cells", () => {
+    expect(computeCvdSeries([])).toEqual([]);
+  });
+
+  it("sums buy-sell per bucket and cumulates ascending by time", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 60, price: 100, buyVol: 3, sellVol: 1 }, // net +2
+      { bucketTs: 60, price: 101, buyVol: 1, sellVol: 1 }, // net 0 (same bucket, different price)
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 4 },  // net -3 (earlier bucket)
+    ];
+    const series = computeCvdSeries(cells);
+    expect(series).toEqual([
+      { time: 0, value: -3 },
+      { time: 60, value: -1 }, // -3 + (2 + 0)
+    ]);
   });
 });

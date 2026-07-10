@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { IChartApi, ISeriesApi } from "lightweight-charts";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { IChartApi, ISeriesApi, UTCTimestamp } from "lightweight-charts";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { HeatmapPrimitive } from "@/components/orderflow/HeatmapPrimitive";
 import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
@@ -10,6 +10,7 @@ import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
+  computeCvdSeries,
   diffFootprintCells,
   emptyLargeTradeTracker,
   type FootprintCell,
@@ -44,6 +45,11 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   footprintRef.current = footprint;
   heatmapRef.current = heatmap;
   bookRef.current = book;
+
+  const cvdSeries = useMemo(
+    () => computeCvdSeries(footprint).map((pt) => ({ time: pt.time as UTCTimestamp, value: pt.value })),
+    [footprint]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -127,7 +133,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
 
   return (
     <div className="border border-border bg-panel">
-      <CandlestickChart bars={bars} onSeriesReady={handleSeriesReady} />
+      <CandlestickChart bars={bars} cvdSeries={cvdSeries} onSeriesReady={handleSeriesReady} />
     </div>
   );
 }

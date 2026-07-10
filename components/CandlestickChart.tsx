@@ -6,6 +6,7 @@ import {
   createSeriesMarkers,
   CandlestickSeries,
   LineSeries,
+  HistogramSeries,
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
@@ -27,6 +28,8 @@ interface CandlestickChartProps {
   /** 조건식에서 추출한 지표 스펙 — 오버레이(MA/BB/EMA)는 가격 페인,
       오실레이터(RSI/MACD/CCI/OBV)는 하단 서브페인에 렌더. */
   specs?: ChartIndicatorSpec[];
+  /** CVD(누적 볼륨 델타) 서브페인 데이터 — 오더플로우 심볼에서만 전달됨. */
+  cvdSeries?: { time: UTCTimestamp; value: number }[];
   /** 차트/캔들시리즈 생성 직후 호출 — 외부에서 series primitive를 attach하려는 소비자용.
       bars 등이 바뀌어 차트가 통째로 재생성될 때마다 다시 호출된다. */
   onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
@@ -142,12 +145,13 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, onSeriesReady }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, onSeriesReady }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const overlaySeriesRef = useRef<ISeriesApi<"Line">[]>([]);
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const cvdSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const specsKey = JSON.stringify(specs ?? []);
 
   // 차트/캔들시리즈는 마운트 시 한 번만 생성한다. bars가 폴링(예: 오더플로우 30초 갱신)으로
@@ -196,6 +200,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       candleSeriesRef.current = null;
       overlaySeriesRef.current = [];
       markersRef.current = null;
+      cvdSeriesRef.current = null;
     };
     // onSeriesReady는 마운트 시 1회만 호출 — 의도적으로 deps 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,6 +355,29 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         }
       }
     }
+
+    // ── CVD(누적 볼륨 델타) 서브페인 — 오더플로우 전용, specs 오실레이터 다음 페인 ──
+    if (cvdSeries && cvdSeries.length > 0) {
+      const cvdPane = paneIdx++;
+      const cvdSeriesApi = chart.addSeries(
+        HistogramSeries,
+        { priceLineVisible: false, lastValueVisible: true },
+        cvdPane
+      );
+      let prevValue = 0;
+      cvdSeriesApi.setData(
+        cvdSeries.map((pt) => {
+          const color = pt.value >= prevValue ? "#00D964" : "#FF3B30";
+          prevValue = pt.value;
+          return { time: pt.time, value: pt.value, color };
+        })
+      );
+      cvdSeriesRef.current = cvdSeriesApi;
+    } else if (cvdSeriesRef.current) {
+      chart.removeSeries(cvdSeriesRef.current);
+      cvdSeriesRef.current = null;
+    }
+
     // 서브페인이 생기면 가격 페인이 눌리지 않게 전체 높이 보정
     if (paneIdx > 1) {
       const panes = chart.panes();
@@ -358,7 +386,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey]);
+  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries]);
 
   return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }

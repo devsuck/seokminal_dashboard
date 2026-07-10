@@ -271,3 +271,17 @@ export function applyLargeTradeTracking(
 
   return { recentSizes, largeTrades };
 }
+
+/** 버킷(캔들)별 (매수량-매도량) 순델타를 시간순 누적합으로 변환 — CVD 서브페인용. */
+export function computeCvdSeries(cells: FootprintCell[]): { time: number; value: number }[] {
+  const netByBucket = new Map<number, number>();
+  for (const c of cells) {
+    netByBucket.set(c.bucketTs, (netByBucket.get(c.bucketTs) ?? 0) + (c.buyVol - c.sellVol));
+  }
+  const buckets = Array.from(netByBucket.keys()).sort((a, b) => a - b);
+  let cumulative = 0;
+  return buckets.map((time) => {
+    cumulative += netByBucket.get(time) as number;
+    return { time, value: cumulative };
+  });
+}

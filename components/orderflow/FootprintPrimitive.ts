@@ -56,6 +56,11 @@ class FootprintPaneRenderer implements IPrimitivePaneRenderer {
         ctx.fillStyle = "#22C55E";
         ctx.textAlign = "left";
         ctx.fillText(cell.buyVol.toFixed(1), col.center + 2, y);
+
+        const delta = cell.buyVol - cell.sellVol;
+        ctx.fillStyle = delta >= 0 ? "#00D964" : "#FF3B30";
+        ctx.textAlign = "center";
+        ctx.fillText((delta >= 0 ? "+" : "") + delta.toFixed(1), col.center, y + 11);
       }
     });
   }
