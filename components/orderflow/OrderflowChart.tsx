@@ -48,6 +48,10 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   heatmapRef.current = heatmap;
   bookRef.current = book;
 
+  const [absorptionMarkers, setAbsorptionMarkers] = useState<
+    { time: UTCTimestamp; side: "buy" | "sell" }[]
+  >([]);
+
   const cvdSeries = useMemo(
     () => computeCvdSeries(footprint).map((pt) => ({ time: pt.time as UTCTimestamp, value: pt.value })),
     [footprint]
@@ -110,15 +114,13 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
         : 0;
     medianSizeRef.current = medianSize;
     largeLotPrimitiveRef.current?.updateData(tracker.largeTrades, medianSize);
-  }, [heatmap, footprint, book]);
-
-  const absorptionMarkers = useMemo(
-    () => detectAbsorption(footprint, bars, medianSizeRef.current).map((m) => ({
-      time: m.time as UTCTimestamp,
-      side: m.side,
-    })),
-    [footprint, bars]
-  );
+    setAbsorptionMarkers(
+      detectAbsorption(footprint, bars, medianSize).map((m) => ({
+        time: m.time as UTCTimestamp,
+        side: m.side,
+      }))
+    );
+  }, [heatmap, footprint, book, bars]);
 
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     const hp = new HeatmapPrimitive();
