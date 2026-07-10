@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
-  getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts,
+  getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts, getVrpBotStatus,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
-  type AccountBalances, type TriggeredAlert,
+  type AccountBalances, type TriggeredAlert, type VrpBotStatus,
 } from "@/lib/api";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -65,6 +65,7 @@ interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
   exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
+  vrp: VrpBotStatus | null;
 }
 
 interface Unit { kind: "AI" | "BOT"; name: string; running: boolean; detail: string; href: string; }
@@ -93,7 +94,7 @@ function UnitCard({ u }: { u: Unit }) {
 }
 
 export default function HudPage() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null });
+  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
   const abortRef = useRef<AbortController | null>(null);
@@ -104,7 +105,7 @@ export default function HudPage() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -114,8 +115,9 @@ export default function HudPage() {
         getExecutionConsole(c.signal).catch(() => null),
         getExecutionEdge(c.signal).catch(() => null),  // read_only 캐시 — 서버 계산 없음
         getTriggeredAlerts(c.signal).catch(() => null),
+        getVrpBotStatus(c.signal).catch(() => null),
       ]);
-      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts });
+      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp });
     }
     load();
     const iv = setInterval(load, 4000);
@@ -147,7 +149,7 @@ export default function HudPage() {
     return () => clearInterval(t);
   }, []);
 
-  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts } = f;
+  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp } = f;
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -180,6 +182,16 @@ export default function HudPage() {
     kind: "BOT", name: "폴리마켓 arb 스캐너", running: sys.processes.polymarket_arb.running,
     detail: formatAge(sys.processes.polymarket_arb.age_sec), href: "/lab",
   });
+  if (sys?.processes?.hl_orderflow_tick) units.push({
+    kind: "BOT", name: "HL 오더플로우 틱 수집기", running: sys.processes.hl_orderflow_tick.running,
+    detail: formatAge(sys.processes.hl_orderflow_tick.age_sec), href: "/orderflow",
+  });
+  if (vrp) {
+    const lastLog = vrp.log?.[0];
+    const vrpDetail = lastLog?.kind === "scan_fail" ? `⚠ ${String(lastLog.msg ?? "실패")}`
+      : vrp.last_run ? `마지막 스캔 ${vrp.last_run.slice(11, 19)}` : "스캔 대기";
+    units.push({ kind: "BOT", name: "VRP 아이언콘도어", running: vrp.enabled, detail: vrpDetail, href: "/vrp" });
+  }
 
   const nRunning = units.filter(u => u.running).length;
   const wd = sys?.research_service?.watchdog;
