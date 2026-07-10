@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as d3 from "d3";
-import { getOptionsGex, type GexSnapshot } from "@/lib/api";
+import type { GexSnapshot } from "@/lib/api";
 import { useOptionsFlowSocket } from "@/hooks/useOptionsFlowSocket";
+import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 
-const POLL_INTERVAL_MS = 60_000;
 const MARGIN = { top: 12, right: 16, bottom: 28, left: 48 };
 
 interface OptionsFlowPanelProps {
@@ -77,38 +77,8 @@ function GexChart({ snapshot, width = 560, height = 220 }: { snapshot: GexSnapsh
 }
 
 export function OptionsFlowPanel({ currency }: OptionsFlowPanelProps) {
-  const [gex, setGex] = useState<GexSnapshot | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const { gex, isStale } = useGexSnapshot(currency);
   const { trades, connectionState } = useOptionsFlowSocket(currency);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    function poll() {
-      abortRef.current?.abort();
-      const ctrl = new AbortController();
-      abortRef.current = ctrl;
-      getOptionsGex(currency, ctrl.signal)
-        .then((snapshot) => {
-          if (!cancelled) setGex(snapshot);
-        })
-        .catch(() => {
-          // 일시적 폴링 실패는 조용히 무시 — 마지막 캐시값(gex)을 그대로 유지한다.
-          // (백엔드 orderflow/gex.py의 _cache가 upstream 실패 시 마지막 값을 보존하는 것과 동일한 동작)
-        });
-    }
-
-    poll();
-    const timer = setInterval(poll, POLL_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-      abortRef.current?.abort();
-    };
-  }, [currency]);
-
-  const isStale = gex != null && Date.now() - gex.updated_at * 1000 > 5 * 60_000;
 
   return (
     <div className="rounded-lg border border-border bg-panel p-4 space-y-4">
