@@ -1556,6 +1556,21 @@ export async function getAccountBalances(signal?: AbortSignal): Promise<AccountB
   return r.json();
 }
 
+export interface KISHolding {
+  code: string; name: string; qty: number;
+  avg_price: number; current: number; return_pct: number | null;
+}
+export interface KISHoldingsResponse {
+  holdings: KISHolding[];
+  error: string | null;
+}
+
+export async function getKisHoldings(mock: boolean, signal?: AbortSignal): Promise<KISHoldingsResponse> {
+  const r = await fetch(`${API_URL}/agents/accounts/kis-holdings?mock=${mock}`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 export async function searchKR(
   q: string,
   signal?: AbortSignal,

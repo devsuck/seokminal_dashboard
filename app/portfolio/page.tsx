@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions,
-  type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition,
+  getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings,
+  type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
@@ -45,13 +45,13 @@ function AccountCard({
   const [open, setOpen] = useState(false);
   const ok = !error && balance != null;
   return (
-    <div className="bg-panel border border-border rounded-xl overflow-hidden">
-      <button onClick={() => setOpen(v => !v)} className="w-full text-left">
+    <div className="bg-panel border border-border rounded-xl overflow-hidden hover:border-text-3 transition-colors">
+      <button onClick={() => setOpen(v => !v)} className="w-full text-left hover:bg-panel-2 transition-colors">
         <div className="flex items-center gap-3 px-4 py-3">
           <StatusDot ok={ok} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-text-1 text-sm font-medium">{label}</span>
+              <span className="text-text-1 text-sm font-semibold">{label}</span>
               <ModeChip mode={mode} paper={paper} />
             </div>
             {error ? (
@@ -61,7 +61,7 @@ function AccountCard({
             )}
           </div>
           <div className="text-right shrink-0">
-            <p className={`text-base font-mono font-semibold ${ok ? "text-text-1" : "text-text-3"}`}>
+            <p className={`text-lg font-mono font-bold ${ok ? "text-text-1" : "text-text-3"}`}>
               {fmt(balance, ccy)}
             </p>
           </div>
@@ -158,6 +158,36 @@ function HLPositions({ positions }: { positions: HLAssetPosition[] }) {
   );
 }
 
+// ── KIS(한투) 보유종목 인라인 ─────────────────────────────────────────────────
+
+function KISHoldings({ holdings }: { holdings: KISHolding[] }) {
+  if (holdings.length === 0) return <p className="text-text-3 text-xs">보유 종목 없음</p>;
+  return (
+    <table className="w-full text-[11px]">
+      <thead>
+        <tr className="text-text-3 text-[10px] border-b border-border">
+          {["종목", "수량", "평단가", "현재가", "평가손익"].map(h => (
+            <th key={h} className="pb-1.5 text-left font-normal">{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {holdings.map(h => (
+          <tr key={h.code} className="border-b border-border/30">
+            <td className="py-1 text-text-1 font-medium">{h.name}</td>
+            <td className="py-1 font-mono text-text-2">{h.qty}</td>
+            <td className="py-1 font-mono text-text-2">₩{h.avg_price.toLocaleString("ko-KR")}</td>
+            <td className="py-1 font-mono text-text-2">₩{h.current.toLocaleString("ko-KR")}</td>
+            <td className={`py-1 font-mono px-1 font-bold ${(h.return_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+              {h.return_pct != null ? `${h.return_pct >= 0 ? "+" : ""}${h.return_pct.toFixed(1)}%` : "—"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 // ── LKG Paper Trading 인라인 ─────────────────────────────────────────────────
 
 function LkgPaperDetail({ paper }: { paper: PaperState }) {
@@ -206,16 +236,14 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
 // ── 섹션 헤더 ────────────────────────────────────────────────────────────────
 
 function CcySection({ ccy, total, children }: { ccy: string; total: number | null; children: React.ReactNode }) {
-  const flag = ccy === "KRW" ? "🇰🇷" : ccy === "EUR" ? "🇪🇺" : ccy === "USDC" ? "🟣" : "🇺🇸";
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{flag}</span>
-          <span className="text-text-2 text-sm font-semibold">{ccy}</span>
-        </div>
+        <span className="text-text-1 text-xs font-bold font-mono tracking-widest bg-panel-2 border border-border rounded px-2 py-1">
+          {ccy}
+        </span>
         {total != null && (
-          <span className="text-text-1 text-sm font-mono font-semibold">{fmt(total, ccy)}</span>
+          <span className="text-accent text-base font-mono font-bold">{fmt(total, ccy)}</span>
         )}
         <div className="flex-1 h-px bg-border" />
       </div>
@@ -234,6 +262,8 @@ export default function PortfolioPage() {
   const [paper, setPaper] = useState<PaperState | null>(null);
   const [hlTestnetPositions, setHlTestnetPositions] = useState<HLAssetPosition[]>([]);
   const [hlMainnetPositions, setHlMainnetPositions] = useState<HLAssetPosition[]>([]);
+  const [kisMockHoldings, setKisMockHoldings] = useState<KISHolding[]>([]);
+  const [kisLiveHoldings, setKisLiveHoldings] = useState<KISHolding[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -259,6 +289,8 @@ export default function PortfolioPage() {
       .then(r => setAccounts(r.accounts))
       .catch(() => {})
       .finally(() => clearTimeout(tid));
+    getKisHoldings(true, ctrl.signal).then(r => setKisMockHoldings(r.holdings)).catch(() => {});
+    getKisHoldings(false, ctrl.signal).then(r => setKisLiveHoldings(r.holdings)).catch(() => {});
   }, []);
 
   useEffect(() => { load(); const iv = setInterval(load, 60_000); return () => clearInterval(iv); }, [load]);
@@ -333,7 +365,9 @@ export default function PortfolioPage() {
                 <CcySection ccy="KRW" total={krwTotal}>
                   {krwAccounts.map(a => (
                     <AccountCard key={a.venue} label={a.label} ccy="KRW"
-                      balance={a.balance} mode={a.mode} error={a.error} />
+                      balance={a.balance} mode={a.mode} error={a.error}>
+                      <KISHoldings holdings={a.venue === "kis_mock" ? kisMockHoldings : kisLiveHoldings} />
+                    </AccountCard>
                   ))}
                   {krwAccounts.length === 0 && (
                     <p className="text-text-3 text-xs">KRW 계좌 없음</p>
