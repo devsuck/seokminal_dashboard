@@ -213,3 +213,61 @@ export function currencyForSymbol(symbol: string): "BTC" | "ETH" | null {
   if (symbol === "ETH.HL") return "ETH";
   return null;
 }
+
+export interface LargeTrade {
+  bucketTs: number;
+  price: number;
+  side: "buy" | "sell";
+  size: number;
+}
+
+export interface LargeTradeTrackerState {
+  recentSizes: number[];
+  largeTrades: LargeTrade[];
+}
+
+const ROLLING_WINDOW = 200;
+const MIN_WARMUP_SAMPLES = 20;
+const LARGE_TRADE_MULTIPLIER = 3;
+const MAX_LARGE_TRADES = 50;
+
+export function emptyLargeTradeTracker(): LargeTradeTrackerState {
+  return { recentSizes: [], largeTrades: [] };
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+/**
+ * 최근 200건 체결 크기의 이동중앙값 대비 3배 넘는 체결을 "대량 체결"로 표시.
+ * 표본 20건 미만(워밍업 전)은 오탐 방지를 위해 아무것도 표시하지 않는다.
+ */
+export function applyLargeTradeTracking(
+  tracker: LargeTradeTrackerState,
+  msg: FootprintDeltaMsg
+): LargeTradeTrackerState {
+  let largeTrades = tracker.largeTrades;
+  let isLarge = false;
+
+  if (tracker.recentSizes.length >= MIN_WARMUP_SAMPLES) {
+    const m = median(tracker.recentSizes);
+    if (m > 0 && msg.delta_vol > m * LARGE_TRADE_MULTIPLIER) {
+      isLarge = true;
+      largeTrades = [
+        ...largeTrades,
+        { bucketTs: msg.bucket_ts, price: msg.price, side: msg.side, size: msg.delta_vol },
+      ].slice(-MAX_LARGE_TRADES);
+    }
+  }
+
+  // 대량 체결(outlier) 자체는 이동중앙값 표본에서 제외한다 — 안 그러면 연속 대량 체결이
+  // 기준선(median)을 끌어올려 이후 대량 체결을 놓치게 된다(아이스버그 반복 체결 시 특히 문제).
+  const recentSizes = isLarge
+    ? tracker.recentSizes
+    : [...tracker.recentSizes, msg.delta_vol].slice(-ROLLING_WINDOW);
+
+  return { recentSizes, largeTrades };
+}

@@ -6,8 +6,17 @@ import { CandlestickChart } from "@/components/CandlestickChart";
 import { HeatmapPrimitive } from "@/components/orderflow/HeatmapPrimitive";
 import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
 import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
+import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
-import type { FootprintCell, HeatmapCell, OrderBookState } from "@/lib/orderflow-data";
+import {
+  applyLargeTradeTracking,
+  diffFootprintCells,
+  emptyLargeTradeTracker,
+  type FootprintCell,
+  type HeatmapCell,
+  type LargeTradeTrackerState,
+  type OrderBookState,
+} from "@/lib/orderflow-data";
 import type { BarOut } from "@/lib/api";
 
 const REFRESH_INTERVAL_MS = 30_000;
@@ -26,6 +35,9 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   const heatmapPrimitiveRef = useRef<HeatmapPrimitive | null>(null);
   const footprintPrimitiveRef = useRef<FootprintPrimitive | null>(null);
   const bookPrimitiveRef = useRef<OrderBookPrimitive | null>(null);
+  const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
+  const prevFootprintRef = useRef<FootprintCell[]>([]);
+  const largeTradeTrackerRef = useRef<LargeTradeTrackerState>(emptyLargeTradeTracker());
   const footprintRef = useRef(footprint);
   const heatmapRef = useRef(heatmap);
   const bookRef = useRef(book);
@@ -62,21 +74,51 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
     heatmapPrimitiveRef.current?.updateData(heatmap);
     footprintPrimitiveRef.current?.updateData(footprint);
     bookPrimitiveRef.current?.updateData(book);
+
+    const changed = diffFootprintCells(prevFootprintRef.current, footprint);
+    let tracker = largeTradeTrackerRef.current;
+    for (const cell of changed) {
+      const prevCell = prevFootprintRef.current.find(
+        (c) => c.bucketTs === cell.bucketTs && c.price === cell.price
+      );
+      const buyDelta = cell.buyVol - (prevCell?.buyVol ?? 0);
+      const sellDelta = cell.sellVol - (prevCell?.sellVol ?? 0);
+      if (buyDelta > 0) {
+        tracker = applyLargeTradeTracking(tracker, {
+          type: "footprint_delta", bucket_ts: cell.bucketTs, price: cell.price, side: "buy", delta_vol: buyDelta,
+        });
+      }
+      if (sellDelta > 0) {
+        tracker = applyLargeTradeTracking(tracker, {
+          type: "footprint_delta", bucket_ts: cell.bucketTs, price: cell.price, side: "sell", delta_vol: sellDelta,
+        });
+      }
+    }
+    largeTradeTrackerRef.current = tracker;
+    prevFootprintRef.current = footprint;
+    const medianSize =
+      tracker.recentSizes.length > 0
+        ? [...tracker.recentSizes].sort((a, b) => a - b)[Math.floor(tracker.recentSizes.length / 2)]
+        : 0;
+    largeLotPrimitiveRef.current?.updateData(tracker.largeTrades, medianSize);
   }, [heatmap, footprint, book]);
 
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     const hp = new HeatmapPrimitive();
     const fp = new FootprintPrimitive();
     const bp = new OrderBookPrimitive();
+    const lp = new LargeLotPrimitive();
     series.attachPrimitive(hp);
     series.attachPrimitive(fp);
     series.attachPrimitive(bp);
+    series.attachPrimitive(lp);
     hp.updateData(heatmapRef.current);
     fp.updateData(footprintRef.current);
     bp.updateData(bookRef.current);
     heatmapPrimitiveRef.current = hp;
     footprintPrimitiveRef.current = fp;
     bookPrimitiveRef.current = bp;
+    largeLotPrimitiveRef.current = lp;
   }
 
   if (error) {

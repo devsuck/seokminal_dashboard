@@ -13,6 +13,8 @@ import {
   aggregateHeatmapByCandle,
   MAX_TIME_BUCKETS,
   currencyForSymbol,
+  applyLargeTradeTracking,
+  emptyLargeTradeTracker,
 } from "../../lib/orderflow-data";
 
 describe("applySnapshot", () => {
@@ -264,5 +266,50 @@ describe("applyOrderflowMessage with book_snapshot", () => {
 describe("emptyOrderflowState", () => {
   it("starts with an empty book", () => {
     expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [] });
+  });
+});
+
+describe("applyLargeTradeTracking", () => {
+  function feedNormalTrades(n: number, size = 1.0) {
+    let tracker = emptyLargeTradeTracker();
+    for (let i = 0; i < n; i++) {
+      tracker = applyLargeTradeTracking(tracker, {
+        type: "footprint_delta", bucket_ts: i * 60, price: 100, side: "buy", delta_vol: size,
+      });
+    }
+    return tracker;
+  }
+
+  it("does not flag anything before the rolling window has 20 samples", () => {
+    const tracker = feedNormalTrades(19, 1.0);
+    expect(tracker.largeTrades).toHaveLength(0);
+  });
+
+  it("flags a trade more than 3x the rolling median once warmed up", () => {
+    let tracker = feedNormalTrades(20, 1.0);
+    tracker = applyLargeTradeTracking(tracker, {
+      type: "footprint_delta", bucket_ts: 2000, price: 105, side: "sell", delta_vol: 10.0,
+    });
+    expect(tracker.largeTrades).toHaveLength(1);
+    expect(tracker.largeTrades[0]).toEqual({ bucketTs: 2000, price: 105, side: "sell", size: 10.0 });
+  });
+
+  it("does not flag a trade at or below 3x the rolling median", () => {
+    let tracker = feedNormalTrades(20, 1.0);
+    tracker = applyLargeTradeTracking(tracker, {
+      type: "footprint_delta", bucket_ts: 2000, price: 105, side: "buy", delta_vol: 3.0,
+    });
+    expect(tracker.largeTrades).toHaveLength(0);
+  });
+
+  it("caps largeTrades at 50 entries, dropping the oldest", () => {
+    let tracker = feedNormalTrades(20, 1.0);
+    for (let i = 0; i < 55; i++) {
+      tracker = applyLargeTradeTracking(tracker, {
+        type: "footprint_delta", bucket_ts: 3000 + i, price: 100, side: "buy", delta_vol: 10.0,
+      });
+    }
+    expect(tracker.largeTrades).toHaveLength(50);
+    expect(tracker.largeTrades[0].bucketTs).toBe(3005); // 처음 5개(3000~3004)는 밀려나감
   });
 });
