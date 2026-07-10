@@ -40,7 +40,6 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
   const prevFootprintRef = useRef<FootprintCell[]>([]);
   const largeTradeTrackerRef = useRef<LargeTradeTrackerState>(emptyLargeTradeTracker());
-  const medianSizeRef = useRef(0);
   const footprintRef = useRef(footprint);
   const heatmapRef = useRef(heatmap);
   const bookRef = useRef(book);
@@ -112,7 +111,6 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
       tracker.recentSizes.length > 0
         ? [...tracker.recentSizes].sort((a, b) => a - b)[Math.floor(tracker.recentSizes.length / 2)]
         : 0;
-    medianSizeRef.current = medianSize;
     largeLotPrimitiveRef.current?.updateData(tracker.largeTrades, medianSize);
     setAbsorptionMarkers(
       detectAbsorption(footprint, bars, medianSize).map((m) => ({
