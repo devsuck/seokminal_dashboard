@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState } from "@/lib/api";
+import {
+  getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions,
+  type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition,
+} from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 type Tab = "accounts" | "optimizer";
@@ -11,10 +14,11 @@ type Tab = "accounts" | "optimizer";
 function fmt(v: number | null, ccy: string, compact = false): string {
   if (v == null) return "—";
   const locale = ccy === "KRW" ? "ko-KR" : "en-US";
-  const symbol = ccy === "KRW" ? "₩" : ccy === "EUR" ? "€" : "$";
-  if (compact && Math.abs(v) >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
-  if (compact && Math.abs(v) >= 1_000) return `${symbol}${(v / 1_000).toFixed(1)}K`;
-  return `${symbol}${v.toLocaleString(locale, { maximumFractionDigits: 0 })}`;
+  const symbol = ccy === "KRW" ? "₩" : ccy === "EUR" ? "€" : ccy === "USDC" ? "" : "$";
+  const suffix = ccy === "USDC" ? " USDC" : "";
+  if (compact && Math.abs(v) >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M${suffix}`;
+  if (compact && Math.abs(v) >= 1_000) return `${symbol}${(v / 1_000).toFixed(1)}K${suffix}`;
+  return `${symbol}${v.toLocaleString(locale, { maximumFractionDigits: 0 })}${suffix}`;
 }
 
 function ModeChip({ mode, paper }: { mode?: string | null; paper?: boolean }) {
@@ -111,6 +115,49 @@ function AlpacaPositions({ positions }: { positions: AlpacaPosition[] }) {
   );
 }
 
+// ── Hyperliquid 포지션 인라인 ────────────────────────────────────────────────
+
+function HLPositions({ positions }: { positions: HLAssetPosition[] }) {
+  if (positions.length === 0) return <p className="text-text-3 text-xs">포지션 없음</p>;
+  return (
+    <table className="w-full text-[11px]">
+      <thead>
+        <tr className="text-text-3 text-[10px] border-b border-border">
+          {["코인", "방향", "수량", "진입가", "평가액", "미실현손익"].map(h => (
+            <th key={h} className="pb-1.5 text-left font-normal">{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {positions.map(p => {
+          const pos = p.position;
+          const szi = parseFloat(pos.szi);
+          const isLong = szi >= 0;
+          const pnl = parseFloat(pos.unrealizedPnl);
+          const roe = parseFloat(pos.returnOnEquity) * 100;
+          return (
+            <tr key={pos.coin} className="border-b border-border/30">
+              <td className="py-1 text-text-1 font-medium">{pos.coin}</td>
+              <td className="py-1">
+                <span className={`text-[9px] px-1 py-0.5 rounded ${isLong ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>
+                  {isLong ? "LONG" : "SHORT"}
+                </span>
+              </td>
+              <td className="py-1 font-mono text-text-2">{Math.abs(szi)}</td>
+              <td className="py-1 font-mono text-text-2">{pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—"}</td>
+              <td className="py-1 font-mono text-text-2">${parseFloat(pos.positionValue).toFixed(2)}</td>
+              <td className={`py-1 font-mono px-1 font-bold ${pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+                <span className="text-text-3 ml-1 font-normal">({roe.toFixed(1)}%)</span>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 // ── LKG Paper Trading 인라인 ─────────────────────────────────────────────────
 
 function LkgPaperDetail({ paper }: { paper: PaperState }) {
@@ -159,7 +206,7 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
 // ── 섹션 헤더 ────────────────────────────────────────────────────────────────
 
 function CcySection({ ccy, total, children }: { ccy: string; total: number | null; children: React.ReactNode }) {
-  const flag = ccy === "KRW" ? "🇰🇷" : ccy === "EUR" ? "🇪🇺" : "🇺🇸";
+  const flag = ccy === "KRW" ? "🇰🇷" : ccy === "EUR" ? "🇪🇺" : ccy === "USDC" ? "🟣" : "🇺🇸";
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
@@ -185,6 +232,8 @@ export default function PortfolioPage() {
   const [alpacaPositions, setAlpacaPositions] = useState<AlpacaPosition[]>([]);
   const [alpacaAcct, setAlpacaAcct] = useState<AlpacaAccount | null>(null);
   const [paper, setPaper] = useState<PaperState | null>(null);
+  const [hlTestnetPositions, setHlTestnetPositions] = useState<HLAssetPosition[]>([]);
+  const [hlMainnetPositions, setHlMainnetPositions] = useState<HLAssetPosition[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -193,10 +242,14 @@ export default function PortfolioPage() {
       getAlpacaAccount(),
       getAlpacaPositions(),
       getPaperState(),
-    ]).then(([acctRes, posRes, paperRes]) => {
+      getHLPositions(true),
+      getHLPositions(false),
+    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes]) => {
       if (acctRes.status === "fulfilled") setAlpacaAcct(acctRes.value);
       if (posRes.status === "fulfilled") setAlpacaPositions(posRes.value);
       if (paperRes.status === "fulfilled") setPaper(paperRes.value);
+      if (hlTestRes.status === "fulfilled") setHlTestnetPositions(hlTestRes.value.asset_positions);
+      if (hlMainRes.status === "fulfilled") setHlMainnetPositions(hlMainRes.value.asset_positions);
       setLoading(false);
     });
     // Slow: full balances (KIS can take 30s+) — abort after 20s
@@ -214,6 +267,7 @@ export default function PortfolioPage() {
   const usdAccounts = accounts.filter(a => a.ccy === "USD");
   const krwAccounts = accounts.filter(a => a.ccy === "KRW");
   const eurAccounts = accounts.filter(a => a.ccy === "EUR");
+  const usdcAccounts = accounts.filter(a => a.ccy === "USDC");
 
   const lkgBalance = paper ? paper.cash + paper.positions.reduce((s, p) => s + p.value, 0) : null;
 
@@ -295,6 +349,20 @@ export default function PortfolioPage() {
                     ))}
                   </CcySection>
                 )}
+
+                {/* USDC — Hyperliquid */}
+                <CcySection ccy="USDC" total={usdcAccounts.every(a => a.balance == null) ? null
+                  : usdcAccounts.reduce((s, a) => s + (a.balance ?? 0), 0)}>
+                  {usdcAccounts.map(a => (
+                    <AccountCard key={a.venue} label={a.label} ccy="USDC"
+                      balance={a.balance} mode={a.mode} error={a.error}>
+                      <HLPositions positions={a.venue === "hl_testnet" ? hlTestnetPositions : hlMainnetPositions} />
+                    </AccountCard>
+                  ))}
+                  {usdcAccounts.length === 0 && (
+                    <p className="text-text-3 text-xs">Hyperliquid 계좌 없음</p>
+                  )}
+                </CcySection>
               </>
             )}
           </div>
