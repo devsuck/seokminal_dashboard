@@ -285,3 +285,52 @@ export function computeCvdSeries(cells: FootprintCell[]): { time: number; value:
     return { time, value: cumulative };
   });
 }
+
+const ABSORPTION_DOMINANCE_RATIO = 0.7;
+const ABSORPTION_NOISE_FLOOR_MULTIPLIER = 10;
+
+/**
+ * 캔들(바) 하나에서 우세한 매수/매도 물량이 가격을 밀어내지 못한 경우(흡수)를 표시.
+ * rollingMedian(대량체결 트래커의 이동중앙값, Feature 2 재사용)이 0이면 워밍업 전이므로
+ * fail closed — 오탐 방지를 위해 아무것도 표시하지 않는다.
+ */
+export function detectAbsorption(
+  cells: FootprintCell[],
+  bars: { ts_event: number; open: number; close: number }[],
+  rollingMedian: number
+): { time: number; side: "buy" | "sell" }[] {
+  if (rollingMedian <= 0) return [];
+
+  const barByBucket = new Map(bars.map((b) => [Math.floor(b.ts_event / 1e9), b]));
+  const totalsByBucket = new Map<number, { buy: number; sell: number }>();
+  for (const c of cells) {
+    const t = totalsByBucket.get(c.bucketTs) ?? { buy: 0, sell: 0 };
+    t.buy += c.buyVol;
+    t.sell += c.sellVol;
+    totalsByBucket.set(c.bucketTs, t);
+  }
+
+  const noiseFloor = rollingMedian * ABSORPTION_NOISE_FLOOR_MULTIPLIER;
+  const results: { time: number; side: "buy" | "sell" }[] = [];
+
+  const buckets = Array.from(totalsByBucket.keys()).sort((a, b) => a - b);
+  for (const bucketTs of buckets) {
+    const { buy, sell } = totalsByBucket.get(bucketTs) as { buy: number; sell: number };
+    const total = buy + sell;
+    if (total < noiseFloor) continue;
+
+    const bar = barByBucket.get(bucketTs);
+    if (!bar) continue;
+
+    const sellRatio = sell / total;
+    const buyRatio = buy / total;
+
+    if (sellRatio >= ABSORPTION_DOMINANCE_RATIO && bar.close >= bar.open) {
+      results.push({ time: bucketTs, side: "sell" });
+    } else if (buyRatio >= ABSORPTION_DOMINANCE_RATIO && bar.close <= bar.open) {
+      results.push({ time: bucketTs, side: "buy" });
+    }
+  }
+
+  return results;
+}

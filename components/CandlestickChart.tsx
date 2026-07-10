@@ -30,6 +30,8 @@ interface CandlestickChartProps {
   specs?: ChartIndicatorSpec[];
   /** CVD(누적 볼륨 델타) 서브페인 데이터 — 오더플로우 심볼에서만 전달됨. */
   cvdSeries?: { time: UTCTimestamp; value: number }[];
+  /** 흡수(absorption) 캔들 — 우세 물량이 가격을 못 밀어낸 지점. 오더플로우 심볼에서만 전달됨. */
+  absorptionMarkers?: { time: UTCTimestamp; side: "buy" | "sell" }[];
   /** 차트/캔들시리즈 생성 직후 호출 — 외부에서 series primitive를 attach하려는 소비자용.
       bars 등이 바뀌어 차트가 통째로 재생성될 때마다 다시 호출된다. */
   onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
@@ -145,7 +147,7 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, onSeriesReady }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, onSeriesReady }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -222,31 +224,42 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     for (const s of overlaySeriesRef.current) chart.removeSeries(s);
     overlaySeriesRef.current = [];
 
-    if (trades.length > 0) {
-      const markers: SeriesMarker<UTCTimestamp>[] = [];
-      for (const t of trades) {
-        if (t.entry_ts_ns) {
-          markers.push({
-            time: Math.floor(t.entry_ts_ns / 1e9) as UTCTimestamp,
-            position: "belowBar",
-            color: "#22C55E",
-            shape: "arrowUp",
-            text: `BUY ${t.entry_price.toFixed(2)}`,
-          });
-        }
-        if (t.exit_ts_ns && t.exit_price != null) {
-          markers.push({
-            time: Math.floor(t.exit_ts_ns / 1e9) as UTCTimestamp,
-            position: "aboveBar",
-            color: "#EF4444",
-            shape: "arrowDown",
-            text: `SELL ${t.exit_price.toFixed(2)}`,
-          });
-        }
+    const tradeMarkers: SeriesMarker<UTCTimestamp>[] = [];
+    for (const t of trades) {
+      if (t.entry_ts_ns) {
+        tradeMarkers.push({
+          time: Math.floor(t.entry_ts_ns / 1e9) as UTCTimestamp,
+          position: "belowBar",
+          color: "#22C55E",
+          shape: "arrowUp",
+          text: `BUY ${t.entry_price.toFixed(2)}`,
+        });
       }
-      markers.sort((a, b) => (a.time as number) - (b.time as number));
-      if (markersRef.current) markersRef.current.setMarkers(markers);
-      else markersRef.current = createSeriesMarkers(candleSeries, markers);
+      if (t.exit_ts_ns && t.exit_price != null) {
+        tradeMarkers.push({
+          time: Math.floor(t.exit_ts_ns / 1e9) as UTCTimestamp,
+          position: "aboveBar",
+          color: "#EF4444",
+          shape: "arrowDown",
+          text: `SELL ${t.exit_price.toFixed(2)}`,
+        });
+      }
+    }
+
+    const absorptionMarkerList: SeriesMarker<UTCTimestamp>[] = (absorptionMarkers ?? []).map((m) => ({
+      time: m.time,
+      position: m.side === "buy" ? "belowBar" : "aboveBar",
+      color: "#3B9CFF",
+      shape: m.side === "buy" ? "arrowUp" : "arrowDown",
+      text: "흡수",
+    }));
+
+    const allMarkers = [...tradeMarkers, ...absorptionMarkerList].sort(
+      (a, b) => (a.time as number) - (b.time as number)
+    );
+    if (allMarkers.length > 0) {
+      if (markersRef.current) markersRef.current.setMarkers(allMarkers);
+      else markersRef.current = createSeriesMarkers(candleSeries, allMarkers);
     } else if (markersRef.current) {
       markersRef.current.setMarkers([]);
     }
@@ -387,7 +400,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries]);
+  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries, absorptionMarkers]);
 
   return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }

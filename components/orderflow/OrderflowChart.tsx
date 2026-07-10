@@ -11,6 +11,7 @@ import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
   computeCvdSeries,
+  detectAbsorption,
   diffFootprintCells,
   emptyLargeTradeTracker,
   type FootprintCell,
@@ -39,6 +40,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
   const prevFootprintRef = useRef<FootprintCell[]>([]);
   const largeTradeTrackerRef = useRef<LargeTradeTrackerState>(emptyLargeTradeTracker());
+  const medianSizeRef = useRef(0);
   const footprintRef = useRef(footprint);
   const heatmapRef = useRef(heatmap);
   const bookRef = useRef(book);
@@ -106,8 +108,17 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
       tracker.recentSizes.length > 0
         ? [...tracker.recentSizes].sort((a, b) => a - b)[Math.floor(tracker.recentSizes.length / 2)]
         : 0;
+    medianSizeRef.current = medianSize;
     largeLotPrimitiveRef.current?.updateData(tracker.largeTrades, medianSize);
   }, [heatmap, footprint, book]);
+
+  const absorptionMarkers = useMemo(
+    () => detectAbsorption(footprint, bars, medianSizeRef.current).map((m) => ({
+      time: m.time as UTCTimestamp,
+      side: m.side,
+    })),
+    [footprint, bars]
+  );
 
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     const hp = new HeatmapPrimitive();
@@ -133,7 +144,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
 
   return (
     <div className="border border-border bg-panel">
-      <CandlestickChart bars={bars} cvdSeries={cvdSeries} onSeriesReady={handleSeriesReady} />
+      <CandlestickChart bars={bars} cvdSeries={cvdSeries} absorptionMarkers={absorptionMarkers} onSeriesReady={handleSeriesReady} />
     </div>
   );
 }

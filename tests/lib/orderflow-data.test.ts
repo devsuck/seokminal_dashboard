@@ -16,6 +16,7 @@ import {
   applyLargeTradeTracking,
   emptyLargeTradeTracker,
   computeCvdSeries,
+  detectAbsorption,
   type FootprintCell,
 } from "../../lib/orderflow-data";
 
@@ -332,5 +333,56 @@ describe("computeCvdSeries", () => {
       { time: 0, value: -3 },
       { time: 60, value: -1 }, // -3 + (2 + 0)
     ]);
+  });
+});
+
+describe("detectAbsorption", () => {
+  const bars = [
+    { ts_event: 0, open: 100, close: 100.5 },   // 60s bucket in ns: 0
+    { ts_event: 60_000_000_000, open: 100.5, close: 100.2 }, // bucket 60
+  ];
+
+  it("flags sell-dominant absorption when price fails to drop (close >= open)", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 20 }, // sell dominance 20/21 = 95%
+    ];
+    const result = detectAbsorption(cells, bars, 1.0); // total 21 >= 10x median(1.0)
+    expect(result).toEqual([{ time: 0, side: "sell" }]);
+  });
+
+  it("flags buy-dominant absorption when price fails to rise (close <= open)", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 60, price: 100, buyVol: 20, sellVol: 1 }, // buy dominance, bar closes down
+    ];
+    const result = detectAbsorption(cells, bars, 1.0);
+    expect(result).toEqual([{ time: 60, side: "buy" }]);
+  });
+
+  it("does not flag when dominant side pushed price the same direction (no absorption)", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 20, sellVol: 1 }, // buy-dominant, and close > open (price DID rise)
+    ];
+    expect(detectAbsorption(cells, bars, 1.0)).toEqual([]);
+  });
+
+  it("does not flag when dominance ratio is below 70%", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 8, sellVol: 6 }, // 8/14 = 57%
+    ];
+    expect(detectAbsorption(cells, bars, 1.0)).toEqual([]);
+  });
+
+  it("does not flag when total volume is below the 10x noise floor", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 0.5, sellVol: 5 }, // dominance ok, but total 5.5 < 10x median(1.0)=10
+    ];
+    expect(detectAbsorption(cells, bars, 1.0)).toEqual([]);
+  });
+
+  it("fails closed (returns []) when rollingMedian is 0 (not warmed up)", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 20 },
+    ];
+    expect(detectAbsorption(cells, bars, 0)).toEqual([]);
   });
 });
