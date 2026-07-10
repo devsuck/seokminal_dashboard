@@ -11,6 +11,16 @@ export interface HeatmapCell {
   size: number;
 }
 
+export interface BookLevel {
+  price: number;
+  size: number;
+}
+
+export interface OrderBookState {
+  bids: BookLevel[];
+  asks: BookLevel[];
+}
+
 export interface OrderflowSnapshot {
   footprint: { bucket_ts: number; price: number; buy_vol: number; sell_vol: number }[];
   heatmap: { ts: number; price: number; size: number }[];
@@ -36,11 +46,18 @@ export interface StatusMsg {
   state: "reconnecting" | "live";
 }
 
-export type OrderflowDeltaMsg = FootprintDeltaMsg | HeatmapDeltaMsg | StatusMsg;
+export interface BookSnapshotMsg {
+  type: "book_snapshot";
+  bids: BookLevel[];
+  asks: BookLevel[];
+}
+
+export type OrderflowDeltaMsg = FootprintDeltaMsg | HeatmapDeltaMsg | BookSnapshotMsg | StatusMsg;
 
 export interface OrderflowState {
   footprint: Map<string, FootprintCell>;
   heatmap: Map<string, HeatmapCell>;
+  book: OrderBookState;
 }
 
 export const MAX_TIME_BUCKETS = 300;
@@ -78,7 +95,7 @@ function evictOldestHeatmapBuckets(heatmap: Map<string, HeatmapCell>): Map<strin
 }
 
 export function emptyOrderflowState(): OrderflowState {
-  return { footprint: new Map(), heatmap: new Map() };
+  return { footprint: new Map(), heatmap: new Map(), book: { bids: [], asks: [] } };
 }
 
 export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
@@ -95,7 +112,11 @@ export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
   for (const c of snapshot.heatmap) {
     heatmap.set(heatmapKey(c.ts, c.price), { ts: c.ts, price: c.price, size: c.size });
   }
-  return { footprint: evictOldestFootprintBuckets(footprint), heatmap: evictOldestHeatmapBuckets(heatmap) };
+  return {
+    footprint: evictOldestFootprintBuckets(footprint),
+    heatmap: evictOldestHeatmapBuckets(heatmap),
+    book: { bids: [], asks: [] },
+  };
 }
 
 export function applyFootprintDelta(state: OrderflowState, msg: FootprintDeltaMsg): OrderflowState {
@@ -127,9 +148,14 @@ export function applyHeatmapDelta(state: OrderflowState, msg: HeatmapDeltaMsg): 
   return { ...state, heatmap };
 }
 
+export function applyBookSnapshot(state: OrderflowState, msg: BookSnapshotMsg): OrderflowState {
+  return { ...state, book: { bids: msg.bids, asks: msg.asks } };
+}
+
 export function applyOrderflowMessage(state: OrderflowState, msg: OrderflowDeltaMsg): OrderflowState {
   if (msg.type === "footprint_delta") return applyFootprintDelta(state, msg);
   if (msg.type === "heatmap_delta") return applyHeatmapDelta(state, msg);
+  if (msg.type === "book_snapshot") return applyBookSnapshot(state, msg);
   return state;
 }
 

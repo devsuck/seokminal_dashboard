@@ -9,6 +9,7 @@ import {
   emptyOrderflowState,
   type FootprintCell,
   type HeatmapCell,
+  type OrderBookState,
   type OrderflowDeltaMsg,
   type OrderflowSnapshot,
   type OrderflowState,
@@ -22,6 +23,7 @@ export type OrderflowConnectionState = "connecting" | "live" | "reconnecting" | 
 interface UseOrderflowSocketResult {
   footprint: FootprintCell[];
   heatmap: HeatmapCell[];
+  book: OrderBookState;
   connectionState: OrderflowConnectionState;
 }
 
@@ -97,6 +99,7 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
   return {
     footprint: Array.from(state.footprint.values()),
     heatmap: Array.from(state.heatmap.values()),
+    book: state.book,
     connectionState,
   };
 }

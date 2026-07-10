@@ -3,6 +3,7 @@ import {
   applySnapshot,
   applyFootprintDelta,
   applyHeatmapDelta,
+  applyBookSnapshot,
   applyOrderflowMessage,
   emptyOrderflowState,
   diffFootprintCells,
@@ -216,5 +217,52 @@ describe("currencyForSymbol", () => {
   it("그 외 심볼은 null(옵션플로우 패널 미지원)", () => {
     expect(currencyForSymbol("NQ")).toBeNull();
     expect(currencyForSymbol("SOL.HL")).toBeNull();
+  });
+});
+
+describe("applyBookSnapshot", () => {
+  it("full-replaces book state (not a merge) on each snapshot", () => {
+    let state = emptyOrderflowState();
+    state = applyBookSnapshot(state, {
+      type: "book_snapshot",
+      bids: [{ price: 100, size: 1 }],
+      asks: [{ price: 101, size: 2 }],
+    });
+    expect(state.book).toEqual({
+      bids: [{ price: 100, size: 1 }],
+      asks: [{ price: 101, size: 2 }],
+    });
+
+    state = applyBookSnapshot(state, {
+      type: "book_snapshot",
+      bids: [{ price: 99, size: 5 }],
+      asks: [],
+    });
+    expect(state.book).toEqual({ bids: [{ price: 99, size: 5 }], asks: [] });
+  });
+
+  it("leaves footprint/heatmap untouched", () => {
+    let state = applyFootprintDelta(emptyOrderflowState(), {
+      type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 2,
+    });
+    state = applyBookSnapshot(state, { type: "book_snapshot", bids: [], asks: [] });
+    expect(state.footprint.get("0:100")).toEqual({ bucketTs: 0, price: 100, buyVol: 2, sellVol: 0 });
+  });
+});
+
+describe("applyOrderflowMessage with book_snapshot", () => {
+  it("routes book_snapshot to applyBookSnapshot", () => {
+    const next = applyOrderflowMessage(emptyOrderflowState(), {
+      type: "book_snapshot",
+      bids: [{ price: 100, size: 1 }],
+      asks: [{ price: 101, size: 1 }],
+    });
+    expect(next.book.bids).toEqual([{ price: 100, size: 1 }]);
+  });
+});
+
+describe("emptyOrderflowState", () => {
+  it("starts with an empty book", () => {
+    expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [] });
   });
 });
