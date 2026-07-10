@@ -357,6 +357,10 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     }
 
     // ── CVD(누적 볼륨 델타) 서브페인 — 오더플로우 전용, specs 오실레이터 다음 페인 ──
+    if (cvdSeriesRef.current) {
+      chart.removeSeries(cvdSeriesRef.current);
+      cvdSeriesRef.current = null;
+    }
     if (cvdSeries && cvdSeries.length > 0) {
       const cvdPane = paneIdx++;
       const cvdSeriesApi = chart.addSeries(
@@ -373,9 +377,6 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         })
       );
       cvdSeriesRef.current = cvdSeriesApi;
-    } else if (cvdSeriesRef.current) {
-      chart.removeSeries(cvdSeriesRef.current);
-      cvdSeriesRef.current = null;
     }
 
     // 서브페인이 생기면 가격 페인이 눌리지 않게 전체 높이 보정
