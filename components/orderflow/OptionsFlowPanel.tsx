@@ -4,12 +4,13 @@ import { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import type { GexSnapshot } from "@/lib/api";
 import { useOptionsFlowSocket } from "@/hooks/useOptionsFlowSocket";
-import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 
 const MARGIN = { top: 12, right: 16, bottom: 28, left: 48 };
+const STALE_THRESHOLD_MS = 5 * 60_000;
 
 interface OptionsFlowPanelProps {
   currency: string; // "BTC" | "ETH"
+  gex: GexSnapshot | null;
 }
 
 function GexChart({ snapshot, width = 560, height = 220 }: { snapshot: GexSnapshot; width?: number; height?: number }) {
@@ -76,8 +77,8 @@ function GexChart({ snapshot, width = 560, height = 220 }: { snapshot: GexSnapsh
   return <svg ref={svgRef} width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full" />;
 }
 
-export function OptionsFlowPanel({ currency }: OptionsFlowPanelProps) {
-  const { gex, isStale } = useGexSnapshot(currency);
+export function OptionsFlowPanel({ currency, gex }: OptionsFlowPanelProps) {
+  const isStale = gex != null && Date.now() - gex.updated_at * 1000 > STALE_THRESHOLD_MS;
   const { trades, connectionState } = useOptionsFlowSocket(currency);
 
   return (

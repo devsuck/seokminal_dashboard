@@ -7,6 +7,7 @@ import { LivePulse } from "@/components/Jarvis";
 import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
 import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
+import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 import { getOrderflowSymbols } from "@/lib/api";
 import { currencyForSymbol } from "@/lib/orderflow-data";
 
@@ -30,6 +31,7 @@ export default function OrderflowPage() {
   const abortRef = useRef<AbortController | null>(null);
   const { footprint, heatmap, book, connectionState } = useOrderflowSocket(symbol);
   const currency = currencyForSymbol(symbol);
+  const { gex } = useGexSnapshot(currency ?? "");
 
   useEffect(() => {
     abortRef.current?.abort();
@@ -58,8 +60,8 @@ export default function OrderflowPage() {
           <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
-      <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} book={book} />
-      {currency && <OptionsFlowPanel currency={currency} />}
+      <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} book={book} gex={gex} />
+      {currency && <OptionsFlowPanel currency={currency} gex={gex} />}
     </div>
   );
 }

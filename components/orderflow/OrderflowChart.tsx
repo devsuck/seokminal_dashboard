@@ -8,7 +8,6 @@ import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
 import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
 import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
-import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
@@ -22,7 +21,7 @@ import {
   type LargeTradeTrackerState,
   type OrderBookState,
 } from "@/lib/orderflow-data";
-import type { BarOut } from "@/lib/api";
+import type { BarOut, GexSnapshot } from "@/lib/api";
 
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -31,9 +30,10 @@ interface OrderflowChartProps {
   footprint: FootprintCell[];
   heatmap: HeatmapCell[];
   book: OrderBookState;
+  gex: GexSnapshot | null;
 }
 
-export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowChartProps) {
+export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: OrderflowChartProps) {
   const [bars, setBars] = useState<BarOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -43,7 +43,6 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
   const gexLevelsPrimitiveRef = useRef<GexLevelsPrimitive | null>(null);
   const currency = currencyForSymbol(symbol);
-  const { gex } = useGexSnapshot(currency ?? "");
   const gexRef = useRef(gex);
   gexRef.current = gex;
   const prevFootprintRef = useRef<FootprintCell[]>([]);
@@ -63,6 +62,14 @@ export function OrderflowChart({ symbol, footprint, heatmap, book }: OrderflowCh
     () => computeCvdSeries(footprint).map((pt) => ({ time: pt.time as UTCTimestamp, value: pt.value })),
     [footprint]
   );
+
+  // 심볼 전환 시 이전 심볼의 롤링 중앙값/대형 트레이드 상태가 새 심볼에 섞이지 않도록 초기화.
+  useEffect(() => {
+    largeTradeTrackerRef.current = emptyLargeTradeTracker();
+    prevFootprintRef.current = [];
+    largeLotPrimitiveRef.current?.updateData([], 0);
+    setAbsorptionMarkers([]);
+  }, [symbol]);
 
   useEffect(() => {
     let cancelled = false;
