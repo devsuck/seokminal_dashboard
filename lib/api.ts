@@ -177,6 +177,26 @@ export async function getOrderflowSymbols(signal?: AbortSignal): Promise<Orderfl
   return handleResponse<OrderflowSymbolsResponse>(response);
 }
 
+export interface GexLevel {
+  strike: number;
+  call_gex: number;
+  put_gex: number;
+  net_gex: number;
+}
+
+export interface GexSnapshot {
+  currency: string;
+  spot: number;
+  updated_at: number;
+  levels: GexLevel[];
+}
+
+/** currency(BTC/ETH)의 스트라이크별 GEX 스냅샷(백엔드 60초 캐시). */
+export async function getOptionsGex(currency: string, signal?: AbortSignal): Promise<GexSnapshot> {
+  const response = await fetch(`${API_URL}/options-flow/gex/${encodeURIComponent(currency)}`, { signal });
+  return handleResponse<GexSnapshot>(response);
+}
+
 export async function getBacktest(
   instrumentId: string,
   start: string,
