@@ -1,3 +1,29 @@
+## Phase 156 — Orderflow 히트맵 미표시 버그 (2026-07-10) ✅ DONE
+
+유저 리포트: "/orderflow 캔들만 뜨고 나머지 안 보임". Phase 154가 "미확인"으로 남겼던 두 항목 중 하나(히트맵 틴트)를 직접 검증하다 실제 버그 2건 확인·수정. SDD 안 씀 — 직접 디버깅.
+
+### 버그 1 — 히트맵 좌표 정확일치 버그 (프론트)
+`heatmapCellRect`가 `sortedBuckets.indexOf(cell.ts)` 정확일치를 요구했는데, heatmap은 2초 버킷·캔들은 60초 버킷이라 거의 항상 어긋남 → `timeToCoordinate`가 데이터에 없는 시각이라 null 반환 → 히트맵이 사실상 전혀 렌더링 안 됨. Phase 154 진행기록의 "슬리버 폭 0.2~1.3px, 코드는 정상" 판단은 틀렸음(실제로는 0개 렌더).
+- `lib/orderflow-chart-coords.ts`: 캔들 open time으로 floor한 시각만 `timeToX`에 넘기고 그 안에서 `barSpacing` 비율로 보간하도록 재작성.
+- `components/orderflow/HeatmapPrimitive.ts`: `CANDLE_INTERVAL_SEC=60`/`HEATMAP_BUCKET_SEC=2` 상수 추가, `barSpacing` 전달.
+- `tests/lib/orderflow-chart-coords.test.ts`: 새 시그니처로 전체 재작성, 8/8 통과.
+- 커밋 `abf2f07` (dashboard).
+
+### 버그 2 — heatmap 무한 증식으로 백엔드 행 (더 심각, 원인 불명 서버 무응답의 정체)
+디버깅 중 WS 프로브가 `1009 message too big`으로 끊김 → `orderflow/aggregator.py`가 heatmap(2초 버킷)도 footprint와 같은 `max_window_sec=7200`(2시간) 윈도우를 씀 → 워커가 오래 떠 있으면 스냅샷이 WS 1MB 한도 초과. 게다가 `_prune()` 대상 dict가 무한정 커지며 워커 하나가 **94% CPU에 7.5시간 고정**되어 이벤트루프까지 행 → `uvicorn --reload`가 파일 변경도 못 감지, 신규 연결/curl 전부 타임아웃(서버가 완전히 멈춘 상태였음).
+- `orderflow/aggregator.py`: `heatmap_max_window_sec=300.0` 분리(footprint와 별도) + 레벨당 `MAX_LEVELS_PER_SIDE=25` 캡으로 스냅샷 크기 상시 유계화.
+- 행 걸린 워커(PID 83281, 부모 39399) kill 후 서버 재기동 — 재기동 즉시 정상 응답.
+- pytest 7/7 통과. 커밋 `5faea81` (multi-venue).
+
+### 검증
+- WS 프로브: 재기동 후 스냅샷 2.4KB(이전엔 1MB 초과로 끊김), heatmap_count 40(캡 정상 작동), footprint/heatmap delta 스트림 정상.
+- 브라우저 `/orderflow` 렌더 확인, 콘솔 에러 없음.
+- **미확인 유지**: 히트맵 틴트 육안 확인 + footprint 줌인 숫자 — Phase 154와 동일 사유(브라우저 자동화로 차트 줌 조작 불가, wheel/drag/React 내부 API 직접호출 다 시도했지만 barSpacing 불변). 코드/유닛테스트 레벨은 확인됨. 유저 직접 스팟체크 필요(`/orderflow` → BTC.HL → 마우스 스크롤로 확대, barSpacing≥40px에서 footprint 숫자·히트맵 색 확인).
+
+### 다음 할 일
+- 유저 스팟체크로 실제 시각적 렌더 최종 확인.
+- 유저가 추가로 물어본 델타/bookmap/depth chart/absorption/options flow/GEX level/CRL chart 지표 확장 가능성 검토 — 별도 스펙 필요시 브레인스토밍부터.
+
 ## Phase 155 — HUD 프로세스 가시성 (폴리마켓 틱/arb) (2026-07-10) ✅ DONE
 
 이전 세션에서 스택(`wip: HUD phase1 process-visibility`)해뒀던 작업 pop해서 완료. SDD/subagent 안 씀 — 2파일 프론트 + 1파일 백엔드 소품 변경.
