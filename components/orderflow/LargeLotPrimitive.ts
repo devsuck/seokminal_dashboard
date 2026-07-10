@@ -13,9 +13,9 @@ const POS_RGB = "0, 217, 100"; // --color-pos #00D964
 const NEG_RGB = "255, 59, 48"; // --color-neg #FF3B30
 
 function radiusFor(size: number, medianSize: number): number {
-  if (medianSize <= 0) return 6;
-  const scaled = 6 + Math.log2(size / medianSize) * 3;
-  return Math.min(24, Math.max(6, scaled));
+  if (medianSize <= 0) return 4;
+  const scaled = 4 + Math.log2(size / medianSize) * 2;
+  return Math.min(12, Math.max(4, scaled));
 }
 
 class LargeLotPaneRenderer implements IPrimitivePaneRenderer {

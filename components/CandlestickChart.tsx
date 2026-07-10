@@ -35,6 +35,8 @@ interface CandlestickChartProps {
   /** 차트/캔들시리즈 생성 직후 호출 — 외부에서 series primitive를 attach하려는 소비자용.
       bars 등이 바뀌어 차트가 통째로 재생성될 때마다 다시 호출된다. */
   onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
+  /** 차트 픽셀 높이. 기본 480. */
+  height?: number;
 }
 
 function computeSMA(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
@@ -147,7 +149,7 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, onSeriesReady }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, onSeriesReady, height = 480 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -164,7 +166,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
-      height: 480,
+      height,
       layout: {
         background: { color: "#0F131A" },
         textColor: "#5F6B7A",

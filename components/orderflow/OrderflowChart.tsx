@@ -8,6 +8,7 @@ import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
 import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
 import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
+import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
@@ -171,7 +172,18 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
 
   return (
     <div className="border border-border bg-panel">
-      <CandlestickChart bars={bars} cvdSeries={cvdSeries} absorptionMarkers={absorptionMarkers} onSeriesReady={handleSeriesReady} />
+      <CandlestickChart
+        bars={bars}
+        cvdSeries={cvdSeries}
+        absorptionMarkers={absorptionMarkers}
+        onSeriesReady={handleSeriesReady}
+        height={720}
+      />
+      {currency && (
+        <div className="border-t border-border">
+          <OptionsFlowPanel currency={currency} gex={gex} />
+        </div>
+      )}
     </div>
   );
 }

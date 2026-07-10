@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import * as d3 from "d3";
 import type { GexSnapshot } from "@/lib/api";
 import { useOptionsFlowSocket } from "@/hooks/useOptionsFlowSocket";
 
-const MARGIN = { top: 12, right: 16, bottom: 28, left: 48 };
 const STALE_THRESHOLD_MS = 5 * 60_000;
 
 interface OptionsFlowPanelProps {
@@ -13,76 +10,14 @@ interface OptionsFlowPanelProps {
   gex: GexSnapshot | null;
 }
 
-function GexChart({ snapshot, width = 560, height = 220 }: { snapshot: GexSnapshot; width?: number; height?: number }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return;
-    const svg = d3.select(el);
-    svg.selectAll("*").remove();
-    if (snapshot.levels.length === 0) return;
-
-    const innerW = width - MARGIN.left - MARGIN.right;
-    const innerH = height - MARGIN.top - MARGIN.bottom;
-
-    const strikes = snapshot.levels.map((lv) => lv.strike.toString());
-    const xScale = d3.scaleBand<string>().domain(strikes).range([0, innerW]).padding(0.2);
-
-    const maxAbs = Math.max(1, ...snapshot.levels.map((lv) => Math.abs(lv.net_gex)));
-    const yScale = d3.scaleLinear().domain([-maxAbs, maxAbs]).range([innerH, 0]);
-
-    const g = svg.append("g").attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
-
-    g.append("line")
-      .attr("x1", 0).attr("x2", innerW)
-      .attr("y1", yScale(0)).attr("y2", yScale(0))
-      .attr("stroke", "var(--color-border)").attr("stroke-width", 1);
-
-    g.selectAll("rect")
-      .data(snapshot.levels)
-      .join("rect")
-      .attr("x", (lv) => xScale(lv.strike.toString()) ?? 0)
-      .attr("width", xScale.bandwidth())
-      .attr("y", (lv) => yScale(Math.max(0, lv.net_gex)))
-      .attr("height", (lv) => Math.abs(yScale(lv.net_gex) - yScale(0)))
-      .attr("fill", (lv) => (lv.net_gex >= 0 ? "var(--color-pos)" : "var(--color-neg)"));
-
-    if (snapshot.spot > 0 && snapshot.levels.length > 0) {
-      const nearestStrike = snapshot.levels.reduce((best, lv) =>
-        Math.abs(lv.strike - snapshot.spot) < Math.abs(best.strike - snapshot.spot) ? lv : best
-      );
-      const spotX = (xScale(nearestStrike.strike.toString()) ?? 0) + xScale.bandwidth() / 2;
-      g.append("line")
-        .attr("x1", spotX).attr("x2", spotX)
-        .attr("y1", 0).attr("y2", innerH)
-        .attr("stroke", "var(--color-accent)").attr("stroke-width", 1).attr("stroke-dasharray", "4,4");
-    }
-
-    const tickEvery = Math.max(1, Math.ceil(strikes.length / 8));
-    g.append("g")
-      .attr("transform", `translate(0,${innerH})`)
-      .call(d3.axisBottom(xScale).tickValues(xScale.domain().filter((_, i) => i % tickEvery === 0)))
-      .call((gg) => gg.select(".domain").attr("stroke", "var(--color-border)"))
-      .call((gg) => gg.selectAll("text").attr("fill", "var(--color-text-2)").attr("font-size", "10px"))
-      .call((gg) => gg.selectAll("line").attr("stroke", "var(--color-border)"));
-
-    g.append("g")
-      .call(d3.axisLeft(yScale).ticks(4))
-      .call((gg) => gg.select(".domain").attr("stroke", "var(--color-border)"))
-      .call((gg) => gg.selectAll("text").attr("fill", "var(--color-text-2)").attr("font-size", "10px"))
-      .call((gg) => gg.selectAll("line").attr("stroke", "var(--color-border)"));
-  }, [snapshot, width, height]);
-
-  return <svg ref={svgRef} width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full" />;
-}
-
+// GEX 강도(감마 월 등)는 메인 차트 위 GexLevelsPrimitive 스트라이크 라인으로 이미 표시됨 —
+// 여기서는 중복 바 차트 없이 스팟/체결 정보만 보여준다.
 export function OptionsFlowPanel({ currency, gex }: OptionsFlowPanelProps) {
   const isStale = gex != null && Date.now() - gex.updated_at * 1000 > STALE_THRESHOLD_MS;
   const { trades, connectionState } = useOptionsFlowSocket(currency);
 
   return (
-    <div className="rounded-lg border border-border bg-panel p-4 space-y-4">
+    <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-text-1 text-sm font-medium">{currency} 옵션 GEX</h3>
         <span className="text-text-3 text-xs">
@@ -90,18 +25,13 @@ export function OptionsFlowPanel({ currency, gex }: OptionsFlowPanelProps) {
           {isStale && <span className="text-warn"> · 데이터 지연</span>}
         </span>
       </div>
-      {gex && gex.levels.length > 0 ? (
-        <GexChart snapshot={gex} />
-      ) : (
-        <div className="text-text-3 text-xs py-8 text-center">GEX 데이터 없음</div>
-      )}
 
-      <div className="border-t border-border pt-3">
+      <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-text-2 text-xs">옵션 체결</h4>
           <span className="text-text-3 text-xs">{connectionState}</span>
         </div>
-        <div className="max-h-64 overflow-y-auto space-y-1">
+        <div className="max-h-40 overflow-y-auto space-y-1">
           {trades.length === 0 && <div className="text-text-3 text-xs">체결 대기 중</div>}
           {trades.map((t, i) => (
             <div key={`${t.instrument_name}-${t.timestamp}-${i}`} className="flex items-center justify-between text-xs">

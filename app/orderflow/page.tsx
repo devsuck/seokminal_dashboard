@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { LivePulse } from "@/components/Jarvis";
 import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
-import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
 import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 import { getOrderflowSymbols } from "@/lib/api";
@@ -61,7 +60,6 @@ export default function OrderflowPage() {
         )}
       </div>
       <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} book={book} gex={gex} />
-      {currency && <OptionsFlowPanel currency={currency} gex={gex} />}
     </div>
   );
 }
