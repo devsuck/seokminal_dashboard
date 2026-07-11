@@ -12,6 +12,12 @@ const INSET_WIDTH_PX = 90;
 const POS_RGB = "0, 217, 100"; // --color-pos #00D964
 const NEG_RGB = "255, 59, 48"; // --color-neg #FF3B30
 
+const VENUE_LABELS: Record<string, string> = {
+  hyperliquid: "HL",
+  "binance-depth": "BIN",
+  "okx-depth": "OKX",
+};
+
 class OrderBookPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: OrderBookPrimitive) {}
 
@@ -48,6 +54,16 @@ class OrderBookPaneRenderer implements IPrimitivePaneRenderer {
 
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
       ctx.strokeRect(left, 0, INSET_WIDTH_PX, chartHeight);
+
+      if (book.venues.length > 0) {
+        ctx.save();
+        ctx.font = "9px sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "top";
+        ctx.fillText(book.venues.map((v) => VENUE_LABELS[v] ?? v).join(" "), right - 4, 2);
+        ctx.restore();
+      }
     });
   }
 }
@@ -63,7 +79,7 @@ class OrderBookPaneView implements IPrimitivePaneView {
 }
 
 export class OrderBookPrimitive implements ISeriesPrimitive<Time> {
-  book: OrderBookState = { bids: [], asks: [] };
+  book: OrderBookState = { bids: [], asks: [], venues: [] };
   readonly levels = 20;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];

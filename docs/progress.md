@@ -1,3 +1,52 @@
+## Phase 162 — uvicorn reload 행(hang) 근본원인 수정 + liquidity pool 벤뉴 뱃지 UI (2026-07-11) ✅ DONE
+
+로컬 IB TWS 켜서 ES/GC/NQ 라이브 검증(별도 항목, `seokminal-multi-venue/docs/progress.md` 참고) 후 "더 업그레이드할 거 없나" 질의에 대한 후속 2건. SDD 없이 직접 진행(`feedback_no_process_theater` 컨벤션).
+
+### 1) uvicorn `--reload` 무한 행 근본원인
+반복 재발하던 백엔드 reload/shutdown 행이 우연한 오브젝트가 아니라 구조적 버그였음: `timeout_graceful_shutdown` 기본값이 `None`이라 `asyncio.wait_for(..., timeout=None)`이 절대 타임아웃 안 나서 강제 `cancel()` 분기가 못 걸리고, `/ws/orderflow/{symbol}` 핸들러가 `websocket.receive()` 없이 `await queue.get()`으로만 블록해서 disconnect를 능동감지 못함 — 새 메시지 안 들어오면 shutdown 영구 대기. 코드 버그 아니라 CLI 미설정 문제로 판단, 부모 `CLAUDE.md`의 백엔드 실행커맨드에 `--timeout-graceful-shutdown 10` 추가로 해결.
+
+### 2) liquidity pool 벤뉴 뱃지 UI
+멀티벤뉴 오더북 풀링(HL+Binance+OKX)이 화면상 구분 안 되던 걸(이전 세션 노트) 노출.
+- `lib/orderflow-data.ts` — `OrderBookState`/`BookSnapshotMsg`에 `venues: string[]` 추가, `emptyOrderflowState`/`applySnapshot`/`applyBookSnapshot` 반영.
+- `components/orderflow/OrderBookPrimitive.ts` — COB 인셋 우상단에 `HL`/`BIN`/`OKX` 텍스트 뱃지로 현재 풀 기여 벤뉴 렌더링.
+- 백엔드(`seokminal-multi-venue`)는 `OrderBookSnapshot.venues` 필드 신규 + `_pool_books`/`latest_book`이 채워서 WS로 전달(별도 커밋).
+
+### 검증
+- 프론트 215/215 통과, `npx tsc --noEmit` 클린. 백엔드 870 passed(pre-existing 4개 실패만).
+- 브라우저 라이브 확인: `/orderflow` BTC.HL COB 인셋에 "BIN HL OKX" 뱃지 정상 렌더링, 콘솔 에러 없음.
+
+### 다음 할 일
+- 없음(요청 범위 완료)
+
+---
+
+## Phase 161 — 대량체결 임계값 백테스트 + 폭주붕괴 버그 수정 + 바이낸스/OKX 체결 합류 (2026-07-11) ✅ DONE
+
+Phase 160 노트에 남아있던 "대량체결/흡수 임계값 미백테스트" 후속. SDD 없이 직접 진행(`feedback_no_process_theater` 컨벤션).
+
+### 백테스트로 발견한 버그
+`applyLargeTradeTracking`(대량체결 판정)이 median×3 고정배수 + 대량체결은 표본에서 제외하는 로직이었는데, HL 체결크기 분포가 극단 우편향(p50=0.0022, p90=0.149, ~68배 스프레드)이라 제외 로직과 맞물려 median이 최솟값 근처로 폭주 붕괴 → BTC 기준 틱의 **70%**가 대량체결로 오탐되고 있었음(78,292건/2일). Phase 160의 "버블 겹쳐서 안 보임" 리포트도 반경 문제가 아니라 이 오탐 폭주가 근본 원인이었을 가능성 높음.
+
+### 수정 (`seokminal-dashboard` 커밋 `ed4dbd3`, `seokminal-multi-venue` 커밋 `1e92c27`)
+- `lib/orderflow-data.ts` — `applyLargeTradeTracking`을 median×3(표본제외)→**rolling p95(제외없음)**로 교체. p95는 표본 제외 없이도 창(window) 자체가 항상 상위 5%를 가리켜 분포 모양과 무관하게 안정적. 회귀 테스트 추가(대량체결 반복 유입 시 문턱 폭주 붕괴 안 하는지).
+- `research/strategies/orderflow_absorption.py` — 동일 알고리즘으로 동기화, 재실행.
+- **재검증 결과**: BTC 대량체결 이벤트 78,292건(70%, 버그)→**6,627건(5.8%, 정상)**. 절대 수치는 바로 잡혔지만 신호 자체는 여전히 **REJECT**: 흡수 percentile ~44(랜덤과 구별 불가), 대량체결 방향추종 승률 0.02~3.6%·비용압도(진짜 무의미한 신호, 버그 아님).
+
+### 바이낸스/OKX 체결 스트림 추가 (`seokminal-multi-venue` 커밋 `eda99ac`)
+CVD/흡수/대량체결 표본을 HL 단독보다 넓히기 위해 체결 테이프만 다중거래소화.
+- `orderflow/binance_adapter.py`, `orderflow/okx_adapter.py` — 퍼블릭 WS 체결 파서(`hl_adapter.py`와 동일 패턴).
+- `orderflow/multi_venue_adapter.py` — HL(오더북+체결)+Binance+OKX(체결만)를 하나의 스트림으로 병합, 거래소별 독립 재연결(한 소스 끊겨도 나머지 유지). 셋 다 기존 `{coin}.HL` 심볼로 합류시켜 `aggregator.py` 이후 파이프라인 무수정.
+- `orderflow/manager.py` — 기본 어댑터 팩토리를 `MultiVenueOrderflowClient`로 교체.
+- **오더북 뎁스(COB)는 HL 전용 유지** — 실제 체결 가능한 유동성은 계좌가 물려있는 거래소별로 분리돼야 하므로 병합 대상 아님(병합하면 실행 불가능한 유동성을 있는 것처럼 보여줘서 트레이딩 판단 왜곡).
+
+### 검증
+- 백엔드 854 passed(pre-existing 4개 실패만, 신규 0). 프론트 215/215 통과, tsc 클린.
+
+### 다음 할 일
+- 브라우저 스팟체크 아직 없음: `/orderflow` 라이브에서 대량체결 버블 빈도가 줄었는지(5.8% 근처), 바이낸스/OKX 체결 합류로 CVD 델타가 체감상 달라졌는지 확인.
+- Binance/OKX WS 실제 연결 검증 미실시(코드는 공개 API 문서 스펙대로 작성, 단위테스트는 페이크 커넥션 기준) — 실 서버 기동 후 재연결/파싱 라이브 확인 필요.
+- 대량체결/흡수 둘 다 REJECT 확정이므로 라이브 대시보드 마커는 계속 "미검증 v1 시각화용"으로만 취급할 것 — 매매 판단 근거로 못 씀.
+
 ## Phase 160 — Orderflow GEX 패널 병합 + 차트 확대 + 버블 축소 (2026-07-10) ✅ DONE
 
 Phase 159 직후 유저 리포트: "옵션 겍스 차트 안으로 넣어주고 차트 키워줘. 히트맵 원이 너무 커서 서로 가려가지고 하나도 모르겠다" — SDD 없이 직접 수정(작은 변경, `feedback_no_process_theater` 컨벤션).

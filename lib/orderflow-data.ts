@@ -19,6 +19,7 @@ export interface BookLevel {
 export interface OrderBookState {
   bids: BookLevel[];
   asks: BookLevel[];
+  venues: string[];
 }
 
 export interface OrderflowSnapshot {
@@ -50,6 +51,7 @@ export interface BookSnapshotMsg {
   type: "book_snapshot";
   bids: BookLevel[];
   asks: BookLevel[];
+  venues: string[];
 }
 
 export type OrderflowDeltaMsg = FootprintDeltaMsg | HeatmapDeltaMsg | BookSnapshotMsg | StatusMsg;
@@ -95,7 +97,7 @@ function evictOldestHeatmapBuckets(heatmap: Map<string, HeatmapCell>): Map<strin
 }
 
 export function emptyOrderflowState(): OrderflowState {
-  return { footprint: new Map(), heatmap: new Map(), book: { bids: [], asks: [] } };
+  return { footprint: new Map(), heatmap: new Map(), book: { bids: [], asks: [], venues: [] } };
 }
 
 export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
@@ -115,7 +117,7 @@ export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
   return {
     footprint: evictOldestFootprintBuckets(footprint),
     heatmap: evictOldestHeatmapBuckets(heatmap),
-    book: { bids: [], asks: [] },
+    book: { bids: [], asks: [], venues: [] },
   };
 }
 
@@ -149,7 +151,7 @@ export function applyHeatmapDelta(state: OrderflowState, msg: HeatmapDeltaMsg): 
 }
 
 export function applyBookSnapshot(state: OrderflowState, msg: BookSnapshotMsg): OrderflowState {
-  return { ...state, book: { bids: msg.bids, asks: msg.asks } };
+  return { ...state, book: { bids: msg.bids, asks: msg.asks, venues: msg.venues } };
 }
 
 export function applyOrderflowMessage(state: OrderflowState, msg: OrderflowDeltaMsg): OrderflowState {

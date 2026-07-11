@@ -232,25 +232,28 @@ describe("applyBookSnapshot", () => {
       type: "book_snapshot",
       bids: [{ price: 100, size: 1 }],
       asks: [{ price: 101, size: 2 }],
+      venues: ["hyperliquid"],
     });
     expect(state.book).toEqual({
       bids: [{ price: 100, size: 1 }],
       asks: [{ price: 101, size: 2 }],
+      venues: ["hyperliquid"],
     });
 
     state = applyBookSnapshot(state, {
       type: "book_snapshot",
       bids: [{ price: 99, size: 5 }],
       asks: [],
+      venues: [],
     });
-    expect(state.book).toEqual({ bids: [{ price: 99, size: 5 }], asks: [] });
+    expect(state.book).toEqual({ bids: [{ price: 99, size: 5 }], asks: [], venues: [] });
   });
 
   it("leaves footprint/heatmap untouched", () => {
     let state = applyFootprintDelta(emptyOrderflowState(), {
       type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 2,
     });
-    state = applyBookSnapshot(state, { type: "book_snapshot", bids: [], asks: [] });
+    state = applyBookSnapshot(state, { type: "book_snapshot", bids: [], asks: [], venues: [] });
     expect(state.footprint.get("0:100")).toEqual({ bucketTs: 0, price: 100, buyVol: 2, sellVol: 0 });
   });
 });
@@ -261,14 +264,16 @@ describe("applyOrderflowMessage with book_snapshot", () => {
       type: "book_snapshot",
       bids: [{ price: 100, size: 1 }],
       asks: [{ price: 101, size: 1 }],
+      venues: ["binance-depth", "hyperliquid"],
     });
     expect(next.book.bids).toEqual([{ price: 100, size: 1 }]);
+    expect(next.book.venues).toEqual(["binance-depth", "hyperliquid"]);
   });
 });
 
 describe("emptyOrderflowState", () => {
   it("starts with an empty book", () => {
-    expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [] });
+    expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [], venues: [] });
   });
 });
 
