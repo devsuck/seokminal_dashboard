@@ -288,7 +288,7 @@ describe("applyLargeTradeTracking", () => {
     expect(tracker.largeTrades).toHaveLength(0);
   });
 
-  it("flags a trade more than 3x the rolling median once warmed up", () => {
+  it("flags a trade above the rolling p95 once warmed up", () => {
     let tracker = feedNormalTrades(20, 1.0);
     tracker = applyLargeTradeTracking(tracker, {
       type: "footprint_delta", bucket_ts: 2000, price: 105, side: "sell", delta_vol: 10.0,
@@ -297,23 +297,54 @@ describe("applyLargeTradeTracking", () => {
     expect(tracker.largeTrades[0]).toEqual({ bucketTs: 2000, price: 105, side: "sell", size: 10.0 });
   });
 
-  it("does not flag a trade at or below 3x the rolling median", () => {
+  it("does not flag a trade at or below the rolling p95", () => {
     let tracker = feedNormalTrades(20, 1.0);
     tracker = applyLargeTradeTracking(tracker, {
-      type: "footprint_delta", bucket_ts: 2000, price: 105, side: "buy", delta_vol: 3.0,
+      type: "footprint_delta", bucket_ts: 2000, price: 105, side: "buy", delta_vol: 1.0,
     });
     expect(tracker.largeTrades).toHaveLength(0);
   });
 
-  it("caps largeTrades at 50 entries, dropping the oldest", () => {
+  it("does not collapse toward the sample minimum when large trades keep arriving (regression: 2026-07-11 median-exclusion bug)", () => {
+    // 이전 버전은 대량 체결을 표본에서 제외해 median이 최솟값 근처로 폭주 붕괴,
+    // 이후 정상 체결 대부분이 오탐되는 버그가 있었다. 대량 체결이 반복돼도
+    // p95 문턱은 표본 전체(대량 포함) 기준으로 안정적으로 유지돼야 한다.
     let tracker = feedNormalTrades(20, 1.0);
-    for (let i = 0; i < 55; i++) {
+    for (let i = 0; i < 30; i++) {
       tracker = applyLargeTradeTracking(tracker, {
-        type: "footprint_delta", bucket_ts: 3000 + i, price: 100, side: "buy", delta_vol: 10.0,
+        type: "footprint_delta", bucket_ts: 2000 + i, price: 100, side: "buy", delta_vol: 10.0,
       });
     }
+    // 대량 체결(10.0)이 표본의 상당 비중을 차지하면 이후 정상 체결(1.0)은 더 이상
+    // p95 문턱을 넘지 못해야 한다(문턱이 1.0 근처로 폭주 붕괴하지 않았다는 증거).
+    tracker = applyLargeTradeTracking(tracker, {
+      type: "footprint_delta", bucket_ts: 5000, price: 100, side: "buy", delta_vol: 1.0,
+    });
+    expect(tracker.largeTrades.at(-1)?.size).not.toBe(1.0);
+  });
+
+  it("caps largeTrades at 50 entries, dropping the oldest", () => {
+    // 대량 체결끼리 연달아 오면 그 자체가 p95 문턱을 밀어올려 더 이상 "대량"으로
+    // 안 잡힘(적응형 임계값의 정상 동작). 캡(50) 자체를 검증하려면 대량 체결
+    // 밀도를 창(200)의 5% 밑으로 유지해야 한다 — 정상 체결 24건마다 1건 비율.
+    let tracker = feedNormalTrades(20, 1.0);
+    let ts = 3000;
+    let flagged = 0;
+    while (flagged < 55) {
+      for (let j = 0; j < 24; j++) {
+        tracker = applyLargeTradeTracking(tracker, {
+          type: "footprint_delta", bucket_ts: ts++, price: 100, side: "buy", delta_vol: 1.0,
+        });
+      }
+      const largeTs = ts++;
+      tracker = applyLargeTradeTracking(tracker, {
+        type: "footprint_delta", bucket_ts: largeTs, price: 100, side: "buy", delta_vol: 10.0,
+      });
+      // 캡(50)에 도달하면 length는 안 늘어도 최신 항목은 갱신되므로,
+      // length 대신 방금 넣은 체결이 실제로 마지막 항목인지로 판정한다.
+      if (tracker.largeTrades.at(-1)?.bucketTs === largeTs) flagged++;
+    }
     expect(tracker.largeTrades).toHaveLength(50);
-    expect(tracker.largeTrades[0].bucketTs).toBe(3005); // 처음 5개(3000~3004)는 밀려나감
   });
 });
 

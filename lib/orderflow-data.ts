@@ -228,34 +228,37 @@ export interface LargeTradeTrackerState {
 
 const ROLLING_WINDOW = 200;
 const MIN_WARMUP_SAMPLES = 20;
-const LARGE_TRADE_MULTIPLIER = 3;
+const LARGE_TRADE_PERCENTILE = 0.95;
 const MAX_LARGE_TRADES = 50;
 
 export function emptyLargeTradeTracker(): LargeTradeTrackerState {
   return { recentSizes: [], largeTrades: [] };
 }
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+function percentile(sortedAsc: number[], p: number): number {
+  const idx = Math.min(sortedAsc.length - 1, Math.floor(p * sortedAsc.length));
+  return sortedAsc[idx];
 }
 
 /**
- * 최근 200건 체결 크기의 이동중앙값 대비 3배 넘는 체결을 "대량 체결"로 표시.
+ * 최근 200건 체결 크기 중 상위 5%(p95) 넘는 체결을 "대량 체결"로 표시.
  * 표본 20건 미만(워밍업 전)은 오탐 방지를 위해 아무것도 표시하지 않는다.
+ *
+ * median×3 고정배수였던 이전 버전은 실제 HL 체결 사이즈 분포(극단 우편향 — p50과 p90이
+ * 수십 배 차이)에서 "대량 체결은 표본 제외" 로직과 맞물려 median이 최솟값 근처로 폭주
+ * 붕괴, 정상 체결 70%가 오탐되는 버그가 있었다(2026-07-11 백테스트로 확인). percentile은
+ * 표본 제외 없이도 창(window) 자체가 항상 상위 5%를 가리키므로 분포 모양과 무관하게 안정적.
  */
 export function applyLargeTradeTracking(
   tracker: LargeTradeTrackerState,
   msg: FootprintDeltaMsg
 ): LargeTradeTrackerState {
   let largeTrades = tracker.largeTrades;
-  let isLarge = false;
 
   if (tracker.recentSizes.length >= MIN_WARMUP_SAMPLES) {
-    const m = median(tracker.recentSizes);
-    if (m > 0 && msg.delta_vol > m * LARGE_TRADE_MULTIPLIER) {
-      isLarge = true;
+    const sorted = [...tracker.recentSizes].sort((a, b) => a - b);
+    const threshold = percentile(sorted, LARGE_TRADE_PERCENTILE);
+    if (threshold > 0 && msg.delta_vol > threshold) {
       largeTrades = [
         ...largeTrades,
         { bucketTs: msg.bucket_ts, price: msg.price, side: msg.side, size: msg.delta_vol },
@@ -263,11 +266,7 @@ export function applyLargeTradeTracking(
     }
   }
 
-  // 대량 체결(outlier) 자체는 이동중앙값 표본에서 제외한다 — 안 그러면 연속 대량 체결이
-  // 기준선(median)을 끌어올려 이후 대량 체결을 놓치게 된다(아이스버그 반복 체결 시 특히 문제).
-  const recentSizes = isLarge
-    ? tracker.recentSizes
-    : [...tracker.recentSizes, msg.delta_vol].slice(-ROLLING_WINDOW);
+  const recentSizes = [...tracker.recentSizes, msg.delta_vol].slice(-ROLLING_WINDOW);
 
   return { recentSizes, largeTrades };
 }
