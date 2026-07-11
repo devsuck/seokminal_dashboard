@@ -1,3 +1,21 @@
+## Phase 165 — Orderflow 보조지표 5종 (2026-07-12) ✅ SHIPPED
+
+"같이 쓰면 좋은 지표" 요청 → 프론트 전용 5종 직접 구현 (커밋 99f85a7):
+
+- **POC/VA** — `computeValueArea()` (POC + 70% Value Area 탐욕 확장), 캔들 price line(POC 주황 실선+축 라벨, VAH/VAL 점선)
+- **VWAP ±1σ/±2σ** — `computeVwapBands()` (σ²=Σv·tp²/Σv−vwap² 증분식), 가격 페인 노란 실선+회색 점선 밴드
+- **델타 다이버전스** — `detectDeltaDivergence()` (20봉 신고/신저 + 반대 델타, |델타|≥총량 25% 게이트), 보라 원 마커 + 이벤트 피드
+- **델타 히스토그램** — `computeDeltaSeries()` (CVD 비누적 버전), 서브페인
+- **세션/전일 고저** — `computeSessionLevels()` (UTC 자정 경계), 점선 price line
+
+시그널 패널에 "주요 레벨" 섹션(가격순 정렬 + 현재가 대비 ▲위/▼아래), 범례에 VWAP/POC·VA/세션고저/델타 토글 4개 + 다이버전스 마커 칩, 활용 가이드 3줄 추가. CandlestickChart에 `vwapSeries`/`deltaSeries`/`divergenceMarkers` prop. price line은 OrderflowChart가 candleSeries ref로 직접 관리(매 갱신 remove→create).
+
+검증: tsc 클린, 253/253(신규 17), 브라우저 라이브 확인(VWAP 선·POC 라벨·주요 레벨 판독·델타 페인·콘솔 클린).
+
+미착수(백엔드 필요): HL 펀딩비+OI 패널, 청산 히트맵.
+
+---
+
 ## Phase 164 — Orderflow UX 강화: 범례/토글 + 시그널 패널 (2026-07-12) ✅ SHIPPED
 
 "뭐가 뭔지 모르겠어, 실시간 매매에 활용" 요청. 캔버스 8겹 오버레이에 라벨/설명 전무했던 문제 해결. 경량 직접 구현(SDD 미사용).
