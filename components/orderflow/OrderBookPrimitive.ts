@@ -5,12 +5,14 @@ import type {
   IPrimitivePaneRenderer,
   Time,
 } from "lightweight-charts";
-import { bookBarLayout } from "@/lib/orderflow-chart-coords";
-import type { BookLevel, OrderBookState } from "@/lib/orderflow-data";
+import { bookBarLayout, stackedInsetColumns, SVP_COLUMN_WIDTH_PX, CVP_COLUMN_WIDTH_PX, COB_COLUMN_WIDTH_PX } from "@/lib/orderflow-chart-coords";
+import type { BookLevel, OrderBookState, IcebergLevel } from "@/lib/orderflow-data";
 
-const INSET_WIDTH_PX = 90;
 const POS_RGB = "0, 217, 100"; // --color-pos #00D964
 const NEG_RGB = "255, 59, 48"; // --color-neg #FF3B30
+const WARN_RGB = "255, 159, 10"; // --color-warn #FF9F0A
+const COLUMN_WIDTHS = [SVP_COLUMN_WIDTH_PX, CVP_COLUMN_WIDTH_PX, COB_COLUMN_WIDTH_PX];
+const MIN_ROW_HEIGHT_FOR_TEXT = 9;
 
 const VENUE_LABELS: Record<string, string> = {
   hyperliquid: "HL",
@@ -23,13 +25,13 @@ class OrderBookPaneRenderer implements IPrimitivePaneRenderer {
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
     target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
-      const { book } = this.primitive;
+      const { book, icebergLevels } = this.primitive;
       if (book.bids.length === 0 && book.asks.length === 0) return;
 
       const chartHeight = mediaSize.height;
-      const chartWidth = mediaSize.width;
-      const right = chartWidth;
-      const left = chartWidth - INSET_WIDTH_PX;
+      const col = stackedInsetColumns(mediaSize.width, COLUMN_WIDTHS)[2];
+      const { left, right } = col;
+      const insetWidth = right - left;
 
       const maxVisibleSize = Math.max(
         1,
@@ -37,15 +39,32 @@ class OrderBookPaneRenderer implements IPrimitivePaneRenderer {
         ...book.asks.map((l) => l.size)
       );
       const rowHeight = chartHeight / 2 / this.primitive.levels;
+      const icebergByKey = new Map(icebergLevels.map((lv) => [`${lv.side}:${lv.price}`, lv]));
 
       const drawSide = (levels: BookLevel[], side: "bid" | "ask", rgb: string) => {
         levels.slice(0, this.primitive.levels).forEach((lvl, i) => {
           const layout = bookBarLayout(i, maxVisibleSize, lvl.size, chartHeight, side, this.primitive.levels);
           if (!layout) return;
-          const barWidth = layout.widthFrac * INSET_WIDTH_PX;
+          const barWidth = layout.widthFrac * insetWidth;
           const y = layout.yFrac * chartHeight;
           ctx.fillStyle = `rgba(${rgb}, 0.35)`;
           ctx.fillRect(right - barWidth, y, barWidth, rowHeight - 1);
+
+          if (icebergByKey.has(`${side}:${lvl.price}`)) {
+            ctx.strokeStyle = `rgba(${WARN_RGB}, 0.9)`;
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(right - barWidth, y, barWidth, rowHeight - 1);
+          }
+
+          if (rowHeight >= MIN_ROW_HEIGHT_FOR_TEXT) {
+            ctx.save();
+            ctx.font = "9px monospace";
+            ctx.fillStyle = "rgba(255,255,255,0.65)";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText(lvl.size.toFixed(2), left + 2, y + rowHeight / 2);
+            ctx.restore();
+          }
         });
       };
 
@@ -53,7 +72,7 @@ class OrderBookPaneRenderer implements IPrimitivePaneRenderer {
       drawSide(book.bids, "bid", POS_RGB);
 
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.strokeRect(left, 0, INSET_WIDTH_PX, chartHeight);
+      ctx.strokeRect(left, 0, insetWidth, chartHeight);
 
       if (book.venues.length > 0) {
         ctx.save();
@@ -80,6 +99,7 @@ class OrderBookPaneView implements IPrimitivePaneView {
 
 export class OrderBookPrimitive implements ISeriesPrimitive<Time> {
   book: OrderBookState = { bids: [], asks: [], venues: [] };
+  icebergLevels: IcebergLevel[] = [];
   readonly levels = 20;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];
@@ -98,6 +118,11 @@ export class OrderBookPrimitive implements ISeriesPrimitive<Time> {
 
   updateData(book: OrderBookState): void {
     this.book = book;
+    this.requestUpdate?.();
+  }
+
+  updateIcebergLevels(icebergLevels: IcebergLevel[]): void {
+    this.icebergLevels = icebergLevels;
     this.requestUpdate?.();
   }
 
