@@ -30,6 +30,29 @@ class VolumeProfilePaneRenderer implements IPrimitivePaneRenderer {
       const maxVol = Math.max(1, ...levels.map((l) => l.buyVol + l.sellVol));
       const byPrice = new Map(levels.map((l) => [l.price, l]));
 
+      // Handle single price level case to avoid neighbor-lookup failure
+      if (sortedPrices.length === 1) {
+        const price = sortedPrices[0];
+        const y = priceToY(price);
+        if (y === null) return;
+
+        const height = 20; // Fixed height for single price level
+        const top = y - height / 2;
+
+        const level = byPrice.get(price);
+        if (!level) return;
+        const total = level.buyVol + level.sellVol;
+        const width = Math.min(columnWidth, (total / maxVol) * columnWidth);
+        const buyWidth = total > 0 ? (level.buyVol / total) * width : 0;
+
+        ctx.fillStyle = `rgba(${NEG_RGB}, 0.5)`;
+        ctx.fillRect(col.right - width, top, width - buyWidth, height - 1);
+        ctx.fillStyle = `rgba(${POS_RGB}, 0.5)`;
+        ctx.fillRect(col.right - buyWidth, top, buyWidth, height - 1);
+
+        return;
+      }
+
       sortedPrices.forEach((price, idx) => {
         const y = priceToY(price);
         if (y === null) return;
