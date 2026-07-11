@@ -446,3 +446,186 @@ export function detectStopRuns(
   }
   return results;
 }
+
+const VALUE_AREA_PCT = 0.7;
+
+export interface ValueArea {
+  poc: number;
+  vah: number;
+  val: number;
+}
+
+/**
+ * 볼륨 프로파일에서 POC(최다 체결가)와 Value Area(체결량 70% 구간)를 계산.
+ * POC에서 시작해 위/아래 인접 행 중 체결량이 큰 쪽을 탐욕적으로 편입한다.
+ */
+export function computeValueArea(levels: VolumeProfileLevel[]): ValueArea | null {
+  if (levels.length === 0) return null;
+  const rows = [...levels]
+    .map((l) => ({ price: l.price, vol: l.buyVol + l.sellVol }))
+    .sort((a, b) => a.price - b.price);
+  const total = rows.reduce((s, r) => s + r.vol, 0);
+  if (total <= 0) return null;
+
+  let pocIdx = 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].vol > rows[pocIdx].vol) pocIdx = i;
+  }
+
+  let lo = pocIdx;
+  let hi = pocIdx;
+  let covered = rows[pocIdx].vol;
+  const target = total * VALUE_AREA_PCT;
+  while (covered < target && (lo > 0 || hi < rows.length - 1)) {
+    const below = lo > 0 ? rows[lo - 1].vol : -1;
+    const above = hi < rows.length - 1 ? rows[hi + 1].vol : -1;
+    if (above >= below) {
+      hi += 1;
+      covered += rows[hi].vol;
+    } else {
+      lo -= 1;
+      covered += rows[lo].vol;
+    }
+  }
+  return { poc: rows[pocIdx].price, vah: rows[hi].price, val: rows[lo].price };
+}
+
+export interface VwapPoint {
+  time: number;
+  vwap: number;
+  up1: number;
+  dn1: number;
+  up2: number;
+  dn2: number;
+}
+
+/**
+ * 보유 중인 bars 구간에 앵커된 VWAP과 ±1σ/±2σ 밴드. 거래량 가중 분산은
+ * σ² = Σ(v·tp²)/Σv − vwap² 증분식으로 계산. 누적 거래량 0인 선두 구간은 건너뜀.
+ */
+export function computeVwapBands(
+  bars: { ts_event: number; high: number; low: number; close: number; volume: number }[]
+): VwapPoint[] {
+  const out: VwapPoint[] = [];
+  let cumV = 0;
+  let cumPV = 0;
+  let cumPV2 = 0;
+  for (const b of bars) {
+    const tp = (b.high + b.low + b.close) / 3;
+    const v = b.volume > 0 ? b.volume : 0;
+    cumV += v;
+    cumPV += tp * v;
+    cumPV2 += tp * tp * v;
+    if (cumV <= 0) continue;
+    const vwap = cumPV / cumV;
+    const variance = Math.max(0, cumPV2 / cumV - vwap * vwap);
+    const sd = Math.sqrt(variance);
+    out.push({
+      time: Math.floor(b.ts_event / 1e9),
+      vwap,
+      up1: vwap + sd,
+      dn1: vwap - sd,
+      up2: vwap + 2 * sd,
+      dn2: vwap - 2 * sd,
+    });
+  }
+  return out;
+}
+
+/** 버킷(캔들)별 순델타(매수량-매도량) — CVD의 비누적 버전, 델타 히스토그램 서브페인용. */
+export function computeDeltaSeries(cells: FootprintCell[]): { time: number; value: number }[] {
+  const netByBucket = new Map<number, number>();
+  for (const c of cells) {
+    netByBucket.set(c.bucketTs, (netByBucket.get(c.bucketTs) ?? 0) + (c.buyVol - c.sellVol));
+  }
+  return Array.from(netByBucket.keys())
+    .sort((a, b) => a - b)
+    .map((time) => ({ time, value: netByBucket.get(time) as number }));
+}
+
+const DIVERGENCE_LOOKBACK_BARS = 20;
+/** 다이버전스로 인정할 최소 델타 편향 — |델타| ≥ 버킷 총 체결량의 25%. */
+const DIVERGENCE_MIN_DELTA_RATIO = 0.25;
+
+/**
+ * 델타 다이버전스: 최근 20봉 신고가인데 그 캔들 델타가 뚜렷하게 매도 우위면 sell(약한 고점),
+ * 신저가인데 매수 우위면 buy(약한 저점). 델타 편향이 총량의 25% 미만이면 노이즈로 보고 무시.
+ */
+export function detectDeltaDivergence(
+  bars: { ts_event: number; high: number; low: number; close: number }[],
+  cells: FootprintCell[]
+): { time: number; side: "buy" | "sell" }[] {
+  if (bars.length <= DIVERGENCE_LOOKBACK_BARS) return [];
+
+  const deltaByBucket = new Map<number, { net: number; total: number }>();
+  for (const c of cells) {
+    const cur = deltaByBucket.get(c.bucketTs) ?? { net: 0, total: 0 };
+    cur.net += c.buyVol - c.sellVol;
+    cur.total += c.buyVol + c.sellVol;
+    deltaByBucket.set(c.bucketTs, cur);
+  }
+
+  const results: { time: number; side: "buy" | "sell" }[] = [];
+  for (let i = DIVERGENCE_LOOKBACK_BARS; i < bars.length; i++) {
+    const bar = bars[i];
+    const bucketTs = Math.floor(bar.ts_event / 1e9);
+    const delta = deltaByBucket.get(bucketTs);
+    if (!delta || delta.total <= 0) continue;
+    if (Math.abs(delta.net) < delta.total * DIVERGENCE_MIN_DELTA_RATIO) continue;
+
+    const window = bars.slice(i - DIVERGENCE_LOOKBACK_BARS, i);
+    const recentHigh = Math.max(...window.map((b) => b.high));
+    const recentLow = Math.min(...window.map((b) => b.low));
+
+    if (bar.high > recentHigh && delta.net < 0) {
+      results.push({ time: bucketTs, side: "sell" });
+    } else if (bar.low < recentLow && delta.net > 0) {
+      results.push({ time: bucketTs, side: "buy" });
+    }
+  }
+  return results;
+}
+
+export interface SessionLevels {
+  sessionHigh: number;
+  sessionLow: number;
+  prevHigh: number | null;
+  prevLow: number | null;
+}
+
+const DAY_SEC = 86_400;
+
+/**
+ * 마지막 bar가 속한 UTC 일 기준의 세션 고저 + 전일 고저. 크립토 관례(UTC 자정 세션 경계)를 따른다.
+ * 전일 bar가 보유 구간에 없으면 prev는 null.
+ */
+export function computeSessionLevels(
+  bars: { ts_event: number; high: number; low: number }[]
+): SessionLevels | null {
+  if (bars.length === 0) return null;
+  const lastSec = Math.floor(bars[bars.length - 1].ts_event / 1e9);
+  const dayStart = Math.floor(lastSec / DAY_SEC) * DAY_SEC;
+  const prevDayStart = dayStart - DAY_SEC;
+
+  let sessionHigh = -Infinity;
+  let sessionLow = Infinity;
+  let prevHigh = -Infinity;
+  let prevLow = Infinity;
+  for (const b of bars) {
+    const sec = Math.floor(b.ts_event / 1e9);
+    if (sec >= dayStart) {
+      sessionHigh = Math.max(sessionHigh, b.high);
+      sessionLow = Math.min(sessionLow, b.low);
+    } else if (sec >= prevDayStart) {
+      prevHigh = Math.max(prevHigh, b.high);
+      prevLow = Math.min(prevLow, b.low);
+    }
+  }
+  if (!Number.isFinite(sessionHigh)) return null;
+  return {
+    sessionHigh,
+    sessionLow,
+    prevHigh: Number.isFinite(prevHigh) ? prevHigh : null,
+    prevLow: Number.isFinite(prevLow) ? prevLow : null,
+  };
+}

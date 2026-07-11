@@ -8,7 +8,11 @@ export type LayerKey =
   | "book"
   | "bubbles"
   | "gex"
-  | "imbalance";
+  | "imbalance"
+  | "vwap"
+  | "valueArea"
+  | "sessionLevels"
+  | "deltaHist";
 
 export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   heatmap: true,
@@ -19,6 +23,10 @@ export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   bubbles: true,
   gex: true,
   imbalance: true,
+  vwap: true,
+  valueArea: true,
+  sessionLevels: true,
+  deltaHist: true,
 };
 
 interface LayerDef {
@@ -78,12 +86,37 @@ const LAYER_DEFS: LayerDef[] = [
     swatchClass: "bg-gradient-to-r from-pos/80 to-neg/60",
     description: "좌상단 미니 바 — 호가 잔량/최근 체결의 매수측 비율 (우측 시그널 패널과 동일 값)",
   },
+  {
+    key: "vwap",
+    label: "VWAP",
+    swatchClass: "bg-warn/80",
+    description: "거래량 가중 평균가 (노란 실선) + ±1σ/±2σ 밴드 (회색 점선) — 기관 평단 추정, 되돌림 목표가",
+  },
+  {
+    key: "valueArea",
+    label: "POC/VA",
+    swatchClass: "bg-accent/70",
+    description: "POC = 최다 체결가 (주황 실선), VAH/VAL = 체결량 70% 구간 상/하단 (점선) — 안이면 회귀, 밖이면 추세",
+  },
+  {
+    key: "sessionLevels",
+    label: "세션 고저",
+    swatchClass: "bg-text-3/60",
+    description: "금일(UTC) 고가/저가 + 전일 고가/저가 수평선 — 스탑런이 노리는 레벨",
+  },
+  {
+    key: "deltaHist",
+    label: "델타",
+    swatchClass: "bg-gradient-to-r from-pos/70 to-neg/70",
+    description: "캔들별 순델타(매수-매도) 히스토그램 서브페인 — CVD의 비누적 버전",
+  },
 ];
 
 /** 토글 불가 항목 — 캔들차트 마커라 레이어 토글 대상 아님, 설명만 제공. */
 const MARKER_DEFS = [
   { label: "흡수 ↑↓", colorClass: "text-info", description: "흡수(absorption) — 우세한 체결 물량이 가격을 못 밀어낸 캔들. 파란 화살표 마커" },
   { label: "스탑런 ◼", colorClass: "text-warn", description: "스탑런(stop-run) — 최근 20봉 고/저점 이탈 후 대량 체결과 함께 반전 마감. 주황 사각 마커" },
+  { label: "다이버전스 ●", colorClass: "text-[#BF5AF2]", description: "델타 다이버전스 — 신고/신저가인데 캔들 델타가 반대 방향(25% 이상 편향). 약한 고점/저점 신호. 보라 원 마커" },
 ] as const;
 
 interface OrderflowLegendProps {

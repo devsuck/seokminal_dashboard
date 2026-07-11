@@ -21,6 +21,11 @@ import {
   computeImbalance,
   detectIcebergLevels,
   detectStopRuns,
+  computeValueArea,
+  computeVwapBands,
+  computeDeltaSeries,
+  detectDeltaDivergence,
+  computeSessionLevels,
   type FootprintCell,
   type VolumeProfileLevel,
   type LargeTradeTrackerState,
@@ -604,5 +609,174 @@ describe("detectStopRuns", () => {
   it("fails closed (returns []) when there are not enough bars for the lookback window", () => {
     const bars = makeBars(20);
     expect(detectStopRuns(bars, [], 1.0)).toEqual([]);
+  });
+});
+
+describe("computeValueArea", () => {
+  it("returns null for empty or zero-volume profiles", () => {
+    expect(computeValueArea([])).toBeNull();
+    expect(computeValueArea([{ price: 100, buyVol: 0, sellVol: 0 }])).toBeNull();
+  });
+
+  it("finds POC and expands to cover 70% of total volume", () => {
+    const levels: VolumeProfileLevel[] = [
+      { price: 100, buyVol: 1, sellVol: 0 }, // 1
+      { price: 101, buyVol: 2, sellVol: 1 }, // 3
+      { price: 102, buyVol: 5, sellVol: 5 }, // 10 <- POC
+      { price: 103, buyVol: 2, sellVol: 2 }, // 4
+      { price: 104, buyVol: 1, sellVol: 1 }, // 2
+    ];
+    // total 20, target 14: POC(10) + above(4) = 14 → VAH 103, VAL 102
+    expect(computeValueArea(levels)).toEqual({ poc: 102, vah: 103, val: 102 });
+  });
+
+  it("covers the whole range when volume is uniform", () => {
+    const levels: VolumeProfileLevel[] = [
+      { price: 1, buyVol: 1, sellVol: 0 },
+      { price: 2, buyVol: 1, sellVol: 0 },
+      { price: 3, buyVol: 1, sellVol: 0 },
+    ];
+    const va = computeValueArea(levels);
+    expect(va?.poc).toBe(1);
+    expect(va && va.vah >= va.val).toBe(true);
+  });
+});
+
+describe("computeVwapBands", () => {
+  it("returns [] when all volume is zero", () => {
+    expect(
+      computeVwapBands([{ ts_event: 0, high: 10, low: 10, close: 10, volume: 0 }])
+    ).toEqual([]);
+  });
+
+  it("vwap equals typical price for a single bar and bands collapse to zero width", () => {
+    const pts = computeVwapBands([
+      { ts_event: 60_000_000_000, high: 12, low: 8, close: 10, volume: 5 },
+    ]);
+    expect(pts).toHaveLength(1);
+    expect(pts[0].time).toBe(60);
+    expect(pts[0].vwap).toBeCloseTo(10);
+    expect(pts[0].up1).toBeCloseTo(10);
+    expect(pts[0].dn2).toBeCloseTo(10);
+  });
+
+  it("weights vwap by volume and orders bands up2 > up1 > vwap > dn1 > dn2", () => {
+    const pts = computeVwapBands([
+      { ts_event: 0, high: 10, low: 10, close: 10, volume: 1 },
+      { ts_event: 60_000_000_000, high: 20, low: 20, close: 20, volume: 3 },
+    ]);
+    const last = pts[pts.length - 1];
+    expect(last.vwap).toBeCloseTo(17.5); // (10*1 + 20*3) / 4
+    expect(last.up2).toBeGreaterThan(last.up1);
+    expect(last.up1).toBeGreaterThan(last.vwap);
+    expect(last.dn1).toBeLessThan(last.vwap);
+    expect(last.dn2).toBeLessThan(last.dn1);
+  });
+
+  it("skips leading zero-volume bars but includes later ones", () => {
+    const pts = computeVwapBands([
+      { ts_event: 0, high: 10, low: 10, close: 10, volume: 0 },
+      { ts_event: 60_000_000_000, high: 20, low: 20, close: 20, volume: 2 },
+    ]);
+    expect(pts).toHaveLength(1);
+    expect(pts[0].vwap).toBeCloseTo(20);
+  });
+});
+
+describe("computeDeltaSeries", () => {
+  it("sums net delta per bucket in time order", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 120, price: 101, buyVol: 1, sellVol: 4 },
+      { bucketTs: 60, price: 100, buyVol: 5, sellVol: 2 },
+      { bucketTs: 60, price: 101, buyVol: 1, sellVol: 1 },
+    ];
+    expect(computeDeltaSeries(cells)).toEqual([
+      { time: 60, value: 3 },
+      { time: 120, value: -3 },
+    ]);
+  });
+
+  it("returns [] for no cells", () => {
+    expect(computeDeltaSeries([])).toEqual([]);
+  });
+});
+
+describe("detectDeltaDivergence", () => {
+  type Bar = { ts_event: number; high: number; low: number; close: number };
+
+  function makeBars(n: number): Bar[] {
+    const bars: Bar[] = [];
+    for (let i = 0; i < n; i++) {
+      bars.push({ ts_event: i * 60_000_000_000, high: 110, low: 90, close: 100 });
+    }
+    return bars;
+  }
+
+  it("flags a sell divergence: new 20-bar high with clearly negative delta", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, close: 112 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 112, buyVol: 2, sellVol: 8 }]; // net -6, total 10
+    expect(detectDeltaDivergence(bars, cells)).toEqual([{ time: 1200, side: "sell" }]);
+  });
+
+  it("flags a buy divergence: new 20-bar low with clearly positive delta", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 100, low: 85, close: 88 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 88, buyVol: 8, sellVol: 2 }];
+    expect(detectDeltaDivergence(bars, cells)).toEqual([{ time: 1200, side: "buy" }]);
+  });
+
+  it("ignores weak delta skew below the 25% ratio gate", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, close: 112 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 112, buyVol: 4.5, sellVol: 5.5 }]; // net -1, total 10 → 10% < 25%
+    expect(detectDeltaDivergence(bars, cells)).toEqual([]);
+  });
+
+  it("ignores a new high whose delta agrees with the move (positive)", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, close: 112 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 112, buyVol: 8, sellVol: 2 }];
+    expect(detectDeltaDivergence(bars, cells)).toEqual([]);
+  });
+
+  it("fails closed without enough bars or without footprint data for the bucket", () => {
+    expect(detectDeltaDivergence(makeBars(20), [])).toEqual([]);
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, close: 112 };
+    expect(detectDeltaDivergence(bars, [])).toEqual([]);
+  });
+});
+
+describe("computeSessionLevels", () => {
+  const DAY = 86_400;
+
+  it("returns null for empty bars", () => {
+    expect(computeSessionLevels([])).toBeNull();
+  });
+
+  it("splits session and previous day by the UTC midnight of the last bar", () => {
+    const bars = [
+      { ts_event: (DAY - 120) * 1e9, high: 105, low: 95 }, // 전일
+      { ts_event: (DAY - 60) * 1e9, high: 108, low: 98 }, // 전일
+      { ts_event: DAY * 1e9, high: 110, low: 100 }, // 금일
+      { ts_event: (DAY + 60) * 1e9, high: 112, low: 99 }, // 금일
+    ];
+    expect(computeSessionLevels(bars)).toEqual({
+      sessionHigh: 112,
+      sessionLow: 99,
+      prevHigh: 108,
+      prevLow: 95,
+    });
+  });
+
+  it("returns null prev levels when no previous-day bars are held", () => {
+    const bars = [{ ts_event: DAY * 1e9, high: 110, low: 100 }];
+    expect(computeSessionLevels(bars)).toEqual({
+      sessionHigh: 110,
+      sessionLow: 100,
+      prevHigh: null,
+      prevLow: null,
+    });
   });
 });

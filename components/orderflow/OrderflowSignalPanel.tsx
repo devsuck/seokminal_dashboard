@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { IcebergLevel, LargeTrade } from "@/lib/orderflow-data";
+import type { IcebergLevel, LargeTrade, SessionLevels, ValueArea } from "@/lib/orderflow-data";
 
 interface MarkerEvent {
   time: number;
@@ -15,6 +15,13 @@ interface OrderflowSignalPanelProps {
   largeTrades: LargeTrade[];
   absorptionMarkers: MarkerEvent[];
   stopRunMarkers: MarkerEvent[];
+  divergenceMarkers: MarkerEvent[];
+  valueArea: ValueArea | null;
+  sessionLevels: SessionLevels | null;
+  /** 세션 VWAP 마지막 값 — 레벨 판독용. */
+  vwapLast: number | null;
+  /** 현재가(마지막 종가) — 각 레벨과의 위/아래 관계 표기용. */
+  lastPrice: number | null;
   /** 대량체결 트래커 워밍업(표본 20건) 완료 여부 — 미완료 시 파생 시그널은 아직 침묵 상태. */
   warmedUp: boolean;
 }
@@ -22,6 +29,7 @@ interface OrderflowSignalPanelProps {
 type FeedEvent =
   | { kind: "absorption"; time: number; side: "buy" | "sell" }
   | { kind: "stopRun"; time: number; side: "buy" | "sell" }
+  | { kind: "divergence"; time: number; side: "buy" | "sell" }
   | { kind: "largeTrade"; time: number; side: "buy" | "sell"; price: number; size: number };
 
 const FEED_MAX = 14;
@@ -72,6 +80,11 @@ export function OrderflowSignalPanel({
   largeTrades,
   absorptionMarkers,
   stopRunMarkers,
+  divergenceMarkers,
+  valueArea,
+  sessionLevels,
+  vwapLast,
+  lastPrice,
   warmedUp,
 }: OrderflowSignalPanelProps) {
   const cvdLast = cvdSeries.length > 0 ? cvdSeries[cvdSeries.length - 1].value : null;
@@ -102,6 +115,7 @@ export function OrderflowSignalPanel({
     const events: FeedEvent[] = [
       ...absorptionMarkers.map((m) => ({ kind: "absorption" as const, time: m.time, side: m.side })),
       ...stopRunMarkers.map((m) => ({ kind: "stopRun" as const, time: m.time, side: m.side })),
+      ...divergenceMarkers.map((m) => ({ kind: "divergence" as const, time: m.time, side: m.side })),
       ...largeTrades.map((t) => ({
         kind: "largeTrade" as const,
         time: t.bucketTs,
@@ -111,7 +125,7 @@ export function OrderflowSignalPanel({
       })),
     ];
     return events.sort((a, b) => b.time - a.time).slice(0, FEED_MAX);
-  }, [absorptionMarkers, stopRunMarkers, largeTrades]);
+  }, [absorptionMarkers, stopRunMarkers, divergenceMarkers, largeTrades]);
 
   return (
     <div className="text-xs">
@@ -164,6 +178,43 @@ export function OrderflowSignalPanel({
         )}
       </Section>
 
+      <Section title="주요 레벨 (현재가 대비)">
+        {(() => {
+          const rows: { label: string; price: number; tone?: string }[] = [];
+          if (vwapLast !== null) rows.push({ label: "VWAP", price: vwapLast, tone: "text-warn" });
+          if (valueArea) {
+            rows.push({ label: "POC", price: valueArea.poc, tone: "text-accent" });
+            rows.push({ label: "VAH", price: valueArea.vah });
+            rows.push({ label: "VAL", price: valueArea.val });
+          }
+          if (sessionLevels) {
+            rows.push({ label: "금일 고가", price: sessionLevels.sessionHigh });
+            rows.push({ label: "금일 저가", price: sessionLevels.sessionLow });
+            if (sessionLevels.prevHigh !== null) rows.push({ label: "전일 고가", price: sessionLevels.prevHigh });
+            if (sessionLevels.prevLow !== null) rows.push({ label: "전일 저가", price: sessionLevels.prevLow });
+          }
+          if (rows.length === 0) return <div className="text-text-3">데이터 대기 중</div>;
+          rows.sort((a, b) => b.price - a.price);
+          return (
+            <ul className="space-y-0.5">
+              {rows.map((r) => (
+                <li key={r.label} className="flex justify-between font-data">
+                  <span className={r.tone ?? "text-text-2"}>{r.label}</span>
+                  <span className="flex gap-1.5">
+                    <span className="text-text-1">{formatPrice(r.price)}</span>
+                    {lastPrice !== null && (
+                      <span className={lastPrice >= r.price ? "text-pos" : "text-neg"}>
+                        {lastPrice >= r.price ? "▼아래" : "▲위"}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
+      </Section>
+
       <Section title="아이스버그 의심 레벨">
         {!warmedUp ? (
           <div className="text-text-3">워밍업 중</div>
@@ -205,6 +256,11 @@ export function OrderflowSignalPanel({
                     스탑런 · {ev.side === "buy" ? "하방 이탈 후 반등" : "상방 이탈 후 반락"}
                   </span>
                 )}
+                {ev.kind === "divergence" && (
+                  <span className="text-[#BF5AF2]" title="신고/신저가인데 캔들 델타가 반대 — 약한 고점/저점">
+                    다이버전스 · {ev.side === "buy" ? "신저가+매수 델타" : "신고가+매도 델타"}
+                  </span>
+                )}
                 {ev.kind === "largeTrade" && (
                   <span className={ev.side === "buy" ? "text-pos" : "text-neg"}>
                     대량 {ev.side === "buy" ? "매수" : "매도"} {ev.size.toFixed(2)} @ {formatPrice(ev.price)}
@@ -223,6 +279,9 @@ export function OrderflowSignalPanel({
           <li>· 호가는 매수 우세인데 체결이 매도 우세면 매수벽 소진 여부 주시 (흡수 이벤트 확인).</li>
           <li>· 아이스버그 매수벽은 지지, 매도벽은 저항 후보 — 가격이 그 레벨에 접근할 때 반응 관찰.</li>
           <li>· 스탑런 직후 되돌림은 역추세 진입 후보, 단 대량체결이 같은 방향으로 이어지면 무효.</li>
+          <li>· 가격이 VA(VAH~VAL) 안이면 POC 회귀 성향, 밖에서 안 돌아오면 추세 지속.</li>
+          <li>· VWAP -1σ~-2σ 매수 되돌림 / +1σ~+2σ 매도 되돌림이 기본 프레임, 편향과 결합해서 판단.</li>
+          <li>· 다이버전스는 세션 고저·전일 고저 근처에서 떴을 때 신뢰도 높음.</li>
           <li>· 워밍업(체결 20건) 전에는 아이스버그/스탑런/대량체결이 의도적으로 침묵.</li>
         </ul>
       </details>

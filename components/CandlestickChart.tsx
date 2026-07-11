@@ -34,6 +34,12 @@ interface CandlestickChartProps {
   absorptionMarkers?: { time: UTCTimestamp; side: "buy" | "sell" }[];
   /** 스탑런(stop-run) 캔들 — 최근 고점/저점 이탈 후 반전 마감. 오더플로우 심볼에서만 전달됨. */
   stopRunMarkers?: { time: UTCTimestamp; side: "buy" | "sell" }[];
+  /** 델타 다이버전스 캔들 — 신고/신저가인데 캔들 델타가 반대 방향. 오더플로우 심볼에서만 전달됨. */
+  divergenceMarkers?: { time: UTCTimestamp; side: "buy" | "sell" }[];
+  /** VWAP + ±1σ/±2σ 밴드 — 가격 페인 오버레이. 오더플로우 심볼에서만 전달됨. */
+  vwapSeries?: { time: UTCTimestamp; vwap: number; up1: number; dn1: number; up2: number; dn2: number }[];
+  /** 캔들별 순델타(비누적) 히스토그램 서브페인 — 오더플로우 심볼에서만 전달됨. */
+  deltaSeries?: { time: UTCTimestamp; value: number }[];
   /** 차트/캔들시리즈 생성 직후 호출 — 외부에서 series primitive를 attach하려는 소비자용.
       bars 등이 바뀌어 차트가 통째로 재생성될 때마다 다시 호출된다. */
   onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
@@ -151,13 +157,14 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, stopRunMarkers, onSeriesReady, height = 480 }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, stopRunMarkers, divergenceMarkers, vwapSeries, deltaSeries, onSeriesReady, height = 480 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const overlaySeriesRef = useRef<ISeriesApi<"Line">[]>([]);
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const cvdSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const deltaSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const specsKey = JSON.stringify(specs ?? []);
 
   // 차트/캔들시리즈는 마운트 시 한 번만 생성한다. bars가 폴링(예: 오더플로우 30초 갱신)으로
@@ -207,6 +214,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       overlaySeriesRef.current = [];
       markersRef.current = null;
       cvdSeriesRef.current = null;
+      deltaSeriesRef.current = null;
     };
     // onSeriesReady는 마운트 시 1회만 호출 — 의도적으로 deps 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -266,7 +274,15 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       text: "스탑런",
     }));
 
-    const allMarkers = [...tradeMarkers, ...absorptionMarkerList, ...stopRunMarkerList].sort(
+    const divergenceMarkerList: SeriesMarker<UTCTimestamp>[] = (divergenceMarkers ?? []).map((m) => ({
+      time: m.time,
+      position: m.side === "buy" ? "belowBar" : "aboveBar",
+      color: "#BF5AF2",
+      shape: "circle",
+      text: "다이버전스",
+    }));
+
+    const allMarkers = [...tradeMarkers, ...absorptionMarkerList, ...stopRunMarkerList, ...divergenceMarkerList].sort(
       (a, b) => (a.time as number) - (b.time as number)
     );
     if (allMarkers.length > 0) {
@@ -312,6 +328,21 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         const lowerSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
         lowerSeries.setData(bbData.map(d => ({ time: d.time, value: d.lower })));
         overlaySeriesRef.current.push(upperSeries, middleSeries, lowerSeries);
+      }
+    }
+
+    // ── VWAP + σ밴드 오버레이 — 오더플로우 전용 ──
+    if (vwapSeries && vwapSeries.length > 0) {
+      const vwapLine = chart.addSeries(LineSeries, { color: "#EAB308", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+      vwapLine.setData(vwapSeries.map((p) => ({ time: p.time, value: p.vwap })));
+      overlaySeriesRef.current.push(vwapLine);
+      const bandDefs: { pick: (p: NonNullable<typeof vwapSeries>[number]) => number }[] = [
+        { pick: (p) => p.up1 }, { pick: (p) => p.dn1 }, { pick: (p) => p.up2 }, { pick: (p) => p.dn2 },
+      ];
+      for (const band of bandDefs) {
+        const s = chart.addSeries(LineSeries, { color: "#5F6B7A", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        s.setData(vwapSeries.map((p) => ({ time: p.time, value: band.pick(p) })));
+        overlaySeriesRef.current.push(s);
       }
     }
 
@@ -404,6 +435,28 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       cvdSeriesRef.current = cvdSeriesApi;
     }
 
+    // ── 캔들별 순델타(비누적) 히스토그램 서브페인 — 오더플로우 전용 ──
+    if (deltaSeriesRef.current) {
+      chart.removeSeries(deltaSeriesRef.current);
+      deltaSeriesRef.current = null;
+    }
+    if (deltaSeries && deltaSeries.length > 0) {
+      const deltaPane = paneIdx++;
+      const deltaSeriesApi = chart.addSeries(
+        HistogramSeries,
+        { priceLineVisible: false, lastValueVisible: true },
+        deltaPane
+      );
+      deltaSeriesApi.setData(
+        deltaSeries.map((pt) => ({
+          time: pt.time,
+          value: pt.value,
+          color: pt.value >= 0 ? "#00D964" : "#FF3B30",
+        }))
+      );
+      deltaSeriesRef.current = deltaSeriesApi;
+    }
+
     // 서브페인이 생기면 가격 페인이 눌리지 않게 전체 높이 보정
     if (paneIdx > 1) {
       const panes = chart.panes();
@@ -412,7 +465,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries, absorptionMarkers, stopRunMarkers]);
+  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries, absorptionMarkers, stopRunMarkers, divergenceMarkers, vwapSeries, deltaSeries]);
 
   return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }
