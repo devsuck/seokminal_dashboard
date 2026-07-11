@@ -8,15 +8,22 @@ import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
 import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
 import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
+import { VolumeProfilePrimitive } from "@/components/orderflow/VolumeProfilePrimitive";
+import { ImbalanceBarPrimitive } from "@/components/orderflow/ImbalanceBarPrimitive";
 import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
   computeCvdSeries,
+  computeImbalance,
+  computeVolumeProfile,
   currencyForSymbol,
   detectAbsorption,
+  detectIcebergLevels,
+  detectStopRuns,
   diffFootprintCells,
   emptyLargeTradeTracker,
+  SVP_WINDOW_SEC,
   type FootprintCell,
   type HeatmapCell,
   type LargeTradeTrackerState,
@@ -43,6 +50,9 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
   const bookPrimitiveRef = useRef<OrderBookPrimitive | null>(null);
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
   const gexLevelsPrimitiveRef = useRef<GexLevelsPrimitive | null>(null);
+  const svpPrimitiveRef = useRef<VolumeProfilePrimitive | null>(null);
+  const cvpPrimitiveRef = useRef<VolumeProfilePrimitive | null>(null);
+  const imbalancePrimitiveRef = useRef<ImbalanceBarPrimitive | null>(null);
   const currency = currencyForSymbol(symbol);
   const gexRef = useRef(gex);
   gexRef.current = gex;
@@ -58,11 +68,40 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
   const [absorptionMarkers, setAbsorptionMarkers] = useState<
     { time: UTCTimestamp; side: "buy" | "sell" }[]
   >([]);
+  const [trackerSnapshot, setTrackerSnapshot] = useState<LargeTradeTrackerState>(emptyLargeTradeTracker());
 
   const cvdSeries = useMemo(
     () => computeCvdSeries(footprint).map((pt) => ({ time: pt.time as UTCTimestamp, value: pt.value })),
     [footprint]
   );
+
+  // 대량체결 트래커의 이동중앙값 — Iceberg/Stop-run 노이즈플로어, 임밸런스 volBuyPct의 표본원으로 재사용.
+  const medianSize = useMemo(() => {
+    const sizes = trackerSnapshot.recentSizes;
+    return sizes.length > 0 ? [...sizes].sort((a, b) => a - b)[Math.floor(sizes.length / 2)] : 0;
+  }, [trackerSnapshot]);
+
+  const cvpProfile = useMemo(() => computeVolumeProfile(footprint), [footprint]);
+  const svpProfile = useMemo(() => {
+    const latestBucketTs = footprint.reduce((max, c) => Math.max(max, c.bucketTs), 0);
+    return computeVolumeProfile(footprint, latestBucketTs - SVP_WINDOW_SEC);
+  }, [footprint]);
+
+  const icebergLevels = useMemo(
+    () => detectIcebergLevels(cvpProfile, book, medianSize),
+    [cvpProfile, book, medianSize]
+  );
+
+  const stopRunMarkers = useMemo(
+    () =>
+      detectStopRuns(bars, footprint, medianSize).map((m) => ({
+        time: m.time as UTCTimestamp,
+        side: m.side,
+      })),
+    [bars, footprint, medianSize]
+  );
+
+  const imbalance = useMemo(() => computeImbalance(book, trackerSnapshot), [book, trackerSnapshot]);
 
   // 심볼 전환 시 이전 심볼의 롤링 중앙값/대형 트레이드 상태가 새 심볼에 섞이지 않도록 초기화.
   useEffect(() => {
@@ -70,6 +109,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     prevFootprintRef.current = [];
     largeLotPrimitiveRef.current?.updateData([], 0);
     setAbsorptionMarkers([]);
+    setTrackerSnapshot(emptyLargeTradeTracker());
   }, [symbol]);
 
   useEffect(() => {
@@ -123,17 +163,18 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     }
     largeTradeTrackerRef.current = tracker;
     prevFootprintRef.current = footprint;
-    const medianSize =
+    const localMedianSize =
       tracker.recentSizes.length > 0
         ? [...tracker.recentSizes].sort((a, b) => a - b)[Math.floor(tracker.recentSizes.length / 2)]
         : 0;
-    largeLotPrimitiveRef.current?.updateData(tracker.largeTrades, medianSize);
+    largeLotPrimitiveRef.current?.updateData(tracker.largeTrades, localMedianSize);
     setAbsorptionMarkers(
-      detectAbsorption(footprint, bars, medianSize).map((m) => ({
+      detectAbsorption(footprint, bars, localMedianSize).map((m) => ({
         time: m.time as UTCTimestamp,
         side: m.side,
       }))
     );
+    setTrackerSnapshot(tracker);
   }, [heatmap, footprint, book, bars]);
 
   useEffect(() => {
@@ -144,17 +185,36 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     }
   }, [currency, gex]);
 
+  useEffect(() => {
+    svpPrimitiveRef.current?.updateData(svpProfile);
+    cvpPrimitiveRef.current?.updateData(cvpProfile);
+  }, [svpProfile, cvpProfile]);
+
+  useEffect(() => {
+    bookPrimitiveRef.current?.updateIcebergLevels(icebergLevels);
+  }, [icebergLevels]);
+
+  useEffect(() => {
+    imbalancePrimitiveRef.current?.updateData(imbalance);
+  }, [imbalance]);
+
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     const hp = new HeatmapPrimitive();
     const fp = new FootprintPrimitive();
     const bp = new OrderBookPrimitive();
     const lp = new LargeLotPrimitive();
     const gp = new GexLevelsPrimitive();
+    const svp = new VolumeProfilePrimitive(0);
+    const cvp = new VolumeProfilePrimitive(1);
+    const ip = new ImbalanceBarPrimitive();
     series.attachPrimitive(hp);
     series.attachPrimitive(fp);
+    series.attachPrimitive(svp);
+    series.attachPrimitive(cvp);
     series.attachPrimitive(bp);
     series.attachPrimitive(lp);
     series.attachPrimitive(gp);
+    series.attachPrimitive(ip);
     hp.updateData(heatmapRef.current);
     fp.updateData(footprintRef.current);
     bp.updateData(bookRef.current);
@@ -164,6 +224,9 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     bookPrimitiveRef.current = bp;
     largeLotPrimitiveRef.current = lp;
     gexLevelsPrimitiveRef.current = gp;
+    svpPrimitiveRef.current = svp;
+    cvpPrimitiveRef.current = cvp;
+    imbalancePrimitiveRef.current = ip;
   }
 
   if (error) {
@@ -176,6 +239,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
         bars={bars}
         cvdSeries={cvdSeries}
         absorptionMarkers={absorptionMarkers}
+        stopRunMarkers={stopRunMarkers}
         onSeriesReady={handleSeriesReady}
         height={720}
       />
