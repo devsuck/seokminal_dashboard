@@ -20,6 +20,7 @@ import {
   computeVolumeProfile,
   computeImbalance,
   detectIcebergLevels,
+  detectStopRuns,
   type FootprintCell,
   type VolumeProfileLevel,
   type LargeTradeTrackerState,
@@ -551,5 +552,57 @@ describe("detectIcebergLevels", () => {
         { price: 105, side: "ask", ratio: 10 },
       ])
     );
+  });
+});
+
+describe("detectStopRuns", () => {
+  type Bar = { ts_event: number; high: number; low: number; open: number; close: number };
+
+  function makeBars(n: number): Bar[] {
+    const bars: Bar[] = [];
+    for (let i = 0; i < n; i++) {
+      bars.push({ ts_event: i * 60_000_000_000, high: 110, low: 90, open: 100, close: 100 });
+    }
+    return bars;
+  }
+
+  it("flags a sell stop-run: breakout above the 20-bar high with a close-back-below reversal", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, open: 108, close: 105 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 110, buyVol: 5, sellVol: 6 }]; // total 11 >= 10x median(1.0)
+    expect(detectStopRuns(bars, cells, 1.0)).toEqual([{ time: 1200, side: "sell" }]);
+  });
+
+  it("flags a buy stop-run: breakdown below the 20-bar low with a close-back-above reversal", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 100, low: 85, open: 92, close: 95 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 90, buyVol: 6, sellVol: 5 }]; // total 11
+    expect(detectStopRuns(bars, cells, 1.0)).toEqual([{ time: 1200, side: "buy" }]);
+  });
+
+  it("does not flag when volume at that bucket is below the noise floor", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, open: 108, close: 105 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 110, buyVol: 1, sellVol: 1 }]; // total 2 < 10x median(1.0)=10
+    expect(detectStopRuns(bars, cells, 1.0)).toEqual([]);
+  });
+
+  it("does not flag a breakout that closes beyond the level (no reversal)", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 108, open: 109, close: 113 }; // close stays above recentHigh(110)
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 110, buyVol: 5, sellVol: 6 }];
+    expect(detectStopRuns(bars, cells, 1.0)).toEqual([]);
+  });
+
+  it("fails closed (returns []) when rollingMedian is 0 (not warmed up)", () => {
+    const bars = makeBars(21);
+    bars[20] = { ts_event: 20 * 60_000_000_000, high: 115, low: 100, open: 108, close: 105 };
+    const cells: FootprintCell[] = [{ bucketTs: 1200, price: 110, buyVol: 5, sellVol: 6 }];
+    expect(detectStopRuns(bars, cells, 0)).toEqual([]);
+  });
+
+  it("fails closed (returns []) when there are not enough bars for the lookback window", () => {
+    const bars = makeBars(20);
+    expect(detectStopRuns(bars, [], 1.0)).toEqual([]);
   });
 });

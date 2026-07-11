@@ -406,3 +406,43 @@ export function detectIcebergLevels(
   checkSide(book.asks, "ask");
   return results;
 }
+
+const STOP_RUN_LOOKBACK_BARS = 20;
+const STOP_RUN_NOISE_FLOOR_MULTIPLIER = 10;
+
+/**
+ * 최근 20봉 고점/저점을 이탈했다가 거래량 스파이크와 함께 그 레벨 안쪽으로 되돌림 마감하는
+ * 캔들(stop-run)을 표시. rollingMedian<=0(워밍업 전) 또는 lookback 확보 전이면 fail closed.
+ */
+export function detectStopRuns(
+  bars: { ts_event: number; high: number; low: number; open: number; close: number }[],
+  cells: FootprintCell[],
+  rollingMedian: number
+): { time: number; side: "buy" | "sell" }[] {
+  if (rollingMedian <= 0 || bars.length <= STOP_RUN_LOOKBACK_BARS) return [];
+
+  const volByBucket = new Map<number, number>();
+  for (const c of cells) {
+    volByBucket.set(c.bucketTs, (volByBucket.get(c.bucketTs) ?? 0) + c.buyVol + c.sellVol);
+  }
+  const noiseFloor = rollingMedian * STOP_RUN_NOISE_FLOOR_MULTIPLIER;
+  const results: { time: number; side: "buy" | "sell" }[] = [];
+
+  for (let i = STOP_RUN_LOOKBACK_BARS; i < bars.length; i++) {
+    const bar = bars[i];
+    const bucketTs = Math.floor(bar.ts_event / 1e9);
+    const vol = volByBucket.get(bucketTs) ?? 0;
+    if (vol < noiseFloor) continue;
+
+    const window = bars.slice(i - STOP_RUN_LOOKBACK_BARS, i);
+    const recentHigh = Math.max(...window.map((b) => b.high));
+    const recentLow = Math.min(...window.map((b) => b.low));
+
+    if (bar.high > recentHigh && bar.close < recentHigh) {
+      results.push({ time: bucketTs, side: "sell" });
+    } else if (bar.low < recentLow && bar.close > recentLow) {
+      results.push({ time: bucketTs, side: "buy" });
+    }
+  }
+  return results;
+}
