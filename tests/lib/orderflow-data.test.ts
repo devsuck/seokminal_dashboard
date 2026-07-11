@@ -19,6 +19,7 @@ import {
   detectAbsorption,
   computeVolumeProfile,
   computeImbalance,
+  detectIcebergLevels,
   type FootprintCell,
   type VolumeProfileLevel,
   type LargeTradeTrackerState,
@@ -503,5 +504,52 @@ describe("computeImbalance", () => {
       venues: [],
     };
     expect(computeImbalance(book, emptyLargeTradeTracker())).toBeNull();
+  });
+});
+
+describe("detectIcebergLevels", () => {
+  it("flags a price whose cumulative traded volume far exceeds current resting size", () => {
+    const volumeProfile: VolumeProfileLevel[] = [{ price: 100, buyVol: 80, sellVol: 20 }]; // traded 100
+    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [] };
+    // rollingMedian=1.0 -> noiseFloor=20; traded 100 >= 20; ratio 100/10=10 >= 5x threshold
+    expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual([{ price: 100, side: "bid", ratio: 10 }]);
+  });
+
+  it("does not flag when traded volume at that price is below the noise floor", () => {
+    const volumeProfile: VolumeProfileLevel[] = [{ price: 101, buyVol: 5, sellVol: 5 }]; // traded 10
+    const book: OrderBookState = { bids: [], asks: [{ price: 101, size: 1 }], venues: [] };
+    // noiseFloor = 1.0 * 20 = 20; traded 10 < 20
+    expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual([]);
+  });
+
+  it("does not flag when the refill ratio is below the threshold", () => {
+    const volumeProfile: VolumeProfileLevel[] = [{ price: 100, buyVol: 30, sellVol: 0 }]; // traded 30
+    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [] };
+    // noiseFloor=20, traded 30>=20 passes floor, but ratio 30/10=3 < 5x threshold
+    expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual([]);
+  });
+
+  it("fails closed (returns []) when rollingMedian is 0 (not warmed up)", () => {
+    const volumeProfile: VolumeProfileLevel[] = [{ price: 100, buyVol: 80, sellVol: 20 }];
+    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [] };
+    expect(detectIcebergLevels(volumeProfile, book, 0)).toEqual([]);
+  });
+
+  it("checks both bid and ask sides independently", () => {
+    const volumeProfile: VolumeProfileLevel[] = [
+      { price: 100, buyVol: 80, sellVol: 20 }, // traded 100
+      { price: 105, buyVol: 10, sellVol: 90 }, // traded 100
+    ];
+    const book: OrderBookState = {
+      bids: [{ price: 100, size: 10 }],
+      asks: [{ price: 105, size: 10 }],
+      venues: [],
+    };
+    expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual(
+      expect.arrayContaining([
+        { price: 100, side: "bid", ratio: 10 },
+        { price: 105, side: "ask", ratio: 10 },
+      ])
+    );
   });
 });

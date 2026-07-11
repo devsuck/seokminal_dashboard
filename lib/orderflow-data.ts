@@ -371,3 +371,38 @@ export function computeVolumeProfile(cells: FootprintCell[], sinceTs?: number): 
   }
   return Array.from(byPrice.values());
 }
+
+const ICEBERG_REFILL_RATIO = 5;
+const ICEBERG_NOISE_FLOOR_MULTIPLIER = 20;
+
+export interface IcebergLevel {
+  price: number;
+  side: "bid" | "ask";
+  ratio: number;
+}
+
+/**
+ * 어떤 가격에서 누적 체결량(volumeProfile)이 현재 COB 잔량(book)보다 훨씬 많으면
+ * 반복 리필된 숨은 물량(iceberg)으로 추정한다. rollingMedian<=0(워밍업 전)이면 fail closed.
+ */
+export function detectIcebergLevels(
+  volumeProfile: VolumeProfileLevel[],
+  book: OrderBookState,
+  rollingMedian: number
+): IcebergLevel[] {
+  if (rollingMedian <= 0) return [];
+  const profileByPrice = new Map(volumeProfile.map((v) => [v.price, v.buyVol + v.sellVol]));
+  const noiseFloor = rollingMedian * ICEBERG_NOISE_FLOOR_MULTIPLIER;
+  const results: IcebergLevel[] = [];
+  const checkSide = (levels: BookLevel[], side: "bid" | "ask") => {
+    for (const lvl of levels) {
+      const traded = profileByPrice.get(lvl.price) ?? 0;
+      if (traded < noiseFloor || lvl.size <= 0) continue;
+      const ratio = traded / lvl.size;
+      if (ratio >= ICEBERG_REFILL_RATIO) results.push({ price: lvl.price, side, ratio });
+    }
+  };
+  checkSide(book.bids, "bid");
+  checkSide(book.asks, "ask");
+  return results;
+}
