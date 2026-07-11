@@ -18,8 +18,11 @@ import {
   computeCvdSeries,
   detectAbsorption,
   computeVolumeProfile,
+  computeImbalance,
   type FootprintCell,
   type VolumeProfileLevel,
+  type LargeTradeTrackerState,
+  type OrderBookState,
 } from "../../lib/orderflow-data";
 
 describe("applySnapshot", () => {
@@ -453,5 +456,52 @@ describe("computeVolumeProfile", () => {
 
   it("returns an empty array for no cells", () => {
     expect(computeVolumeProfile([])).toEqual([]);
+  });
+});
+
+describe("applyLargeTradeTracking recentSides", () => {
+  it("tracks side alongside size for each trade", () => {
+    let tracker = emptyLargeTradeTracker();
+    tracker = applyLargeTradeTracking(tracker, {
+      type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 2,
+    });
+    tracker = applyLargeTradeTracking(tracker, {
+      type: "footprint_delta", bucket_ts: 60, price: 100, side: "sell", delta_vol: 3,
+    });
+    expect(tracker.recentSides).toEqual([
+      { side: "buy", size: 2 },
+      { side: "sell", size: 3 },
+    ]);
+  });
+});
+
+describe("computeImbalance", () => {
+  function trackerWith(sides: { side: "buy" | "sell"; size: number }[]): LargeTradeTrackerState {
+    return { recentSizes: [], recentSides: sides, largeTrades: [] };
+  }
+
+  it("computes book bid% and recent-trade buy% ratios", () => {
+    const book: OrderBookState = {
+      bids: [{ price: 100, size: 6 }],
+      asks: [{ price: 101, size: 2 }],
+      venues: [],
+    };
+    const tracker = trackerWith([{ side: "buy", size: 3 }, { side: "sell", size: 1 }]);
+    expect(computeImbalance(book, tracker)).toEqual({ bookBidPct: 0.75, volBuyPct: 0.75 });
+  });
+
+  it("returns null when the book has no resting size on either side", () => {
+    const book: OrderBookState = { bids: [], asks: [], venues: [] };
+    const tracker = trackerWith([{ side: "buy", size: 3 }]);
+    expect(computeImbalance(book, tracker)).toBeNull();
+  });
+
+  it("returns null when there are no recent trades", () => {
+    const book: OrderBookState = {
+      bids: [{ price: 100, size: 6 }],
+      asks: [{ price: 101, size: 2 }],
+      venues: [],
+    };
+    expect(computeImbalance(book, emptyLargeTradeTracker())).toBeNull();
   });
 });

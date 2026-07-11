@@ -225,6 +225,7 @@ export interface LargeTrade {
 
 export interface LargeTradeTrackerState {
   recentSizes: number[];
+  recentSides: { side: "buy" | "sell"; size: number }[];
   largeTrades: LargeTrade[];
 }
 
@@ -234,7 +235,7 @@ const LARGE_TRADE_PERCENTILE = 0.95;
 const MAX_LARGE_TRADES = 50;
 
 export function emptyLargeTradeTracker(): LargeTradeTrackerState {
-  return { recentSizes: [], largeTrades: [] };
+  return { recentSizes: [], recentSides: [], largeTrades: [] };
 }
 
 function percentile(sortedAsc: number[], p: number): number {
@@ -269,8 +270,22 @@ export function applyLargeTradeTracking(
   }
 
   const recentSizes = [...tracker.recentSizes, msg.delta_vol].slice(-ROLLING_WINDOW);
+  const recentSides = [...tracker.recentSides, { side: msg.side, size: msg.delta_vol }].slice(-ROLLING_WINDOW);
 
-  return { recentSizes, largeTrades };
+  return { recentSizes, recentSides, largeTrades };
+}
+
+/** 현재 COB 매수/매도 잔량 비율(book) + 최근 체결 매수/매도 비율(volume) — 임밸런스 바용. */
+export function computeImbalance(
+  book: OrderBookState,
+  tracker: LargeTradeTrackerState
+): { bookBidPct: number; volBuyPct: number } | null {
+  const bidSum = book.bids.reduce((s, l) => s + l.size, 0);
+  const askSum = book.asks.reduce((s, l) => s + l.size, 0);
+  const buyVol = tracker.recentSides.filter((t) => t.side === "buy").reduce((s, t) => s + t.size, 0);
+  const sellVol = tracker.recentSides.filter((t) => t.side === "sell").reduce((s, t) => s + t.size, 0);
+  if (bidSum + askSum <= 0 || buyVol + sellVol <= 0) return null;
+  return { bookBidPct: bidSum / (bidSum + askSum), volBuyPct: buyVol / (buyVol + sellVol) };
 }
 
 /** 버킷(캔들)별 (매수량-매도량) 순델타를 시간순 누적합으로 변환 — CVD 서브페인용. */
