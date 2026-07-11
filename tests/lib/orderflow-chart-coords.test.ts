@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { heatmapCellRect, footprintColumnX, footprintCellRect, bookBarLayout } from "../../lib/orderflow-chart-coords";
+import { heatmapCellRect, footprintColumnX, footprintCellRect, bookBarLayout, stackedInsetColumns } from "../../lib/orderflow-chart-coords";
 
 describe("heatmapCellRect", () => {
   // candleIntervalSec=60, barSpacing=20px → 캔들 하나 폭 20px, 셀은 항상 캔들 폭 전체를 채움
@@ -93,5 +93,24 @@ describe("bookBarLayout", () => {
   it("clamps widthFrac to 1 when size exceeds maxVisibleSize", () => {
     const over = bookBarLayout(0, 10, 999, 480, "ask", 20);
     expect(over!.widthFrac).toBe(1);
+  });
+});
+
+describe("stackedInsetColumns", () => {
+  it("lays out columns left-to-right, the last column flush with the right edge of the chart", () => {
+    const cols = stackedInsetColumns(500, [50, 50, 90]);
+    expect(cols).toEqual([
+      { left: 310, right: 360 },
+      { left: 360, right: 410 },
+      { left: 410, right: 500 },
+    ]);
+  });
+
+  it("handles a single column", () => {
+    expect(stackedInsetColumns(200, [90])).toEqual([{ left: 110, right: 200 }]);
+  });
+
+  it("handles an empty widths array", () => {
+    expect(stackedInsetColumns(200, [])).toEqual([]);
   });
 });

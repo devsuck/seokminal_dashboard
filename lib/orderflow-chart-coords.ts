@@ -101,3 +101,22 @@ export function bookBarLayout(
       : 1 - ((index + 1) * rowHeight) / chartHeight;
   return { widthFrac, yFrac };
 }
+
+// 우측 인셋 컬럼 스택 폭. OrderBookPrimitive의 기존 인셋 폭(90px)을 COB 컬럼 폭으로 유지한다.
+export const SVP_COLUMN_WIDTH_PX = 50;
+export const CVP_COLUMN_WIDTH_PX = 50;
+export const COB_COLUMN_WIDTH_PX = 90;
+
+/**
+ * 우측 인셋 컬럼 스택(SVP/CVP/COB 등)의 좌우 x좌표를 계산한다. widths는 왼쪽→오른쪽 순서,
+ * 마지막 컬럼의 오른쪽 끝이 차트 우측(플롯 영역 끝, native price axis 직전)에 붙는다.
+ */
+export function stackedInsetColumns(chartWidth: number, widths: number[]): { left: number; right: number }[] {
+  const totalWidth = widths.reduce((s, w) => s + w, 0);
+  let left = chartWidth - totalWidth;
+  return widths.map((w) => {
+    const col = { left, right: left + w };
+    left += w;
+    return col;
+  });
+}
