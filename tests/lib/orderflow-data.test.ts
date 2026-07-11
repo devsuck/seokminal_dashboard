@@ -17,7 +17,9 @@ import {
   emptyLargeTradeTracker,
   computeCvdSeries,
   detectAbsorption,
+  computeVolumeProfile,
   type FootprintCell,
+  type VolumeProfileLevel,
 } from "../../lib/orderflow-data";
 
 describe("applySnapshot", () => {
@@ -420,5 +422,36 @@ describe("detectAbsorption", () => {
       { bucketTs: 0, price: 100, buyVol: 1, sellVol: 20 },
     ];
     expect(detectAbsorption(cells, bars, 0)).toEqual([]);
+  });
+});
+
+describe("computeVolumeProfile", () => {
+  it("sums buyVol/sellVol per price across all cells with no filter", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 3, sellVol: 1 },
+      { bucketTs: 60, price: 100, buyVol: 2, sellVol: 0 },
+      { bucketTs: 60, price: 101, buyVol: 0, sellVol: 5 },
+    ];
+    const result = computeVolumeProfile(cells);
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { price: 100, buyVol: 5, sellVol: 1 },
+        { price: 101, buyVol: 0, sellVol: 5 },
+      ])
+    );
+  });
+
+  it("filters cells before sinceTs when given", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 3, sellVol: 1 },
+      { bucketTs: 60, price: 100, buyVol: 2, sellVol: 0 },
+    ];
+    const result: VolumeProfileLevel[] = computeVolumeProfile(cells, 60);
+    expect(result).toEqual([{ price: 100, buyVol: 2, sellVol: 0 }]);
+  });
+
+  it("returns an empty array for no cells", () => {
+    expect(computeVolumeProfile([])).toEqual([]);
   });
 });

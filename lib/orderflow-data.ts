@@ -335,3 +335,24 @@ export function detectAbsorption(
 
   return results;
 }
+
+export const SVP_WINDOW_SEC = 1800;
+
+export interface VolumeProfileLevel {
+  price: number;
+  buyVol: number;
+  sellVol: number;
+}
+
+/** 가격대별 누적 매수/매도 체결량. sinceTs 없으면 보유 중인 footprint 전체(CVP), 있으면 그 이후만(SVP). */
+export function computeVolumeProfile(cells: FootprintCell[], sinceTs?: number): VolumeProfileLevel[] {
+  const filtered = sinceTs === undefined ? cells : cells.filter((c) => c.bucketTs >= sinceTs);
+  const byPrice = new Map<number, VolumeProfileLevel>();
+  for (const c of filtered) {
+    const existing = byPrice.get(c.price) ?? { price: c.price, buyVol: 0, sellVol: 0 };
+    existing.buyVol += c.buyVol;
+    existing.sellVol += c.sellVol;
+    byPrice.set(c.price, existing);
+  }
+  return Array.from(byPrice.values());
+}
