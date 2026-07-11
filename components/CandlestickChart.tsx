@@ -32,6 +32,8 @@ interface CandlestickChartProps {
   cvdSeries?: { time: UTCTimestamp; value: number }[];
   /** 흡수(absorption) 캔들 — 우세 물량이 가격을 못 밀어낸 지점. 오더플로우 심볼에서만 전달됨. */
   absorptionMarkers?: { time: UTCTimestamp; side: "buy" | "sell" }[];
+  /** 스탑런(stop-run) 캔들 — 최근 고점/저점 이탈 후 반전 마감. 오더플로우 심볼에서만 전달됨. */
+  stopRunMarkers?: { time: UTCTimestamp; side: "buy" | "sell" }[];
   /** 차트/캔들시리즈 생성 직후 호출 — 외부에서 series primitive를 attach하려는 소비자용.
       bars 등이 바뀌어 차트가 통째로 재생성될 때마다 다시 호출된다. */
   onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
@@ -149,7 +151,7 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, onSeriesReady, height = 480 }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, stopRunMarkers, onSeriesReady, height = 480 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -256,7 +258,15 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       text: "흡수",
     }));
 
-    const allMarkers = [...tradeMarkers, ...absorptionMarkerList].sort(
+    const stopRunMarkerList: SeriesMarker<UTCTimestamp>[] = (stopRunMarkers ?? []).map((m) => ({
+      time: m.time,
+      position: m.side === "buy" ? "belowBar" : "aboveBar",
+      color: "#FF9F0A",
+      shape: "square",
+      text: "스탑런",
+    }));
+
+    const allMarkers = [...tradeMarkers, ...absorptionMarkerList, ...stopRunMarkerList].sort(
       (a, b) => (a.time as number) - (b.time as number)
     );
     if (allMarkers.length > 0) {
@@ -402,7 +412,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries, absorptionMarkers]);
+  }, [bars, trades, emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specsKey, cvdSeries, absorptionMarkers, stopRunMarkers]);
 
   return <div ref={containerRef} className="w-full rounded-b-lg" />;
 }
