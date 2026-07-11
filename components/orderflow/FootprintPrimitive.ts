@@ -16,6 +16,7 @@ class FootprintPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: FootprintPrimitive) {}
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
+    if (!this.primitive.visible) return;
     target.useMediaCoordinateSpace(({ context: ctx }) => {
       const { cells, chart, series } = this.primitive;
       if (cells.length === 0) return;
@@ -78,6 +79,7 @@ class FootprintPaneView implements IPrimitivePaneView {
 
 export class FootprintPrimitive implements ISeriesPrimitive<Time> {
   cells: FootprintCell[] = [];
+  visible = true;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];
   private requestUpdate: (() => void) | null = null;
@@ -95,6 +97,11 @@ export class FootprintPrimitive implements ISeriesPrimitive<Time> {
 
   updateData(cells: FootprintCell[]): void {
     this.cells = cells;
+    this.requestUpdate?.();
+  }
+
+  setVisible(visible: boolean): void {
+    this.visible = visible;
     this.requestUpdate?.();
   }
 

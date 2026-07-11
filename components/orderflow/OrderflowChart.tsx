@@ -11,6 +11,8 @@ import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
 import { VolumeProfilePrimitive } from "@/components/orderflow/VolumeProfilePrimitive";
 import { ImbalanceBarPrimitive } from "@/components/orderflow/ImbalanceBarPrimitive";
 import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
+import { OrderflowLegend, DEFAULT_LAYERS, type LayerKey } from "@/components/orderflow/OrderflowLegend";
+import { OrderflowSignalPanel } from "@/components/orderflow/OrderflowSignalPanel";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
@@ -23,6 +25,7 @@ import {
   detectStopRuns,
   diffFootprintCells,
   emptyLargeTradeTracker,
+  MIN_WARMUP_SAMPLES,
   SVP_WINDOW_SEC,
   type FootprintCell,
   type HeatmapCell,
@@ -32,6 +35,17 @@ import {
 import type { BarOut, GexSnapshot } from "@/lib/api";
 
 const REFRESH_INTERVAL_MS = 30_000;
+const LAYERS_STORAGE_KEY = "orderflow-layers";
+
+function loadStoredLayers(): Record<LayerKey, boolean> {
+  if (typeof window === "undefined") return DEFAULT_LAYERS;
+  try {
+    const raw = window.localStorage.getItem(LAYERS_STORAGE_KEY);
+    return raw ? { ...DEFAULT_LAYERS, ...JSON.parse(raw) } : DEFAULT_LAYERS;
+  } catch {
+    return DEFAULT_LAYERS;
+  }
+}
 
 interface OrderflowChartProps {
   symbol: string;
@@ -69,6 +83,9 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     { time: UTCTimestamp; side: "buy" | "sell" }[]
   >([]);
   const [trackerSnapshot, setTrackerSnapshot] = useState<LargeTradeTrackerState>(emptyLargeTradeTracker());
+  const [layers, setLayers] = useState<Record<LayerKey, boolean>>(loadStoredLayers);
+  const layersRef = useRef(layers);
+  layersRef.current = layers;
 
   const cvdSeries = useMemo(
     () => computeCvdSeries(footprint).map((pt) => ({ time: pt.time as UTCTimestamp, value: pt.value })),
@@ -198,6 +215,26 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     imbalancePrimitiveRef.current?.updateData(imbalance);
   }, [imbalance]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LAYERS_STORAGE_KEY, JSON.stringify(layers));
+    } catch {
+      // localStorage 불가 환경(프라이빗 모드 등)에서는 세션 내 상태만 유지.
+    }
+    heatmapPrimitiveRef.current?.setVisible(layers.heatmap);
+    footprintPrimitiveRef.current?.setVisible(layers.footprint);
+    svpPrimitiveRef.current?.setVisible(layers.svp);
+    cvpPrimitiveRef.current?.setVisible(layers.cvp);
+    bookPrimitiveRef.current?.setVisible(layers.book);
+    largeLotPrimitiveRef.current?.setVisible(layers.bubbles);
+    gexLevelsPrimitiveRef.current?.setVisible(layers.gex);
+    imbalancePrimitiveRef.current?.setVisible(layers.imbalance);
+  }, [layers]);
+
+  function toggleLayer(key: LayerKey) {
+    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     const hp = new HeatmapPrimitive();
     const fp = new FootprintPrimitive();
@@ -219,6 +256,15 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     fp.updateData(footprintRef.current);
     bp.updateData(bookRef.current);
     gp.updateData(currency && gexRef.current ? gexRef.current.levels : []);
+    const initialLayers = layersRef.current;
+    hp.setVisible(initialLayers.heatmap);
+    fp.setVisible(initialLayers.footprint);
+    svp.setVisible(initialLayers.svp);
+    cvp.setVisible(initialLayers.cvp);
+    bp.setVisible(initialLayers.book);
+    lp.setVisible(initialLayers.bubbles);
+    gp.setVisible(initialLayers.gex);
+    ip.setVisible(initialLayers.imbalance);
     heatmapPrimitiveRef.current = hp;
     footprintPrimitiveRef.current = fp;
     bookPrimitiveRef.current = bp;
@@ -235,14 +281,30 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
 
   return (
     <div className="border border-border bg-panel">
-      <CandlestickChart
-        bars={bars}
-        cvdSeries={cvdSeries}
-        absorptionMarkers={absorptionMarkers}
-        stopRunMarkers={stopRunMarkers}
-        onSeriesReady={handleSeriesReady}
-        height={720}
-      />
+      <OrderflowLegend layers={layers} onToggle={toggleLayer} />
+      <div className="flex">
+        <div className="flex-1 min-w-0">
+          <CandlestickChart
+            bars={bars}
+            cvdSeries={cvdSeries}
+            absorptionMarkers={absorptionMarkers}
+            stopRunMarkers={stopRunMarkers}
+            onSeriesReady={handleSeriesReady}
+            height={720}
+          />
+        </div>
+        <div className="w-72 shrink-0 border-l border-border h-[720px] overflow-y-auto">
+          <OrderflowSignalPanel
+            imbalance={imbalance}
+            icebergLevels={icebergLevels}
+            cvdSeries={cvdSeries}
+            largeTrades={trackerSnapshot.largeTrades}
+            absorptionMarkers={absorptionMarkers}
+            stopRunMarkers={stopRunMarkers}
+            warmedUp={trackerSnapshot.recentSizes.length >= MIN_WARMUP_SAMPLES}
+          />
+        </div>
+      </div>
       {currency && (
         <div className="border-t border-border">
           <OptionsFlowPanel currency={currency} gex={gex} />

@@ -230,7 +230,7 @@ export interface LargeTradeTrackerState {
 }
 
 const ROLLING_WINDOW = 200;
-const MIN_WARMUP_SAMPLES = 20;
+export const MIN_WARMUP_SAMPLES = 20;
 const LARGE_TRADE_PERCENTILE = 0.95;
 const MAX_LARGE_TRADES = 50;
 

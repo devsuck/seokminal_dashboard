@@ -14,6 +14,7 @@ class GexLevelsPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: GexLevelsPrimitive) {}
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
+    if (!this.primitive.visible) return;
     target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
       const { levels, series } = this.primitive;
       if (levels.length === 0) return;
@@ -61,6 +62,7 @@ class GexLevelsPaneView implements IPrimitivePaneView {
 
 export class GexLevelsPrimitive implements ISeriesPrimitive<Time> {
   levels: GexLevel[] = [];
+  visible = true;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];
   private requestUpdate: (() => void) | null = null;
@@ -78,6 +80,11 @@ export class GexLevelsPrimitive implements ISeriesPrimitive<Time> {
 
   updateData(levels: GexLevel[]): void {
     this.levels = levels;
+    this.requestUpdate?.();
+  }
+
+  setVisible(visible: boolean): void {
+    this.visible = visible;
     this.requestUpdate?.();
   }
 

@@ -24,6 +24,7 @@ class OrderBookPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: OrderBookPrimitive) {}
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
+    if (!this.primitive.visible) return;
     target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
       const { book, icebergLevels } = this.primitive;
       if (book.bids.length === 0 && book.asks.length === 0) return;
@@ -99,6 +100,7 @@ class OrderBookPaneView implements IPrimitivePaneView {
 
 export class OrderBookPrimitive implements ISeriesPrimitive<Time> {
   book: OrderBookState = { bids: [], asks: [], venues: [] };
+  visible = true;
   icebergLevels: IcebergLevel[] = [];
   readonly levels = 20;
   chart!: SeriesAttachedParameter<Time>["chart"];
@@ -123,6 +125,11 @@ export class OrderBookPrimitive implements ISeriesPrimitive<Time> {
 
   updateIcebergLevels(icebergLevels: IcebergLevel[]): void {
     this.icebergLevels = icebergLevels;
+    this.requestUpdate?.();
+  }
+
+  setVisible(visible: boolean): void {
+    this.visible = visible;
     this.requestUpdate?.();
   }
 

@@ -22,6 +22,7 @@ class LargeLotPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: LargeLotPrimitive) {}
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
+    if (!this.primitive.visible) return;
     target.useMediaCoordinateSpace(({ context: ctx }) => {
       const { trades, medianSize, chart, series } = this.primitive;
       if (trades.length === 0) return;
@@ -62,6 +63,7 @@ class LargeLotPaneView implements IPrimitivePaneView {
 export class LargeLotPrimitive implements ISeriesPrimitive<Time> {
   trades: LargeTrade[] = [];
   medianSize = 0;
+  visible = true;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];
   private requestUpdate: (() => void) | null = null;
@@ -80,6 +82,11 @@ export class LargeLotPrimitive implements ISeriesPrimitive<Time> {
   updateData(trades: LargeTrade[], medianSize: number): void {
     this.trades = trades;
     this.medianSize = medianSize;
+    this.requestUpdate?.();
+  }
+
+  setVisible(visible: boolean): void {
+    this.visible = visible;
     this.requestUpdate?.();
   }
 

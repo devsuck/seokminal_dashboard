@@ -16,6 +16,7 @@ class HeatmapPaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: HeatmapPrimitive) {}
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
+    if (!this.primitive.visible) return;
     target.useMediaCoordinateSpace(({ context: ctx }) => {
       const { cells, chart, series } = this.primitive;
       if (cells.length === 0) return;
@@ -50,6 +51,7 @@ class HeatmapPaneView implements IPrimitivePaneView {
 
 export class HeatmapPrimitive implements ISeriesPrimitive<Time> {
   cells: HeatmapCell[] = [];
+  visible = true;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];
   private requestUpdate: (() => void) | null = null;
@@ -67,6 +69,11 @@ export class HeatmapPrimitive implements ISeriesPrimitive<Time> {
 
   updateData(cells: HeatmapCell[]): void {
     this.cells = cells;
+    this.requestUpdate?.();
+  }
+
+  setVisible(visible: boolean): void {
+    this.visible = visible;
     this.requestUpdate?.();
   }
 

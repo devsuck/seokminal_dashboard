@@ -16,12 +16,19 @@ class VolumeProfilePaneRenderer implements IPrimitivePaneRenderer {
   constructor(private primitive: VolumeProfilePrimitive) {}
 
   draw(target: Parameters<IPrimitivePaneRenderer["draw"]>[0]): void {
+    if (!this.primitive.visible) return;
     target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
       const { levels, series, columnIndex } = this.primitive;
       if (levels.length === 0) return;
 
       const col = stackedInsetColumns(mediaSize.width, COLUMN_WIDTHS)[columnIndex];
       const columnWidth = col.right - col.left;
+
+      ctx.font = "9px ui-monospace, monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillText(columnIndex === 0 ? "SVP·30분" : "CVP·전체", col.left + 3, 3);
 
       const sortedPrices = Array.from(new Set(levels.map((l) => l.price))).sort((a, b) => b - a);
       if (sortedPrices.length === 0) return;
@@ -92,6 +99,7 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
 
 export class VolumeProfilePrimitive implements ISeriesPrimitive<Time> {
   levels: VolumeProfileLevel[] = [];
+  visible = true;
   chart!: SeriesAttachedParameter<Time>["chart"];
   series!: SeriesAttachedParameter<Time>["series"];
   readonly columnIndex: 0 | 1;
@@ -114,6 +122,11 @@ export class VolumeProfilePrimitive implements ISeriesPrimitive<Time> {
 
   updateData(levels: VolumeProfileLevel[]): void {
     this.levels = levels;
+    this.requestUpdate?.();
+  }
+
+  setVisible(visible: boolean): void {
+    this.visible = visible;
     this.requestUpdate?.();
   }
 
