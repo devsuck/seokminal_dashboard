@@ -1,3 +1,36 @@
+## Phase 163 — Orderflow Cockpit v2: Bookmap 기능 5종 (2026-07-12) ✅ SHIPPED
+
+"저 bookmap이라는 사이트의 기능을 다 쓰고싶어서" 요청으로 브레인스토밍→플랜→SDD 10-task 파이프라인 전체 실행(implementer haiku, task reviewer sonnet, 통합 task 10은 sonnet, 최종 브랜치 리뷰 opus). `/orderflow` 페이지에 Bookmap 대비 5개 기능 추가:
+
+- **Volume Profile (SVP+CVP)** — `computeVolumeProfile()`, 3컬럼 인셋 좌측 2칸(SVP=30분 롤링, CVP=전체)
+- **Iceberg/refill 감지** — `detectIcebergLevels()`(CVP÷book 비율≥5, noise floor 20×median), COB 인셋에 warn색 테두리 하이라이트
+- **Stop-run 감지** — `detectStopRuns()`(20봉 돌파+반전, 10×median 거래량 게이트), 캔들차트에 "스탑런" 마커
+- **Book%/Volume% 임밸런스 바** — `computeImbalance()`, 차트 좌상단 고정 오버레이 2줄 바
+- **COB 숫자 래더** — 행 높이 9px 이상일 때 수량 텍스트 표시, 3컬럼 레이아웃(SVP/CVP/COB)을 `stackedInsetColumns()`로 통일
+
+### 파일
+- `lib/orderflow-data.ts` — 4개 pure function 추가 (Task 1-4)
+- `lib/orderflow-chart-coords.ts` — `stackedInsetColumns()` (Task 5)
+- `components/orderflow/VolumeProfilePrimitive.ts` (신규, Task 6)
+- `components/orderflow/OrderBookPrimitive.ts` (3컬럼+iceberg+래더로 전면 교체, Task 7)
+- `components/orderflow/ImbalanceBarPrimitive.ts` (신규, Task 8)
+- `components/CandlestickChart.tsx` — `stopRunMarkers` prop 추가 (Task 9)
+- `components/orderflow/OrderflowChart.tsx` — 전체 wiring (Task 10)
+
+### 버그 1건 (Task 6 fix round)
+플랜 브리프 코드 자체에 있던 버그: 단일 가격레벨일 때 이웃탐색이 `sortedPrices[-1]`(undefined)로 빠져 NaN 좌표 생성 → 캔버스가 조용히 그리기를 건너뜀(크래시 없음). 고정 20px 높이의 단일레벨 분기 추가로 수정, 재검토 통과.
+
+### 검증
+- `npx tsc --noEmit` 클린, `npm test` 236/236 통과 (전 태스크 공통)
+- 최종 브랜치 리뷰(opus): cross-task 데이터플로우(ts_event 나노초→초 단위 정합), 3컬럼 상수 동일성(SVP/CVP/OrderBookPrimitive 3파일), z-order 충돌 없음, 심볼전환 시 fail-closed 안전성(rollingMedian≤0 가드) 모두 재검증 완료. Critical/Important 0건, Minor 3건(전부 비차단, 기존에 이미 알려진 항목).
+- 브라우저 스팟체크는 이번 세션에서 미실시(직전 세션의 브라우저 확장 미연결과 동일 상황) — `/orderflow` BTC.HL에서 SVP/CVP 컬럼이 COB 좌측에 정상 배치되는지, 확대 시 COB 숫자 래더가 표시되는지 수동 확인 권장.
+
+### 다음 할 일
+- 사용자 브라우저 수동 스팟체크 (위 항목)
+- main에 이미 직접 커밋됨 (base 7ca137c..5e0b334, 12 commits) — 별도 머지 불필요
+
+---
+
 ## Phase 162 — uvicorn reload 행(hang) 근본원인 수정 + liquidity pool 벤뉴 뱃지 UI (2026-07-11) ✅ DONE
 
 로컬 IB TWS 켜서 ES/GC/NQ 라이브 검증(별도 항목, `seokminal-multi-venue/docs/progress.md` 참고) 후 "더 업그레이드할 거 없나" 질의에 대한 후속 2건. SDD 없이 직접 진행(`feedback_no_process_theater` 컨벤션).
