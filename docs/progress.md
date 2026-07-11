@@ -1,3 +1,18 @@
+## Phase 164 — Orderflow UX 강화: 범례/토글 + 시그널 패널 (2026-07-12) ✅ SHIPPED
+
+"뭐가 뭔지 모르겠어, 실시간 매매에 활용" 요청. 캔버스 8겹 오버레이에 라벨/설명 전무했던 문제 해결. 경량 직접 구현(SDD 미사용).
+
+### 추가된 것
+- **레이어 범례바** (`components/orderflow/OrderflowLegend.tsx` 신규): 8개 오버레이 칩(히트맵/풋프린트/SVP/CVP/호가래더/대량체결/GEX/임밸런스) — 색 견본 + hover 설명 + 클릭 토글, 흡수/스탑런 마커 설명 칩. 토글 상태 localStorage(`orderflow-layers`) 유지.
+- **시그널 패널** (`components/orderflow/OrderflowSignalPanel.tsx` 신규, 차트 우측 w-72): 종합 편향(호가+체결+CVD 3신호 중 2개 합의 시 매수/매도 우위), 임밸런스 게이지 2종(호가 잔량/최근 체결 매수%), CVD 값+10봉 기울기, 아이스버그 의심 레벨 목록(매수벽/매도벽+비율), 이벤트 피드(흡수·스탑런·대량체결 시간순 14건), 접이식 활용 가이드.
+- **캔버스 라벨**: SVP·30분/CVP·전체 컬럼 헤더 텍스트, 임밸런스 바에 "호가/체결 매수 N%" 텍스트.
+- **전 primitive `setVisible()`**: 7개 primitive에 visible 플래그 + draw 가드 (renderer 최상단 early return).
+
+### 검증
+- tsc 클린, 236/236 테스트 통과, 브라우저 라이브 확인(범례/패널/라벨 렌더, 히트맵 토글 on/off 동작, 피드 실시간 갱신, 아이스버그 감지 표시, 콘솔 에러 없음). 커밋 14bbf12.
+
+---
+
 ## Phase 163 — Orderflow Cockpit v2: Bookmap 기능 5종 (2026-07-12) ✅ SHIPPED
 
 "저 bookmap이라는 사이트의 기능을 다 쓰고싶어서" 요청으로 브레인스토밍→플랜→SDD 10-task 파이프라인 전체 실행(implementer haiku, task reviewer sonnet, 통합 task 10은 sonnet, 최종 브랜치 리뷰 opus). `/orderflow` 페이지에 Bookmap 대비 5개 기능 추가:
