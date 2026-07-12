@@ -23,8 +23,19 @@
 - 브라우저 라이브 확인: 정상 렌더/갱신, 콘솔 에러 없음(기존부터 있던 무관한 hydration 경고 1건 재확인 — `OrderflowLegend.tsx` className 서버/클라 불일치, 이번 작업과 무관, 미수정 상태로 남음).
 
 ### 다음 할 일
-- NQ(나스닥 선물) 오더플로우 페이지 연동 — 다음 세션 착수 예정. 현재 라이브 L2 뎁스 파이프라인은 Hyperliquid 전용, 기존 IB 연동은 historical bars만 지원(라이브 뎁스 어댑터 없음) → 신규 IB 라이브 뎁스 어댑터 설계 필요.
 - `OrderflowLegend.tsx` hydration 경고(className 서버/클라 불일치) — 미수정, 별도 처리 필요.
+
+---
+
+## Phase 168 — NQ 오더플로우 점검 + client_id 충돌 수정 (2026-07-12) ✅ DONE
+
+유저 요청 "nq 붙여줘". 조사 결과 **이미 다 구현되어 있었음** — 위 Phase 167에 적었던 "신규 IB 라이브 뎁스 어댑터 필요"는 틀린 판단(정정). `orderflow/ib_adapter.py::IBOrderflowClient`가 `reqMktDepth`+`reqTickByTickData`로 이미 구현돼 있고, 프론트 `InstrumentSelect.tsx`에도 "NQ" 이미 등록, `manager.py`가 `.HL` 아닌 심볼을 자동으로 IB로 라우팅. 기존 테스트도 통과 상태였음.
+
+유일하게 실제로 발견한 문제: `IBOrderflowClient` 기본 `client_id=1`이 `live_engine/ib_broker.py`의 데이터클라 client_id=1과 충돌 — 라이브 봇 구동 중 오더플로우 스트림(NQ 등) 동시 오픈 시 같은 IB Gateway에서 접속 거부/킥 위험. 기본값 20으로 변경, `IB_ORDERFLOW_CLIENT_ID` env override 추가. 커밋 `fd1c755`. 테스트 20/20 통과.
+
+### 다음 할 일
+- IB Gateway/TWS 실접속 라이브 테스트 미실시(코드만 정적 검증) — Gateway 켜고 CME 뎁스 권한 있는 계정으로 `/orderflow`에서 NQ 선택해 실데이터 흐르는지 확인 필요.
+- 프론트에서 NQ+ES 등 non-.HL 심볼 2개 이상 동시에 띄우면 여전히 같은 client_id(20)로 충돌 — 현재 프론트 datalist엔 NQ만 노출돼 있어 당장 리스크 낮음, 필요해지면 워커별 client_id 할당 로직 추가.
 
 ---
 
