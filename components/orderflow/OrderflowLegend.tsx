@@ -12,7 +12,8 @@ export type LayerKey =
   | "vwap"
   | "valueArea"
   | "sessionLevels"
-  | "deltaHist";
+  | "deltaHist"
+  | "liqHeatmap";
 
 export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   heatmap: true,
@@ -27,6 +28,7 @@ export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   valueArea: true,
   sessionLevels: true,
   deltaHist: true,
+  liqHeatmap: true,
 };
 
 interface LayerDef {
@@ -109,6 +111,13 @@ const LAYER_DEFS: LayerDef[] = [
     label: "델타",
     swatchClass: "bg-gradient-to-r from-pos/70 to-neg/70",
     description: "캔들별 순델타(매수-매도) 히스토그램 서브페인 — CVD의 비누적 버전",
+  },
+  {
+    key: "liqHeatmap",
+    label: "청산(추정)",
+    swatchClass: "bg-gradient-to-r from-neg/50 to-pos/50",
+    description:
+      "OI+funding 기반 청산가 클러스터 추정 — 레버리지 3/5/10/20/50x 점선. 실제 청산 데이터 아님(근사치)",
   },
 ];
 

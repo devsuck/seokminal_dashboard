@@ -8,9 +8,11 @@ import { FootprintPrimitive } from "@/components/orderflow/FootprintPrimitive";
 import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
 import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
+import { LiquidationLevelsPrimitive } from "@/components/orderflow/LiquidationLevelsPrimitive";
 import { VolumeProfilePrimitive } from "@/components/orderflow/VolumeProfilePrimitive";
 import { ImbalanceBarPrimitive } from "@/components/orderflow/ImbalanceBarPrimitive";
 import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
+import { FundingPanel } from "@/components/orderflow/FundingPanel";
 import { OrderflowLegend, DEFAULT_LAYERS, type LayerKey } from "@/components/orderflow/OrderflowLegend";
 import { OrderflowSignalPanel } from "@/components/orderflow/OrderflowSignalPanel";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
@@ -30,6 +32,8 @@ import {
   detectStopRuns,
   diffFootprintCells,
   emptyLargeTradeTracker,
+  estimateLiquidationLevels,
+  hlCoinForSymbol,
   MIN_WARMUP_SAMPLES,
   SVP_WINDOW_SEC,
   type FootprintCell,
@@ -37,7 +41,7 @@ import {
   type LargeTradeTrackerState,
   type OrderBookState,
 } from "@/lib/orderflow-data";
-import type { BarOut, GexSnapshot } from "@/lib/api";
+import type { BarOut, FundingSnapshot, GexSnapshot } from "@/lib/api";
 
 const REFRESH_INTERVAL_MS = 30_000;
 const LAYERS_STORAGE_KEY = "orderflow-layers";
@@ -58,9 +62,10 @@ interface OrderflowChartProps {
   heatmap: HeatmapCell[];
   book: OrderBookState;
   gex: GexSnapshot | null;
+  funding: FundingSnapshot | null;
 }
 
-export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: OrderflowChartProps) {
+export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding }: OrderflowChartProps) {
   const [bars, setBars] = useState<BarOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -69,12 +74,14 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
   const bookPrimitiveRef = useRef<OrderBookPrimitive | null>(null);
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
   const gexLevelsPrimitiveRef = useRef<GexLevelsPrimitive | null>(null);
+  const liqLevelsPrimitiveRef = useRef<LiquidationLevelsPrimitive | null>(null);
   const svpPrimitiveRef = useRef<VolumeProfilePrimitive | null>(null);
   const cvpPrimitiveRef = useRef<VolumeProfilePrimitive | null>(null);
   const imbalancePrimitiveRef = useRef<ImbalanceBarPrimitive | null>(null);
   const candleSeriesApiRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const priceLinesRef = useRef<IPriceLine[]>([]);
   const currency = currencyForSymbol(symbol);
+  const hlCoin = hlCoinForSymbol(symbol);
   const gexRef = useRef(gex);
   gexRef.current = gex;
   const prevFootprintRef = useRef<FootprintCell[]>([]);
@@ -145,6 +152,12 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
   );
   const valueArea = useMemo(() => computeValueArea(cvpProfile), [cvpProfile]);
   const sessionLevels = useMemo(() => computeSessionLevels(bars), [bars]);
+  const liqLevels = useMemo(
+    () => estimateLiquidationLevels(funding?.mark_px ?? 0, funding?.open_interest ?? 0, funding?.funding ?? 0),
+    [funding]
+  );
+  const liqLevelsRef = useRef(liqLevels);
+  liqLevelsRef.current = liqLevels;
 
   // 심볼 전환 시 이전 심볼의 롤링 중앙값/대형 트레이드 상태가 새 심볼에 섞이지 않도록 초기화.
   useEffect(() => {
@@ -229,6 +242,10 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
   }, [currency, gex]);
 
   useEffect(() => {
+    liqLevelsPrimitiveRef.current?.updateData(liqLevels);
+  }, [liqLevels]);
+
+  useEffect(() => {
     svpPrimitiveRef.current?.updateData(svpProfile);
     cvpPrimitiveRef.current?.updateData(cvpProfile);
   }, [svpProfile, cvpProfile]);
@@ -255,6 +272,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     largeLotPrimitiveRef.current?.setVisible(layers.bubbles);
     gexLevelsPrimitiveRef.current?.setVisible(layers.gex);
     imbalancePrimitiveRef.current?.setVisible(layers.imbalance);
+    liqLevelsPrimitiveRef.current?.setVisible(layers.liqHeatmap);
   }, [layers]);
 
   function toggleLayer(key: LayerKey) {
@@ -294,6 +312,7 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     const bp = new OrderBookPrimitive();
     const lp = new LargeLotPrimitive();
     const gp = new GexLevelsPrimitive();
+    const qp = new LiquidationLevelsPrimitive();
     const svp = new VolumeProfilePrimitive(0);
     const cvp = new VolumeProfilePrimitive(1);
     const ip = new ImbalanceBarPrimitive();
@@ -304,11 +323,13 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     series.attachPrimitive(bp);
     series.attachPrimitive(lp);
     series.attachPrimitive(gp);
+    series.attachPrimitive(qp);
     series.attachPrimitive(ip);
     hp.updateData(heatmapRef.current);
     fp.updateData(footprintRef.current);
     bp.updateData(bookRef.current);
     gp.updateData(currency && gexRef.current ? gexRef.current.levels : []);
+    qp.updateData(liqLevelsRef.current);
     const initialLayers = layersRef.current;
     hp.setVisible(initialLayers.heatmap);
     fp.setVisible(initialLayers.footprint);
@@ -317,12 +338,14 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
     bp.setVisible(initialLayers.book);
     lp.setVisible(initialLayers.bubbles);
     gp.setVisible(initialLayers.gex);
+    qp.setVisible(initialLayers.liqHeatmap);
     ip.setVisible(initialLayers.imbalance);
     heatmapPrimitiveRef.current = hp;
     footprintPrimitiveRef.current = fp;
     bookPrimitiveRef.current = bp;
     largeLotPrimitiveRef.current = lp;
     gexLevelsPrimitiveRef.current = gp;
+    liqLevelsPrimitiveRef.current = qp;
     svpPrimitiveRef.current = svp;
     cvpPrimitiveRef.current = cvp;
     imbalancePrimitiveRef.current = ip;
@@ -366,6 +389,11 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex }: Orderf
           />
         </div>
       </div>
+      {hlCoin && (
+        <div className="border-t border-border">
+          <FundingPanel coin={hlCoin} funding={funding} />
+        </div>
+      )}
       {currency && (
         <div className="border-t border-border">
           <OptionsFlowPanel currency={currency} gex={gex} />

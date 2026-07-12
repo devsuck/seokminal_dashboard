@@ -177,6 +177,22 @@ export async function getOrderflowSymbols(signal?: AbortSignal): Promise<Orderfl
   return handleResponse<OrderflowSymbolsResponse>(response);
 }
 
+export interface FundingSnapshot {
+  coin: string;
+  funding: number;
+  open_interest: number;
+  mark_px: number;
+  prev_day_px: number;
+  day_ntl_vlm: number;
+  updated_at: number;
+}
+
+/** coin(HL 심볼)의 펀딩비+미결제약정 스냅샷(백엔드 60초 캐시). */
+export async function getHlFunding(coin: string, signal?: AbortSignal): Promise<FundingSnapshot> {
+  const response = await fetch(`${API_URL}/orderflow/funding/${encodeURIComponent(coin)}`, { signal });
+  return handleResponse<FundingSnapshot>(response);
+}
+
 export interface GexLevel {
   strike: number;
   call_gex: number;

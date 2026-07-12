@@ -7,8 +7,9 @@ import { LivePulse } from "@/components/Jarvis";
 import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
 import { useGexSnapshot } from "@/hooks/useGexSnapshot";
+import { useFundingSnapshot } from "@/hooks/useFundingSnapshot";
 import { getOrderflowSymbols } from "@/lib/api";
-import { currencyForSymbol } from "@/lib/orderflow-data";
+import { currencyForSymbol, hlCoinForSymbol } from "@/lib/orderflow-data";
 
 const CONNECTION_TONE: Record<OrderflowConnectionState, "pos" | "accent" | "neg"> = {
   connecting: "accent",
@@ -31,6 +32,8 @@ export default function OrderflowPage() {
   const { footprint, heatmap, book, connectionState } = useOrderflowSocket(symbol);
   const currency = currencyForSymbol(symbol);
   const { gex } = useGexSnapshot(currency ?? "");
+  const hlCoin = hlCoinForSymbol(symbol);
+  const { funding } = useFundingSnapshot(hlCoin ?? "");
 
   useEffect(() => {
     abortRef.current?.abort();
@@ -59,7 +62,7 @@ export default function OrderflowPage() {
           <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
-      <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} book={book} gex={gex} />
+      <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} book={book} gex={gex} funding={funding} />
     </div>
   );
 }

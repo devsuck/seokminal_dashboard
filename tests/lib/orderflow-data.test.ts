@@ -26,6 +26,9 @@ import {
   computeDeltaSeries,
   detectDeltaDivergence,
   computeSessionLevels,
+  hlCoinForSymbol,
+  estimateLiquidationLevels,
+  LIQUIDATION_LEVERAGE_TIERS,
   type FootprintCell,
   type VolumeProfileLevel,
   type LargeTradeTrackerState,
@@ -234,6 +237,22 @@ describe("currencyForSymbol", () => {
   it("그 외 심볼은 null(옵션플로우 패널 미지원)", () => {
     expect(currencyForSymbol("NQ")).toBeNull();
     expect(currencyForSymbol("SOL.HL")).toBeNull();
+  });
+});
+
+describe("hlCoinForSymbol", () => {
+  it("COIN.HL -> COIN, BTC/ETH 한정 아님", () => {
+    expect(hlCoinForSymbol("BTC.HL")).toBe("BTC");
+    expect(hlCoinForSymbol("SOL.HL")).toBe("SOL");
+  });
+
+  it("HL 접미사 없는 심볼은 null", () => {
+    expect(hlCoinForSymbol("NQ")).toBeNull();
+    expect(hlCoinForSymbol("AAPL.NASDAQ")).toBeNull();
+  });
+
+  it("접미사만 있는 빈 코인은 null", () => {
+    expect(hlCoinForSymbol(".HL")).toBeNull();
   });
 });
 
@@ -778,5 +797,52 @@ describe("computeSessionLevels", () => {
       prevHigh: null,
       prevLow: null,
     });
+  });
+});
+
+describe("estimateLiquidationLevels", () => {
+  it("price<=0 또는 OI<=0이면 빈 배열", () => {
+    expect(estimateLiquidationLevels(0, 100, 0)).toEqual([]);
+    expect(estimateLiquidationLevels(100, 0, 0)).toEqual([]);
+    expect(estimateLiquidationLevels(-10, 100, 0)).toEqual([]);
+  });
+
+  it("funding=0이면 레버리지 구간 수 x 2(롱/숏)개 레벨, 롱/숏 비중 동일", () => {
+    const levels = estimateLiquidationLevels(100, 100, 0);
+    expect(levels).toHaveLength(LIQUIDATION_LEVERAGE_TIERS.length * 2);
+    for (const lv of levels) {
+      expect(lv.weight).toBeCloseTo(100 / LIQUIDATION_LEVERAGE_TIERS.length, 6);
+    }
+  });
+
+  it("가격 오름차순 정렬 — 롱 청산가는 진입가 아래, 숏 청산가는 진입가 위", () => {
+    const levels = estimateLiquidationLevels(100, 100, 0);
+    for (let i = 1; i < levels.length; i++) {
+      expect(levels[i].price).toBeGreaterThanOrEqual(levels[i - 1].price);
+    }
+    for (const lv of levels) {
+      if (lv.side === "long") expect(lv.price).toBeLessThan(100);
+      else expect(lv.price).toBeGreaterThan(100);
+    }
+  });
+
+  it("레버리지 3배 롱 청산가 = entry * (1 - 1/3 + 0.005)", () => {
+    const levels = estimateLiquidationLevels(100, 100, 0);
+    const lv3long = levels.find((l) => l.leverage === 3 && l.side === "long");
+    expect(lv3long?.price).toBeCloseTo(100 * (1 - 1 / 3 + 0.005), 6);
+  });
+
+  it("funding 양수(롱 우위 프록시)면 롱 비중이 숏 비중보다 커진다", () => {
+    const levels = estimateLiquidationLevels(100, 100, 0.0001);
+    const long3 = levels.find((l) => l.leverage === 3 && l.side === "long")!;
+    const short3 = levels.find((l) => l.leverage === 3 && l.side === "short")!;
+    expect(long3.weight).toBeGreaterThan(short3.weight);
+  });
+
+  it("funding 극단값도 비중 스큐가 ±50%로 클램프된다(음수 weight 없음)", () => {
+    const levels = estimateLiquidationLevels(100, 100, 10);
+    for (const lv of levels) {
+      expect(lv.weight).toBeGreaterThanOrEqual(0);
+    }
   });
 });

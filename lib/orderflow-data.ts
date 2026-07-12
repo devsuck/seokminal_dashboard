@@ -216,6 +216,13 @@ export function currencyForSymbol(symbol: string): "BTC" | "ETH" | null {
   return null;
 }
 
+/** "COIN.HL" -> "COIN", 그 외 심볼은 null. 펀딩비+OI는 Hyperliquid 전 종목 지원(BTC/ETH 한정 아님). */
+export function hlCoinForSymbol(symbol: string): string | null {
+  if (!symbol.endsWith(".HL")) return null;
+  const coin = symbol.slice(0, -".HL".length);
+  return coin.length > 0 ? coin : null;
+}
+
 export interface LargeTrade {
   bucketTs: number;
   price: number;
@@ -628,4 +635,39 @@ export function computeSessionLevels(
     prevHigh: Number.isFinite(prevHigh) ? prevHigh : null,
     prevLow: Number.isFinite(prevLow) ? prevLow : null,
   };
+}
+
+export interface LiqLevel {
+  price: number;
+  side: "long" | "short";
+  weight: number;
+  leverage: number;
+}
+
+/** HL이 UI에 노출하는 대표 레버리지 구간(자산별 최대 레버리지는 다르지만 공통 구간만 사용). */
+export const LIQUIDATION_LEVERAGE_TIERS = [3, 5, 10, 20, 50] as const;
+const LIQUIDATION_MAINTENANCE_MARGIN_RATE = 0.005;
+const LIQUIDATION_FUNDING_SKEW_SCALE = 1000;
+
+/**
+ * OI(미결제약정)+funding 부호로 청산가 클러스터를 추정한다 — 실제 청산 데이터가 아닌 근사치.
+ * 레버리지 구간별로 OI를 균등 분산하고, funding 부호(롱/숏 우위 프록시)로 롱/숏 비중만 약하게 보정한다.
+ * 각 구간의 청산가는 `entry * (1 - 1/leverage + maintenance_margin_rate)`(롱)로 근사한다.
+ */
+export function estimateLiquidationLevels(price: number, openInterest: number, funding: number): LiqLevel[] {
+  if (price <= 0 || openInterest <= 0) return [];
+
+  const skew = Math.max(-0.5, Math.min(0.5, funding * LIQUIDATION_FUNDING_SKEW_SCALE));
+  const baseWeight = openInterest / LIQUIDATION_LEVERAGE_TIERS.length;
+  const longWeight = baseWeight * (1 + skew);
+  const shortWeight = baseWeight * (1 - skew);
+
+  const levels: LiqLevel[] = [];
+  for (const leverage of LIQUIDATION_LEVERAGE_TIERS) {
+    const dist = 1 / leverage - LIQUIDATION_MAINTENANCE_MARGIN_RATE;
+    if (dist <= 0) continue;
+    levels.push({ price: price * (1 - dist), side: "long", weight: longWeight, leverage });
+    levels.push({ price: price * (1 + dist), side: "short", weight: shortWeight, leverage });
+  }
+  return levels.sort((a, b) => a.price - b.price);
 }
