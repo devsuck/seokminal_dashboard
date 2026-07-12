@@ -12,6 +12,7 @@ import {
   computeHeatmapLayout,
   aggregateHeatmapByCandle,
   MAX_TIME_BUCKETS,
+  MAX_HEATMAP_TIME_BUCKETS,
   currencyForSymbol,
   applyLargeTradeTracking,
   emptyLargeTradeTracker,
@@ -100,31 +101,33 @@ describe("time bucket eviction", () => {
     expect(state.footprint.size).toBe(MAX_TIME_BUCKETS);
   });
 
-  it("applyHeatmapDelta drops the oldest ts once distinct buckets exceed MAX_TIME_BUCKETS", () => {
+  it("applyHeatmapDelta drops the oldest ts once distinct buckets exceed MAX_HEATMAP_TIME_BUCKETS", () => {
     let state = emptyOrderflowState();
-    for (let ts = 0; ts < MAX_TIME_BUCKETS; ts++) {
+    for (let ts = 0; ts < MAX_HEATMAP_TIME_BUCKETS; ts++) {
       state = applyHeatmapDelta(state, { type: "heatmap_delta", ts, price: 99, size: 5 });
     }
     expect(state.heatmap.get("0:99")).toBeDefined();
-    expect(state.heatmap.size).toBe(MAX_TIME_BUCKETS);
+    expect(state.heatmap.size).toBe(MAX_HEATMAP_TIME_BUCKETS);
 
-    state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: MAX_TIME_BUCKETS, price: 99, size: 5 });
+    state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: MAX_HEATMAP_TIME_BUCKETS, price: 99, size: 5 });
     expect(state.heatmap.get("0:99")).toBeUndefined();
     expect(state.heatmap.get("1:99")).toBeDefined();
-    expect(state.heatmap.get(`${MAX_TIME_BUCKETS}:99`)).toBeDefined();
-    expect(state.heatmap.size).toBe(MAX_TIME_BUCKETS);
+    expect(state.heatmap.get(`${MAX_HEATMAP_TIME_BUCKETS}:99`)).toBeDefined();
+    expect(state.heatmap.size).toBe(MAX_HEATMAP_TIME_BUCKETS);
   });
 
-  it("applySnapshot caps footprint and heatmap to the newest MAX_TIME_BUCKETS distinct buckets", () => {
+  it("applySnapshot caps footprint to the newest MAX_TIME_BUCKETS and heatmap to MAX_HEATMAP_TIME_BUCKETS distinct buckets", () => {
     const footprint = [];
-    const heatmap = [];
     for (let i = 0; i < MAX_TIME_BUCKETS + 5; i++) {
       footprint.push({ bucket_ts: i, price: 100, buy_vol: 1, sell_vol: 0 });
+    }
+    const heatmap = [];
+    for (let i = 0; i < MAX_HEATMAP_TIME_BUCKETS + 5; i++) {
       heatmap.push({ ts: i, price: 99, size: 5 });
     }
     const state = applySnapshot({ footprint, heatmap });
     expect(state.footprint.size).toBe(MAX_TIME_BUCKETS);
-    expect(state.heatmap.size).toBe(MAX_TIME_BUCKETS);
+    expect(state.heatmap.size).toBe(MAX_HEATMAP_TIME_BUCKETS);
     expect(state.footprint.get("0:100")).toBeUndefined();
     expect(state.footprint.get("4:100")).toBeUndefined();
     expect(state.footprint.get("5:100")).toBeDefined();

@@ -63,6 +63,12 @@ export interface OrderflowState {
 }
 
 export const MAX_TIME_BUCKETS = 300;
+// heatmap은 footprint(60s 버킷)보다 30배 촘촘한 2s 버킷이라 같은 버킷 개수 캡을 쓰면
+// 10분밖에 안 쌓인다(구 MAX_TIME_BUCKETS 공용 캡의 한계). 실시간 매매용 유동성 풀 시야를
+// 확보하려면 기본 차트 가시 범위(~90분)만큼은 클라이언트에 누적돼야 한다 — 백엔드가
+// 이제(diff+연결당 최근 슬라이스만 스냅샷) 스트림 비용을 줄여놨으므로 접속 유지 중인 클라는
+// 계속 들어오는 delta로 이 캡까지 자연스럽게 채워진다.
+export const MAX_HEATMAP_TIME_BUCKETS = 2700; // 2s * 2700 = 5400s = 90min
 
 function footprintKey(bucketTs: number, price: number): string {
   return `${bucketTs}:${price}`;
@@ -87,8 +93,8 @@ function evictOldestFootprintBuckets(footprint: Map<string, FootprintCell>): Map
 
 function evictOldestHeatmapBuckets(heatmap: Map<string, HeatmapCell>): Map<string, HeatmapCell> {
   const distinctBuckets = Array.from(new Set(Array.from(heatmap.values()).map((c) => c.ts))).sort((a, b) => a - b);
-  if (distinctBuckets.length <= MAX_TIME_BUCKETS) return heatmap;
-  const toEvict = new Set(distinctBuckets.slice(0, distinctBuckets.length - MAX_TIME_BUCKETS));
+  if (distinctBuckets.length <= MAX_HEATMAP_TIME_BUCKETS) return heatmap;
+  const toEvict = new Set(distinctBuckets.slice(0, distinctBuckets.length - MAX_HEATMAP_TIME_BUCKETS));
   const next = new Map<string, HeatmapCell>();
   for (const [key, cell] of heatmap) {
     if (!toEvict.has(cell.ts)) next.set(key, cell);
