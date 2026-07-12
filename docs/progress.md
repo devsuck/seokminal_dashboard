@@ -1,3 +1,33 @@
+## Phase 166 — HL 펀딩비+OI 패널 + 청산 히트맵 추정 (2026-07-12) ✅ SHIPPED
+
+Phase 165에서 "미착수(백엔드 필요)"로 남겼던 2건 요청 → "펀딩비, 청산 히트맵 추정 작업 진행해줘"로 착수. SDD 미사용, 기존 GEX 폴캐시 패턴 그대로 복제(`feedback_no_process_theater`).
+
+### 백엔드 (`seokminal-multi-venue`)
+- `orderflow/hl_funding.py` (신규) — `orderflow/gex.py`와 동일 폴캐시 패턴. `hyperliquid.client.get_meta_and_ctxs()`(기존 함수, 재사용)를 `asyncio.to_thread`로 60초마다 폴링, coin별 funding/OI/markPx/prevDayPx/dayNtlVlm 캐시. fetch 실패 시 마지막 캐시 유지(clear 안 함).
+- `api_server/router_orderflow.py` — `GET /orderflow/funding/{coin}` 추가, 캐시 미스 시 0값 기본 응답.
+- `api_server/main.py` — startup에 `funding_poll_loop()` task 추가.
+- 테스트: `test_orderflow_hl_funding.py`(6개, 신규) + `test_router_orderflow.py`(+3개) — 전부 통과.
+
+### 프론트 (`seokminal-dashboard`)
+- **청산 히트맵은 추정치임을 명시** — HL 공개 체결 스트림에 청산 플래그 없음(`orderflow/models.py::TradeEvent` 확인) → 실측 불가. OI+funding 부호 기반 근사치로 구현하고 UI에 "실제 청산 데이터가 아닙니다" 디스클레이머 명시(패널 본문 + 범례 hover).
+- `lib/orderflow-data.ts` — `hlCoinForSymbol()`("COIN.HL"→"COIN", 전 종목 지원 — `currencyForSymbol`과 달리 BTC/ETH 한정 아님) + `estimateLiquidationLevels()`(레버리지 3/5/10/20/50x 구간별 청산가 `entry*(1∓(1/L−0.005))`, funding 부호로 롱/숏 비중 약 skew).
+- `lib/api.ts` — `getHlFunding()` 추가.
+- `hooks/useFundingSnapshot.ts` (신규) — `useGexSnapshot.ts` 패턴 복제, 60초 폴링 + 5분 stale 판정.
+- `components/orderflow/LiquidationLevelsPrimitive.ts` (신규) — `GexLevelsPrimitive.ts` 구조 복제, 롱청산(빨강)/숏청산(초록) 점선 + 레버리지 라벨.
+- `components/orderflow/FundingPanel.tsx` (신규) — 펀딩비(1h)/연율화/OI/전일대비 4칸 + 디스클레이머 텍스트, GEX 패널 위에 배치.
+- `components/orderflow/OrderflowLegend.tsx` — "청산(추정)" 칩 추가.
+- `components/orderflow/OrderflowChart.tsx`, `app/orderflow/page.tsx` — wiring.
+
+### 검증
+- 백엔드 `pytest tests/ -q` 879 passed / pre-existing 4 fail(문서화된 목록과 일치, 회귀 없음)
+- 프론트 `npx tsc --noEmit` 클린, `npx vitest run` 265/265 통과(신규 12: orderflow-data 9 + api-hl-funding 3)
+- 브라우저 라이브 확인: `/orderflow` BTC.HL — 범례에 "청산(추정)" 칩, 하단 "BTC 펀딩비 · OI" 패널(펀딩비 0.0013%, 연율화 10.9%, OI 37,335.8 BTC, 전일대비 -0.26%, mark 63,894 — 전부 실데이터) + 디스클레이머 문구 정상 렌더, 기존 GEX 패널/시그널 패널 회귀 없음, 콘솔 에러 없음.
+
+### 다음 할 일
+- 없음(요청 2건 완료). 청산 라인이 현재 차트 줌 레벨에서 시각적으로 화면 밖(가격범위 대비 레버리지 거리)일 수 있음 — 필요시 차트 줌아웃해서 확인, 기능 자체는 단위테스트로 수식 검증 완료.
+
+---
+
 ## Phase 165 — Orderflow 보조지표 5종 (2026-07-12) ✅ SHIPPED
 
 "같이 쓰면 좋은 지표" 요청 → 프론트 전용 5종 직접 구현 (커밋 99f85a7):
