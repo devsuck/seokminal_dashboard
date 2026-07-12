@@ -1,3 +1,33 @@
+## Phase 167 — 오더플로우 히트맵 성능/보존창 개선 (2026-07-12) ✅ SHIPPED
+
+"히트맵이 차트 하나에 조금만 나온다, 유동성 풀이 안 보인다" + Bookmap 레퍼런스 이미지(IMG_9389/9390) 비교 요청. SDD 미사용, 직접 진행(`feedback_no_process_theater`).
+
+### 근본 원인 진단
+1. 보존창이 너무 짧음 — 백엔드 `heatmap_max_window_sec`(300s) / 프론트 `MAX_TIME_BUCKETS`(footprint와 공용, heatmap 기준 10분)가 기본 차트 가시범위(~90분)보다 훨씬 짧았음.
+2. 더 심각한 문제: `on_book_snapshot()`이 매 틱(초당 ~16.7회)마다 near-touch 레벨 최대 50개를 무조건 재전송 → 실측 초당 835건 `heatmap_delta`. 프론트도 메시지 하나마다 `setState`(Map 통째 복사+O(n) 이벤트 스캔) → 보존창을 단순히 늘리면 이 비용이 그대로 배로 늘어 브라우저 탭이 멎을 위험.
+3. Bookmap 이미지 재검토 결과 캔들 없는 연속 틱 렌더링(우리 차트는 60초봉 단위로 히트맵을 뭉개는 구조) — 시각적 밀도 차이의 상당 부분은 보존기간이 아니라 캔들 해상도 문제. 5초봉 도입은 검토 후 기각(BTC 스윙 트레이딩엔 과함, NQ/XAU 스캘핑용 니즈 아님).
+
+### 백엔드 (`seokminal-multi-venue`, `orderflow/aggregator.py`)
+- `on_book_snapshot()`: 같은 `(bucket_ts, price)` 키의 size가 안 바뀌면 delta 생략(diff). 실측 835/s → ~108/s.
+- `heatmap_max_window_sec`(내부 보존) 300s → 5400s(90분)와 `heatmap_snapshot_window_sec`(신규 접속자 초기 snapshot() 페이로드, 600s=1MB WS 한도 내) 분리 — 내부 보존을 늘려도 신규 접속 페이로드 크기엔 영향 없음, 이미 붙어있는 클라는 delta 스트림으로 자연 누적.
+- 테스트: `tests/test_orderflow_aggregator.py` +2 (diff 스킵, snapshot 슬라이싱) — 10/10 통과.
+
+### 프론트 (`seokminal-dashboard`)
+- `hooks/useOrderflowSocket.ts`: 메시지마다 하던 `setState`를 ref 누적 + rAF 1프레임당 1회 flush로 변경.
+- `lib/orderflow-data.ts`: `MAX_TIME_BUCKETS`(footprint 전용, 5h)와 `MAX_HEATMAP_TIME_BUCKETS`(신규, 2700=90분) 분리.
+- 커밋: `5a699fc`(rAF 배치), `49e3984`(백엔드 diff), `110d096`(프론트 보존창 분리), `9505543`(백엔드 스냅샷/보존 분리).
+
+### 검증
+- 백엔드 10/10, 프론트 265/265, tsc 클린.
+- 실측 WS 캡처(10초 접속): heatmap_delta 108.3/s, footprint_delta 33.8/s, book_snapshot 2.5/s.
+- 브라우저 라이브 확인: 정상 렌더/갱신, 콘솔 에러 없음(기존부터 있던 무관한 hydration 경고 1건 재확인 — `OrderflowLegend.tsx` className 서버/클라 불일치, 이번 작업과 무관, 미수정 상태로 남음).
+
+### 다음 할 일
+- NQ(나스닥 선물) 오더플로우 페이지 연동 — 다음 세션 착수 예정. 현재 라이브 L2 뎁스 파이프라인은 Hyperliquid 전용, 기존 IB 연동은 historical bars만 지원(라이브 뎁스 어댑터 없음) → 신규 IB 라이브 뎁스 어댑터 설계 필요.
+- `OrderflowLegend.tsx` hydration 경고(className 서버/클라 불일치) — 미수정, 별도 처리 필요.
+
+---
+
 ## Phase 166 — HL 펀딩비+OI 패널 + 청산 히트맵 추정 (2026-07-12) ✅ SHIPPED
 
 Phase 165에서 "미착수(백엔드 필요)"로 남겼던 2건 요청 → "펀딩비, 청산 히트맵 추정 작업 진행해줘"로 착수. SDD 미사용, 기존 GEX 폴캐시 패턴 그대로 복제(`feedback_no_process_theater`).
