@@ -1,7 +1,7 @@
 // hooks/useOrderflowSocket.ts
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WS_URL } from "@/lib/api";
 import {
   applyOrderflowMessage,
@@ -35,14 +35,30 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
   const [state, setState] = useState<OrderflowState>(emptyOrderflowState);
   const [connectionState, setConnectionState] = useState<OrderflowConnectionState>("connecting");
 
+  // 초당 수백 건 오는 delta 메시지마다 setState(리렌더)하면 브라우저가 못 버틴다.
+  // 메시지는 ref에 즉시 반영하고, 화면 반영은 rAF 1프레임당 1회로 묶어서 흘려보낸다.
+  const pendingRef = useRef<OrderflowState>(emptyOrderflowState());
+  const rafIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     let closedByEffect = false;
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let delay = RECONNECT_BASE_DELAY_MS;
 
+    pendingRef.current = emptyOrderflowState();
     setState(emptyOrderflowState());
     setConnectionState("connecting");
+
+    function flush() {
+      rafIdRef.current = null;
+      setState(pendingRef.current);
+    }
+
+    function scheduleFlush() {
+      if (rafIdRef.current !== null) return;
+      rafIdRef.current = requestAnimationFrame(flush);
+    }
 
     function connect() {
       ws = new WebSocket(`${WS_URL}/ws/orderflow/${encodeURIComponent(symbol)}`);
@@ -60,7 +76,8 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
           return;
         }
         if (isSnapshotMsg(msg)) {
-          setState(applySnapshot(msg));
+          pendingRef.current = applySnapshot(msg);
+          scheduleFlush();
           setConnectionState("live");
           return;
         }
@@ -69,7 +86,8 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
           setConnectionState(parsed.state === "live" ? "live" : "reconnecting");
           return;
         }
-        setState((prev) => applyOrderflowMessage(prev, parsed));
+        pendingRef.current = applyOrderflowMessage(pendingRef.current, parsed);
+        scheduleFlush();
       };
 
       ws.onerror = () => {
@@ -92,6 +110,7 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
     return () => {
       closedByEffect = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
       ws?.close();
     };
   }, [symbol]);
