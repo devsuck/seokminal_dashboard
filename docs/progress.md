@@ -1,3 +1,29 @@
+## Phase 169 — Polymarket Whale Tracking 가설 (2026-07-13) ✅ SHIPPED
+
+유저 취침 중 "고래찾기 + 1초마다 돈버는 봇(아마 차익매매)" 요청, 허락 없이 야간 자율 작업 지시. 두 갈래로 처리: (1) whale tracking은 브레인스토밍→플랜→SDD 6-task 파이프라인으로 완성, (2) "1초마다 돈버는 봇"은 라이브 집행 봇으로 짓지 않고 스코프를 재해석해 처리(아래 참고).
+
+### HUD 정리 (whale tracking 착수 전 선행작업)
+- `api_server/lab_api.py`+`research/lab/service.py` — `cross_venue_skew_tick` HUD 상태 등록 + jarvis 브릿지 테스트. 프론트 `app/hud/page.tsx`+`lib/api.ts`도 동일 카드 추가. (커밋 `f4641e7`(백엔드), `b6b7a4f`(프론트))
+
+### Whale Tracking 설계 결정 — "1초마다 돈버는 봇" 스코프
+기존 CLOB WSS `market` 채널은 오더북 델타(book/price_change)만 있고 체결(fill)이 없음 — whale tracking엔 못 씀. Data-API `/trades`(공개 REST, 폴링) 채택. "1초마다 돈버는 봇" 요청은 라이브 집행 봇으로 짓지 않기로 결정 — Jarvis Quant OS의 arm_criteria(6개월 페이퍼 트레이딩 최소 기간) 안전장치를 취침중 "허락 맡지말고" 지시로도 우회하지 않음. 대신 두 갈래: (a) whale tracking 자체를 "고래 체결 후 가격 선행" 가설로 구현, (b) 차익매매 재해석은 별도 트랙으로 명시적으로 미룸(스펙 10절) — 크립토 up/down 5min/15min 초단기 마켓(현재 `market_selector`가 노이즈 이유로 제외 중인 패밀리)에서 페이퍼 전용 재검증, 다음 세션 과제로 남김.
+- 스펙: `docs/superpowers/specs/2026-07-13-polymarket-whale-tracking-design.md` (커밋 `3c3cb3c`)
+- 플랜: `docs/superpowers/plans/2026-07-13-polymarket-whale-tracking.md` (커밋 `6e3a57a`)
+
+### 구현 (SDD 6-task, 전부 review clean)
+- Task 1: `research/validation/cost_model.py` — `polymarket_effective_cost_bps()`(taker 0bps + spread/2, spread 200bps 근사치) + 테스트 3개. 커밋 `6649c85`.
+- Task 2: `research/run_polymarket_whale_collect.py`(신규) — Data-API `/trades` 5초 폴링, Gamma 마켓스코프 5분마다 재조회(`market_selector.select_target_markets()` 재사용, news/sports만), transactionHash+timestamp 커서 dedup(링버퍼 2000), `research/data/polymarket_whale/{date}.jsonl` 저장, tmux `polymarket-whale-tick`. family 태그를 수집 시점에 붙임(스코프 필터링 때 이미 아는 값이라 검증러너 그룹핑용으로 원본에 저장 — 의도적 예외, 문서화됨). 테스트 10개. 커밋 `35a7f5f`.
+- Task 3: `research/hypotheses/polymarket_whale.py`(신규) — notional z-score(condition_id별 롤링, LOOKBACK=100/WARMUP=20) → 스파이크 탐지(THRESHOLD=2.0) → 가격시계열(RESAMPLE_GRID_S=5s ffill) → 다중호라이즌(30/120/300s) forward return 라벨링. 구현 중 브리프 자체 버그 발견·수정: `build_price_series` 그리드 개수 계산이 floor division이라 그리드가 부족했음(`math.ceil`로 교체, 컨트롤러 사전승인 후 리뷰어 재검증 완료). 테스트 10개. 커밋 `dce0536`.
+- Task 4: `research/run_polymarket_whale_validate.py`(신규) — family(news/sports)×horizon(3) 최대 6개 p-value, 방향 셔플 랜덤베이스라인(N_RUNS=500, SEED=42) 대비 empirical p-value, 신규 독립 BH-FDR 풀(alpha=0.1, 기존 가설 풀과 절대 안 섞음). 테스트 3개. 커밋 `9d2a45a`.
+- Task 5: HUD 등록 — 백엔드 `api_server/lab_api.py`(`polymarket_whale_tick` 프로세스 상태, 커밋 `951687e`) + 프론트 `lib/api.ts`+`app/hud/page.tsx`(유닛카드, 커밋 `c5df7c7`).
+- Task 6: 회귀+라이브 검증 — 백엔드 전체 스위트 1006 passed(pre-existing fail 4건만, 신규 회귀 없음), tmux `polymarket-whale-tick` 기동 확인, `/lab/status`에서 `running: True` 라이브 확인. 데이터 파일은 첫 고래 체결 잡히기 전이라 아직 미생성(정상, append 시점에 생성).
+
+### 다음 할 일
+- 고래 데이터 며칠 쌓인 뒤 `run_polymarket_whale_validate.py` 재실행해 p-value/BH-FDR 결과 확인 — 지금은 막 기동해서 데이터 없음(BLOCKED 예상).
+- 별도 트랙: 크립토 up/down 초단기 마켓 차익매매 페이퍼 재검증(스펙 10절에 명시적으로 미룬 것) — 아직 미착수.
+
+---
+
 ## Phase 167 — 오더플로우 히트맵 성능/보존창 개선 (2026-07-12) ✅ SHIPPED
 
 "히트맵이 차트 하나에 조금만 나온다, 유동성 풀이 안 보인다" + Bookmap 레퍼런스 이미지(IMG_9389/9390) 비교 요청. SDD 미사용, 직접 진행(`feedback_no_process_theater`).
