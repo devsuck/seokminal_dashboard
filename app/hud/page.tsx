@@ -186,6 +186,10 @@ export default function HudPage() {
     kind: "BOT", name: "HL 오더플로우 틱 수집기", running: sys.processes.hl_orderflow_tick.running,
     detail: formatAge(sys.processes.hl_orderflow_tick.age_sec), href: "/orderflow",
   });
+  if (sys?.processes?.cross_venue_skew_tick) units.push({
+    kind: "BOT", name: "크로스벤뉴 스큐 수집기", running: sys.processes.cross_venue_skew_tick.running,
+    detail: formatAge(sys.processes.cross_venue_skew_tick.age_sec), href: "/orderflow",
+  });
   if (vrp) {
     const lastLog = vrp.log?.[0];
     const vrpDetail = lastLog?.kind === "scan_fail" ? `⚠ ${String(lastLog.msg ?? "실패")}`
