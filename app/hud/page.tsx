@@ -194,6 +194,10 @@ export default function HudPage() {
     kind: "BOT", name: "폴리마켓 고래 체결 수집기", running: sys.processes.polymarket_whale_tick.running,
     detail: formatAge(sys.processes.polymarket_whale_tick.age_sec), href: "/orderflow",
   });
+  if (sys?.processes?.polymarket_updown_arb) units.push({
+    kind: "BOT", name: "폴리마켓 초단기 up/down 차익 스캐너", running: sys.processes.polymarket_updown_arb.running,
+    detail: formatAge(sys.processes.polymarket_updown_arb.age_sec), href: "/lab",
+  });
   if (vrp) {
     const lastLog = vrp.log?.[0];
     const vrpDetail = lastLog?.kind === "scan_fail" ? `⚠ ${String(lastLog.msg ?? "실패")}`

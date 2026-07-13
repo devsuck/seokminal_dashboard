@@ -2372,6 +2372,7 @@ export interface LabStatus {
     hl_orderflow_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
     cross_venue_skew_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
     polymarket_whale_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_updown_arb?: { running: boolean; last_write: string | null; age_sec: number | null };
     error?: string;
   };
 }
