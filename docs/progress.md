@@ -20,7 +20,29 @@
 
 ### 다음 할 일
 - 고래 데이터 며칠 쌓인 뒤 `run_polymarket_whale_validate.py` 재실행해 p-value/BH-FDR 결과 확인 — 지금은 막 기동해서 데이터 없음(BLOCKED 예상).
-- 별도 트랙: 크립토 up/down 초단기 마켓 차익매매 페이퍼 재검증(스펙 10절에 명시적으로 미룬 것) — 아직 미착수.
+- 별도 트랙(크립토 up/down 초단기 마켓 차익매매 페이퍼 재검증)은 [[Phase 170]]에서 착수·완료.
+
+---
+
+## Phase 170 — 크립토 up/down 초단기 마켓 차익 재검증 트랙 (2026-07-13) ✅ SHIPPED
+
+Phase 169 스펙 10절에서 미룬 항목. 기존 `research/polymarket_arb/*`(일반 차익 스캐너, `MIN_DAYS_TO_RESOLUTION=3` 플로어라 5분/15분 up/down 마켓은 전부 걸러짐)와 `run_polymarket_arb_validation.py`(완전 제네릭, `--data-dir`만 바꾸면 재사용 가능)를 조사한 결과 스코프가 예상보다 훨씬 작음을 확인 — 신규 검증러너나 가설 파이프라인 불필요, 셀렉터+얇은 수집기 진입점+클라이언트 필드 추가+HUD 등록만 필요. SDD 없이 직접 구현(`feedback_no_process_theater`, 소규모 확정 스코프).
+
+### 구현
+- `polymarket/client.py` — `slug`, `end_datetime`(전체정밀도 ISO) 필드 additive 추가(기존 `end_date`는 날짜만 truncate 유지, 기존 소비자 무영향) + `get_updown_markets()`. 초기엔 `order=startDate desc`로 짰다가 라이브 검증에서 0건만 골라지는 버그 발견 — up/down 마켓은 실제 판정 5분/15분 구간보다 ~24시간 먼저 개설되므로 최신개설순 정렬로는 "막 열린(마감 24h 남은)" 마켓만 잡힘. `end_date_min=now` + `order=endDate asc`로 수정해 마감임박 마켓부터 받도록 고침.
+- `research/polymarket_arb/updown_selector.py`(신규) — `select_updown_markets()`: 슬러그 패턴(`{coin}-updown-{5m|15m}-{ts}`) + 마감임박(기본 15분 이내) + 최소유동성(`MIN_LIQUIDITY=1000`, 일반 5000보다 낮음 — 라이브 확인 결과 마감임박 up/down 마켓 유동성이 2000~15000대로 관측된 미검증 근사치) 필터링하는 순수함수. 테스트 8개.
+- `research/run_polymarket_updown_arb_scan.py`(신규) — 얇은 수집기 진입점. `collector.py::snapshot_market`/`detector.py::evaluate_snapshot`을 그대로 재사용(신규 판정로직 없음), `research/data/polymarket_updown_arb/{date}.jsonl` 저장, tmux `polymarket-updown-arb`, 5초 폴링. 테스트 5개.
+- HUD 등록 — 백엔드 `api_server/lab_api.py`(`polymarket_updown_arb` 프로세스 상태) + 프론트 `lib/api.ts`+`app/hud/page.tsx`(유닛카드, href `/lab`).
+- 검증은 기존 `research/run_polymarket_arb_validation.py --data-dir research/data/polymarket_updown_arb`를 그대로 재사용(신규 파일 없음, 데이터 쌓인 뒤 실행).
+
+### 검증
+- 백엔드 전체 스위트 1023 passed(pre-existing fail 4건만, 신규 회귀 없음).
+- 프론트 `npx tsc --noEmit` 0 errors.
+- tmux `polymarket-updown-arb` 기동, `/lab/status`에서 `running: True` + `last_write` 갱신 라이브 확인(수정 후 마감임박 마켓 27건 실제로 잡혀 스냅샷 기록 시작).
+
+### 다음 할 일
+- 차익 스냅샷 며칠 쌓인 뒤 `run_polymarket_arb_validation.py --data-dir research/data/polymarket_updown_arb` 실행해 go/no-go 판정(REJECT_NO_PERSISTENT_RUNS / REJECT_NO_POSITIVE_MARGIN / CANDIDATE).
+- `MIN_LIQUIDITY=1000`, `MAX_MINUTES_TO_RESOLVE=15.0`는 미검증 근사치 — 표본 쌓이면 재조정 검토.
 
 ---
 
