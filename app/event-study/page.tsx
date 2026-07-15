@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import Link from "next/link";
 import {
   getBars, getKSDDividend, getKSDRightsSchedule, getFREDCatalog, getFREDSeries,
   ApiError, type FREDCatalogItem,
@@ -121,9 +120,6 @@ export default function EventStudyPage() {
             Windowed return analysis around market events. Measures performance −N to +N days from each event.
           </p>
         </div>
-        <Link href="/quant" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
-          ← Research
-        </Link>
       </div>
 
       {/* Controls */}

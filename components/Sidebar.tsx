@@ -179,16 +179,6 @@ export function Sidebar() {
         { href: "/orderflow", label: "오더플로우" },
       ],
     },
-    // 교육 — 학습·연습
-    {
-      label: "교육", icon: <IconAnalyze />,
-      items: [
-        { href: "/quant",         label: "퀀트 배우기" },
-        { href: "/notebooks",     label: "전략 만들기 연습" },
-        { href: "/learn/options", label: "옵션 트레이딩" },
-        { href: "/report",        label: "결과 읽는 법" },
-      ],
-    },
   ];
 
   useEffect(() => {

@@ -130,11 +130,6 @@ export function WatchlistSidebar({
                   className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors">
                   Backtest
                 </Link>
-                <Link
-                  href="/quant"onClick={e => e.stopPropagation()}
-                  className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors">
-                  Research
-                </Link>
               </div>
             </div>
           );
