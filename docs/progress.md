@@ -1,3 +1,164 @@
+## Phase 176 — OMS 레이어 (상태머신 + 부분체결 추적 + 주문현황 UI) (2026-07-17) ✅ SHIPPED
+
+로드맵 "실매매 안전화 후속" 잔여 항목. 기존엔 `order_audit.py`가 append-only 이벤트 로그(제출/거절/에러)만 남기고 있었고, place/cancel/status 응답의 `status`/`filled`/`remaining`은 그 요청 순간에만 존재했다가 사라짐 — 재시작 없이도 "이 주문 지금 얼마나 체결됐나"를 한눈에 볼 방법이 없었음. 브로커별 상태 문자열도 제각각(KIS: SUBMITTED/OPEN/PARTIAL/FILLED/CANCELLED, IB ib_insync: PendingSubmit/Submitted/Filled/Cancelled/Inactive 등) — 프론트가 직접 브로커별 문자열 분기하지 않도록 서버에서 공통 상태로 정규화. SDD 없이 직접 구현(`feedback_no_process_theater`).
+
+### 완료된 작업
+- `api_server/oms.py` 신규 — in-process 상태머신. `(venue, order_id)` 키로 현재 상태 보관, `_derive_status(raw_status, filled, remaining)`가 브로커별 원문 상태 대신 `filled`/`remaining` 숫자를 우선해 정규 상태(OPEN/PARTIALLY_FILLED/FILLED/CANCELLED/REJECTED) 도출 — CANCELLED/REJECTED만 원문 문자열로 판별(체결 숫자만으론 구분 불가). 종결 상태(FILLED/CANCELLED/REJECTED) 도달 후 들어오는 모순 업데이트는 상태를 덮어쓰지 않고 `history`에만 적재(브로커 쪽 지연 응답 방어). `idempotency.py`와 동일하게 프로세스 재시작 시 초기화되는 게 의도(영구 기록은 기존 `order_audit.py` JSONL이 계속 담당).
+- `api_server/main.py` — place/cancel/status 9개 엔드포인트(KR 3, US 3, options 3) 전부 브로커 응답을 `oms.record_event(venue, result)`로 흘려보내도록 배선. US paper(Alpaca) 분기는 `USOrderResponse.order_id`가 항상 0 placeholder(Alpaca 실제 id는 UUID, 필드는 int)라 그대로 넘기면 서로 다른 주문이 전부 같은 키로 뭉개짐 — Alpaca 응답의 실제 `id`를 OMS 키로 대신 사용하도록 처리. `GET /orders/oms` 신규(venue/status 필터 + limit, 최근 업데이트순) — 기존 `GET /orders/audit`(원본 이벤트 로그)는 그대로 유지, 성격이 다른 두 뷰로 병존.
+- `tests/test_oms.py` 신규 7개, `tests/test_orders_api.py`에 OMS 반영 확인 테스트 1개 추가.
+- `tests/conftest.py`의 전역 리셋 픽스처에 `oms._orders.clear()` 추가([[Phase 175]]에서 만든 `_ib_order_clients`/`idempotency._cache` 리셋과 동일한 이유 — 모듈 전역 상태라 테스트 간 누수).
+- 프론트 `app/orders/page.tsx` 신규 — venue/status 필터, 체결 진행률 바, 클릭 시 주문별 `history` 펼쳐보기. `lib/api.ts`에 `getOmsOrders`/`getOrdersAudit` + `OmsOrder`/`OrderAuditEntry` 타입 추가(raw fetch 금지 컨벤션 준수). `Sidebar.tsx` "집행" 그룹에 "주문 현황 (OMS)" 메뉴 추가. 디자인 토큰만 사용(`bg-panel`, `text-pos/neg/warn/info` 등), 진행률 바 `style={{width}}`는 `risk-guard` 페이지 기존 관행 그대로 따름.
+
+### 변경된 파일
+- `seokminal-multi-venue/api_server/oms.py` (신규)
+- `seokminal-multi-venue/api_server/main.py`
+- `seokminal-multi-venue/tests/test_oms.py` (신규)
+- `seokminal-multi-venue/tests/conftest.py`
+- `seokminal-multi-venue/tests/test_orders_api.py`
+- `seokminal-dashboard/lib/api.ts`
+- `seokminal-dashboard/app/orders/page.tsx` (신규)
+- `seokminal-dashboard/components/Sidebar.tsx`
+
+### 검증
+- `pytest tests/test_oms.py` 7/7, `pytest tests/` 1106 passed — pre-existing 실패 5건만(`test_auth.py`×3, `test_backtest_happy_path`, `test_orderflow_ib_adapter.py` flaky), 신규 회귀 없음
+- `npx tsc --noEmit` 클린, `npm test` 266/266 통과
+- 브라우저 라이브 확인(Chrome 확장) — `/orders` 페이지 로드, venue/status 필터 클릭 정상 동작, 콘솔 에러 없음(HMR/DevTools 로그만). 실제 주문 미체결 상태라 빈 목록만 확인 — 실 주문 흐름에서 부분체결 진행률/history 렌더링 자체는 미검증(코드 리뷰+단위테스트로만 커버)
+
+### 다음 할 일
+- 없음(요청 항목 완료). 실제 부분체결 케이스에서의 UI 확인은 라이브 주문 발생 시 함께 확인 권장.
+- 남은 백로그: ai-trader → `/agents` 완전 대체, Polymarket whale validate 재실행(BLOCKED, 데이터 부족), 실시간 포지션·PnL 대시보드.
+
+---
+
+## Phase 175 — 주문 멱등성 + IB 연결 풀링 (2026-07-17) ✅ SHIPPED
+
+로드맵 "실매매 안전화 후속" 잔여 항목. 두 개 독립 이슈 한 스코프로 묶어 처리: (1) 클라이언트 재시도 시 브로커에 중복 주문 위험 (2) `/orders/us`, `/orders/options` 6개 엔드포인트가 매 요청마다 `IBOrderClient` 새로 만들고 요청 끝나면 `close()` — TWS 핸드셰이크를 매번 반복. SDD 없이 직접 구현(`feedback_no_process_theater`).
+
+### 완료된 작업
+- `api_server/idempotency.py` 신규 — in-process TTL(5분)/사이즈캡(1000, 오래된 것부터 제거) 캐시, `(venue, client_order_id)` 키. `client_order_id` 없으면 완전 no-op(기존 클라이언트 하위호환).
+- `KROrderRequest`/`USOrderRequest`/`OptionOrderRequest`에 `client_order_id: str | None = None` 옵션 필드 추가.
+- `place_kr_order`/`place_us_order`(Alpaca paper 분기 포함)/`place_option_order` — 캐시 히트 시 재주문 없이 저장된 응답 바로 반환, 성공 시 결과 저장.
+- `api_server/main.py`에 `_ib_order_clients: dict[(host,port,client_id), IBOrderClient]` 모듈 전역 풀 + `_get_ib_order_client()` 헬퍼 신규. `place_us_order`/`cancel_us_order`/`get_us_order_status`/`place_option_order`/`cancel_option_order`/`get_option_order_status` 6곳 모두 `IBOrderClient(...)` 직접 생성 → 헬퍼 호출로 교체, 매 요청 끝 `finally: await ib_client.close()` 제거. `IBOrderClient._ensure_connected()`가 이미 연결 상태면 no-op이라 재사용 시 안전. `IBClient`(히스토리컬 바용, 랜덤 client_id로 동시요청 충돌 회피 목적) 경로는 건드리지 않음 — 별개 이유로 풀링 대상 아님.
+- 프론트 `client_order_id` 배선(주문 폼에서 UUID 생성해 전송)은 안 함 — 로드맵에 Backend 스코프로만 명시, UI 폼 컴포넌트 찾아 배선하는 건 별도 작업. 백엔드는 옵션 필드라 나중에 필요해지면 붙이면 됨.
+- `tests/conftest.py` 신규 — 전역 `autouse` 픽스처로 `_ib_order_clients`/`idempotency._cache` 매 테스트 전후 리셋. 풀링 도입 후 `test_orders_us_api.py`(기존 파일) 테스트 2건이 이전 테스트가 심어둔 mock 인스턴스를 풀에서 재사용해버려 실패하던 것 발견해 수정 — 모듈 전역 상태는 세션 전체에 걸쳐 누수된다는 게 원인. 앞으로 비슷한 풀링/캐시 추가 시 이 패턴 따라갈 것.
+- `tests/test_idempotency.py` 신규 7개, `tests/test_orders_api.py`에 멱등성/풀링 재사용 테스트 7개 추가(KR 1, US 3, options 2 + 기존 1).
+
+### 변경된 파일
+- `seokminal-multi-venue/api_server/idempotency.py` (신규)
+- `seokminal-multi-venue/api_server/main.py`
+- `seokminal-multi-venue/tests/conftest.py` (신규)
+- `seokminal-multi-venue/tests/test_idempotency.py` (신규)
+- `seokminal-multi-venue/tests/test_orders_api.py`
+
+### 검증
+- `pytest tests/test_idempotency.py` 7/7, `pytest tests/test_orders_api.py` 14/14 통과
+- `pytest tests/` 1098 passed, pre-existing 실패 5건만(`test_auth.py` ×3, `test_backtest_happy_path`, `test_orderflow_ib_adapter.py` flaky 1건) — 신규 회귀 없음
+- `python3 -c "import api_server.main"` 정상
+
+### 다음 할 일
+- 없음(요청 항목 완료). 프론트 `client_order_id` 배선은 필요 시 별도 작업으로.
+
+---
+
+## Phase 174 — KIS get_position 구현 (KR 봇 reconciliation) (2026-07-17) ✅ SHIPPED
+
+로드맵 "실매매 안전화 후속" 잔여 항목 착수. `live_engine/engine.py::_reconcile_position`이 이미 봇 시작 시 `broker.get_position()`을 호출해 저장된 상태를 무시하고 실제 브로커 포지션으로 재설정하는 로직을 갖고 있었음(Phase 43에서 `IBBroker.get_position`만 구현하고 KIS는 미구현으로 명시적으로 남겨둠) — `KISBroker`만 `BrokerInterface`의 기본 `get_position`(`None` 반환, "항상 flat 시작")을 오버라이드 안 하고 있어서 KR 봇만 재시작 시 실제 보유 잔고를 무시하던 상태였음. SDD 없이 직접 구현(`feedback_no_process_theater`, 단일 파일 확정 스코프).
+
+### 완료된 작업
+- `live_engine/kis_broker.py::KISBroker.get_position` 신규 — 기존 `KISOrderClient.get_holdings()`(모의투자 `inquire-balance` API, 이미 구현돼 있었음)를 `asyncio.to_thread`로 감싸 호출, 종목코드 매칭되는 보유분을 `Position(side="LONG", ...)`으로 반환(KR 현물 계좌는 공매도 불가라 side 분기 불필요). 매칭 없으면 `None`(flat).
+- `tests/test_kis_broker.py` 신규 3개 — 보유분 매칭/코드 불일치/빈 잔고(flat) 케이스.
+
+### 변경된 파일
+- `seokminal-multi-venue/live_engine/kis_broker.py`
+- `seokminal-multi-venue/tests/test_kis_broker.py` (신규)
+
+### 검증
+- `pytest tests/test_kis_broker.py` 3/3 통과
+- `pytest tests/` 1085 passed, pre-existing 실패 5건만(`test_auth.py` ×3, `test_backtest_happy_path`, `test_orderflow_ib_adapter.py` flaky 1건) — 신규 회귀 없음
+
+### 다음 할 일
+- 없음(요청 항목 완료). 실계좌 라이브 검증은 미실시(모의투자 API 경로만 코드 리뷰+단위테스트로 검증 — 실 KR 봇 재시작 시나리오는 실계좌 전환 시점에 함께 확인 권장).
+
+---
+
+## Phase 173 — NQ 오더플로우 라이브 검증 + IB 포트/선물 히스토리컬 바 버그 2건 수정 (2026-07-17) ✅ SHIPPED
+
+Phase 168에서 미실시로 남았던 "TWS 켜고 NQ 실데이터 확인" 작업. 유저가 TWS를 이미 켜둔 상태([[Phase 172]])라 바로 진행 — `/orderflow`에서 NQ 선택하니 즉시 `[Errno 61] Connection refused`. 파고들어 보니 서로 독립된 버그 2개가 겹쳐 있었음.
+
+### 근본 원인 1 — `IBClient` 포트 하드코딩
+`backends/ib/client.py::IBClient`의 `port` 기본값이 `7497`로 하드코딩돼 있고 `IB_PORT` 환경변수를 아예 안 읽음. `orderflow/ib_adapter.py`(라이브 틱 데이터용, `os.environ.get("IB_PORT", "7497")` 패턴 이미 있음)와 정반대. 이 계정은 TWS가 커스텀 포트 7498을 쓰는데, `.env`에 `IB_PORT` 자체가 존재하지 않아 `IBClient()`를 쓰는 `/ib/bars`, `/ib/options/chain` 등 모든 엔드포인트가 이 계정에서 항상 refused였음(VRP만 자체 `_ib_port()` 기본값이 우연히 7498이라 안 걸렸던 것).
+
+### 근본 원인 2 — 선물 히스토리컬 바 asset_type 미지정
+포트 고친 뒤 NQ 선택하니 이번엔 `no historical bars returned for NQ ... check IB market data permissions`. `lib/chart-bars.ts::fetchBarsForSymbol`이 접미사 없는 심볼(NQ 포함) 전부 `asset_type: "stock"`으로 `/ib/bars` 호출 — NQ는 선물인데 주식으로 조회하니 당연히 빈 응답. `ib_adapter.py`엔 이미 NQ용 선물 계약 해석(`_FUTURES_SYMBOLS`, 만기 미지정 시 `reqContractDetailsAsync`로 front-month 자동 선택) 로직이 있었지만, 히스토리컬 바 경로(`backends/ib/client.py::get_daily_bars_future`)는 애초에 `expiry` 필수 파라미터였고 프론트도 넘긴 적이 없어 미구현 상태였음.
+
+### 완료된 작업
+- `backends/ib/client.py` — `IBClient.__init__`의 `port` 기본값을 `None`으로 바꾸고 `IB_PORT` 환경변수 읽도록 수정(`ib_adapter.py`와 동일 패턴).
+- `.env` — `IB_PORT=7498` 추가(이 계정 TWS 커스텀 포트, 이전엔 아예 없었음).
+- `backends/ib/client.py::get_daily_bars_future` — `expiry` 빈 문자열이면 qualify 실패(conId=0)를 감지해 `reqContractDetailsAsync`로 만기 지나지 않은 최근월물을 직접 선택하도록 추가(`ib_adapter.py::_resolve_contract`와 동일 패턴 재사용).
+- `lib/chart-bars.ts` — `FUTURES_EXCHANGE` 매핑(`ib_adapter.py::_FUTURES_SYMBOLS`와 동일: NQ/MNQ/ES/GC) 추가, 매핑에 있으면 `asset_type: "future"` + `exchange`를 넘기도록 수정. 매핑 밖 심볼(AAPL 등)은 기존 `stock` 동작 그대로.
+
+### 변경된 파일
+- `seokminal-multi-venue/backends/ib/client.py`
+- `seokminal-multi-venue/.env`
+- `seokminal-multi-venue/tests/test_ib_client.py` (FakeIB에 `qualifyContractsAsync` conId 시뮬레이션 + `reqContractDetailsAsync` 추가, front-month 해석 테스트 1개 신규)
+- `seokminal-dashboard/lib/chart-bars.ts`
+- `seokminal-dashboard/tests/lib/chart-bars.test.ts` (NQ 테스트를 stock→future 기대치로 수정, AAPL stock 테스트 1개 신규)
+
+### 검증
+- 백엔드 `pytest tests/` 1083 passed, pre-existing 실패 3건만(`test_auth.py` ×2, `test_backtest_happy_path`) — 신규 회귀 없음. (`test_orderflow_ib_adapter.py`의 한 테스트가 전체 스위트에서 1회 흔들렸으나 단독/파일 단위 재실행 시 항상 통과 — 기존에도 있던 flaky, 이번 변경과 무관 확인)
+- 프론트 `npx tsc --noEmit` 클린, `npx vitest run tests/lib/chart-bars.test.ts` 6/6 통과
+- 브라우저 라이브 확인: `/orderflow`에서 NQ 선택 → 캔들스틱 28,xxx~29,xxx대 정상 렌더(나스닥100 선물 가격대 일치), "라이브" 상태, VWAP 값이 29,140.05→29,139.52로 실시간 갱신 확인. 콘솔 에러/경고 없음.
+
+### 다음 할 일
+- 없음(요청 항목 완료). 우측 패널 "워밍업 중 — 체결 표본 수집(20건 필요)"은 정상 초기 상태(틱 쌓이면 자동 해소).
+
+---
+
+## Phase 172 — VRP HUD stale 에러 표시 버그 수정 (2026-07-17) ✅ SHIPPED
+
+HUD `VRP 아이언콘도어` 유닛이 `⚠ [Errno 61] Connection refused` 계속 표시. 처음엔 TWS/IB Gateway가 이 맥에 안 떠 있어서 난 진짜 에러였음(포트 7498 리스닝 없음) — 유저가 TWS 직접 켬. 근데 켠 뒤에도, `/vrp/run-now`로 수동 재시도해서 백엔드는 정상 성공(`entered:0, closed:0`, 새 scan_fail 로그 없음)했는데도 HUD는 계속 옛날 에러를 보여줌 — 이건 별도의 진짜 프론트 버그였음.
+
+### 근본 원인
+`vrp_bot.py::tick()`은 `last_run`을 매 tick마다 갱신하지만 `_log_event()`는 scan_fail/entry/exit 같은 "이벤트가 있을 때만" 기록함. 조용히 성공한(포지션 미진입) tick은 로그를 안 남김. `app/hud/page.tsx`가 `vrp.log[0]`(가장 최근 로그 항목)이 곧 최신 tick 결과라고 가정하고 그대로 표시 — 하지만 로그가 안 남는 성공 tick이 여러 번 지나가도 `log[0]`는 몇 tick 전 마지막 실패 그대로라 stale 에러가 계속 뜸.
+
+### 완료된 작업
+- `app/hud/page.tsx` — `vrp.last_run`과 `vrp.log[0].ts` 차이가 90초 이내일 때만 `log[0]`을 "이번 tick 결과"로 신뢰하도록 `lastLogIsCurrent` 가드 추가. 벗어나면 옛 에러 무시하고 `마지막 스캔 HH:MM:SS`로 표시.
+
+### 변경된 파일
+- `seokminal-dashboard/app/hud/page.tsx`
+
+### 검증
+- 프론트 `npx tsc --noEmit` 클린
+- 브라우저 라이브 확인: TWS 켠 뒤 `/vrp/run-now` 수동 트리거 → `last_run` 14:01:37 UTC로 갱신, 신규 scan_fail 없음 → HUD `VRP 아이언콘도어` 카드가 `⚠ Connection refused`에서 `마지막 스캔 14:01:37`로 정상 전환 확인
+
+### 다음 할 일
+- 없음(요청 항목 완료).
+
+---
+
+## Phase 171 — OrderflowLegend Hydration 경고 수정 (2026-07-17) ✅ SHIPPED
+
+Phase 167에서 미수정으로 남겼던 항목. "지금 문제 많은 것 같은데" 질문에 progress.md 미해결 목록 제시 → 유저가 이 항목 지목. SDD 미사용, 직접 수정(`feedback_no_process_theater`).
+
+### 근본 원인
+`OrderflowChart.tsx`의 `layers` state가 `useState(loadStoredLayers)`로 선언돼 클라이언트 첫 렌더(hydration) 때 곧바로 localStorage를 읽음. 서버는 `typeof window === "undefined"`라 `DEFAULT_LAYERS`(전부 on)로 SSR HTML을 그리는데, 클라이언트에 저장된 prefs가 있으면(레이어 하나라도 off) 첫 렌더 결과가 서버 HTML과 달라져 React hydration mismatch 발생.
+
+### 완료된 작업
+- `layers` 초기값을 `DEFAULT_LAYERS`로 SSR과 일치시키고, mount 후 `useEffect`에서 `loadStoredLayers()` 호출해 실제 값 반영
+- persist effect(`[layers]` 의존)에 `layersFirstEffectRef` 가드 추가 — 마운트 첫 실행(아직 DEFAULT_LAYERS인 시점)에 localStorage를 덮어쓰지 않도록 방지. 가드 없으면 로드 effect가 반영되기 전에 기본값이 저장돼 사용자의 레이어 토글 설정이 초기화될 위험 있었음.
+
+### 변경된 파일
+- `seokminal-dashboard/components/orderflow/OrderflowChart.tsx`
+
+### 검증
+- 프론트 `npx tsc --noEmit` 클린, `npx vitest run` 265/265 통과(회귀 없음)
+- ~~브라우저 라이브 콘솔 확인 미실시~~ — [[Phase 173]] 이후 세션에서 확장 연결 후 `/orderflow` 2회 refresh, hydration 경고 없음(React DevTools/HMR 로그만 존재) 확인 완료.
+
+### 다음 할 일
+- 없음(요청 항목 완료).
+
+---
+
 ## Phase 169 — Polymarket Whale Tracking 가설 (2026-07-13) ✅ SHIPPED
 
 유저 취침 중 "고래찾기 + 1초마다 돈버는 봇(아마 차익매매)" 요청, 허락 없이 야간 자율 작업 지시. 두 갈래로 처리: (1) whale tracking은 브레인스토밍→플랜→SDD 6-task 파이프라인으로 완성, (2) "1초마다 돈버는 봇"은 라이브 집행 봇으로 짓지 않고 스코프를 재해석해 처리(아래 참고).
@@ -71,7 +232,7 @@ Phase 169 스펙 10절에서 미룬 항목. 기존 `research/polymarket_arb/*`(�
 - 브라우저 라이브 확인: 정상 렌더/갱신, 콘솔 에러 없음(기존부터 있던 무관한 hydration 경고 1건 재확인 — `OrderflowLegend.tsx` className 서버/클라 불일치, 이번 작업과 무관, 미수정 상태로 남음).
 
 ### 다음 할 일
-- `OrderflowLegend.tsx` hydration 경고(className 서버/클라 불일치) — 미수정, 별도 처리 필요.
+- `OrderflowLegend.tsx` hydration 경고(className 서버/클라 불일치) — [[Phase 171]]에서 수정 완료(원인은 `OrderflowLegend.tsx` 자체가 아니라 `OrderflowChart.tsx`의 layers state 초기화였음).
 
 ---
 
@@ -82,7 +243,7 @@ Phase 169 스펙 10절에서 미룬 항목. 기존 `research/polymarket_arb/*`(�
 유일하게 실제로 발견한 문제: `IBOrderflowClient` 기본 `client_id=1`이 `live_engine/ib_broker.py`의 데이터클라 client_id=1과 충돌 — 라이브 봇 구동 중 오더플로우 스트림(NQ 등) 동시 오픈 시 같은 IB Gateway에서 접속 거부/킥 위험. 기본값 20으로 변경, `IB_ORDERFLOW_CLIENT_ID` env override 추가. 커밋 `fd1c755`. 테스트 20/20 통과.
 
 ### 다음 할 일
-- IB Gateway/TWS 실접속 라이브 테스트 미실시(코드만 정적 검증) — Gateway 켜고 CME 뎁스 권한 있는 계정으로 `/orderflow`에서 NQ 선택해 실데이터 흐르는지 확인 필요.
+- ~~IB Gateway/TWS 실접속 라이브 테스트 미실시~~ — [[Phase 173]]에서 실시, 이 과정에서 별도 IB 포트/선물 히스토리컬 바 버그 2개 발견·수정.
 - 프론트에서 NQ+ES 등 non-.HL 심볼 2개 이상 동시에 띄우면 여전히 같은 client_id(20)로 충돌 — 현재 프론트 datalist엔 NQ만 노출돼 있어 당장 리스크 낮음, 필요해지면 워커별 client_id 할당 로직 추가.
 
 ---

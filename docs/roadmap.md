@@ -216,9 +216,9 @@
 | 내용 | 범위 | 우선도 |
 |---|---|---|
 | ~~실 체결가 캡처 — IBOrderClient fill 대기 → `avg_fill_price` 실제값~~ ✅ Phase 72 (wait_fill + US 라이브 IB 데이터 통일) | Backend | ✅ |
-| KIS `get_position` 구현 — KR 봇 reconciliation (현재 flat 시작) | Backend | 中 |
-| 주문 멱등성 + IB 연결 풀링 (매 요청 connect/disconnect 제거) | Backend | 中 |
-| OMS 레이어 — 상태머신 + 부분체결 추적, `/orders/audit` UI 연결 | Backend+Frontend | 中 |
+| ~~KIS `get_position` 구현~~ ✅ Phase 174 (KR 봇 reconciliation, `KISOrderClient.get_holdings` 재사용) | Backend | ✅ |
+| ~~주문 멱등성 + IB 연결 풀링~~ ✅ Phase 175 (client_order_id 캐시 + `(host,port,client_id)` 풀) | Backend | ✅ |
+| ~~OMS 레이어~~ ✅ Phase 176 (상태머신+부분체결 추적, `/orders/oms` + `/orders` UI) | Backend+Frontend | ✅ |
 | 실시간 포지션·PnL 대시보드 — 슬리피지/수수료 반영 실현 PnL | Backend+Frontend | 中 |
 
 ### Polymarket 구조적 엣지 봇 (2026-07-07 착수, Phase 148)
