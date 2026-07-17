@@ -5,6 +5,9 @@ import {
 
 export const CRYPTO_DAYS: Record<string, number> = { "1m": 1, "15m": 5, "1h": 30, "4h": 90, "1d": 180, "1M": 365 };
 
+// orderflow/ib_adapter.py의 _FUTURES_SYMBOLS와 동일 매핑 — 접미사 없는 선물 심볼은 stock 대신 future로 조회.
+const FUTURES_EXCHANGE: Record<string, string> = { NQ: "CME", MNQ: "CME", ES: "CME", GC: "COMEX" };
+
 export const IB_INTRADAY_CONFIG: Record<string, { bar: IBBarSize; dur: string }> = {
   "1m": { bar: "1 min", dur: "2 D" },
   "15m": { bar: "15 mins", dur: "5 D" },
@@ -62,19 +65,27 @@ export async function fetchBarsForSymbol(symbol: string, tfId: string, signal: A
     return res.bars.map(krBarToBarOut);
   }
 
+  const code = symbol.split(".")[0];
+  const futuresExchange = FUTURES_EXCHANGE[code];
+  const ibParams = futuresExchange
+    ? { symbol: code, asset_type: "future" as const, exchange: futuresExchange }
+    : { symbol: code, asset_type: "stock" as const };
+
   if (isDaily) {
-    try {
-      const res = await getBars(symbol, oneYearAgo(), today(), undefined, signal);
-      if (res.bars.length > 0) return res.bars;
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") throw err;
+    if (!futuresExchange) {
+      try {
+        const res = await getBars(symbol, oneYearAgo(), today(), undefined, signal);
+        if (res.bars.length > 0) return res.bars;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") throw err;
+      }
     }
-    const res = await getIBBars({ symbol: symbol.split(".")[0], asset_type: "stock", duration: "2 Y", bar_size: "1 day" }, signal);
+    const res = await getIBBars({ ...ibParams, duration: "2 Y", bar_size: "1 day" }, signal);
     if (res.bars.length === 0) throw new Error("빈 응답");
     return res.bars.map(ibBarToBarOut);
   }
 
-  const res = await getIBBars({ symbol: symbol.split(".")[0], asset_type: "stock", duration: cfg.dur, bar_size: cfg.bar }, signal);
+  const res = await getIBBars({ ...ibParams, duration: cfg.dur, bar_size: cfg.bar }, signal);
   if (res.bars.length === 0) throw new Error("빈 응답 (IB 연결·구독 확인)");
   return res.bars.map(ibBarToBarOut);
 }

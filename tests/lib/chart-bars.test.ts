@@ -49,7 +49,7 @@ describe("fetchBarsForSymbol", () => {
     ).rejects.toThrow("빈 응답");
   });
 
-  it("일봉이 아닌 IB 심볼(NQ)은 getIBBars를 asset_type=stock으로 호출한다", async () => {
+  it("일봉이 아닌 IB 선물 심볼(NQ)은 getIBBars를 asset_type=future+exchange=CME로 호출한다", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -58,6 +58,21 @@ describe("fetchBarsForSymbol", () => {
       }),
     } as Response);
     const bars = await fetchBarsForSymbol("NQ", "1m", new AbortController().signal);
+    expect(bars).toEqual([{ ts_event: 1000 * 1_000_000, open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }]);
+    const calledUrl = fetchSpy.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("asset_type=future");
+    expect(calledUrl).toContain("exchange=CME");
+  });
+
+  it("일봉이 아닌 IB 주식 심볼(AAPL)은 getIBBars를 asset_type=stock으로 호출한다", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        symbol: "AAPL",
+        bars: [{ ts_ms: 1000, open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }],
+      }),
+    } as Response);
+    const bars = await fetchBarsForSymbol("AAPL", "1m", new AbortController().signal);
     expect(bars).toEqual([{ ts_event: 1000 * 1_000_000, open: 1, high: 2, low: 0.5, close: 1.5, volume: 10 }]);
     const calledUrl = fetchSpy.mock.calls[0][0] as string;
     expect(calledUrl).toContain("asset_type=stock");
