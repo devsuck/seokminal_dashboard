@@ -200,7 +200,11 @@ export default function HudPage() {
   });
   if (vrp) {
     const lastLog = vrp.log?.[0];
-    const vrpDetail = lastLog?.kind === "scan_fail" ? `⚠ ${String(lastLog.msg ?? "실패")}`
+    // log는 실패/진입/청산 등 이벤트가 있을 때만 기록됨 — 조용히 성공한(포지션 미진입) tick은
+    // 로그를 안 남기므로, log[0]가 last_run보다 훨씬 과거(다른 tick)면 이미 해소된 옛 에러임.
+    const lastLogIsCurrent = !!(lastLog?.ts && vrp.last_run &&
+      Math.abs(new Date(vrp.last_run).getTime() - new Date(lastLog.ts).getTime()) < 90_000);
+    const vrpDetail = lastLog?.kind === "scan_fail" && lastLogIsCurrent ? `⚠ ${String(lastLog.msg ?? "실패")}`
       : vrp.last_run ? `마지막 스캔 ${vrp.last_run.slice(11, 19)}` : "스캔 대기";
     units.push({ kind: "BOT", name: "VRP 아이언콘도어", running: vrp.enabled, detail: vrpDetail, href: "/vrp" });
   }
