@@ -209,8 +209,8 @@
 | 작업 | 내용 | 범위 | 우선도 |
 |---|---|---|---|
 | ~~Task 5~~ | ~~가상 계좌 분리~~ → Phase 45에서 **사이클 fill 원장**으로 해결 (client_order_id 태깅 불필요) | — | ✅ |
-| Task 7 | 데이트레이딩 — 분봉 전략 분리 ✅ Phase 47. 남은 것: 장중 5분 사이클 실가동 e2e | Backend | 中 |
-| — | ai-trader(610줄 tmux 덤프) → `/agents` 완전 대체 (사용자 확인 후) | Frontend | 中 |
+| Task 7 | 데이트레이딩 — 분봉 전략 분리 ✅ Phase 47. 남은 것: 장중 5분 사이클 실가동 e2e (코드 아님 — 장중에 직접 지켜봐야 하는 운영 확인) | Backend | 中 |
+| — | ~~ai-trader → `/agents` 완전 대체~~ ✅ Phase 46에서 이미 완료 (코드베이스에 ai-trader 흔적 0개, 기록만 안 지워짐) | Frontend | ✅ |
 
 ### 실매매 안전화 후속 (Phase 43 한계 — 실계좌 전환 전 권장)
 | 내용 | 범위 | 우선도 |
@@ -219,7 +219,7 @@
 | ~~KIS `get_position` 구현~~ ✅ Phase 174 (KR 봇 reconciliation, `KISOrderClient.get_holdings` 재사용) | Backend | ✅ |
 | ~~주문 멱등성 + IB 연결 풀링~~ ✅ Phase 175 (client_order_id 캐시 + `(host,port,client_id)` 풀) | Backend | ✅ |
 | ~~OMS 레이어~~ ✅ Phase 176 (상태머신+부분체결 추적, `/orders/oms` + `/orders` UI) | Backend+Frontend | ✅ |
-| 실시간 포지션·PnL 대시보드 — 슬리피지/수수료 반영 실현 PnL | Backend+Frontend | 中 |
+| ~~실시간 포지션·PnL 대시보드~~ ✅ Phase 177 (OMS 체결 FIFO 매칭 `/pnl/realized`, KR은 체결가 미제공이라 주문가 추정+배지, 수수료는 bps 추정값) | Backend+Frontend | ✅ |
 
 ### Polymarket 구조적 엣지 봇 (2026-07-07 착수, Phase 148)
 | 항목 | 내용 | 상태 |

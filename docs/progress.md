@@ -1,3 +1,45 @@
+## Phase 177 — 실현 손익 대시보드 (OMS FIFO 매칭) (2026-07-17) ✅ SHIPPED
+
+로드맵 "실매매 안전화 후속" 마지막 항목. 파다가 구멍 발견: KIS 주문 응답/상태조회 어디에도 실 체결가가 없음(`KISOrderClient._row_to_status_dict`는 filled/remaining만 반환), 라이브 브로커 커미션 캡처하는 코드도 전무(backtest용 `cost_bps`뿐). 지어낸 숫자를 실제 계좌 손익처럼 보여주면 더 위험하다고 판단 — 체결가는 브로커값 있으면 그것, 없으면(KR) 주문가로 "추정" 배지 달아 표시, 수수료는 env로 설정하는 bps 추정값으로 명확히 라벨링(`fee_model.py`, 기본 0=조정 없음). SDD 없이 직접 구현(`feedback_no_process_theater`).
+
+또 하나 발견: `order_audit.jsonl`은 place 호출 순간 스냅샷이라 KIS/IB는 항상 filled=0으로 찍힘(체결은 비동기 확정) — PnL 계산은 `order_audit`이 아니라 이미 place/cancel/status 전체를 관통하는 `oms.py`의 최신 상태에서 가져와야 정확함. 대신 `oms.py`는 지금까지 symbol/side/price를 안 들고 있었어서(체결 진행률만 추적) 확장 필요했음.
+
+### 완료된 작업
+- `api_server/oms.py` 확장 — `record_event(venue, result, *, symbol=None, side=None)`. symbol/side는 place 호출 시점에만 알 수 있어(cancel/status 콜엔 없음) 한 번 세팅되면 유지(sticky). price는 `avg_fill_price`(IB)/`filled_avg_price`(Alpaca)를 발견할 때마다 갱신 — status/filled/remaining과 달리 종결 상태 이후에도 계속 갱신되게 함(IB가 Filled를 avg_fill_price보다 먼저 찍는 경우 늦게 온 진짜 체결가를 놓치면 안 됨).
+- `api_server/fee_model.py` 신규 — venue별 `PNL_FEE_BPS_KR`/`_US`/`_US_OPTIONS` 환경변수 bps, 미설정 시 0.
+- `api_server/order_pnl.py` 신규 — `compute_realized_pnl(orders, price_fallback)`: `oms.list_orders()` 결과를 venue+symbol별 FIFO 매칭(agent_perf.py와 동일 패턴). `price_fallback_from_audit(entries)`: order_audit 요청의 `price`/`limit_price`를 (venue, order_id)로 매핑 — OMS에 price 없는 주문(KR)만 이걸로 채우고 `price_source="estimated"` 표시, 그마저 없으면(KR MARKET) `unpriced_fills`에 세고 PnL 계산에서 제외.
+- `api_server/main.py` — `GET /pnl/realized` 신규. place 호출 9곳 중 3곳(KR/US-Alpaca/US-IB/options place)에 symbol/side 전달 추가 — Alpaca 분기는 `filled_avg_price`가 raw 응답 `r`에만 있고 `resp`엔 없어서 OMS에 별도로 얹어 전달.
+- `tests/test_fee_model.py`(4), `tests/test_order_pnl.py`(11), `tests/test_oms.py`에 symbol/side/price 캡처 테스트 4개 추가.
+- 프론트 `app/pnl/page.tsx` 신규 — venue별 카드(총/수수료/순 실현손익 + 보유포지션 + 체결 로그), "추정" 배지로 브로커값 아닌 체결가 구분, 수수료 옆에 "(설정값, 추정)" 명시. `lib/api.ts`에 `getRealizedPnl`/`VenuePnl`/`PnlTrade` 추가. `Sidebar.tsx` "집행" 그룹에 "실현 손익" 추가.
+- `docs/roadmap.md` — 이 항목 체크 처리. 겸사겸사 로드맵에 남아있던 stale 항목 정리: "ai-trader → /agents 완전 대체"는 코드베이스에 ai-trader 흔적이 이미 0개라 Phase 46에서 끝나 있었음(기록만 안 지워짐) — 체크 처리. "장중 5분 사이클 실가동 e2e"는 코드 작업이 아니라 장중에 직접 지켜봐야 하는 운영 확인이라 보류로 남겨둠.
+
+### 변경된 파일
+- `seokminal-multi-venue/api_server/oms.py`
+- `seokminal-multi-venue/api_server/fee_model.py` (신규)
+- `seokminal-multi-venue/api_server/order_pnl.py` (신규)
+- `seokminal-multi-venue/api_server/main.py`
+- `seokminal-multi-venue/tests/test_fee_model.py` (신규)
+- `seokminal-multi-venue/tests/test_order_pnl.py` (신규)
+- `seokminal-multi-venue/tests/test_oms.py`
+- `seokminal-dashboard/lib/api.ts`
+- `seokminal-dashboard/app/pnl/page.tsx` (신규)
+- `seokminal-dashboard/components/Sidebar.tsx`
+- `seokminal-dashboard/docs/roadmap.md`
+
+### 검증
+- `pytest tests/test_fee_model.py tests/test_order_pnl.py tests/test_oms.py tests/test_orders_api.py` 41/41, `pytest tests/` 1125 passed — pre-existing 실패 5건만(변경 전 main에서도 동일하게 실패함을 `git stash`로 재확인), 신규 회귀 없음
+- `npx tsc --noEmit` 클린, `npm test` 266/266 통과
+- 브라우저 라이브 확인(Chrome 확장) — `/pnl` 페이지 로드, 빈 상태 정상 렌더링, 콘솔 에러 없음. 실제 체결 있는 상태(수수료 적용/추정가 배지/포지션 카드) 렌더링은 라이브 주문 발생 전이라 코드 리뷰+단위테스트로만 커버(실 브로커에 모의주문 넣는 건 스코프 밖으로 판단해 안 함)
+
+### 막힌 부분 / 결정사항
+- KR(KIS) 체결가는 구조적으로 브로커가 안 줌 — `KISOrderClient`가 실 체결가를 캡처하려면 KIS API 자체를 더 파야 함(다른 엔드포인트 있는지 확인 필요), 지금은 주문가 추정으로 남겨둠. 나중에 KR 실계좌 비중 커지면 우선순위 올릴 것.
+- 수수료 bps는 아직 아무 값도 안 정해짐(기본 0) — 실제 계좌의 진짜 수수료율 알게 되면 `.env`에 `PNL_FEE_BPS_KR` 등으로 채워 넣으면 바로 반영됨.
+
+### 다음 할 일
+- 요청 항목(백로그 3개) 전부 처리: ai-trader→/agents는 이미 완료 확인, PnL 대시보드는 이번에 완료, 장중 5분 사이클 실가동 e2e만 운영 작업으로 남음(장 열렸을 때 별도 진행).
+
+---
+
 ## Phase 176 — OMS 레이어 (상태머신 + 부분체결 추적 + 주문현황 UI) (2026-07-17) ✅ SHIPPED
 
 로드맵 "실매매 안전화 후속" 잔여 항목. 기존엔 `order_audit.py`가 append-only 이벤트 로그(제출/거절/에러)만 남기고 있었고, place/cancel/status 응답의 `status`/`filled`/`remaining`은 그 요청 순간에만 존재했다가 사라짐 — 재시작 없이도 "이 주문 지금 얼마나 체결됐나"를 한눈에 볼 방법이 없었음. 브로커별 상태 문자열도 제각각(KIS: SUBMITTED/OPEN/PARTIAL/FILLED/CANCELLED, IB ib_insync: PendingSubmit/Submitted/Filled/Cancelled/Inactive 등) — 프론트가 직접 브로커별 문자열 분기하지 않도록 서버에서 공통 상태로 정규화. SDD 없이 직접 구현(`feedback_no_process_theater`).

@@ -2187,6 +2187,32 @@ export async function getOrdersAudit(limit = 100, signal?: AbortSignal): Promise
   return handleResponse(r);
 }
 
+// ── 실현 PnL (OMS 체결 FIFO 매칭) ───────────────────────────────────────────────
+
+export interface PnlTrade {
+  order_id: string;
+  symbol: string;
+  side: "buy" | "sell";
+  qty: number;
+  price: number;
+  price_source: "broker" | "estimated";
+  ts: string;
+  realized_pnl: number | null;
+}
+export interface VenuePnl {
+  venue: string;
+  trades: PnlTrade[];
+  gross_realized_pnl: number;
+  fees: number;
+  net_realized_pnl: number;
+  open_positions: { symbol: string; qty: number; avg_price: number }[];
+  unpriced_fills: number;
+}
+export async function getRealizedPnl(signal?: AbortSignal): Promise<{ venues: VenuePnl[] }> {
+  const r = await fetch(`${API_URL}/pnl/realized`, { signal });
+  return handleResponse(r);
+}
+
 // ── 리스크 (킬스위치 + drawdown) ─────────────────────────────────────────────────
 
 export interface RiskStatus {

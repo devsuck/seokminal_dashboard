@@ -129,6 +129,7 @@ export function Sidebar() {
         { href: "/overview",      label: "총 포트폴리오" },
         { href: "/portfolio",     label: "계좌 현황" },
         { href: "/orders",        label: "주문 현황 (OMS)" },
+        { href: "/pnl",           label: "실현 손익" },
       ],
     },
     // AI 에이전트 — 봇 관리·자동화
