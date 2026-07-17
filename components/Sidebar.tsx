@@ -128,6 +128,7 @@ export function Sidebar() {
         { href: "/lab/tasks",     label: "Lab Task (페이퍼 모니터)" },
         { href: "/overview",      label: "총 포트폴리오" },
         { href: "/portfolio",     label: "계좌 현황" },
+        { href: "/orders",        label: "주문 현황 (OMS)" },
       ],
     },
     // AI 에이전트 — 봇 관리·자동화

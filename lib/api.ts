@@ -2150,6 +2150,43 @@ export async function getPairsBacktest(a: string, b: string, costBps = 5, signal
   return handleResponse<PairsResult>(r);
 }
 
+// ── OMS (주문 상태머신 + 부분체결 추적) ───────────────────────────────────────────
+
+export interface OmsOrder {
+  venue: string;
+  order_id: string;
+  status: "OPEN" | "PARTIALLY_FILLED" | "FILLED" | "CANCELLED" | "REJECTED";
+  filled: number;
+  remaining: number;
+  created_ts: string;
+  updated_ts: string;
+  history: { ts: string; status: string; filled: number; remaining: number }[];
+}
+export async function getOmsOrders(
+  params?: { venue?: string; status?: string; limit?: number },
+  signal?: AbortSignal,
+): Promise<{ orders: OmsOrder[] }> {
+  const p = new URLSearchParams();
+  if (params?.venue) p.set("venue", params.venue);
+  if (params?.status) p.set("status", params.status);
+  if (params?.limit) p.set("limit", String(params.limit));
+  const qs = p.toString();
+  const r = await fetch(`${API_URL}/orders/oms${qs ? `?${qs}` : ""}`, { signal });
+  return handleResponse(r);
+}
+
+export interface OrderAuditEntry {
+  ts: string;
+  venue: string;
+  status: string;
+  request: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+}
+export async function getOrdersAudit(limit = 100, signal?: AbortSignal): Promise<{ entries: OrderAuditEntry[] }> {
+  const r = await fetch(`${API_URL}/orders/audit?limit=${limit}`, { signal });
+  return handleResponse(r);
+}
+
 // ── 리스크 (킬스위치 + drawdown) ─────────────────────────────────────────────────
 
 export interface RiskStatus {
