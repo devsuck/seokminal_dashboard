@@ -137,6 +137,7 @@ export default function PolymarketPage() {
             { key: "min_price", label: "최소가", val: bot.min_price, w: "w-14", step: true },
             { key: "max_price", label: "최대가", val: bot.max_price, w: "w-14", step: true },
             { key: "min_days_to_resolution", label: "최소잔여일", val: bot.min_days_to_resolution, w: "w-12" },
+            { key: "max_days_to_resolution", label: "최대잔여일", val: bot.max_days_to_resolution, w: "w-12" },
           ].map(f => (
             <span key={f.key} className="flex items-center gap-1">
               <label className="text-text-3">{f.label}</label>

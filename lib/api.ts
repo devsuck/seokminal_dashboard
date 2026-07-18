@@ -3265,14 +3265,14 @@ export interface PolymarketBotLog { ts: string; kind: string; [k: string]: unkno
 export interface PolymarketBotStatus {
   enabled: boolean; interval_sec: number; budget: number; per_market_usd: number;
   max_positions: number; min_liquidity: number; min_price: number; max_price: number;
-  min_days_to_resolution: number; side: string; spent: number; realized_pnl: number;
+  min_days_to_resolution: number; max_days_to_resolution: number; side: string; spent: number; realized_pnl: number;
   remaining: number; positions: PolymarketPosition[]; last_run: string | null;
   log: PolymarketBotLog[]; note: string;
 }
 export interface PolymarketBotConfig {
   enabled?: boolean; interval_sec?: number; budget?: number; per_market_usd?: number;
   max_positions?: number; min_liquidity?: number; min_price?: number; max_price?: number;
-  min_days_to_resolution?: number; side?: string; reset_spent?: boolean;
+  min_days_to_resolution?: number; max_days_to_resolution?: number; side?: string; reset_spent?: boolean;
 }
 
 export async function getPolymarketBotStatus(signal?: AbortSignal): Promise<PolymarketBotStatus> {
