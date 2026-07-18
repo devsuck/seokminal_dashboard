@@ -74,6 +74,7 @@ export const TRANSLATIONS: Translations = {
   "page.spawner.title":         { ko: "전략 검증기",    en: "Spawner",         de: "Spawner" },
   "page.rolling.title":         { ko: "롤링 분석",      en: "Rolling",         de: "Rollend" },
   "page.experiments.title":     { ko: "실험실",         en: "Experiments",     de: "Experimente" },
+  "page.orderflow.title":       { ko: "오더플로우",     en: "Order Flow",      de: "Order Flow" },
 
   // Page banners — description
   "page.dashboard.desc": {
@@ -175,6 +176,11 @@ export const TRANSLATIONS: Translations = {
     ko: "전략 파라미터 실험을 기록하고 결과를 비교·관리합니다.",
     en: "Log strategy parameter experiments and compare results.",
     de: "Protokollieren Sie Strategie-Parameter-Experimente und vergleichen Sie Ergebnisse.",
+  },
+  "page.orderflow.desc": {
+    ko: "실시간 풋프린트·호가·체결 흐름을 재량 판단용으로 시각화합니다. 자동매매 검증된 알파가 아니라 진입 타이밍·리스크 관리 보조 도구입니다.",
+    en: "Visualizes live footprint, order book, and tape flow for discretionary reads. A timing and risk aid, not a validated systematic alpha source.",
+    de: "Visualisiert Live-Footprint, Orderbuch und Tape-Flow für diskretionäre Einschätzungen. Ein Timing- und Risikohilfsmittel, keine validierte systematische Alpha-Quelle.",
   },
 
   // Insider trading

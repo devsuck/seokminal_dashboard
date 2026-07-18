@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   CompositeValueArea,
   IcebergLevel,
@@ -53,6 +53,8 @@ type FeedEvent =
   | { kind: "spoof"; time: number; side: "bid" | "ask"; price: number; peakSize: number; note: string };
 
 const FEED_MAX = 14;
+/** 활용 가이드 최초 1회 자동 펼침 여부 저장 키 — 처음엔 가르쳐주고, 닫으면 그 뒤로 기본 접힘. */
+const GUIDE_SEEN_KEY = "orderflow-guide-seen";
 /** TPO 래더에 표시할 최대 가격행 수 — POC 중심으로 위아래 잘라서 스크롤 없이 훑어볼 정도만. */
 const TPO_ROW_MAX = 14;
 /** CVD 기울기 판정 시 비교할 과거 버킷 수 (1분봉 기준 10분 전 대비). */
@@ -138,6 +140,17 @@ export function OrderflowSignalPanel({
     return { label: "중립 · 혼조", tone: "text-text-2" };
   }, [imbalance, cvdSlope]);
 
+  const [guideOpen, setGuideOpen] = useState(false);
+  useEffect(() => {
+    let seen = false;
+    try {
+      seen = window.localStorage.getItem(GUIDE_SEEN_KEY) === "1";
+    } catch {
+      // localStorage 불가 환경에서는 매번 펼침 상태로 시작.
+    }
+    setGuideOpen(!seen);
+  }, []);
+
   const feed = useMemo<FeedEvent[]>(() => {
     const events: FeedEvent[] = [
       ...absorptionMarkers.map((m) => ({ kind: "absorption" as const, time: m.time, side: m.side })),
@@ -162,13 +175,34 @@ export function OrderflowSignalPanel({
     return events.sort((a, b) => b.time - a.time).slice(0, FEED_MAX);
   }, [absorptionMarkers, stopRunMarkers, divergenceMarkers, largeTrades, spoofAlerts]);
 
+  // 숫자 6~7개를 조합해서 읽어야 했던 걸 한 줄 판단으로 압축 — 라이브로 지켜볼 때 바로 읽히게.
+  const headline = useMemo<string | null>(() => {
+    if (!warmedUp || !bias) return null;
+    if (bias.label !== "매수 우위" && bias.label !== "매도 우위") {
+      return "방향성 혼조 — POC/VWAP 근처 회귀매매 관점이 더 맞는 국면";
+    }
+    const dir = bias.label === "매수 우위" ? "매수" : "매도";
+    const agree = (bias.label === "매수 우위" && cvdSlope > 0) || (bias.label === "매도 우위" && cvdSlope < 0);
+    const latest = feed.find((ev) => ev.kind === "absorption" || ev.kind === "stopRun" || ev.kind === "divergence");
+    let latestNote = "";
+    if (latest?.kind === "absorption") latestNote = " · 최근 흡수 이벤트 — 반대편 물량 주시";
+    else if (latest?.kind === "stopRun") latestNote = " · 최근 스탑런 — 되돌림 후보 구간";
+    else if (latest?.kind === "divergence") latestNote = " · 최근 델타 다이버전스 — 약한 극값 가능";
+    return `${dir} 쪽 힘 쏠림, CVD ${agree ? "동의" : "비동의"} — ${
+      agree ? "추세 지속 관점" : "신뢰도 낮음, 되돌림 주의"
+    }${latestNote}`;
+  }, [warmedUp, bias, cvdSlope, feed]);
+
   return (
     <div className="text-xs">
       <Section title="종합 편향 (호가 + 체결 + CVD 합의)">
         {!warmedUp ? (
           <div className="text-text-3">워밍업 중 — 체결 표본 수집 (20건 필요)</div>
         ) : bias ? (
-          <div className={`text-base font-data ${bias.tone}`}>{bias.label}</div>
+          <>
+            <div className={`text-base font-data ${bias.tone}`}>{bias.label}</div>
+            {headline && <div className="mt-1 text-[11px] text-text-2 leading-relaxed">{headline}</div>}
+          </>
         ) : (
           <div className="text-text-3">데이터 대기 중</div>
         )}
@@ -361,8 +395,22 @@ export function OrderflowSignalPanel({
         )}
       </Section>
 
-      <details className="px-3 py-2.5">
-        <summary className="text-[11px] text-text-3 cursor-pointer">활용 가이드</summary>
+      <details
+        className="px-3 py-2.5"
+        open={guideOpen}
+        onToggle={(e) => {
+          const isOpen = e.currentTarget.open;
+          setGuideOpen(isOpen);
+          if (!isOpen) {
+            try {
+              window.localStorage.setItem(GUIDE_SEEN_KEY, "1");
+            } catch {
+              // localStorage 불가 환경 — 다음 방문 시 다시 펼쳐짐, 기능상 문제 없음.
+            }
+          }
+        }}
+      >
+        <summary className="text-[11px] text-text-3 cursor-pointer">활용 가이드 (처음이면 펼쳐서 읽기)</summary>
         <ul className="mt-2 space-y-1.5 text-[11px] text-text-2 leading-relaxed">
           <li>· 종합 편향이 한쪽 우위 + CVD 같은 방향이면 추세 지속 가능성.</li>
           <li>· 호가는 매수 우세인데 체결이 매도 우세면 매수벽 소진 여부 주시 (흡수 이벤트 확인).</li>
