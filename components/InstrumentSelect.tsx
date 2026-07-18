@@ -22,9 +22,12 @@ const KNOWN_INSTRUMENTS = [
 interface InstrumentSelectProps {
   value: string;
   onChange: (value: string) => void;
+  /** 미지정 시 KNOWN_INSTRUMENTS(전체 카탈로그) 사용 — 오더플로우처럼 지원 종목이 좁은 페이지는 좁힌 목록 전달 */
+  instruments?: string[];
 }
 
-export function InstrumentSelect({ value, onChange }: InstrumentSelectProps) {
+export function InstrumentSelect({ value, onChange, instruments }: InstrumentSelectProps) {
+  const options = instruments ?? KNOWN_INSTRUMENTS;
   return (
     <>
       <input
@@ -35,7 +38,7 @@ export function InstrumentSelect({ value, onChange }: InstrumentSelectProps) {
         placeholder="AAPL.NASDAQ"
       />
       <datalist id="known-instruments">
-        {KNOWN_INSTRUMENTS.map((id) => (
+        {options.map((id) => (
           <option key={id} value={id} />
         ))}
       </datalist>
