@@ -8,15 +8,18 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { BarOut } from "@/lib/api";
+import { TOKEN, CATEGORICAL } from "@/lib/chart-colors";
 
-// Hex values match design tokens; bgClass is the Tailwind equivalent for legend use
+// 여러 심볼을 나란히 비교하는 차트이므로 색상은 의미(양/음 등)가 아니라 시리즈 구분용 —
+// CATEGORICAL 팔레트에서 가져온다. bgClass는 범례용 Tailwind arbitrary-value 등가물이며
+// Tailwind가 정적 클래스명을 필요로 하므로 CATEGORICAL 값과 동일한 리터럴로 수동 동기화한다.
 export const SERIES_CONFIG = [
-  { color: "#3B82F6", bgClass: "bg-info" },
-  { color: "#22C55E", bgClass: "bg-pos" },
-  { color: "#F59E0B", bgClass: "bg-warn" },
-  { color: "#EF4444", bgClass: "bg-neg" },
-  { color: "#8B5CF6", bgClass: "bg-[#8B5CF6]" },
-  { color: "#06B6D4", bgClass: "bg-[#06B6D4]" },
+  { color: CATEGORICAL[0], bgClass: "bg-[#A855F7]" },
+  { color: CATEGORICAL[1], bgClass: "bg-[#EC4899]" },
+  { color: CATEGORICAL[2], bgClass: "bg-[#14B8A6]" },
+  { color: CATEGORICAL[3], bgClass: "bg-[#F97316]" },
+  { color: CATEGORICAL[4], bgClass: "bg-[#3B82F6]" },
+  { color: CATEGORICAL[5], bgClass: "bg-[#06B6D4]" },
 ] as const;
 
 interface ComparisonChartProps {
@@ -44,21 +47,21 @@ export function ComparisonChart({ data, symbols }: ComparisonChartProps) {
       width: containerRef.current.clientWidth,
       height: 420,
       layout: {
-        background: { color: "#0F131A" },
-        textColor: "#5F6B7A",
+        background: { color: TOKEN.panel2 },
+        textColor: TOKEN.text3,
         fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#151A23" },
-        horzLines: { color: "#151A23" },
+        vertLines: { color: TOKEN.border },
+        horzLines: { color: TOKEN.border },
       },
       crosshair: {
-        vertLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
-        horzLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
+        vertLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
+        horzLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
       },
-      rightPriceScale: { borderColor: "#242A35" },
-      timeScale: { borderColor: "#242A35", timeVisible: true },
+      rightPriceScale: { borderColor: TOKEN.border },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true },
     });
     chartRef.current = chart;
 

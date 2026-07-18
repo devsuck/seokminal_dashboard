@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getOmsOrders, type OmsOrder } from "@/lib/api";
-import { LoadingState, EmptyState } from "@/components/ui";
+import { LoadingState, EmptyState, SegmentedToggle } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const VENUES = ["ALL", "KR", "US", "US_OPTIONS"] as const;
@@ -57,14 +57,12 @@ export default function OrdersOmsPage() {
       </div>
 
       <div className="flex gap-2 text-xs">
-        <div className="flex gap-1">
-          {VENUES.map(v => (
-            <button key={v} onClick={() => setVenue(v)}
-              className={`px-2.5 py-1 rounded border ${venue === v ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-1"}`}>
-              {v}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          value={venue}
+          onChange={setVenue}
+          size="sm"
+          options={VENUES.map(v => ({ value: v, label: v }))}
+        />
         <div className="w-px bg-border" />
         <div className="flex gap-1">
           {STATUSES.map(s => (

@@ -29,7 +29,7 @@ export default function OrderflowPage() {
   const [symbol, setSymbol] = useState("BTC.HL");
   const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
-  const { footprint, heatmap, book, connectionState } = useOrderflowSocket(symbol);
+  const { footprint, heatmap, book, tapeSpeed, spoofAlerts, connectionState } = useOrderflowSocket(symbol);
   const currency = currencyForSymbol(symbol);
   const { gex } = useGexSnapshot(currency ?? "");
   const hlCoin = hlCoinForSymbol(symbol);
@@ -62,7 +62,16 @@ export default function OrderflowPage() {
           <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
-      <OrderflowChart symbol={symbol} footprint={footprint} heatmap={heatmap} book={book} gex={gex} funding={funding} />
+      <OrderflowChart
+        symbol={symbol}
+        footprint={footprint}
+        heatmap={heatmap}
+        book={book}
+        tapeSpeed={tapeSpeed}
+        spoofAlerts={spoofAlerts}
+        gex={gex}
+        funding={funding}
+      />
     </div>
   );
 }

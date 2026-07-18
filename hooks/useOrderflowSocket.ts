@@ -13,6 +13,7 @@ import {
   type OrderflowDeltaMsg,
   type OrderflowSnapshot,
   type OrderflowState,
+  type SpoofAlert,
 } from "@/lib/orderflow-data";
 
 const RECONNECT_BASE_DELAY_MS = 2000;
@@ -24,6 +25,8 @@ interface UseOrderflowSocketResult {
   footprint: FootprintCell[];
   heatmap: HeatmapCell[];
   book: OrderBookState;
+  tapeSpeed: number | null;
+  spoofAlerts: SpoofAlert[];
   connectionState: OrderflowConnectionState;
 }
 
@@ -119,6 +122,8 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
     footprint: Array.from(state.footprint.values()),
     heatmap: Array.from(state.heatmap.values()),
     book: state.book,
+    tapeSpeed: state.tapeSpeed,
+    spoofAlerts: state.spoofAlerts,
     connectionState,
   };
 }

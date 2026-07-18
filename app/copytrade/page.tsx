@@ -7,7 +7,7 @@ import {
   closeCopyPosition, copyAutoExit,
   type TraderCard, type CopyPosition,
 } from "@/lib/api";
-import { EmptyState, LoadingState } from "@/components/ui";
+import { EmptyState, LoadingState, Button } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const NOTIONAL_KEY = "copytrade-notional";
@@ -249,10 +249,9 @@ export default function CopyTradePage() {
                         )}
                       </div>
 
-                      <button onClick={() => follow(t)} disabled={busy === key}
-                        className="w-full mt-3 text-xs font-medium rounded py-1.5 bg-accent text-black disabled:opacity-40">
+                      <Button variant="primary" size="sm" onClick={() => follow(t)} disabled={busy === key} className="w-full mt-3">
                         {busy === key ? "팔로우 중…" : `팔로우 (${t.num_buys}종목 페이퍼 복제)`}
-                      </button>
+                      </Button>
                     </div>
                   );
                 })}

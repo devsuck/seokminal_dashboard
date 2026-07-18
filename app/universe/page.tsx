@@ -5,6 +5,8 @@ import Link from "next/link";
 import { getKRXStockBase, ApiError, type KRXStockBaseRow } from "@/lib/api";
 import { addToWatchlist, getWatchlist } from "@/lib/watchlist-storage";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
+import { TOKEN } from "@/lib/chart-colors";
 
 type Market = "KOSPI" | "KOSDAQ";
 
@@ -103,19 +105,15 @@ export default function UniversePage() {
         <div className="flex items-end gap-3 flex-wrap">
           <div className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">Market</label>
-            <div className="flex gap-1">
-              {(["KOSPI", "KOSDAQ"] as Market[]).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setMarket(m)}
-                  className={`px-4 py-1.5 text-xs rounded border cursor-pointer transition-colors ${
-                    market === m
-                      ? "border-accent text-accent bg-accent/10": "border-border text-text-3 bg-transparent hover:text-text-2"}`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              value={market}
+              onChange={setMarket}
+              size="md"
+              options={[
+                { value: "KOSPI", label: "KOSPI" },
+                { value: "KOSDAQ", label: "KOSDAQ" },
+              ]}
+            />
           </div>
           <button
             onClick={load}
@@ -150,7 +148,8 @@ export default function UniversePage() {
                 step={mktcapMax / 100}
                 value={maxCap}
                 onChange={e => setMaxCap(parseFloat(e.target.value))}
-                className="flex-1 accent-[#FF9F1C]"/>
+                className="flex-1"
+                style={{ accentColor: TOKEN.accent }}/>
               <span className="text-text-2 text-xs font-data w-16 text-right">
                 {formatMktcap(maxCap || null)}
               </span>

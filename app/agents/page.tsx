@@ -28,6 +28,8 @@ import { ArcReactor, type HudTone } from "@/components/Hud";
 import { displayLevel } from "@/lib/agent-level";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Button, SegmentedToggle } from "@/components/ui";
+import { TOKEN, CATEGORICAL, categoricalColor } from "@/lib/chart-colors";
 
 /** God Mode 전용 아이콘 — 왕관(3-jewel). LIVE 승급 상태를 나타내는 유일한 자리에만 쓴다. */
 function IconCrown({ size = 14, className = "" }: { size?: number; className?: string }) {
@@ -49,9 +51,9 @@ const STYLE_LABEL: Record<Style, string> = { swing: "스윙", daytrade: "단타"
 const MKT_LABEL: Record<Mkt, string> = { KR: "한국주식", US: "미국주식", CRYPTO: "가상화폐" };
 
 const LV_CFG: Record<number, { color: string; bg: string; border: string; label: string }> = {
-  1: { color: "#22c55e", bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.5)",   label: "Lv1" },
-  2: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.5)",  label: "Lv2" },
-  3: { color: "#ef4444", bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.5)",   label: "Lv3" },
+  1: { color: TOKEN.pos, bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.5)",   label: "Lv1" },
+  2: { color: TOKEN.info, bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.5)",  label: "Lv2" },
+  3: { color: TOKEN.neg, bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.5)",   label: "Lv3" },
 };
 function lvCfg(lv: number) { return LV_CFG[lv] ?? LV_CFG[2]; }
 function lvToTone(lv: number): HudTone {
@@ -189,16 +191,14 @@ function StatCard({ label, value, cls }: { label: string; value: string; cls?: s
   );
 }
 
-const PIE_COLORS = ["#4488ff", "#00cc44", "#ff8c00", "#a855f7", "#14b8a6", "#ff3333", "#eab308", "#ec4899"];
-
 function PortfolioPie({ perf }: { perf: AgentPerformance }) {
   // Slices: each open position (market value) + cash.
   const slices = perf.open_positions.map((p, i) => ({
     label: p.symbol,
     value: p.qty * (p.current_price ?? p.avg_price),
-    color: PIE_COLORS[i % PIE_COLORS.length],
+    color: categoricalColor(i),
   }));
-  slices.push({ label: "현금", value: Math.max(perf.cash, 0), color: "#3a3f4b" });
+  slices.push({ label: "현금", value: Math.max(perf.cash, 0), color: TOKEN.border });
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
 
   let acc = 0;
@@ -345,7 +345,7 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
       <div className="bg-panel border rounded-lg p-3 flex items-center gap-1.5 animate-pulse-glow-purple"
         style={{ borderColor: "rgba(168,85,247,0.4)" }}>
         <IconCrown className="purple-glow-lg" />
-        <span className="text-[11px] font-semibold" style={{ color: "#c084fc" }}>God Mode 승급됨 — LIVE 집행 중</span>
+        <span className="text-[11px] font-semibold" style={{ color: CATEGORICAL[0] }}>God Mode 승급됨 — LIVE 집행 중</span>
       </div>
     );
   }
@@ -368,7 +368,7 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
       <PanelHeader right={
         <button onClick={handlePromote} disabled={!check?.eligible || promoting}
           className="text-[11px] px-3 py-1.5 rounded font-medium disabled:opacity-40"
-          style={{ background: check?.eligible ? "#a855f7" : undefined, color: check?.eligible ? "#000" : undefined }}>
+          style={{ background: check?.eligible ? CATEGORICAL[0] : undefined, color: check?.eligible ? TOKEN.bg : undefined }}>
           {promoting ? "승급 중…" : "God Mode 승급 (LIVE 전환)"}
         </button>
       }>
@@ -621,18 +621,15 @@ export default function AgentsPage() {
             {/* 투자 스타일 */}
             <div className="space-y-1">
               <p className="text-text-3 text-[10px] uppercase tracking-wider">투자 스타일</p>
-              <div className="grid grid-cols-3 gap-2">
-                {(["daytrade", "swing", "longterm"] as Style[]).map(s => (
-                  <button key={s} onClick={() => setStyle(s)}
-                    className={`text-xs py-1.5 rounded border ${style === s ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
-                    {STYLE_LABEL[s]}
-                  </button>
-                ))}
-              </div>
+              <SegmentedToggle
+                value={style}
+                onChange={setStyle}
+                options={(["daytrade", "swing", "longterm"] as Style[]).map(s => ({ value: s, label: STYLE_LABEL[s] }))}
+              />
               <div className="grid grid-cols-2 gap-2 mt-1">
                 {([
-                  { k: "autonomous", label: "자율학습 AI",   color: "#ef4444", dot: "🔴" },
-                  { k: "kr_macro",   label: "KR 거시전략",   color: "#ef4444", dot: "🔴" },
+                  { k: "autonomous", label: "자율학습 AI",   color: TOKEN.neg, dot: "🔴" },
+                  { k: "kr_macro",   label: "KR 거시전략",   color: TOKEN.neg, dot: "🔴" },
                 ] as { k: "autonomous" | "kr_macro"; label: string; color: string; dot: string }[]).map(({ k, label, color, dot }) => (
                   <button key={k} onClick={() => setStyle(k)}
                     className={`text-xs py-1.5 rounded border transition-colors ${style === k ? "" : "border-border text-text-3 hover:text-text-2"}`}
@@ -676,16 +673,14 @@ export default function AgentsPage() {
               </div>
             </div>
             {/* Paper / Live toggle */}
-            <div className="flex gap-2">
-              {[true, false].map(p => (
-                <button key={String(p)} onClick={() => setPaper(p)}
-                  className={`flex-1 text-xs py-1.5 rounded border ${
-                    paper === p
-                      ? p ? "border-pos text-pos bg-pos/10" : "border-neg text-neg bg-neg/10": "border-border text-text-3"}`}>
-                  {p ? "PAPER 모의" : "LIVE 실거래"}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              value={paper}
+              onChange={setPaper}
+              options={[
+                { value: true, label: "PAPER 모의", activeClass: "border-pos text-pos bg-pos/10" },
+                { value: false, label: "LIVE 실거래", activeClass: "border-neg text-neg bg-neg/10" },
+              ]}
+            />
             {!paper && (
               <p className="text-neg text-[10px] leading-snug">⚠ 실제 자금 집행. 되돌릴 수 없음.</p>
             )}
@@ -696,7 +691,7 @@ export default function AgentsPage() {
             )}
             {/* Autonomy level (Lv1 조건식은 백테스트 페이지의 "승격" 버튼 전용 — 여기선 생성 불가) */}
             {isLv3Style ? (
-              <div className="text-[10px] leading-snug px-2 py-1.5 rounded border" style={{ borderColor: "#ff4444", color: "#ff6666", background: "rgba(255,50,50,0.07)" }}>
+              <div className="text-[10px] leading-snug px-2 py-1.5 rounded border" style={{ borderColor: TOKEN.neg, color: TOKEN.neg, background: "rgba(255,50,50,0.07)" }}>
                 🔴 Lv3 고정 — 뉴스·공시·ML 자가학습 풀 피처. 페이퍼로 시작(승급은 실적으로 별도 심사).
               </div>
             ) : (
@@ -719,16 +714,15 @@ export default function AgentsPage() {
                   );
                 })}
                 {autonomy === 3 && (
-                  <p className="text-[10px] leading-snug" style={{ color: "#ff4444" }}>
+                  <p className="text-[10px] leading-snug" style={{ color: TOKEN.neg }}>
                     🔴 Lv3: {style === "daytrade" ? "Claude AI 에이전틱 자가학습 — 10사이클마다 실적 분석 후 전략·유니버스 자동 재편성. 페이퍼로 시작." : "뉴스·공시·ML 자가학습 모두 활성화. 페이퍼 전용 샌드박스 권장."} 최근 실적이 3조건을 통과하면 God Mode 승급(live) 가능.
                   </p>
                 )}
               </div>
             )}
-            <button onClick={handleCreate} disabled={creating}
-              className={`w-full text-sm font-medium rounded py-1.5 disabled:opacity-40 ${paper ? "bg-accent text-black" : "bg-neg text-black"}`}>
+            <Button variant={paper ? "primary" : "sell"} onClick={handleCreate} disabled={creating} className="w-full">
               {creating ? "생성 중…" : paper ? "에이전트 생성 (모의)" : "에이전트 생성 (실거래)"}
-            </button>
+            </Button>
             </div>
           </Panel>
           )}
@@ -790,7 +784,7 @@ export default function AgentsPage() {
                   <LvBadge lv={lv} />
                   {a.god_mode && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded border font-semibold inline-flex items-center gap-0.5 animate-pulse-glow-purple"
-                      style={{ color: "#c084fc", background: "rgba(168,85,247,0.1)", borderColor: "rgba(168,85,247,0.5)" }}
+                      style={{ color: CATEGORICAL[0], background: "rgba(168,85,247,0.1)", borderColor: "rgba(168,85,247,0.5)" }}
                       title="God Mode 승급됨 — 최근 실적 3조건 심사 통과 후 LIVE 집행 중">
                       <IconCrown size={9} className="purple-glow-lg" />GOD
                     </span>
@@ -800,7 +794,7 @@ export default function AgentsPage() {
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-text-3 text-[10px] font-data">자본 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
+                  <span className="text-text-3 text-[10px] font-data">배정 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
                   <div className="flex gap-1.5">
                     <button onClick={e => { e.stopPropagation(); toggle(a); }}
                       className={`text-[10px] px-2 py-0.5 rounded border ${a.status === "running" ? "border-warn/40 text-warn bg-warn/10" : "border-pos/40 text-pos bg-pos/10"}`}>
@@ -917,9 +911,8 @@ export default function AgentsPage() {
             <input value={confirmName} onChange={e => setConfirmName(e.target.value)} placeholder={confirmDel.name} autoFocus
               className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent" />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDel(null)} className="text-sm text-text-2 border border-border rounded px-4 py-1.5">취소</button>
-              <button onClick={() => remove(confirmDel, confirmName)} disabled={confirmName !== confirmDel.name}
-                className="text-sm font-medium rounded px-4 py-1.5 bg-neg text-black disabled:opacity-30">삭제</button>
+              <Button variant="outline" onClick={() => setConfirmDel(null)}>취소</Button>
+              <Button variant="sell" onClick={() => remove(confirmDel, confirmName)} disabled={confirmName !== confirmDel.name}>삭제</Button>
             </div>
           </div>
         </div>

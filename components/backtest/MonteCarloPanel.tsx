@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ApiError, getMonteCarlo, type MonteCarloResponse } from "@/lib/api";
+import { Button } from "@/components/ui";
 
 interface Props {
   instrumentId: string;
@@ -126,12 +127,13 @@ export function MonteCarloPanel({ instrumentId, start, end }: Props) {
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={run}
-            disabled={loading}
-            className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+            disabled={loading}>
             {loading ? "실행 중…" : "실행"}
-          </button>
+          </Button>
         </div>
       </div>
 

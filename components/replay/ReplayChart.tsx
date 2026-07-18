@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { createChart, CandlestickSeries, createSeriesMarkers } from "lightweight-charts";
 import type { UTCTimestamp, SeriesMarker } from "lightweight-charts";
 import type { TradeRecord, BarOut } from "@/lib/api";
+import { TOKEN } from "@/lib/chart-colors";
 
 interface ReplayChartProps {
   bars: BarOut[];
@@ -20,19 +21,19 @@ export function ReplayChart({ bars, trades, currentIndex, height = 360 }: Replay
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
       height,
-      layout: { background: { color: "#0F131A" }, textColor: "#6B7280" },
-      grid: { vertLines: { color: "#1E2530" }, horzLines: { color: "#1E2530" } },
-      timeScale: { borderColor: "#374151" },
-      rightPriceScale: { borderColor: "#374151" },
+      layout: { background: { color: TOKEN.panel2 }, textColor: TOKEN.text3 },
+      grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
+      timeScale: { borderColor: TOKEN.border },
+      rightPriceScale: { borderColor: TOKEN.border },
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#22C55E",
-      downColor: "#EF4444",
-      borderUpColor: "#22C55E",
-      borderDownColor: "#EF4444",
-      wickUpColor: "#22C55E",
-      wickDownColor: "#EF4444",
+      upColor: TOKEN.pos,
+      downColor: TOKEN.neg,
+      borderUpColor: TOKEN.pos,
+      borderDownColor: TOKEN.neg,
+      wickUpColor: TOKEN.pos,
+      wickDownColor: TOKEN.neg,
     });
 
     const candles = bars.map(b => ({
@@ -53,7 +54,7 @@ export function ReplayChart({ bars, trades, currentIndex, height = 360 }: Replay
         time: Math.floor(trade.entry_ts_ns / 1e9) as UTCTimestamp,
         position: isLong ? "belowBar" : "aboveBar",
         shape: isLong ? "arrowUp" : "arrowDown",
-        color: isLong ? "#22C55E" : "#EF4444",
+        color: isLong ? TOKEN.pos : TOKEN.neg,
         text: "E",
       });
       if (trade.exit_ts_ns !== null) {
@@ -62,7 +63,7 @@ export function ReplayChart({ bars, trades, currentIndex, height = 360 }: Replay
           time: Math.floor(trade.exit_ts_ns / 1e9) as UTCTimestamp,
           position: "aboveBar",
           shape: "circle",
-          color: exitWin ? "#22C55E" : "#EF4444",
+          color: exitWin ? TOKEN.pos : TOKEN.neg,
           text: "X",
         });
       }

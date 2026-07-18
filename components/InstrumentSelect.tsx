@@ -15,6 +15,7 @@ const KNOWN_INSTRUMENTS = [
   "035720.XKRX",
   "BTC.HL",
   "ETH.HL",
+  "PAXG.HL",
   "NQ",
 ];
 

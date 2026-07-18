@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, getEconomicCalendar, type EconomicEvent } from "@/lib/api";
 import { GroqSummaryPanel } from "@/components/GroqSummaryPanel";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
 
 type Week = "this" | "next";
 type ImpactFilter = "all" | "High" | "Medium" | "Low";
@@ -141,18 +142,17 @@ export default function CalendarPage() {
       <Panel className="flex flex-wrap gap-2 items-center px-4 py-3">
 
         {/* Week toggle */}
-        <div className="flex gap-0.5 mr-2">
-          {(["this", "next"] as Week[]).map(w => (
-            <button
-              key={w}
-              onClick={() => setWeek(w)}
-              className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
-                week === w
-                  ? "bg-accent text-black": "text-text-3 hover:text-text-1 border border-border"}`}
-            >
-              {w === "this" ? "이번 주" : "다음 주"}
-            </button>
-          ))}
+        <div className="mr-2">
+          <SegmentedToggle
+            size="sm"
+            value={week}
+            onChange={setWeek}
+            options={(["this", "next"] as Week[]).map(w => ({
+              value: w,
+              label: w === "this" ? "이번 주" : "다음 주",
+              activeClass: "bg-accent text-black",
+            }))}
+          />
         </div>
 
         <div className="h-4 w-px bg-border mx-1" />

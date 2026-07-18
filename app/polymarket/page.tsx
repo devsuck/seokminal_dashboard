@@ -5,7 +5,7 @@ import {
   ApiError, getPolymarketBotStatus, setPolymarketBotConfig, runPolymarketBotNow,
   type PolymarketBotStatus,
 } from "@/lib/api";
-import { EmptyState, LoadingState } from "@/components/ui";
+import { EmptyState, LoadingState, SegmentedToggle } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 function fmtTime(iso: string | null): string {
@@ -96,14 +96,16 @@ export default function PolymarketPage() {
               className="w-24 bg-panel-2 border border-border rounded pl-5 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          {(["favorite", "underdog", "random"] as const).map(s => (
-            <button key={s} onClick={() => setSide(s)}
-              className={`text-[11px] px-2.5 py-1 rounded border ${bot?.side === s ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
-              {SIDE_LABEL[s]}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          value={(bot?.side ?? "") as "favorite" | "underdog" | "random"}
+          onChange={setSide}
+          size="sm"
+          options={[
+            { value: "favorite", label: SIDE_LABEL.favorite },
+            { value: "underdog", label: SIDE_LABEL.underdog },
+            { value: "random", label: SIDE_LABEL.random },
+          ]}
+        />
         <button onClick={runNow} disabled={busy}
           className="text-xs px-3 py-1.5 rounded border border-border text-text-3 hover:text-accent disabled:opacity-40">
           {busy ? "실행중…" : "지금 실행"}

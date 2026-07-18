@@ -11,8 +11,9 @@ import { RollingChart, type RollingSeries } from "@/components/rolling/RollingCh
 import type { TradeRecord } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { CATEGORICAL } from "@/lib/chart-colors";
 
-const SERIES_COLORS = ["#FF9F1C", "#60A5FA", "#34D399", "#F472B6"] as const;
+const SERIES_COLORS = CATEGORICAL;
 const MAX_SELECTED = 4;
 
 function tradesToCumPnl(

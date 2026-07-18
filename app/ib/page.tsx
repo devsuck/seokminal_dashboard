@@ -5,6 +5,7 @@ import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "li
 import { ApiError, getIBBars, IB_BAR_SIZES, type IBBarsResponse, type IBBarSize } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { TOKEN } from "@/lib/chart-colors";
 
 type AssetTab = "stock" | "forex" | "future" | "option" | "crypto";
 
@@ -49,21 +50,21 @@ function CandleChart({ result }: { result: IBBarsResponse }) {
     const chart = createChart(chartRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#9AA4B2",
+        textColor: TOKEN.text2,
       },
       grid: {
-        vertLines: { color: "#2a3040" },
-        horzLines: { color: "#2a3040" },
+        vertLines: { color: TOKEN.border },
+        horzLines: { color: TOKEN.border },
       },
       width: chartRef.current.clientWidth,
       height: 320,
     });
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#44cc88",
-      downColor: "#ff4444",
+      upColor: TOKEN.pos,
+      downColor: TOKEN.neg,
       borderVisible: false,
-      wickUpColor: "#44cc88",
-      wickDownColor: "#ff4444",
+      wickUpColor: TOKEN.pos,
+      wickDownColor: TOKEN.neg,
     });
     series.setData(
       result.bars.map(b => ({

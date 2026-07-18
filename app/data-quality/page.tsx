@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { getBars, ApiError } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Button } from "@/components/ui";
 
 interface SourceMeta {
   source: string;
@@ -252,12 +253,9 @@ export default function DataQualityPage() {
               onChange={e => setInstrumentsInput(e.target.value)}
               placeholder="005930.XKRX, AAPL.NASDAQ"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-full"/>
           </div>
-          <button
-            onClick={check}
-            disabled={loading}
-            className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
+          <Button variant="primary" size="sm" onClick={check} disabled={loading}>
             {loading ? "Checking…" : "Check Coverage"}
-          </button>
+          </Button>
         </div>
       </div>
 

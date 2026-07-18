@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 import { Panel } from "@/components/ui/Panel";
+import { Button, SegmentedToggle } from "@/components/ui";
 
 type Market = "us" | "kr" | "congress" | "gov";
 type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
@@ -355,12 +356,14 @@ function KRCompanySearch({
         onChange={e => setQ(e.target.value)}
         onKeyDown={e => e.key === "Enter" && search()}
         placeholder="회사명 검색…"className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-xs w-44 focus:border-accent outline-none"/>
-      <button
+      <Button
+        variant="primary"
+        size="sm"
         onClick={search}
         disabled={loading}
-        className="bg-accent text-black text-xs px-3 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50">
+        className="rounded hover:opacity-90">
         {loading ? "…" : "검색"}
-      </button>
+      </Button>
       {results.length > 0 && (
         <div className="absolute top-8 left-0 z-20 bg-panel border border-border rounded-lg shadow-xl min-w-[220px] overflow-hidden">
           {results.slice(0, 8).map(c => (
@@ -554,40 +557,40 @@ export default function InsiderPage() {
       <div className="flex flex-wrap gap-2 items-center bg-panel border border-border rounded-lg px-4 py-3">
 
         {/* Market tabs */}
-        <div className="flex gap-0.5 mr-2">
-          {(["us", "kr", "congress", "gov"] as Market[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setMarket(m)}
-              className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
-                market === m
-                  ? "bg-accent text-black": "text-text-3 hover:text-text-1 border border-border"}`}
-            >
-              {m === "us" ? "🇺🇸 US" : m === "kr" ? "🇰🇷 KR" : m === "congress" ? " 의회" : " 정부계약"}
-            </button>
-          ))}
+        <div className="mr-2">
+          <SegmentedToggle
+            value={market}
+            onChange={setMarket}
+            size="sm"
+            options={[
+              { value: "us", label: "🇺🇸 US", activeClass: "border-accent bg-accent text-black" },
+              { value: "kr", label: "🇰🇷 KR", activeClass: "border-accent bg-accent text-black" },
+              { value: "congress", label: " 의회", activeClass: "border-accent bg-accent text-black" },
+              { value: "gov", label: " 정부계약", activeClass: "border-accent bg-accent text-black" },
+            ]}
+          />
         </div>
 
         <div className="h-4 w-px bg-border mx-1" />
 
         {/* Trade type */}
-        <div className="flex gap-0.5 flex-wrap">
-          {(market === "kr" ? KR_TRADE_FILTER_OPTS : [
+        <SegmentedToggle
+          value={tradeFilter}
+          onChange={setTradeFilter}
+          size="sm"
+          options={(market === "kr" ? KR_TRADE_FILTER_OPTS : [
             { value: "all" as TradeFilter, label: "전체" },
             { value: "BUY" as TradeFilter, label: "BUY" },
             { value: "SELL" as TradeFilter, label: "SELL" },
-          ]).map(f => (
-            <button
-              key={f.value}
-              onClick={() => setTradeFilter(f.value)}
-              className={`px-2.5 py-0.5 text-[11px] rounded font-medium transition-colors ${
-                tradeFilter === f.value
-                  ? f.value === "BUY" ? "bg-pos/20 text-pos border border-pos/30": f.value === "SELL" ? "bg-neg/20 text-neg border border-neg/30": f.value === "CORP_ACTION" ? "bg-warn/20 text-warn border border-warn/30": "border border-accent text-accent bg-accent/10": "text-text-3 hover:text-text-1 border border-border"}`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+          ]).map(f => ({
+            ...f,
+            activeClass:
+              f.value === "BUY" ? "border-pos text-pos bg-pos/10"
+              : f.value === "SELL" ? "border-neg text-neg bg-neg/10"
+              : f.value === "CORP_ACTION" ? "border-warn text-warn bg-warn/10"
+              : "border-accent text-accent bg-accent/10",
+          }))}
+        />
 
         {/* Min value (US only) */}
         {market === "us" && (
@@ -628,12 +631,14 @@ export default function InsiderPage() {
               onKeyDown={e => { if (e.key === "Enter" && usTicker) fetchUS(usTicker, days); }}
               placeholder="AAPL…  (비워두면 전체 Recent)"className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-52 focus:border-accent outline-none"/>
             {usTicker && (
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => fetchUS(usTicker, days)}
                 disabled={usLoading}
-                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-50">
+                className="rounded hover:opacity-90">
                 {usLoading ? "…" : "조회"}
-              </button>
+              </Button>
             )}
             {usTicker && (
               <button

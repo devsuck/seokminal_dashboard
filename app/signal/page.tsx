@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ApiError, getSmartSignal, type SmartSignal } from "@/lib/api";
-import { LoadingState } from "@/components/ui";
+import { Button, LoadingState } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const PRESETS = ["AAPL.NASDAQ", "MSFT.NASDAQ", "SPY.ARCA", "005930.XKRX", "000660.XKRX"];
@@ -53,7 +53,7 @@ export default function SmartSignalPage() {
         <input value={instrument} onChange={e => setInstrument(e.target.value.toUpperCase())}
           onKeyDown={e => e.key === "Enter" && run(instrument)}
           placeholder="AAPL.NASDAQ"className="w-48 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
-        <button onClick={() => run(instrument)} className="text-sm px-4 py-1.5 rounded bg-accent text-black font-medium">분석</button>
+        <Button variant="primary" size="md" onClick={() => run(instrument)}>분석</Button>
         <div className="flex gap-1.5 ml-2 flex-wrap">
           {PRESETS.map(p => (
             <button key={p} onClick={() => run(p)}

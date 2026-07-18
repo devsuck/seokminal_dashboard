@@ -10,3 +10,7 @@ export { CompositeStrategyBuilder } from "./CompositeStrategyBuilder";
 export { ChartPanel } from "./ChartPanel";
 export { MetricGrid } from "./MetricGrid";
 export { TradeLogTable } from "./TradeLogTable";
+export { Panel, PanelHeader } from "./Panel";
+export { Button } from "./Button";
+export { SegmentedToggle } from "./SegmentedToggle";
+export type { SegmentedOption } from "./SegmentedToggle";

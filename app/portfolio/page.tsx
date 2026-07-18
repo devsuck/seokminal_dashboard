@@ -6,6 +6,7 @@ import {
   type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
 
 type Tab = "accounts" | "optimizer";
 
@@ -318,15 +319,15 @@ export default function PortfolioPage() {
           <span className="text-accent">포트폴리오</span>
           <span className="text-text-3 text-xs ml-2 font-normal">연동 계좌 · 통화별 현황</span>
         </h1>
-        <div className="flex gap-1">
-          {([["accounts", "계좌 현황"], ["optimizer", "최적화 도구"]] as [Tab, string][]).map(([t, l]) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-3 py-1 text-xs rounded border transition-colors ${
-                tab === t ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
-              {l}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          value={tab}
+          onChange={setTab}
+          size="sm"
+          options={[
+            { value: "accounts", label: "계좌 현황" },
+            { value: "optimizer", label: "최적화 도구" },
+          ]}
+        />
       </div>
 
       {/* 바디 */}

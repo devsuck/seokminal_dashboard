@@ -13,6 +13,7 @@ import { TradeTab } from "@/components/market/TradeTab";
 import { AlertTab } from "@/components/market/AlertTab";
 import { IndicatorTab } from "@/components/market/IndicatorTab";
 import { DEFAULT_INDICATORS, activeIndicatorCount, type IndicatorState } from "@/lib/indicators";
+import { TOKEN } from "@/lib/chart-colors";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -178,13 +179,13 @@ function CoinBookPanel({ coin }: { coin: string }) {
     const yScale = d3.scaleLinear().domain([0, maxCum * 1.05]).range([iH, 0]);
     const bidArea = d3.area<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y0(iH).y1(d => yScale(d.cumSize)).curve(d3.curveStepAfter);
     const askArea = d3.area<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y0(iH).y1(d => yScale(d.cumSize)).curve(d3.curveStepBefore);
-    g.append("path").datum([...bidCum].reverse()).attr("d", bidArea).attr("fill", "#44cc88").attr("opacity", 0.3);
-    g.append("path").datum([...bidCum].reverse()).attr("d", d3.line<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y(d => yScale(d.cumSize)).curve(d3.curveStepAfter)).attr("fill", "none").attr("stroke", "#44cc88").attr("stroke-width", 1.5);
-    g.append("path").datum(askCum).attr("d", askArea).attr("fill", "#ff4444").attr("opacity", 0.3);
-    g.append("path").datum(askCum).attr("d", d3.line<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y(d => yScale(d.cumSize)).curve(d3.curveStepBefore)).attr("fill", "none").attr("stroke", "#ff4444").attr("stroke-width", 1.5);
-    g.append("line").attr("x1", xScale(result.mid_price)).attr("x2", xScale(result.mid_price)).attr("y1", 0).attr("y2", iH).attr("stroke", "#9AA4B2").attr("stroke-width", 1).attr("stroke-dasharray", "4 4");
-    g.append("g").attr("transform", `translate(0,${iH})`).call(d3.axisBottom(xScale).ticks(5).tickFormat(d => String(+d))).call(ax => ax.select(".domain").remove()).call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 9)).call(ax => ax.selectAll(".tick line").remove());
-    g.append("g").call(d3.axisLeft(yScale).ticks(4)).call(ax => ax.select(".domain").remove()).call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 9)).call(ax => ax.selectAll(".tick line").attr("stroke", "#2a3040").attr("x2", iW));
+    g.append("path").datum([...bidCum].reverse()).attr("d", bidArea).attr("fill", TOKEN.pos).attr("opacity", 0.3);
+    g.append("path").datum([...bidCum].reverse()).attr("d", d3.line<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y(d => yScale(d.cumSize)).curve(d3.curveStepAfter)).attr("fill", "none").attr("stroke", TOKEN.pos).attr("stroke-width", 1.5);
+    g.append("path").datum(askCum).attr("d", askArea).attr("fill", TOKEN.neg).attr("opacity", 0.3);
+    g.append("path").datum(askCum).attr("d", d3.line<{ price: number; cumSize: number }>().x(d => xScale(d.price)).y(d => yScale(d.cumSize)).curve(d3.curveStepBefore)).attr("fill", "none").attr("stroke", TOKEN.neg).attr("stroke-width", 1.5);
+    g.append("line").attr("x1", xScale(result.mid_price)).attr("x2", xScale(result.mid_price)).attr("y1", 0).attr("y2", iH).attr("stroke", TOKEN.text2).attr("stroke-width", 1).attr("stroke-dasharray", "4 4");
+    g.append("g").attr("transform", `translate(0,${iH})`).call(d3.axisBottom(xScale).ticks(5).tickFormat(d => String(+d))).call(ax => ax.select(".domain").remove()).call(ax => ax.selectAll("text").attr("fill", TOKEN.text2).attr("font-size", 9)).call(ax => ax.selectAll(".tick line").remove());
+    g.append("g").call(d3.axisLeft(yScale).ticks(4)).call(ax => ax.select(".domain").remove()).call(ax => ax.selectAll("text").attr("fill", TOKEN.text2).attr("font-size", 9)).call(ax => ax.selectAll(".tick line").attr("stroke", TOKEN.border).attr("x2", iW));
   }, [result]);
 
   return (

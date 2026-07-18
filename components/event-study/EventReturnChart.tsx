@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import type { EventStudyResult } from "@/lib/event-study-utils";
+import { TOKEN } from "@/lib/chart-colors";
 
 interface EventReturnChartProps {
   result: EventStudyResult;
@@ -52,20 +53,20 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
           .tickFormat(() => ""),
       )
       .call(gg => gg.select(".domain").remove())
-      .call(gg => gg.selectAll("line").attr("stroke", "#1E2530").attr("stroke-dasharray", "3,3"));
+      .call(gg => gg.selectAll("line").attr("stroke", TOKEN.border).attr("stroke-dasharray", "3,3"));
 
     // Zero line
     g.append("line")
       .attr("x1", 0).attr("x2", innerW)
       .attr("y1", yScale(0)).attr("y2", yScale(0))
-      .attr("stroke", "#374151").attr("stroke-width", 1);
+      .attr("stroke", TOKEN.border).attr("stroke-width", 1);
 
     // Event day vertical marker
     const zeroX = xScale("0") ?? innerW / 2;
     g.append("line")
       .attr("x1", zeroX).attr("x2", zeroX)
       .attr("y1", 0).attr("y2", innerH)
-      .attr("stroke", "#FF9F1C").attr("stroke-width", 1).attr("stroke-dasharray", "4,4");
+      .attr("stroke", TOKEN.accent).attr("stroke-width", 1).attr("stroke-dasharray", "4,4");
 
     // Line generator
     type Datum = { label: string; val: number | null };
@@ -80,7 +81,7 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
       g.append("path")
         .datum(data)
         .attr("fill", "none")
-        .attr("stroke", "#6B7280")
+        .attr("stroke", TOKEN.text3)
         .attr("stroke-width", 0.8)
         .attr("stroke-opacity", 0.35)
         .attr("d", d => lineGen(d) ?? "");
@@ -91,7 +92,7 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
     g.append("path")
       .datum(avgData)
       .attr("fill", "none")
-      .attr("stroke", "#FF9F1C")
+      .attr("stroke", TOKEN.accent)
       .attr("stroke-width", 2.5)
       .attr("d", d => lineGen(d) ?? "");
 
@@ -100,7 +101,7 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
     g.append("path")
       .datum(medData)
       .attr("fill", "none")
-      .attr("stroke", "#3B82F6")
+      .attr("stroke", TOKEN.info)
       .attr("stroke-width", 1.5)
       .attr("stroke-dasharray", "5,3")
       .attr("d", d => lineGen(d) ?? "");
@@ -109,9 +110,9 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
     g.append("g")
       .attr("transform", `translate(0,${innerH})`)
       .call(d3.axisBottom(xScale))
-      .call(gg => gg.select(".domain").attr("stroke", "#374151"))
-      .call(gg => gg.selectAll("text").attr("fill", "#6B7280").attr("font-size", "10px"))
-      .call(gg => gg.selectAll("line").attr("stroke", "#374151"));
+      .call(gg => gg.select(".domain").attr("stroke", TOKEN.border))
+      .call(gg => gg.selectAll("text").attr("fill", TOKEN.text3).attr("font-size", "10px"))
+      .call(gg => gg.selectAll("line").attr("stroke", TOKEN.border));
 
     // Y axis (percentage)
     g.append("g")
@@ -120,16 +121,16 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
           .ticks(5)
           .tickFormat(v => `${(v as number).toFixed(1)}%`),
       )
-      .call(gg => gg.select(".domain").attr("stroke", "#374151"))
-      .call(gg => gg.selectAll("text").attr("fill", "#6B7280").attr("font-size", "10px"))
-      .call(gg => gg.selectAll("line").attr("stroke", "#374151"));
+      .call(gg => gg.select(".domain").attr("stroke", TOKEN.border))
+      .call(gg => gg.selectAll("text").attr("fill", TOKEN.text3).attr("font-size", "10px"))
+      .call(gg => gg.selectAll("line").attr("stroke", TOKEN.border));
 
     // X axis label
     g.append("text")
       .attr("x", innerW / 2)
       .attr("y", innerH + 28)
       .attr("text-anchor", "middle")
-      .attr("fill", "#6B7280")
+      .attr("fill", TOKEN.text3)
       .attr("font-size", "10px")
       .text("Days from event");
 

@@ -8,18 +8,19 @@ import {
   type KnowledgeGraph, type GraphNode, type GraphEdge, type GraphUpdateStatus,
   type PaperState, type PaperPosition, type GraphHistoryPoint,
 } from "@/lib/api";
+import { TOKEN, categoricalColor } from "@/lib/chart-colors";
 
 // ── 색상 시스템 ───────────────────────────────────────────────────────────────
 const SECTOR_COLOR: Record<string, string> = {
-  hbm_memory:   "#3b82f6",   // 파랑 — 메모리
-  foundry:      "#8b5cf6",   // 보라 — 파운드리
-  equipment:    "#06b6d4",   // 시안 — 장비
-  gpu_demand:   "#ef4444",   // 빨강 — GPU
-  power_infra:  "#f59e0b",   // 앰버 — 전력
-  datacenter:   "#22c55e",   // 초록 — 데이터센터
-  cooling:      "#14b8a6",   // 틸 — 냉각
-  ai_demand:    "#f97316",   // 주황 — AI 수요
-  regulation:   "#ec4899",   // 핑크 — 규제
+  hbm_memory:   categoricalColor(0),   // 메모리
+  foundry:      categoricalColor(1),   // 파운드리
+  equipment:    categoricalColor(2),   // 장비
+  gpu_demand:   categoricalColor(3),   // GPU
+  power_infra:  categoricalColor(4),   // 전력
+  datacenter:   categoricalColor(5),   // 데이터센터
+  cooling:      categoricalColor(6),   // 냉각
+  ai_demand:    categoricalColor(7),   // AI 수요
+  regulation:   categoricalColor(8),   // 규제
 };
 const TYPE_SHAPE: Record<string, string> = {
   company:    "circle",
@@ -27,7 +28,7 @@ const TYPE_SHAPE: Record<string, string> = {
   resource:   "rect",
   technology: "triangle",
 };
-function sectorColor(s: string) { return SECTOR_COLOR[s] ?? "#5f6b7a"; }
+function sectorColor(s: string) { return SECTOR_COLOR[s] ?? TOKEN.text3; }
 
 // ── 시계열 스파크라인 (#2 추세) ────────────────────────────────────────────────
 function sparklinePath(values: number[], w: number, h: number): string {
@@ -69,7 +70,7 @@ const SOURCE_LABEL: Record<string, string> = {
   disclosure: "공시", news: "뉴스", analyst_estimate: "애널리스트 추정", ai_estimate: "AI 추정",
 };
 const SOURCE_COLOR: Record<string, string> = {
-  disclosure: "#22c55e", news: "#3b82f6", analyst_estimate: "#eab308", ai_estimate: "#5f6b7a",
+  disclosure: TOKEN.pos, news: TOKEN.info, analyst_estimate: TOKEN.warn, ai_estimate: TOKEN.text3,
 };
 
 export default function InfraGraphPage() {
@@ -179,19 +180,19 @@ export default function InfraGraphPage() {
         .attr("orient", "auto")
         .append("path")
         .attr("d", "M0,-5L10,0L0,5")
-        .attr("fill", kind === "bottleneck" ? "#ef4444" : "#5f6b7a");
+        .attr("fill", kind === "bottleneck" ? TOKEN.neg : TOKEN.text3);
     });
 
     // 링크 — 경쟁(#4) 엣지는 무방향(화살표 없음)·회색 점선으로 공급 엣지와 구분
     const link = g.append("g").selectAll("line").data(links).join("line")
-      .attr("stroke", l => l.data.relation_category === "competition" ? "#5f6b7a70" : l.data.bottleneck ? "#ef444460" : "#242a3580")
+      .attr("stroke", l => l.data.relation_category === "competition" ? `${TOKEN.text3}70` : l.data.bottleneck ? `${TOKEN.neg}60` : `${TOKEN.border}80`)
       .attr("stroke-width", l => l.data.relation_category === "competition" ? 1 : 1 + l.data.weight * 2.5)
       .attr("stroke-dasharray", l => l.data.relation_category === "competition" ? "2 3" : l.data.bottleneck ? "none" : "4 3")
       .attr("marker-end", l => l.data.relation_category === "competition" ? null : `url(#arrow-${l.data.bottleneck ? "bottleneck" : "normal"})`);
 
     // 링크 레이블
     const linkLabel = g.append("g").selectAll("text").data(links).join("text")
-      .attr("font-size", 9).attr("fill", "#5f6b7a").attr("text-anchor", "middle")
+      .attr("font-size", 9).attr("fill", TOKEN.text3).attr("text-anchor", "middle")
       .attr("pointer-events", "none")
       .text(l => RELATION_LABEL[l.data.relation] ?? l.data.relation);
 
@@ -227,7 +228,7 @@ export default function InfraGraphPage() {
         .startAngle(0).endAngle(d.bottleneck_score * 2 * Math.PI);
       d3.select(this).append("path")
         .attr("d", arc({ startAngle: 0, endAngle: d.bottleneck_score * 2 * Math.PI }))
-        .attr("fill", d.bottleneck_score > 0.7 ? "#ef4444" : sectorColor(d.sector))
+        .attr("fill", d.bottleneck_score > 0.7 ? TOKEN.neg : sectorColor(d.sector))
         .attr("opacity", 0.8);
     });
 
@@ -245,7 +246,7 @@ export default function InfraGraphPage() {
       .attr("y", d => d.r + 12)
       .attr("text-anchor", "middle")
       .attr("font-size", 10)
-      .attr("fill", "#9aa4b2")
+      .attr("fill", TOKEN.text2)
       .attr("pointer-events", "none")
       .text(d => d.label);
 
@@ -390,7 +391,7 @@ export default function InfraGraphPage() {
                   <span className="text-neg font-data text-[10px] shrink-0">{(n.bottleneck_score * 100).toFixed(0)}</span>
                 </div>
                 <div className="h-1 mt-1 rounded-full bg-panel-2 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${n.bottleneck_score * 100}%`, background: n.bottleneck_score > 0.85 ? "#ef4444" : n.bottleneck_score > 0.7 ? "#f97316" : "#eab308" }} />
+                  <div className="h-full rounded-full" style={{ width: `${n.bottleneck_score * 100}%`, background: n.bottleneck_score > 0.85 ? TOKEN.neg : n.bottleneck_score > 0.7 ? TOKEN.accent : TOKEN.warn }} />
                 </div>
               </button>
             ))}
@@ -438,7 +439,7 @@ export default function InfraGraphPage() {
             {/* 데이터 출처/신뢰도 (#7) — AI 추정치 vs 확인된 사실 구분 */}
             {selected.source && (
               <div className="flex items-center gap-1.5 text-[10px]">
-                <span className="px-1.5 py-0.5 rounded" style={{ background: (SOURCE_COLOR[selected.source] ?? "#5f6b7a") + "22", color: SOURCE_COLOR[selected.source] ?? "#5f6b7a" }}>
+                <span className="px-1.5 py-0.5 rounded" style={{ background: (SOURCE_COLOR[selected.source] ?? TOKEN.text3) + "22", color: SOURCE_COLOR[selected.source] ?? TOKEN.text3 }}>
                   {SOURCE_LABEL[selected.source] ?? selected.source}
                 </span>
                 {selected.confidence != null && (
@@ -475,14 +476,14 @@ export default function InfraGraphPage() {
             <div>
               <div className="flex justify-between text-[10px] mb-1">
                 <span className="text-text-3">병목 스코어</span>
-                <span className="font-data" style={{ color: selected.bottleneck_score > 0.8 ? "#ef4444" : selected.bottleneck_score > 0.6 ? "#f97316" : "#eab308" }}>
+                <span className="font-data" style={{ color: selected.bottleneck_score > 0.8 ? TOKEN.neg : selected.bottleneck_score > 0.6 ? TOKEN.accent : TOKEN.warn }}>
                   {(selected.bottleneck_score * 100).toFixed(0)} / 100
                 </span>
               </div>
               <div className="h-2 rounded-full bg-panel-2 overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{
                   width: `${selected.bottleneck_score * 100}%`,
-                  background: selected.bottleneck_score > 0.8 ? "#ef4444" : selected.bottleneck_score > 0.6 ? "#f97316" : "#eab308",
+                  background: selected.bottleneck_score > 0.8 ? TOKEN.neg : selected.bottleneck_score > 0.6 ? TOKEN.accent : TOKEN.warn,
                 }} />
               </div>
             </div>
@@ -490,9 +491,9 @@ export default function InfraGraphPage() {
             {/* 3축 리스크 */}
             <div className="space-y-1.5">
               {[
-                { k: "supply_risk",       label: "공급 리스크",  color: "#3b82f6" },
-                { k: "demand_pressure",   label: "수요 압박",    color: "#ef4444" },
-                { k: "policy_risk",       label: "정책 리스크",  color: "#ec4899" },
+                { k: "supply_risk",       label: "공급 리스크",  color: categoricalColor(4) },
+                { k: "demand_pressure",   label: "수요 압박",    color: categoricalColor(3) },
+                { k: "policy_risk",       label: "정책 리스크",  color: categoricalColor(1) },
               ].map(({ k, label, color }) => {
                 const v = (selected as unknown as Record<string, number>)[k] ?? 0;
                 return (
@@ -519,7 +520,7 @@ export default function InfraGraphPage() {
                 <svg width="100%" height="36" viewBox="0 0 220 36" preserveAspectRatio="none">
                   <path
                     d={sparklinePath(history.map(h => h.bottleneck_score ?? 0), 220, 32)}
-                    fill="none" stroke="#ef4444" strokeWidth={1.5}
+                    fill="none" stroke={TOKEN.neg} strokeWidth={1.5}
                   />
                 </svg>
                 <div className="flex justify-between text-[9px] text-text-3 mt-0.5">
@@ -569,7 +570,7 @@ export default function InfraGraphPage() {
                           )}
                           {e.data_source && (
                             <div className="mt-0.5">
-                              <span className="text-[9px]" style={{ color: SOURCE_COLOR[e.data_source] ?? "#5f6b7a" }}>
+                              <span className="text-[9px]" style={{ color: SOURCE_COLOR[e.data_source] ?? TOKEN.text3 }}>
                                 {SOURCE_LABEL[e.data_source] ?? e.data_source}
                                 {e.confidence != null ? ` · 신뢰도 ${(e.confidence * 100).toFixed(0)}%` : ""}
                               </span>

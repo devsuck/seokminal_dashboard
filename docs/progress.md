@@ -1,3 +1,93 @@
+## Phase 180 — Bloomberg UX/UI 업그레이드: 공통 프리미티브 + 전체 롤아웃 (2026-07-18) ✅ SHIPPED
+
+사용자 요청 "전반적으로 UXUI 업그레이드하고싶어, 블룸버그 디자인 그대로 따라가면서". 37개 페이지 전체를 한 번에 손대지 않고 공통 프리미티브부터(전체 페이지에 자동 반영되는 지레점) + 이탈 심한 페이지 하나 파일럿으로 검증 → 승인 후 나머지 페이지 일괄 롤아웃 순서로 진행. SDD 없이 직접 구현.
+
+진단: `app/globals.css`가 `@theme`로 `--radius*` 전부 0px 매핑해서 라운드 문제는 이미 토큰 레벨에서 해결돼 있었음(스크린샷에서 둥글어 보인 요소는 `rounded-full`류 별개 유틸, 이번 스코프 아님). 진짜 갭은 컴포넌트 레벨 중복 — 페이지마다 "border-row 세그먼트 토글" 패턴이 조금씩 다르게 재구현돼 있었고, `Panel`/`PanelHeader`(오렌지 헤더바) 안 쓰고 그냥 맨 폼으로 떠 있는 곳이 많았음.
+
+### 완료된 작업
+- `components/ui/Button.tsx` — variant(primary/buy/sell/outline/ghost) × size(sm/md) 버튼 프리미티브 신규.
+- `components/ui/SegmentedToggle.tsx` — 제네릭 세그먼트 토글(`T extends string | boolean`), 옵션별 `activeClass` 오버라이드로 buy=pos색/sell=neg색 커스터마이즈 가능.
+- `components/ui/index.ts` — 위 2개 + 기존 `Panel`/`PanelHeader` export 추가(additive, 기존 직접 import 안 깨짐).
+- `components/market/TradeTab.tsx` — 파일럿: `Panel`/`PanelHeader`로 감싸고 세그먼트 토글 4개 + 제출/스테퍼/모달 버튼 전부 교체. 파일럿을 "after" 레퍼런스로 삼아 나머지 페이지 기계적 스왑.
+- 롤아웃(7개 배치, 병렬 서브에이전트) — 28개 파일에 `Button`/`SegmentedToggle` 실적용(grep 검증): `app/agents,backtest,backtest/heatmap,calendar,copytrade,data-quality,event-study,forex,ict,insider,lab,macro,news,options,orders,pairs,polymarket,portfolio,search,signal,universe/page.tsx`, `components/{AutoResearchPanel,GroqSummaryPanel,backtest/MonteCarloPanel,market/AlertTab,market/SearchTab,notebooks/NoteBlockEditor,strategies/SaveStrategyForm}.tsx`.
+- 각 배치는 "기계적 스왑만, 안 맞으면 스킵" 원칙으로 진행 — 예: 캘린더 Impact 필터(비활성 시 무테두리라 프리미티브 적용하면 시각적 변화 생김), OrderflowLegend/ComparisonTab의 다중선택·고정폭 정렬 제약, `futures`/`ib` 페이지의 disabled-per-option 필요 등은 의도적으로 미적용.
+
+### 변경된 파일
+- `seokminal-dashboard/components/ui/Button.tsx`(신규), `SegmentedToggle.tsx`(신규), `index.ts`
+- 위 28개 파일(상세는 완료된 작업 참조)
+
+### 검증
+- `npx tsc --noEmit` 클린(전체), `npm test` 287/287 통과(회귀 없음)
+- 브라우저 라이브 확인: `/market` → 매도/지정가 토글 클릭, 색상·레이아웃 정상(빨강 매도, 지정가 입력창 노출), 오렌지 PanelHeader 적용 확인.
+
+### 다음 할 일
+- 미커밋 상태 — 커밋 여부 사용자 확인 필요(작업 트리에 이번 롤아웃과 무관한 기존 미커밋 변경도 섞여 있어 스테이징 시 파일 단위로 골라야 함).
+- `WatchlistSidebar.tsx`는 이미 밀도 있는 행 리스트라 이번 스코프 제외(재확인 결과 문제 없음).
+
+---
+
+## Phase 179 — Composite Value Area (2026-07-18) ✅ SHIPPED
+
+Bookmap 기능 인벤토리(iceberg/big order alert/stop volume profile/options level/spotgamma/GEX/TPO/VA/composite VA 9개 점검) 중 유일하게 전무했던 composite VA 구현. SDD 없이 직접 구현(`feedback_no_process_theater`).
+
+핵심 제약: 클라 라이브 버퍼가 `MAX_TIME_BUCKETS=300`(60s 버킷)로 ~5시간 캡 — Bookmap 원래 정의(여러 거래일 세션 병합)를 그대로 하려면 별도 히스토리 저장/조회 파이프라인이 필요한데, 백엔드에도 가격대별 히스토리 볼륨(틱 단위) REST 엔드포인트가 없어(`router_orderflow.py`엔 symbols/funding/WS뿐) 새 배관을 까는 건 요청 범위를 넘어선다고 판단. 대신 **정직한 스코프**로: 지금 버퍼 안에서 UTC 자정을 걸치는 구간이 생기면(크립토 24/7이라 거래소 세션 없음, UTC 캘린더 day가 세션 단위) 그걸 자동으로 별개 세션으로 인식해 합성 — 세션 2개 미만이면 `null`(표시 안 함, 가짜 composite로 오인 방지). 버퍼가 커지거나 향후 히스토리 배관이 생기면 같은 함수가 그대로 더 많은 세션을 합성함.
+
+### 완료된 작업
+- `lib/orderflow-data.ts` — `splitFootprintByUtcDay(cells)`(UTC day별 셀 분리, `vwapPeriodKey`의 day 앵커와 동일 규칙), `computeCompositeValueArea(dayProfiles)`: 세션별 볼륨 프로파일을 가격대로 합산 후 `computeValueArea()` 그대로 재사용(TPO와 동일 패턴, 신규 POC/VA 로직 없음), `CompositeValueArea = ValueArea & {sessionCount}`. 세션 <2개면 `null`.
+- `components/orderflow/OrderflowChart.tsx` — `compositeValueArea` useMemo(footprint를 day로 쪼개 각각 volume profile → composite), 캔들 시리즈에 cPOC/cVAH/cVAL price line 추가(`layers.compositeValueArea` 게이트, TOKEN.info 색상으로 기존 POC/VA 주황과 구분), `OrderflowSignalPanel`에 prop 전달.
+- `components/orderflow/OrderflowLegend.tsx` — `compositeValueArea` LayerKey 추가(기본 on), "cVA" 토글 칩(설명에 "세션 2개 이상 확보 시만 표시" 명시).
+- `components/orderflow/OrderflowSignalPanel.tsx` — "주요 레벨" 섹션에 cPOC(N일)/cVAH/cVAL 행 추가(compositeValueArea null이면 자동 미표시).
+- `tests/lib/orderflow-data.test.ts` — `splitFootprintByUtcDay` 2개, `computeCompositeValueArea` 3개(세션<2 null, 가격별 합산 후 POC/VA 검증, 합산 거래량 0이면 null) 추가.
+
+### 변경된 파일
+- `seokminal-dashboard/lib/orderflow-data.ts`
+- `seokminal-dashboard/components/orderflow/OrderflowChart.tsx`, `OrderflowLegend.tsx`, `OrderflowSignalPanel.tsx`
+- `seokminal-dashboard/tests/lib/orderflow-data.test.ts`
+
+### 검증
+- `npx tsc --noEmit` 클린, `npx vitest run` 287/287 통과(신규 5개 포함)
+- 브라우저 라이브 확인 안 함 — 버퍼가 5시간 캡이라 세션 2개(UTC 자정 걸침) 조건이 실시간으로 재현하기 어려움. 다음 세션에서 자정 근처 시간대에 `/orderflow` 열어서 cVA 토글이 실제로 값을 채우는지 확인 권장.
+
+### 막힌 부분 / 결정사항
+- 진짜 다중일(수일치) composite는 백엔드 히스토리 볼륨 엔드포인트가 없어 이번 스코프에서 제외 — 필요해지면 틱 컬렉터(`research/data/hl_orderflow_tick`)를 세션별로 사전집계해 REST로 노출하는 방식으로 확장 가능.
+
+### 다음 할 일
+- 없음(요청 항목 완료). 자정 근처 브라우저 라이브 확인만 다음 세션 권장.
+
+---
+
+## Phase 178 — deepchart.com 갭 closing: 주간/월간 VWAP + 체결속도 + TPO + 스푸핑 휴리스틱 (2026-07-17) ✅ SHIPPED
+
+deepchart.com 대비 기능격차 조사 후(replay UI, Deep-M 독점 블랙박스 모델은 제외 — 플랫폼의 "검증된 시그널만" 원칙과 안 맞음) 나머지 4개 항목을 오더플로우 콕핏에 추가. SDD 없이 직접 구현(`feedback_no_process_theater`). 사용자가 자리 비운 동안 4개 항목 전부 이어서 완료.
+
+### 완료된 작업
+- **주간/월간 VWAP**: `lib/orderflow-data.ts`의 `computeVwapBands(bars, period)` — UTC 캘린더 기준 앵커 리셋(일=ISO date, 월=ISO year-month, 주=epoch/7일 버킷 단순화). `OrderflowChart.tsx`에 일/주/월 3버튼 토글 추가(`OrderflowLegend.tsx`, localStorage persist, first-effect-guard 패턴으로 마운트 시 기본값 덮어쓰기 방지).
+- **체결속도(Speed of Tape)**: 클라이언트 cell-diffing(rAF 배칭 탓에 부정확)이 아니라 백엔드 `orderflow/aggregator.py`에서 실체결마다 정확히 계산(`TAPE_WINDOW_SEC=10s` 롤링, frozen). `footprint_delta` 메시지에 `tape_trades_per_sec` 실어서 프론트로 전달 → `OrderflowSignalPanel`에 표시.
+- **Market Profile(TPO)**: `computeTpoProfile()` — 30분 구간(`TPO_PERIOD_SEC=1800`, frozen)을 알파벳 1글자로 매핑(전통 CBOT 관례, 26개 넘으면 소문자 wrap). 기존 `computeValueArea()`를 "거래량" 대신 "구간터치횟수"로 재사용해 POC/VA 산출(신규 알고리즘 없음). 패널에 POC 중심 가격 래더로 표시(별도 캔버스 프리미티브 없이 우측 정보 패널 텍스트 섹션으로 — deepchart처럼 차트 위 레터 컬럼은 아니지만 POC/VA 정보량은 동일).
+- **스푸핑 의심 휴리스틱**: `orderflow/aggregator.py`에 `_check_spoof_watch`/`_resolve_spoof_watch` 추가 — 같은 스냅샷 같은 사이드 잔량 중앙값 대비 5배 이상(`SPOOF_SIZE_MULTIPLIER`, frozen) 큰 레벨이 3초 이내(`SPOOF_MAX_LIFETIME_SEC`, frozen) 체결 없이 사라지거나 축소되면 `spoof_alert` 발생. **중요한 한계**: L2 스냅샷(가격×잔량)만 있고 거래소 order-id/추가·취소·정정 이벤트가 없어 진짜 스푸핑 탐지가 구조적으로 불가능 — 정상 유동성 인출이나 상위 25단계 depth 밖으로 가격 밀려난 경우도 같은 패턴을 만들어 오탐 가능. 프론트 전 구간에 `confidence: "low"` + 설명 문구를 강제로 동반 표시(패널 이벤트 피드 + 활용가이드 문구).
+
+### 변경된 파일
+- `seokminal-multi-venue/orderflow/aggregator.py` — `TAPE_WINDOW_SEC`/`_tape_speed`, `SPOOF_*` 상수/`_check_spoof_watch`/`_resolve_spoof_watch`/`_traded_at_price_between`
+- `seokminal-multi-venue/tests/test_orderflow_aggregator.py` — tape_speed 2개, spoof_alert 5개 테스트 추가(17/17)
+- `seokminal-dashboard/lib/orderflow-data.ts` — `VwapPeriod`/`computeVwapBands` 리셋 로직, `tapeSpeed` 필드, `computeTpoProfile`/`TpoLevel`/`TpoProfile`, `SpoofAlertMsg`/`SpoofAlert`/`applySpoofAlert`
+- `seokminal-dashboard/hooks/useOrderflowSocket.ts`, `app/orderflow/page.tsx` — `tapeSpeed`/`spoofAlerts` 배선
+- `seokminal-dashboard/components/orderflow/OrderflowChart.tsx`, `OrderflowLegend.tsx`, `OrderflowSignalPanel.tsx` — VWAP 기간 토글, 체결속도 표시, TPO 래더 섹션, 스푸핑 알림 피드
+- `seokminal-dashboard/tests/lib/orderflow-data.test.ts` — VWAP 리셋 3개, tapeSpeed 2개, TPO 5개, spoofAlert 4개 추가(97/97)
+
+### 검증
+- `pytest tests/` 1145 passed — pre-existing 실패 5건만(test_auth.py×3, test_backtest_happy_path, test_orderflow_ib_adapter.py 포트 7497/7498 불일치), 신규 회귀 없음
+- `npx tsc --noEmit` 클린, `npx vitest run` 282/282 통과
+- 브라우저 라이브 확인은 안 함(사용자 부재중 자율 진행 지시라 코드리뷰+단위테스트로만 커버) — 다음 세션에서 `/orderflow` 페이지 라이브 확인 권장
+
+### 막힌 부분 / 결정사항
+- TPO는 deepchart처럼 차트 위 레터 컬럼 시각화 대신 우측 패널 텍스트 래더로 구현 — 신규 캔버스 프리미티브 없이 정보량은 동일하게 확보하는 절충. 나중에 시각적으로 더 필요해지면 `VolumeProfilePrimitive.ts` 패턴으로 캔버스 컬럼 추가 가능.
+- 스푸핑 알림은 라이브 이벤트 전용(스냅샷에 과거분 없음, `emptyOrderflowState`/`applySnapshot` 둘 다 `spoofAlerts: []`) — 재접속하면 피드가 비워짐, 필요해지면 백엔드 aggregator에 최근 N개 버퍼링해서 snapshot()에 포함시키면 됨.
+
+### 다음 할 일
+- 없음 (요청 항목 4개 전부 완료). 브라우저 라이브 확인만 다음 세션 권장.
+
+---
+
 ## Phase 177 — 실현 손익 대시보드 (OMS FIFO 매칭) (2026-07-17) ✅ SHIPPED
 
 로드맵 "실매매 안전화 후속" 마지막 항목. 파다가 구멍 발견: KIS 주문 응답/상태조회 어디에도 실 체결가가 없음(`KISOrderClient._row_to_status_dict`는 filled/remaining만 반환), 라이브 브로커 커미션 캡처하는 코드도 전무(backtest용 `cost_bps`뿐). 지어낸 숫자를 실제 계좌 손익처럼 보여주면 더 위험하다고 판단 — 체결가는 브로커값 있으면 그것, 없으면(KR) 주문가로 "추정" 배지 달아 표시, 수수료는 env로 설정하는 bps 추정값으로 명확히 라벨링(`fee_model.py`, 기본 0=조정 없음). SDD 없이 직접 구현(`feedback_no_process_theater`).

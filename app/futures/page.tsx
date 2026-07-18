@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { TOKEN } from "@/lib/chart-colors";
 
 type Tab = "pricer" | "curve" | "roll";
 
@@ -293,7 +294,7 @@ function CurveTab() {
 
     // Fill area between spot line and curve
     const isContango = rows[0]?.market_structure === "contango";
-    const fillColor = isContango ? "#ff4444" : "#44cc88";
+    const fillColor = isContango ? TOKEN.neg : TOKEN.pos;
 
     const area = d3.area<typeof rows[0]>()
       .x(d => xScale(d.expiry_days))
@@ -311,14 +312,14 @@ function CurveTab() {
     g.append("line")
       .attr("x1", 0).attr("x2", innerW)
       .attr("y1", yScale(spotVal)).attr("y2", yScale(spotVal))
-      .attr("stroke", "#9AA4B2")
+      .attr("stroke", TOKEN.text2)
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "4 4");
 
     g.append("text")
       .attr("x", -6).attr("y", yScale(spotVal) + 4)
       .attr("text-anchor", "end")
-      .attr("fill", "#9AA4B2")
+      .attr("fill", TOKEN.text2)
       .attr("font-size", 10)
       .text(`S=${spotVal}`);
 
@@ -347,7 +348,7 @@ function CurveTab() {
         .attr("x", xScale(d.expiry_days))
         .attr("y", yScale(d.price) - 8)
         .attr("text-anchor", "middle")
-        .attr("fill", "#9AA4B2")
+        .attr("fill", TOKEN.text2)
         .attr("font-size", 9)
         .text(d.price.toFixed(2));
     });
@@ -357,26 +358,26 @@ function CurveTab() {
       .attr("transform", `translate(0,${innerH})`)
       .call(d3.axisBottom(xScale).tickValues(rows.map(r => r.expiry_days)).tickFormat(d => `${d}d`))
       .call(ax => ax.select(".domain").remove())
-      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 11))
+      .call(ax => ax.selectAll("text").attr("fill", TOKEN.text2).attr("font-size", 11))
       .call(ax => ax.selectAll(".tick line").remove());
 
     // y-axis
     g.append("g")
       .call(d3.axisLeft(yScale).ticks(5).tickFormat(d => String(d)))
       .call(ax => ax.select(".domain").remove())
-      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 11))
-      .call(ax => ax.selectAll(".tick line").attr("stroke", "#2a3040").attr("x2", innerW));
+      .call(ax => ax.selectAll("text").attr("fill", TOKEN.text2).attr("font-size", 11))
+      .call(ax => ax.selectAll(".tick line").attr("stroke", TOKEN.border).attr("x2", innerW));
 
     // Axis labels
     g.append("text")
       .attr("x", innerW / 2).attr("y", innerH + 38)
-      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
+      .attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 11)
       .text("Expiry (days)");
 
     g.append("text")
       .attr("transform", "rotate(-90)")
       .attr("x", -innerH / 2).attr("y", -50)
-      .attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 11)
+      .attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 11)
       .text("Futures Price");
 
   }, [result]);

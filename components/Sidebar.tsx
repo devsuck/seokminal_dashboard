@@ -202,10 +202,10 @@ export function Sidebar() {
   return (
     <aside
       className={`h-screen sticky top-0 hidden md:flex flex-col bg-panel border-r border-border shrink-0 transition-all duration-200 ${
-        collapsed ? "w-12" : "w-52"}`}
+        collapsed ? "w-14" : "w-52"}`}
     >
       {/* Logo + collapse toggle */}
-      <div className={`flex items-center h-12 border-b border-border shrink-0 ${collapsed ? "px-0 justify-center" : "px-3"}`}>
+      <div className={`flex items-center h-12 border-b border-border shrink-0 ${collapsed ? "px-0 justify-center gap-1.5" : "px-3"}`}>
         {!collapsed && (
           <span className="flex items-center gap-2 flex-1 select-none">
             <JokerLogo size={20} />

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineSeries, HistogramSeries, type UTCTimestamp } from "lightweight-charts";
 import type { BarOut } from "@/lib/api";
+import { TOKEN } from "@/lib/chart-colors";
 
 interface MACDChartProps {
   bars: BarOut[];
@@ -50,18 +51,18 @@ export function MACDChart({ bars, fast = 12, slow = 26, signal = 9 }: MACDChartP
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
       height: 100,
-      layout: { background: { color: "#0F131A" }, textColor: "#5F6B7A", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
-      grid: { vertLines: { color: "#151A23" }, horzLines: { color: "#151A23" } },
-      rightPriceScale: { borderColor: "#242A35", scaleMargins: { top: 0.15, bottom: 0.15 } },
-      timeScale: { borderColor: "#242A35", timeVisible: true },
+      layout: { background: { color: TOKEN.panel2 }, textColor: TOKEN.text3, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
+      grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
+      rightPriceScale: { borderColor: TOKEN.border, scaleMargins: { top: 0.15, bottom: 0.15 } },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true },
     });
     const data = computeMACD(bars, fast, slow, signal);
-    const macdSeries = chart.addSeries(LineSeries, { color: "#60A5FA", lineWidth: 1, priceLineVisible: false, lastValueVisible: true });
+    const macdSeries = chart.addSeries(LineSeries, { color: TOKEN.info, lineWidth: 1, priceLineVisible: false, lastValueVisible: true });
     macdSeries.setData(data.map(d => ({ time: d.time, value: d.macd })));
-    const sigSeries = chart.addSeries(LineSeries, { color: "#F97316", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+    const sigSeries = chart.addSeries(LineSeries, { color: TOKEN.accent, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
     sigSeries.setData(data.filter(d => !isNaN(d.signal)).map(d => ({ time: d.time, value: d.signal })));
     const histSeries = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false });
-    histSeries.setData(data.filter(d => !isNaN(d.hist)).map(d => ({ time: d.time, value: d.hist, color: d.hist >= 0 ? "#22C55E60" : "#EF444460" })));
+    histSeries.setData(data.filter(d => !isNaN(d.hist)).map(d => ({ time: d.time, value: d.hist, color: d.hist >= 0 ? `${TOKEN.pos}60` : `${TOKEN.neg}60` })));
     chart.timeScale().fitContent();
     return () => chart.remove();
   }, [bars, fast, slow, signal]);

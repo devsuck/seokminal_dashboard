@@ -7,6 +7,8 @@ import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Button, SegmentedToggle } from "@/components/ui";
+import { TOKEN } from "@/lib/chart-colors";
 
 type HeatmapMetric = "sharpe" | "sortino" | "maxDrawdown" | "winRate";
 
@@ -35,24 +37,18 @@ function getMetricValue(result: BacktestResponse, metric: HeatmapMetric): number
   }
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 function interpolateColor(t: number): string {
-  // t=0 → red (#EF4444), t=0.5 → yellow (#F59E0B), t=1 → green (#22C55E)
-  const r1 = 239, g1 = 68,  b1 = 68;
-  const r2 = 245, g2 = 158, b2 = 11;
-  const r3 = 34,  g3 = 197, b3 = 94;
-  let r, g, b;
-  if (t <= 0.5) {
-    const u = t * 2;
-    r = Math.round(r1 + (r2 - r1) * u);
-    g = Math.round(g1 + (g2 - g1) * u);
-    b = Math.round(b1 + (b2 - b1) * u);
-  } else {
-    const u = (t - 0.5) * 2;
-    r = Math.round(r2 + (r3 - r2) * u);
-    g = Math.round(g2 + (g3 - g2) * u);
-    b = Math.round(b2 + (b3 - b2) * u);
-  }
-  return `rgb(${r},${g},${b})`;
+  // Diverging scale built from design tokens: t<0.5 (worse) fades toward TOKEN.neg,
+  // t>0.5 (better) fades toward TOKEN.pos. Opacity ~ distance from the neutral midpoint.
+  const [r, g, b] = hexToRgb(t >= 0.5 ? TOKEN.pos : TOKEN.neg);
+  const intensity = Math.abs(t - 0.5) * 2; // 0 at midpoint, 1 at extremes
+  const alpha = 0.15 + intensity * 0.65;
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
 }
 
 function normalizeT(value: number, min: number, max: number, invert: boolean): number {
@@ -253,29 +249,19 @@ export default function HeatmapPage() {
         {/* Row 4: Metric + Run */}
         <div className="flex items-center gap-4 flex-wrap">
           <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">Metric</span>
-          <div className="flex gap-1">
-            {(["sharpe", "sortino", "maxDrawdown", "winRate"] as HeatmapMetric[]).map(m => (
-              <button
-                key={m}
-                onClick={() => { setMetric(m); setResults({}); }}
-                className={`px-3 h-8 text-xs rounded border transition-colors cursor-pointer ${
-                  metric === m
-                    ? "bg-panel-2 text-text-1 font-semibold border-accent": "bg-panel-2 text-text-2 border-border hover:text-text-1"}`}
-              >
-                {METRIC_LABELS[m]}
-              </button>
-            ))}
-          </div>
+          <SegmentedToggle
+            value={metric}
+            onChange={(m) => { setMetric(m); setResults({}); }}
+            size="sm"
+            options={(["sharpe", "sortino", "maxDrawdown", "winRate"] as HeatmapMetric[]).map(m => ({ value: m, label: METRIC_LABELS[m] }))}
+          />
           <span className="text-text-3 text-[10px] font-data ml-auto">
             {totalCombinations} combinations
             {totalCombinations > 100 && <span className="text-warn ml-1">⚠ max 100</span>}
           </span>
-          <button
-            onClick={running ? stopHeatmap : runHeatmap}
-            disabled={totalCombinations === 0}
-            className="px-6 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed">
+          <Button variant="primary" size="md" onClick={running ? stopHeatmap : runHeatmap} disabled={totalCombinations === 0}>
             {running ? `Stop (${progress}/${total})` : "Run Heatmap"}
-          </button>
+          </Button>
         </div>
       </div>
 

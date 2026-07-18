@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { StrategyParams } from "@/lib/strategy-storage";
 import { createStrategy } from "@/lib/strategy-storage";
+import { Button } from "@/components/ui";
 
 interface SaveStrategyFormProps {
   params: StrategyParams;
@@ -49,12 +50,9 @@ export function SaveStrategyForm({ params, onSaved, onCancel }: SaveStrategyForm
       </div>
 
       <div className="flex gap-2">
-        <button
-          onClick={handleSave}
-          disabled={!name.trim()}
-          className="px-4 h-8 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed">
+        <Button variant="primary" size="md" onClick={handleSave} disabled={!name.trim()}>
           Save
-        </button>
+        </Button>
         <button
           onClick={onCancel}
           className="px-4 h-8 bg-panel border border-border text-text-2 text-xs rounded cursor-pointer hover:text-text-1 transition-colors">

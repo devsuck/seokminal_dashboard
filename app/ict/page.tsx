@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { IctChart, ICT_LEGEND } from "@/components/ict/IctChart";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
 
 const PRIMITIVES: { id: string; label: string; desc: string }[] = [
   { id: "killzone", label: "Kill Zone", desc: "지정 UTC 시간창 안에서만" },
@@ -216,15 +217,15 @@ export default function IctPage() {
           </div>
           <div className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">방향</label>
-            <div className="flex gap-1">
-              {(["bullish", "bearish"] as const).map(d => (
-                <button key={d} onClick={() => setDirection(d)}
-                  className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
-                    direction === d ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 bg-transparent hover:text-text-2"}`}>
-                  {d === "bullish" ? "롱" : "숏"}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              value={direction}
+              onChange={setDirection}
+              size="sm"
+              options={[
+                { value: "bullish", label: "롱" },
+                { value: "bearish", label: "숏" },
+              ]}
+            />
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import {
   applyFootprintDelta,
   applyHeatmapDelta,
   applyBookSnapshot,
+  applySpoofAlert,
   applyOrderflowMessage,
   emptyOrderflowState,
   diffFootprintCells,
@@ -23,6 +24,9 @@ import {
   detectIcebergLevels,
   detectStopRuns,
   computeValueArea,
+  computeTpoProfile,
+  splitFootprintByUtcDay,
+  computeCompositeValueArea,
   computeVwapBands,
   computeDeltaSeries,
   detectDeltaDivergence,
@@ -308,6 +312,76 @@ describe("applyOrderflowMessage with book_snapshot", () => {
 describe("emptyOrderflowState", () => {
   it("starts with an empty book", () => {
     expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [], venues: [] });
+  });
+
+  it("starts with tapeSpeed null", () => {
+    expect(emptyOrderflowState().tapeSpeed).toBeNull();
+  });
+
+  it("starts with an empty spoofAlerts list", () => {
+    expect(emptyOrderflowState().spoofAlerts).toEqual([]);
+  });
+});
+
+describe("applySpoofAlert", () => {
+  function alertMsg(overrides: Partial<Parameters<typeof applySpoofAlert>[1]> = {}) {
+    return {
+      type: "spoof_alert" as const,
+      ts: 100,
+      side: "bid" as const,
+      price: 65000,
+      peak_size: 12.5,
+      lifetime_sec: 1.2,
+      confidence: "low" as const,
+      note: "휴리스틱 신호",
+      ...overrides,
+    };
+  }
+
+  it("maps snake_case msg fields onto a camelCase SpoofAlert and prepends it (most recent first)", () => {
+    const state = applySpoofAlert(emptyOrderflowState(), alertMsg());
+    expect(state.spoofAlerts).toEqual([
+      { ts: 100, side: "bid", price: 65000, peakSize: 12.5, lifetimeSec: 1.2, note: "휴리스틱 신호" },
+    ]);
+  });
+
+  it("keeps most recent alert first across multiple appends", () => {
+    let state = applySpoofAlert(emptyOrderflowState(), alertMsg({ ts: 1, price: 100 }));
+    state = applySpoofAlert(state, alertMsg({ ts: 2, price: 200 }));
+    expect(state.spoofAlerts.map((a) => a.price)).toEqual([200, 100]);
+  });
+
+  it("caps the feed at SPOOF_ALERT_FEED_MAX entries", () => {
+    let state = emptyOrderflowState();
+    for (let i = 0; i < 40; i++) {
+      state = applySpoofAlert(state, alertMsg({ ts: i, price: i }));
+    }
+    expect(state.spoofAlerts.length).toBe(30);
+    expect(state.spoofAlerts[0].price).toBe(39); // 가장 최근이 맨 앞
+  });
+
+  it("is reachable via applyOrderflowMessage", () => {
+    const state = applyOrderflowMessage(emptyOrderflowState(), alertMsg());
+    expect(state.spoofAlerts).toHaveLength(1);
+  });
+});
+
+describe("applyFootprintDelta tapeSpeed tracking", () => {
+  it("adopts tape_trades_per_sec from a real backend delta", () => {
+    const state = applyFootprintDelta(emptyOrderflowState(), {
+      type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 1, tape_trades_per_sec: 0.7,
+    });
+    expect(state.tapeSpeed).toBe(0.7);
+  });
+
+  it("keeps the previous tapeSpeed when a delta omits it (locally synthesized reconcile delta)", () => {
+    let state = applyFootprintDelta(emptyOrderflowState(), {
+      type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 1, tape_trades_per_sec: 0.5,
+    });
+    state = applyFootprintDelta(state, {
+      type: "footprint_delta", bucket_ts: 0, price: 101, side: "sell", delta_vol: 1,
+    });
+    expect(state.tapeSpeed).toBe(0.5);
   });
 });
 
@@ -664,6 +738,105 @@ describe("computeValueArea", () => {
   });
 });
 
+describe("computeTpoProfile", () => {
+  it("returns empty profile when no cells have volume", () => {
+    expect(computeTpoProfile([{ bucketTs: 0, price: 100, buyVol: 0, sellVol: 0 }])).toEqual({
+      levels: [],
+      valueArea: null,
+    });
+  });
+
+  it("assigns one letter per period and accumulates letters for prices touched across periods", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 0 }, // period 0 = 'A'
+      { bucketTs: 1800, price: 100, buyVol: 1, sellVol: 0 }, // period 1 = 'B'
+      { bucketTs: 1800, price: 101, buyVol: 1, sellVol: 0 }, // period 1 only
+    ];
+    const profile = computeTpoProfile(cells);
+    const at100 = profile.levels.find((l) => l.price === 100);
+    const at101 = profile.levels.find((l) => l.price === 101);
+    expect(at100).toEqual({ price: 100, letters: "AB", periodsTouched: 2 });
+    expect(at101).toEqual({ price: 101, letters: "B", periodsTouched: 1 });
+  });
+
+  it("wraps to lowercase letters past the 26th period", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 200, buyVol: 1, sellVol: 0 }, // anchors period 0 at ts=0
+      { bucketTs: 26 * 1800, price: 100, buyVol: 1, sellVol: 0 }, // period 26 -> wraps to 'a'
+    ];
+    const profile = computeTpoProfile(cells);
+    const at100 = profile.levels.find((l) => l.price === 100);
+    expect(at100?.letters).toBe("a");
+  });
+
+  it("POC is the price touched in the most periods, reusing computeValueArea's greedy expansion", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 0 },
+      { bucketTs: 1800, price: 100, buyVol: 1, sellVol: 0 },
+      { bucketTs: 3600, price: 100, buyVol: 1, sellVol: 0 },
+      { bucketTs: 0, price: 101, buyVol: 1, sellVol: 0 },
+    ];
+    const profile = computeTpoProfile(cells);
+    expect(profile.valueArea?.poc).toBe(100);
+  });
+
+  it("honors a custom periodSec", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 0 },
+      { bucketTs: 60, price: 100, buyVol: 1, sellVol: 0 }, // 60s period -> distinct period from ts=0
+    ];
+    const profile = computeTpoProfile(cells, 60);
+    expect(profile.levels[0].letters).toBe("AB");
+  });
+});
+
+describe("splitFootprintByUtcDay", () => {
+  it("groups cells by UTC calendar day derived from bucketTs", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 1, sellVol: 0 }, // 1970-01-01
+      { bucketTs: 3600, price: 101, buyVol: 1, sellVol: 0 }, // 1970-01-01
+      { bucketTs: 86_400, price: 100, buyVol: 1, sellVol: 0 }, // 1970-01-02
+    ];
+    const days = splitFootprintByUtcDay(cells);
+    expect(days).toHaveLength(2);
+    expect(days[0]).toHaveLength(2);
+    expect(days[1]).toHaveLength(1);
+  });
+
+  it("returns [] for no cells", () => {
+    expect(splitFootprintByUtcDay([])).toEqual([]);
+  });
+});
+
+describe("computeCompositeValueArea", () => {
+  it("returns null when fewer than two session profiles are given", () => {
+    const single: VolumeProfileLevel[] = [{ price: 100, buyVol: 5, sellVol: 0 }];
+    expect(computeCompositeValueArea([single])).toBeNull();
+    expect(computeCompositeValueArea([])).toBeNull();
+  });
+
+  it("merges volume across sessions by price and reuses computeValueArea's POC/VA, tagging sessionCount", () => {
+    const day1: VolumeProfileLevel[] = [
+      { price: 100, buyVol: 1, sellVol: 0 },
+      { price: 101, buyVol: 1, sellVol: 0 },
+    ];
+    const day2: VolumeProfileLevel[] = [
+      { price: 100, buyVol: 5, sellVol: 0 }, // pushes 100 to the heaviest price once merged
+    ];
+    const composite = computeCompositeValueArea([day1, day2]);
+    const merged = computeValueArea([
+      { price: 100, buyVol: 6, sellVol: 0 },
+      { price: 101, buyVol: 1, sellVol: 0 },
+    ]);
+    expect(composite).toEqual({ ...merged, sessionCount: 2 });
+  });
+
+  it("returns null when merged sessions have zero total volume", () => {
+    const empty: VolumeProfileLevel[] = [{ price: 100, buyVol: 0, sellVol: 0 }];
+    expect(computeCompositeValueArea([empty, empty])).toBeNull();
+  });
+});
+
 describe("computeVwapBands", () => {
   it("returns [] when all volume is zero", () => {
     expect(
@@ -702,6 +875,48 @@ describe("computeVwapBands", () => {
     ]);
     expect(pts).toHaveLength(1);
     expect(pts[0].vwap).toBeCloseTo(20);
+  });
+
+  it("defaults to daily UTC reset — a bar past midnight starts a fresh accumulation", () => {
+    const day1 = Date.UTC(2026, 0, 1, 23, 0, 0) * 1e6; // 2026-01-01 23:00 UTC
+    const day2 = Date.UTC(2026, 0, 2, 0, 5, 0) * 1e6; // 2026-01-02 00:05 UTC
+    const pts = computeVwapBands([
+      { ts_event: day1, high: 10, low: 10, close: 10, volume: 1 },
+      { ts_event: day2, high: 20, low: 20, close: 20, volume: 1 },
+    ]);
+    expect(pts).toHaveLength(2);
+    expect(pts[1].vwap).toBeCloseTo(20); // 하루 넘어가면서 리셋 — day1 안 섞임
+  });
+
+  it("period='week' does not reset across a same-week day boundary", () => {
+    const day1 = Date.UTC(2026, 0, 1, 23, 0, 0) * 1e6;
+    const day2 = Date.UTC(2026, 0, 2, 0, 5, 0) * 1e6;
+    const pts = computeVwapBands(
+      [
+        { ts_event: day1, high: 10, low: 10, close: 10, volume: 1 },
+        { ts_event: day2, high: 20, low: 20, close: 20, volume: 1 },
+      ],
+      "week"
+    );
+    expect(pts).toHaveLength(2);
+    expect(pts[1].vwap).toBeCloseTo(15); // (10*1+20*1)/2 — 같은 주라 안 리셋
+  });
+
+  it("period='month' resets across a month boundary but not within it", () => {
+    const midMonth = Date.UTC(2026, 0, 15, 12, 0, 0) * 1e6;
+    const nextMonth = Date.UTC(2026, 1, 1, 0, 0, 0) * 1e6;
+    const laterSameMonth = Date.UTC(2026, 0, 20, 0, 0, 0) * 1e6;
+    const pts = computeVwapBands(
+      [
+        { ts_event: midMonth, high: 10, low: 10, close: 10, volume: 1 },
+        { ts_event: laterSameMonth, high: 20, low: 20, close: 20, volume: 1 },
+        { ts_event: nextMonth, high: 30, low: 30, close: 30, volume: 1 },
+      ],
+      "month"
+    );
+    expect(pts).toHaveLength(3);
+    expect(pts[1].vwap).toBeCloseTo(15); // 같은 달, 안 리셋
+    expect(pts[2].vwap).toBeCloseTo(30); // 다음 달, 리셋
   });
 });
 

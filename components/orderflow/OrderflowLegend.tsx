@@ -1,5 +1,8 @@
 "use client";
 
+import { CATEGORICAL } from "@/lib/chart-colors";
+import type { VwapPeriod } from "@/lib/orderflow-data";
+
 export type LayerKey =
   | "heatmap"
   | "footprint"
@@ -11,6 +14,7 @@ export type LayerKey =
   | "imbalance"
   | "vwap"
   | "valueArea"
+  | "compositeValueArea"
   | "sessionLevels"
   | "deltaHist"
   | "liqHeatmap";
@@ -26,6 +30,7 @@ export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   imbalance: true,
   vwap: true,
   valueArea: true,
+  compositeValueArea: true,
   sessionLevels: true,
   deltaHist: true,
   liqHeatmap: true,
@@ -101,6 +106,13 @@ const LAYER_DEFS: LayerDef[] = [
     description: "POC = 최다 체결가 (주황 실선), VAH/VAL = 체결량 70% 구간 상/하단 (점선) — 안이면 회귀, 밖이면 추세",
   },
   {
+    key: "compositeValueArea",
+    label: "cVA",
+    swatchClass: "bg-info/70",
+    description:
+      "Composite Value Area — 여러 UTC 세션(일자)의 체결량을 합산한 POC/VA. 클라 버퍼(~5시간)가 자정을 걸친 구간에서만(세션 2개 이상 확보 시) 표시됨",
+  },
+  {
     key: "sessionLevels",
     label: "세션 고저",
     swatchClass: "bg-text-3/60",
@@ -122,38 +134,78 @@ const LAYER_DEFS: LayerDef[] = [
 ];
 
 /** 토글 불가 항목 — 캔들차트 마커라 레이어 토글 대상 아님, 설명만 제공. */
-const MARKER_DEFS = [
+interface MarkerDef {
+  label: string;
+  /** Tailwind 토큰 클래스 (info/warn 등) — 대부분의 마커는 TOKEN 팔레트에 매핑됨. */
+  colorClass?: string;
+  /** TOKEN에 없는 카테고리컬 색(다이버전스 등) — className으로 정적 추출 불가하므로 inline style로 적용. */
+  colorStyle?: { color: string };
+  description: string;
+}
+
+const MARKER_DEFS: MarkerDef[] = [
   { label: "흡수 ↑↓", colorClass: "text-info", description: "흡수(absorption) — 우세한 체결 물량이 가격을 못 밀어낸 캔들. 파란 화살표 마커" },
   { label: "스탑런 ◼", colorClass: "text-warn", description: "스탑런(stop-run) — 최근 20봉 고/저점 이탈 후 대량 체결과 함께 반전 마감. 주황 사각 마커" },
-  { label: "다이버전스 ●", colorClass: "text-[#BF5AF2]", description: "델타 다이버전스 — 신고/신저가인데 캔들 델타가 반대 방향(25% 이상 편향). 약한 고점/저점 신호. 보라 원 마커" },
-] as const;
+  {
+    label: "다이버전스 ●",
+    colorStyle: { color: CATEGORICAL[0] },
+    description: "델타 다이버전스 — 신고/신저가인데 캔들 델타가 반대 방향(25% 이상 편향). 약한 고점/저점 신호. 보라 원 마커",
+  },
+];
+
+const VWAP_PERIOD_DEFS: { key: VwapPeriod; label: string }[] = [
+  { key: "day", label: "일" },
+  { key: "week", label: "주" },
+  { key: "month", label: "월" },
+];
 
 interface OrderflowLegendProps {
   layers: Record<LayerKey, boolean>;
   onToggle: (key: LayerKey) => void;
+  vwapPeriod: VwapPeriod;
+  onVwapPeriodChange: (period: VwapPeriod) => void;
 }
 
-export function OrderflowLegend({ layers, onToggle }: OrderflowLegendProps) {
+export function OrderflowLegend({ layers, onToggle, vwapPeriod, onVwapPeriodChange }: OrderflowLegendProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-border text-[11px]">
       <span className="text-text-3 mr-1">레이어</span>
       {LAYER_DEFS.map((def) => {
         const on = layers[def.key];
         return (
-          <button
-            key={def.key}
-            type="button"
-            title={def.description}
-            onClick={() => onToggle(def.key)}
-            className={`flex items-center gap-1.5 px-2 py-0.5 border ${
-              on
-                ? "border-border bg-panel-2 text-text-1"
-                : "border-border bg-panel text-text-3 opacity-50"
-            }`}
-          >
-            <span className={`w-2 h-2 shrink-0 ${def.swatchClass}`} />
-            {def.label}
-          </button>
+          <span key={def.key} className="flex items-center">
+            <button
+              type="button"
+              title={def.description}
+              onClick={() => onToggle(def.key)}
+              className={`flex items-center gap-1.5 px-2 py-0.5 border ${
+                on
+                  ? "border-border bg-panel-2 text-text-1"
+                  : "border-border bg-panel text-text-3 opacity-50"
+              }`}
+            >
+              <span className={`w-2 h-2 shrink-0 ${def.swatchClass}`} />
+              {def.label}
+            </button>
+            {def.key === "vwap" && (
+              <span className="flex items-center gap-0.5 ml-0.5" title="VWAP 리셋 주기 (UTC 기준)">
+                {VWAP_PERIOD_DEFS.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => onVwapPeriodChange(p.key)}
+                    className={`px-1.5 py-0.5 border ${
+                      vwapPeriod === p.key
+                        ? "border-accent text-accent bg-accent/10"
+                        : "border-border bg-panel text-text-3"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </span>
+            )}
+          </span>
         );
       })}
       <span className="text-text-3 ml-2 mr-1">마커</span>
@@ -161,7 +213,8 @@ export function OrderflowLegend({ layers, onToggle }: OrderflowLegendProps) {
         <span
           key={def.label}
           title={def.description}
-          className={`px-2 py-0.5 border border-border bg-panel ${def.colorClass} cursor-help`}
+          className={`px-2 py-0.5 border border-border bg-panel cursor-help ${def.colorClass ?? ""}`}
+          style={def.colorStyle}
         >
           {def.label}
         </span>

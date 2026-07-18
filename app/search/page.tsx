@@ -9,6 +9,8 @@ import {
   ApiError, runScreener, type ScreenerResult,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Button } from "@/components/ui";
+import { TOKEN } from "@/lib/chart-colors";
 
 // ── Search constants ──────────────────────────────────────────────────────────
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -42,18 +44,18 @@ function CandleChart({ bars }: { bars: ChartBar[] }) {
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 320,
-      layout: { background: { color: "transparent" }, textColor: "#9ca3af" },
-      grid: { vertLines: { color: "#1f2937" }, horzLines: { color: "#1f2937" } },
-      timeScale: { borderColor: "#374151" },
-      rightPriceScale: { borderColor: "#374151" },
+      layout: { background: { color: "transparent" }, textColor: TOKEN.text2 },
+      grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
+      timeScale: { borderColor: TOKEN.border },
+      rightPriceScale: { borderColor: TOKEN.border },
     });
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      upColor: TOKEN.pos,
+      downColor: TOKEN.neg,
+      borderUpColor: TOKEN.pos,
+      borderDownColor: TOKEN.neg,
+      wickUpColor: TOKEN.pos,
+      wickDownColor: TOKEN.neg,
     });
     series.setData(bars);
     chart.timeScale().fitContent();
@@ -428,12 +430,13 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={handleRun}
-                disabled={screenerLoading || !instruments.trim()}
-                className="bg-accent text-black text-sm px-6 py-2 rounded font-medium hover:opacity-90 disabled:opacity-50">
+                disabled={screenerLoading || !instruments.trim()}>
                 {screenerLoading ? "스크리닝 중…" : "Run Screener"}
-              </button>
+              </Button>
             </div>
 
             {screenerError && <p className="text-neg text-sm">{screenerError}</p>}

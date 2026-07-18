@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import type { BarOut } from "@/lib/api";
+import { TOKEN } from "@/lib/chart-colors";
 
 interface ADXChartProps {
   bars: BarOut[];
@@ -85,19 +86,19 @@ export function ADXChart({ bars, period = 14 }: ADXChartProps) {
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
       height: 100,
-      layout: { background: { color: "#0F131A" }, textColor: "#5F6B7A", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
-      grid: { vertLines: { color: "#151A23" }, horzLines: { color: "#151A23" } },
-      rightPriceScale: { borderColor: "#242A35", scaleMargins: { top: 0.1, bottom: 0.1 } },
-      timeScale: { borderColor: "#242A35", timeVisible: true },
+      layout: { background: { color: TOKEN.panel2 }, textColor: TOKEN.text3, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
+      grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
+      rightPriceScale: { borderColor: TOKEN.border, scaleMargins: { top: 0.1, bottom: 0.1 } },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true },
     });
     const { adx, diPlus, diMinus } = computeADX(bars, period);
-    const adxSeries = chart.addSeries(LineSeries, { color: "#E2E8F0", lineWidth: 1, priceLineVisible: false, lastValueVisible: true });
+    const adxSeries = chart.addSeries(LineSeries, { color: TOKEN.text1, lineWidth: 1, priceLineVisible: false, lastValueVisible: true });
     adxSeries.setData(adx);
-    const diPlusSeries = chart.addSeries(LineSeries, { color: "#22C55E", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+    const diPlusSeries = chart.addSeries(LineSeries, { color: TOKEN.pos, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
     diPlusSeries.setData(diPlus);
-    const diMinusSeries = chart.addSeries(LineSeries, { color: "#EF4444", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+    const diMinusSeries = chart.addSeries(LineSeries, { color: TOKEN.neg, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
     diMinusSeries.setData(diMinus);
-    adxSeries.createPriceLine({ price: 25, color: "#94A3B840", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "25" });
+    adxSeries.createPriceLine({ price: 25, color: `${TOKEN.border}40`, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "25" });
     chart.timeScale().fitContent();
     return () => chart.remove();
   }, [bars, period]);

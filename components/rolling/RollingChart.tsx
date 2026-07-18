@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { createChart, LineSeries } from "lightweight-charts";
 import type { UTCTimestamp } from "lightweight-charts";
 import type { RollingPoint } from "@/lib/rolling-analytics-utils";
+import { TOKEN } from "@/lib/chart-colors";
 
 export interface RollingSeries {
   label: string;
@@ -25,10 +26,10 @@ export function RollingChart({ series, height = 300, yFormat }: RollingChartProp
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
       height,
-      layout: { background: { color: "#0F131A" }, textColor: "#6B7280" },
-      grid: { vertLines: { color: "#1E2530" }, horzLines: { color: "#1E2530" } },
-      timeScale: { borderColor: "#374151" },
-      rightPriceScale: { borderColor: "#374151" },
+      layout: { background: { color: TOKEN.panel2 }, textColor: TOKEN.text3 },
+      grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
+      timeScale: { borderColor: TOKEN.border },
+      rightPriceScale: { borderColor: TOKEN.border },
       localization: {
         priceFormatter: yFormat ?? ((v: number) => v.toFixed(2)),
       },

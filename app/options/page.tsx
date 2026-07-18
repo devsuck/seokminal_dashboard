@@ -10,6 +10,8 @@ import {
 } from "@/lib/api";
 import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
+import { TOKEN } from "@/lib/chart-colors";
 
 type Tab = "greeks" | "chain" | "surface";
 
@@ -80,19 +82,15 @@ function GreeksTab() {
           {/* Option type */}
           <div className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">Type</label>
-            <div className="flex gap-1">
-              {(["call", "put"] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setOptionType(t)}
-                  className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
-                    optionType === t
-                      ? "border-accent text-accent bg-accent/10": "border-border text-text-3 hover:text-text-2 bg-transparent"}`}
-                >
-                  {t.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              value={optionType}
+              onChange={setOptionType}
+              size="sm"
+              options={[
+                { value: "call", label: "CALL" },
+                { value: "put", label: "PUT" },
+              ]}
+            />
           </div>
           {[
             { label: "Spot (S)", value: spot, set: setSpot },
@@ -356,7 +354,7 @@ function IvSurfaceTab() {
           .attr("y", yScale(K)! + yScale.bandwidth() / 2 + 4)
           .attr("text-anchor", "middle")
           .attr("font-size", 9)
-          .attr("fill", iv > (minIv + maxIv) / 2 ? "#111" : "#eee")
+          .attr("fill", iv > (minIv + maxIv) / 2 ? TOKEN.bg : TOKEN.text1)
           .text(`${(iv * 100).toFixed(1)}%`);
       }
     }
@@ -369,7 +367,7 @@ function IvSurfaceTab() {
           .tickFormat(d => `${d}d`)
       )
       .call(ax => ax.select(".domain").remove())
-      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 11))
+      .call(ax => ax.selectAll("text").attr("fill", TOKEN.text2).attr("font-size", 11))
       .call(ax => ax.selectAll(".tick line").remove());
 
     // y-axis (strike labels)
@@ -379,7 +377,7 @@ function IvSurfaceTab() {
           .tickFormat(d => String(d))
       )
       .call(ax => ax.select(".domain").remove())
-      .call(ax => ax.selectAll("text").attr("fill", "#9AA4B2").attr("font-size", 11))
+      .call(ax => ax.selectAll("text").attr("fill", TOKEN.text2).attr("font-size", 11))
       .call(ax => ax.selectAll(".tick line").remove());
 
     // Axis labels
@@ -387,7 +385,7 @@ function IvSurfaceTab() {
       .attr("x", innerW / 2)
       .attr("y", innerH + 40)
       .attr("text-anchor", "middle")
-      .attr("fill", "#9AA4B2")
+      .attr("fill", TOKEN.text2)
       .attr("font-size", 11)
       .text("Expiry (days)");
 
@@ -396,7 +394,7 @@ function IvSurfaceTab() {
       .attr("x", -innerH / 2)
       .attr("y", -48)
       .attr("text-anchor", "middle")
-      .attr("fill", "#9AA4B2")
+      .attr("fill", TOKEN.text2)
       .attr("font-size", 11)
       .text("Strike");
 
@@ -416,8 +414,8 @@ function IvSurfaceTab() {
         .attr("fill", color(v));
     }
 
-    g.append("text").attr("x", legendX + 7).attr("y", -4).attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 9).text(`${(maxIv * 100).toFixed(0)}%`);
-    g.append("text").attr("x", legendX + 7).attr("y", legendH + 12).attr("text-anchor", "middle").attr("fill", "#9AA4B2").attr("font-size", 9).text(`${(minIv * 100).toFixed(0)}%`);
+    g.append("text").attr("x", legendX + 7).attr("y", -4).attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 9).text(`${(maxIv * 100).toFixed(0)}%`);
+    g.append("text").attr("x", legendX + 7).attr("y", legendH + 12).attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 9).text(`${(minIv * 100).toFixed(0)}%`);
 
   }, [result]);
 

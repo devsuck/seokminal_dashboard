@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { placeKROrder, placeUSOrder, placeHLOrder, getQuote, getCryptoBook } from "@/lib/api";
 import { isUSMarketOpen } from "@/lib/market-hours";
+import { Panel, PanelHeader, Button, SegmentedToggle } from "@/components/ui";
 
 type Venue = "KR" | "US" | "CRYPTO";
 
@@ -117,125 +118,127 @@ export function TradeTab({ symbol }: { symbol: string }) {
   }
 
   return (
-    <div className="p-4 max-w-md space-y-3">
-      {/* Header: symbol + live price + account badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-text-1 text-sm font-semibold font-data">{code}</span>
-        {livePrice !== null && (
-          <span className={`text-sm font-data ${priceUp ? "text-pos" : "text-neg"}`}>
-            {cur}{fmt(livePrice)}
-          </span>
-        )}
-        <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-panel-2 border border-border text-text-3">
-          {venue === "CRYPTO"? (paper ? "크립토 · HL 테스트넷" : "크립토 · HL 메인넷")
-            : venue === "KR"? (paper ? "한국 · KIS 모의" : "한국 · KIS 실계좌")
-            : (paper ? "미국 · Alpaca 페이퍼" : "미국 · IB 실계좌")}
-        </span>
-      </div>
-
-      {/* Account: paper / live */}
-      <div className="flex gap-2">
-        {[true, false].map(p => (
-          <button key={String(p)} onClick={() => setPaper(p)}
-            className={`flex-1 text-xs py-1.5 rounded border ${paper === p ? (p ? "border-pos text-pos bg-pos/10" : "border-neg text-neg bg-neg/10") : "border-border text-text-3"}`}>
-            {isCrypto ? (p ? "테스트넷" : "메인넷") : (p ? "모의" : "실계좌")}
-          </button>
-        ))}
-      </div>
-
-      {/* Side: buy / sell (full width segmented) */}
-      <div className="flex rounded overflow-hidden border border-border">
-        {(["BUY", "SELL"] as Side[]).map(s => (
-          <button key={s} onClick={() => setSide(s)}
-            className={`flex-1 py-2 text-sm font-medium ${side === s ? (s === "BUY" ? "bg-pos/15 text-pos" : "bg-neg/15 text-neg") : "bg-panel-2 text-text-3"}`}>
-            {s === "BUY" ? "매수" : "매도"}
-          </button>
-        ))}
-      </div>
-
-      {/* Order type */}
-      <div className="flex gap-2">
-        {(["MARKET", "LIMIT"] as OrderType[]).map(t => (
-          <button key={t} onClick={() => setOrderType(t)}
-            className={`flex-1 text-xs py-1.5 rounded border ${orderType === t ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>
-            {t === "MARKET" ? "시장가" : "지정가"}
-          </button>
-        ))}
-      </div>
-
-      {/* Quantity: stepper + input */}
-      <div>
-        <label className="text-text-3 text-xs">수량</label>
-        <div className="flex items-center gap-2 mt-1">
-          <button onClick={() => stepQty(-1)}
-            className="w-8 h-8 shrink-0 rounded border border-border text-text-2 hover:text-text-1 hover:border-accent text-sm">−</button>
-          <input value={qty} onChange={e => setQty(e.target.value.replace(isCrypto ? /[^0-9.]/g : /[^0-9]/g, ""))} inputMode={isCrypto ? "decimal" : "numeric"}
-            className="flex-1 min-w-0 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data text-center outline-none focus:border-accent" />
-          <button onClick={() => stepQty(1)}
-            className="w-8 h-8 shrink-0 rounded border border-border text-text-2 hover:text-text-1 hover:border-accent text-sm">+</button>
-        </div>
-        <div className="flex gap-1.5 mt-2">
-          {qtyPresets.map(p => (
-            <button key={p} onClick={() => setQty(String(p))}
-              className={`flex-1 text-[11px] py-1 rounded border font-data ${q === p ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Limit price */}
-      {orderType === "LIMIT" && (
-        <div>
-          <label className="text-text-3 text-xs">지정가 ({cur})</label>
-          <div className="flex items-center gap-2 mt-1">
-            <input value={price} onChange={e => setPrice(e.target.value)} placeholder={`지정가 (${cur})`}
-              className="flex-1 min-w-0 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+    <div className="p-4 max-w-md">
+      <Panel>
+        <PanelHeader>{code} 매매</PanelHeader>
+        <div className="p-3 space-y-3">
+          {/* Live price + venue/account badge */}
+          <div className="flex items-center gap-2">
             {livePrice !== null && (
-              <button onClick={() => setPrice(String(livePrice))}
-                className="shrink-0 text-[11px] px-2 py-1.5 rounded border border-border text-text-3 hover:text-accent hover:border-accent">
-                현재가
-              </button>
+              <span className={`text-sm font-data ${priceUp ? "text-pos" : "text-neg"}`}>{cur}{fmt(livePrice)}</span>
             )}
+            <div className="text-[10px] px-1.5 py-0.5 bg-panel-2 border border-border text-text-3">
+              {venue === "CRYPTO"? (paper ? "크립토 · HL 테스트넷" : "크립토 · HL 메인넷")
+                : venue === "KR"? (paper ? "한국 · KIS 모의" : "한국 · KIS 실계좌")
+                : (paper ? "미국 · Alpaca 페이퍼" : "미국 · IB 실계좌")}
+            </div>
           </div>
+
+          {/* Account: paper / live */}
+          <SegmentedToggle
+            value={paper}
+            onChange={setPaper}
+            options={[
+              { value: true, label: isCrypto ? "테스트넷" : "모의", activeClass: "border-pos text-pos bg-pos/10" },
+              { value: false, label: isCrypto ? "메인넷" : "실계좌", activeClass: "border-neg text-neg bg-neg/10" },
+            ]}
+          />
+
+          {/* Side: buy / sell */}
+          <SegmentedToggle
+            value={side}
+            onChange={setSide}
+            size="md"
+            options={[
+              { value: "BUY", label: "매수", activeClass: "border-pos text-pos bg-pos/10" },
+              { value: "SELL", label: "매도", activeClass: "border-neg text-neg bg-neg/10" },
+            ]}
+          />
+
+          {/* Order type */}
+          <SegmentedToggle
+            value={orderType}
+            onChange={setOrderType}
+            size="sm"
+            options={[
+              { value: "MARKET", label: "시장가" },
+              { value: "LIMIT", label: "지정가" },
+            ]}
+          />
+
+          {/* Quantity: stepper + input */}
+          <div>
+            <label className="text-text-3 text-xs">수량</label>
+            <div className="flex items-center gap-2 mt-1">
+              <Button variant="outline" size="sm" onClick={() => stepQty(-1)} className="w-8 h-8 shrink-0 !px-0">−</Button>
+              <input value={qty} onChange={e => setQty(e.target.value.replace(isCrypto ? /[^0-9.]/g : /[^0-9]/g, ""))} inputMode={isCrypto ? "decimal" : "numeric"}
+                className="flex-1 min-w-0 bg-panel-2 border border-border px-2.5 py-1.5 text-text-1 text-sm font-data text-center outline-none focus:border-accent" />
+              <Button variant="outline" size="sm" onClick={() => stepQty(1)} className="w-8 h-8 shrink-0 !px-0">+</Button>
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              {qtyPresets.map(p => (
+                <button key={p} onClick={() => setQty(String(p))}
+                  className={`flex-1 text-[11px] py-1 border font-data ${q === p ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Limit price */}
+          {orderType === "LIMIT" && (
+            <div>
+              <label className="text-text-3 text-xs">지정가 ({cur})</label>
+              <div className="flex items-center gap-2 mt-1">
+                <input value={price} onChange={e => setPrice(e.target.value)} placeholder={`지정가 (${cur})`}
+                  className="flex-1 min-w-0 bg-panel-2 border border-border px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+                {livePrice !== null && (
+                  <Button variant="ghost" size="sm" onClick={() => setPrice(String(livePrice))} className="shrink-0 border-border hover:text-accent hover:border-accent">
+                    현재가
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Estimated order value */}
+          <div className="flex justify-between items-center px-1 text-sm">
+            <span className="text-text-3 text-xs">예상 주문금액</span>
+            <span className="font-data text-text-1">{estValue > 0 ? `${cur}${fmt(estValue)}` : "—"}</span>
+          </div>
+
+          <Button variant={side === "BUY" ? "buy" : "sell"} onClick={request} disabled={submitting} className="w-full">
+            {submitting ? "주문 중…" : `${side === "BUY" ? "매수" : "매도"} 주문`}
+          </Button>
+          {result && <p className="text-pos text-sm font-mono">{result}</p>}
+          {error && <p className="text-neg text-sm">{error}</p>}
         </div>
-      )}
-
-      {/* Estimated order value */}
-      <div className="flex justify-between items-center px-1 text-sm">
-        <span className="text-text-3 text-xs">예상 주문금액</span>
-        <span className="font-data text-text-1">{estValue > 0 ? `${cur}${fmt(estValue)}` : "—"}</span>
-      </div>
-
-      <button onClick={request} disabled={submitting}
-        className={`w-full text-sm font-medium rounded py-2.5 disabled:opacity-40 ${side === "BUY" ? "bg-pos text-black" : "bg-neg text-black"}`}>
-        {submitting ? "주문 중…" : `${side === "BUY" ? "매수" : "매도"} 주문`}
-      </button>
-      {result && <p className="text-pos text-sm font-mono">{result}</p>}
-      {error && <p className="text-neg text-sm">{error}</p>}
+      </Panel>
 
       {confirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-panel border border-border rounded-lg p-5 w-[320px] space-y-3">
-            <h3 className="text-text-1 font-semibold">주문 확인</h3>
-            <div className="text-sm font-data text-text-2 space-y-1">
-              <div className="flex justify-between"><span className="text-text-3">종목</span><span>{code} ({venue})</span></div>
-              <div className="flex justify-between"><span className="text-text-3">계좌</span><span>{paper ? "모의" : "실계좌"}</span></div>
-              <div className="flex justify-between"><span className="text-text-3">구분</span><span className={side === "BUY" ? "text-pos" : "text-neg"}>{side === "BUY" ? "매수" : "매도"}</span></div>
-              <div className="flex justify-between"><span className="text-text-3">수량</span><span>{qty}</span></div>
-              <div className="flex justify-between"><span className="text-text-3">유형</span><span>{orderType === "LIMIT" ? `지정가 ${cur}${price}` : "시장가"}</span></div>
-              {estValue > 0 && (
-                <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="text-text-3">예상금액</span><span className="text-text-1">{cur}{fmt(estValue)}</span></div>
+          <Panel className="w-[320px]">
+            <PanelHeader>주문 확인</PanelHeader>
+            <div className="p-4 space-y-3">
+              <div className="text-sm font-data text-text-2 space-y-1">
+                <div className="flex justify-between"><span className="text-text-3">종목</span><span>{code} ({venue})</span></div>
+                <div className="flex justify-between"><span className="text-text-3">계좌</span><span>{paper ? "모의" : "실계좌"}</span></div>
+                <div className="flex justify-between"><span className="text-text-3">구분</span><span className={side === "BUY" ? "text-pos" : "text-neg"}>{side === "BUY" ? "매수" : "매도"}</span></div>
+                <div className="flex justify-between"><span className="text-text-3">수량</span><span>{qty}</span></div>
+                <div className="flex justify-between"><span className="text-text-3">유형</span><span>{orderType === "LIMIT" ? `지정가 ${cur}${price}` : "시장가"}</span></div>
+                {estValue > 0 && (
+                  <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="text-text-3">예상금액</span><span className="text-text-1">{cur}{fmt(estValue)}</span></div>
+                )}
+              </div>
+              {!paper && (
+                <p className="text-warn text-xs">⚠ 실계좌 주문 — 실제 체결됩니다.</p>
               )}
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setConfirm(false)}>취소</Button>
+                <Button variant="primary" size="sm" onClick={submit}>확인·주문</Button>
+              </div>
             </div>
-            {!paper && (
-              <p className="text-warn text-xs">⚠ 실계좌 주문 — 실제 체결됩니다.</p>
-            )}
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirm(false)} className="text-sm text-text-2 border border-border rounded px-4 py-1.5">취소</button>
-              <button onClick={submit} className="text-sm font-medium rounded px-4 py-1.5 bg-accent text-black">확인·주문</button>
-            </div>
-          </div>
+          </Panel>
         </div>
       )}
     </div>

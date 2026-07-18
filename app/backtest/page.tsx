@@ -25,6 +25,8 @@ import {
   ChartPanel,
   MetricGrid,
   TradeLogTable,
+  Button,
+  SegmentedToggle,
 } from "@/components/ui";
 import { SaveStrategyForm } from "@/components/strategies/SaveStrategyForm";
 import type { StrategyParams } from "@/lib/strategy-storage";
@@ -34,6 +36,7 @@ import { TradeAnalyticsPanel } from "@/components/backtest/TradeAnalyticsPanel";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
 import { PageBanner } from "@/components/PageBanner";
 import { computeRunningStats } from "@/lib/replay-utils";
+import { TOKEN } from "@/lib/chart-colors";
 import { ReplayChart } from "@/components/replay/ReplayChart";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
@@ -302,21 +305,15 @@ function BacktestPageInner() {
               </div>
 
               {/* Strategy type selector */}
-              <div className="flex gap-2">
-                {(["ema_cross", "macd", "rsi"] as const).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setStrategyType(s)}
-                    className={[
-                      "px-3 py-1 text-xs rounded border transition-colors cursor-pointer",
-                      strategyType === s
-                        ? "border-accent text-accent bg-accent/10": "border-border text-text-3 hover:text-text-2",
-                    ].join(" ")}
-                  >
-                    {s === "ema_cross" ? "EMA Cross" : s.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+              <SegmentedToggle
+                size="sm"
+                value={strategyType}
+                onChange={setStrategyType}
+                options={(["ema_cross", "macd", "rsi"] as const).map(s => ({
+                  value: s,
+                  label: s === "ema_cross" ? "EMA Cross" : s.toUpperCase(),
+                }))}
+              />
 
               {/* Strategy params */}
               {strategyType === "macd" && (
@@ -357,12 +354,9 @@ function BacktestPageInner() {
               )}
 
               {/* Run button */}
-              <button
-                onClick={runPortfolio}
-                disabled={portfolioLoading}
-                className="bg-accent text-black text-sm px-4 py-1.5 rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+              <Button variant="primary" onClick={runPortfolio} disabled={portfolioLoading}>
                 {portfolioLoading ? "Running…" : "Run Portfolio Backtest"}
-              </button>
+              </Button>
 
               {portfolioError && (
                 <p className="text-neg text-sm">{portfolioError}</p>
@@ -407,7 +401,7 @@ function BacktestPageInner() {
                         <RollingChart
                           series={[{
                             label: "Portfolio Equity",
-                            color: "#22C55E",
+                            color: TOKEN.pos,
                             points: portfolioResult.portfolio_equity.map(ep => ({
                               ts_ns: ep.ts_ns,
                               value: ep.equity,
@@ -612,10 +606,9 @@ function BacktestPageInner() {
                     </div>
                   )}
 
-                  <button onClick={handlePromoteToLv1} disabled={promoting || rules.length === 0}
-                    className="w-full text-xs px-3 py-1.5 rounded bg-accent text-black font-medium disabled:opacity-40">
+                  <Button variant="primary" size="sm" onClick={handlePromoteToLv1} disabled={promoting || rules.length === 0} className="w-full">
                     {promoting ? "생성 중…" : promoteAsOption ? "Lv1 옵션 에이전트로 승급 (페이퍼)" : "Lv1 에이전트로 승급 (페이퍼)"}
-                  </button>
+                  </Button>
                   {promoteError && <p className="text-neg text-[10px]">{promoteError}</p>}
                 </div>
               )}
@@ -876,13 +869,12 @@ function ReplayContent() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-text-3 text-xs">Speed:</span>
-                  {SPEED_OPTIONS.map(opt => (
-                    <button key={opt.ms} onClick={() => setSpeed(opt.ms)}
-                      className={`px-2 py-0.5 text-xs rounded border cursor-pointer transition-colors ${
-                        speed === opt.ms ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2 bg-transparent"}`}>
-                      {opt.label}
-                    </button>
-                  ))}
+                  <SegmentedToggle
+                    size="sm"
+                    value={String(speed)}
+                    onChange={v => setSpeed(Number(v) as SpeedMs)}
+                    options={SPEED_OPTIONS.map(opt => ({ value: String(opt.ms), label: opt.label }))}
+                  />
                 </div>
 
                 <span className="text-text-3 text-xs ml-auto font-data">{tradeLabel}</span>

@@ -16,6 +16,7 @@ import {
 } from "lightweight-charts";
 import type { BarOut, TradeRecord } from "@/lib/api";
 import type { ChartIndicatorSpec } from "@/lib/backtest-types";
+import { TOKEN, categoricalColor } from "@/lib/chart-colors";
 
 interface CandlestickChartProps {
   bars: BarOut[];
@@ -177,31 +178,31 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       width: containerRef.current.clientWidth,
       height,
       layout: {
-        background: { color: "#0F131A" },
-        textColor: "#5F6B7A",
+        background: { color: TOKEN.panel2 },
+        textColor: TOKEN.text3,
         fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#151A23" },
-        horzLines: { color: "#151A23" },
+        vertLines: { color: TOKEN.border },
+        horzLines: { color: TOKEN.border },
       },
       crosshair: {
-        vertLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
-        horzLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
+        vertLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
+        horzLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
       },
-      rightPriceScale: { borderColor: "#242A35" },
-      timeScale: { borderColor: "#242A35", timeVisible: true },
+      rightPriceScale: { borderColor: TOKEN.border },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true },
     });
     chartRef.current = chart;
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#22C55E",
-      downColor: "#EF4444",
-      borderUpColor: "#22C55E",
-      borderDownColor: "#EF4444",
-      wickUpColor: "#22C55E",
-      wickDownColor: "#EF4444",
+      upColor: TOKEN.pos,
+      downColor: TOKEN.neg,
+      borderUpColor: TOKEN.pos,
+      borderDownColor: TOKEN.neg,
+      wickUpColor: TOKEN.pos,
+      wickDownColor: TOKEN.neg,
     });
     candleSeriesRef.current = candleSeries;
 
@@ -242,7 +243,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         tradeMarkers.push({
           time: Math.floor(t.entry_ts_ns / 1e9) as UTCTimestamp,
           position: "belowBar",
-          color: "#22C55E",
+          color: TOKEN.pos,
           shape: "arrowUp",
           text: `BUY ${t.entry_price.toFixed(2)}`,
         });
@@ -251,7 +252,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         tradeMarkers.push({
           time: Math.floor(t.exit_ts_ns / 1e9) as UTCTimestamp,
           position: "aboveBar",
-          color: "#EF4444",
+          color: TOKEN.neg,
           shape: "arrowDown",
           text: `SELL ${t.exit_price.toFixed(2)}`,
         });
@@ -261,7 +262,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     const absorptionMarkerList: SeriesMarker<UTCTimestamp>[] = (absorptionMarkers ?? []).map((m) => ({
       time: m.time,
       position: m.side === "buy" ? "belowBar" : "aboveBar",
-      color: "#3B9CFF",
+      color: TOKEN.info,
       shape: m.side === "buy" ? "arrowUp" : "arrowDown",
       text: "흡수",
     }));
@@ -269,7 +270,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     const stopRunMarkerList: SeriesMarker<UTCTimestamp>[] = (stopRunMarkers ?? []).map((m) => ({
       time: m.time,
       position: m.side === "buy" ? "belowBar" : "aboveBar",
-      color: "#FF9F0A",
+      color: TOKEN.accent,
       shape: "square",
       text: "스탑런",
     }));
@@ -277,7 +278,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     const divergenceMarkerList: SeriesMarker<UTCTimestamp>[] = (divergenceMarkers ?? []).map((m) => ({
       time: m.time,
       position: m.side === "buy" ? "belowBar" : "aboveBar",
-      color: "#BF5AF2",
+      color: categoricalColor(0),
       shape: "circle",
       text: "다이버전스",
     }));
@@ -295,7 +296,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     if (emaFast && emaFast > 0) {
       const fastData = computeEMA(bars, emaFast);
       if (fastData.length) {
-        const s = chart.addSeries(LineSeries, { color: "#FF9F1C", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        const s = chart.addSeries(LineSeries, { color: TOKEN.accent, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(fastData);
         overlaySeriesRef.current.push(s);
       }
@@ -303,7 +304,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     if (emaSlow && emaSlow > 0) {
       const slowData = computeEMA(bars, emaSlow);
       if (slowData.length) {
-        const s = chart.addSeries(LineSeries, { color: "#3B82F6", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        const s = chart.addSeries(LineSeries, { color: TOKEN.info, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(slowData);
         overlaySeriesRef.current.push(s);
       }
@@ -312,7 +313,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     if (sma && sma > 0) {
       const smaData = computeSMA(bars, sma);
       if (smaData.length) {
-        const s = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        const s = chart.addSeries(LineSeries, { color: TOKEN.text2, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         s.setData(smaData);
         overlaySeriesRef.current.push(s);
       }
@@ -321,11 +322,11 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     if (bollingerPeriod && bollingerPeriod > 0 && bollingerStd && bollingerStd > 0) {
       const bbData = computeBollingerBands(bars, bollingerPeriod, bollingerStd);
       if (bbData.length) {
-        const upperSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        const upperSeries = chart.addSeries(LineSeries, { color: TOKEN.text2, lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
         upperSeries.setData(bbData.map(d => ({ time: d.time, value: d.upper })));
-        const middleSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        const middleSeries = chart.addSeries(LineSeries, { color: TOKEN.text2, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         middleSeries.setData(bbData.map(d => ({ time: d.time, value: d.middle })));
-        const lowerSeries = chart.addSeries(LineSeries, { color: "#94A3B8", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        const lowerSeries = chart.addSeries(LineSeries, { color: TOKEN.text2, lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
         lowerSeries.setData(bbData.map(d => ({ time: d.time, value: d.lower })));
         overlaySeriesRef.current.push(upperSeries, middleSeries, lowerSeries);
       }
@@ -333,21 +334,21 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
 
     // ── VWAP + σ밴드 오버레이 — 오더플로우 전용 ──
     if (vwapSeries && vwapSeries.length > 0) {
-      const vwapLine = chart.addSeries(LineSeries, { color: "#EAB308", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+      const vwapLine = chart.addSeries(LineSeries, { color: TOKEN.warn, lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
       vwapLine.setData(vwapSeries.map((p) => ({ time: p.time, value: p.vwap })));
       overlaySeriesRef.current.push(vwapLine);
       const bandDefs: { pick: (p: NonNullable<typeof vwapSeries>[number]) => number }[] = [
         { pick: (p) => p.up1 }, { pick: (p) => p.dn1 }, { pick: (p) => p.up2 }, { pick: (p) => p.dn2 },
       ];
       for (const band of bandDefs) {
-        const s = chart.addSeries(LineSeries, { color: "#5F6B7A", lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        const s = chart.addSeries(LineSeries, { color: TOKEN.text3, lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
         s.setData(vwapSeries.map((p) => ({ time: p.time, value: band.pick(p) })));
         overlaySeriesRef.current.push(s);
       }
     }
 
     // ── 조건식 지표 스펙 렌더 — 오버레이는 가격 페인, 오실레이터는 서브페인 ──
-    const OVERLAY_COLORS = ["#FF9F1C", "#3B82F6", "#a855f7", "#14b8a6", "#eab308"];
+    // 임의 개수의 지표 라인을 서로 구분하기 위한 색상은 categoricalColor()로 순환한다.
     let overlayCi = 0;
     let paneIdx = 1;
     const line = (data: { time: UTCTimestamp; value: number }[], color: string, pane = 0, dashed = false) => {
@@ -364,49 +365,49 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       switch (spec.kind) {
         case "MA": {
           const data = spec.maType === "SIMPLE" ? computeSMA(bars, spec.period) : computeEMA(bars, spec.period);
-          line(data, OVERLAY_COLORS[overlayCi++ % OVERLAY_COLORS.length]);
+          line(data, categoricalColor(overlayCi++));
           break;
         }
         case "EMA_CROSS": {
-          line(computeEMA(bars, spec.fast), OVERLAY_COLORS[overlayCi++ % OVERLAY_COLORS.length]);
-          line(computeEMA(bars, spec.slow), OVERLAY_COLORS[overlayCi++ % OVERLAY_COLORS.length]);
+          line(computeEMA(bars, spec.fast), categoricalColor(overlayCi++));
+          line(computeEMA(bars, spec.slow), categoricalColor(overlayCi++));
           break;
         }
         case "BB": {
           const bb = computeBollingerBands(bars, spec.period, spec.k);
           if (bb.length) {
-            line(bb.map(d => ({ time: d.time, value: d.upper })), "#94A3B8", 0, true);
-            line(bb.map(d => ({ time: d.time, value: d.middle })), "#94A3B8");
-            line(bb.map(d => ({ time: d.time, value: d.lower })), "#94A3B8", 0, true);
+            line(bb.map(d => ({ time: d.time, value: d.upper })), TOKEN.text2, 0, true);
+            line(bb.map(d => ({ time: d.time, value: d.middle })), TOKEN.text2);
+            line(bb.map(d => ({ time: d.time, value: d.lower })), TOKEN.text2, 0, true);
           }
           break;
         }
         case "RSI": {
-          const s = line(computeRSI(bars, spec.period), "#a855f7", paneIdx++);
+          const s = line(computeRSI(bars, spec.period), categoricalColor(0), paneIdx++);
           if (s) {
-            s.createPriceLine({ price: 70, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "70" });
-            s.createPriceLine({ price: 30, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "30" });
+            s.createPriceLine({ price: 70, color: TOKEN.text3, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "70" });
+            s.createPriceLine({ price: 30, color: TOKEN.text3, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "30" });
           }
           break;
         }
         case "MACD": {
           const { macd, signal } = computeMACD(bars, spec.fast, spec.slow);
           const p = paneIdx++;
-          const s = line(macd, "#3B82F6", p);
-          line(signal, "#FF9F1C", p);
-          if (s) s.createPriceLine({ price: 0, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "" });
+          const s = line(macd, TOKEN.info, p);
+          line(signal, TOKEN.accent, p);
+          if (s) s.createPriceLine({ price: 0, color: TOKEN.text3, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "" });
           break;
         }
         case "CCI": {
-          const s = line(computeCCI(bars, spec.period), "#14b8a6", paneIdx++);
+          const s = line(computeCCI(bars, spec.period), categoricalColor(2), paneIdx++);
           if (s) {
-            s.createPriceLine({ price: 100, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "100" });
-            s.createPriceLine({ price: -100, color: "#5F6B7A", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "-100" });
+            s.createPriceLine({ price: 100, color: TOKEN.text3, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "100" });
+            s.createPriceLine({ price: -100, color: TOKEN.text3, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "-100" });
           }
           break;
         }
         case "OBV": {
-          line(computeOBV(bars), "#eab308", paneIdx++);
+          line(computeOBV(bars), TOKEN.warn, paneIdx++);
           break;
         }
       }
@@ -427,7 +428,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       let prevValue = 0;
       cvdSeriesApi.setData(
         cvdSeries.map((pt) => {
-          const color = pt.value >= prevValue ? "#00D964" : "#FF3B30";
+          const color = pt.value >= prevValue ? TOKEN.pos : TOKEN.neg;
           prevValue = pt.value;
           return { time: pt.time, value: pt.value, color };
         })
@@ -451,7 +452,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         deltaSeries.map((pt) => ({
           time: pt.time,
           value: pt.value,
-          color: pt.value >= 0 ? "#00D964" : "#FF3B30",
+          color: pt.value >= 0 ? TOKEN.pos : TOKEN.neg,
         }))
       );
       deltaSeriesRef.current = deltaSeriesApi;

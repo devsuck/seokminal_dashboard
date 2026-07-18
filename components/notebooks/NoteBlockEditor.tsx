@@ -5,6 +5,7 @@ import type {
   NotebookBlock, BlockType,
   CommentBlock, MetricBlock, TableBlock, ChartBlock, ImageBlock,
 } from "@/lib/notebook-storage";
+import { Button } from "@/components/ui";
 
 interface NoteBlockEditorProps {
   initial?: NotebookBlock;
@@ -168,11 +169,9 @@ export function NoteBlockEditor({ initial, onSave, onCancel }: NoteBlockEditorPr
 
       {/* Actions */}
       <div className="flex gap-2">
-        <button
-          onClick={handleSave}
-          className="px-4 h-8 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0">
+        <Button variant="primary" size="md" onClick={handleSave}>
           {initial ? "Update" : "Add Block"}
-        </button>
+        </Button>
         <button
           onClick={onCancel}
           className="px-4 h-8 bg-panel border border-border text-text-2 text-xs rounded cursor-pointer hover:text-text-1 transition-colors">

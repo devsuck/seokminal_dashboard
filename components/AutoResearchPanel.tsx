@@ -7,6 +7,7 @@ import {
 } from "@/lib/api";
 import { LivePulse, AnimatedNumber, ThinkingLine } from "@/components/Jarvis";
 import { ArcReactor, RadialGauge } from "@/components/Hud";
+import { Button } from "@/components/ui";
 
 /* Auto-Research 배치 뷰 — karpathy/autoresearch 정직 이식.
    밤새 후보 다량 검증 → 배치 BH-FDR(다중검정 보정) → 레드팀 → 리더보드(최종 확정).
@@ -103,10 +104,9 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
                 </div>
               </div>
             </div>
-            <button onClick={onRun} disabled={busy}
-              className="px-4 py-2 text-sm font-medium rounded bg-accent text-black disabled:opacity-40 cursor-pointer border-0">
+            <Button variant="primary" size="md" onClick={onRun} disabled={busy}>
               {busy ? "실행중…" : "▶ 배치 실행"}
-            </button>
+            </Button>
           </div>
           {st && (
             <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mt-3 pt-3 border-t border-hud/15 flex-wrap">

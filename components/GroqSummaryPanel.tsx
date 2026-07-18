@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getGroqSummary, type GroqStockPick } from "@/lib/api";
+import { Button } from "@/components/ui";
 
 interface Props {
   mode: "news" | "calendar";
@@ -115,12 +116,13 @@ export function GroqSummaryPanel({ mode, getContent }: Props) {
               Groq · Llama3
             </span>
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSummarize}
-            disabled={loading}
-            className="text-[11px] px-2.5 py-1 bg-accent text-black rounded font-medium hover:opacity-90 disabled:opacity-50 cursor-pointer border-0 transition-opacity">
+            disabled={loading}>
             {loading ? "분석 중…" : "AI 분석"}
-          </button>
+          </Button>
         </div>
 
         {/* Summary body */}

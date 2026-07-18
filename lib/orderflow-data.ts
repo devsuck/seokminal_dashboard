@@ -33,6 +33,9 @@ export interface FootprintDeltaMsg {
   price: number;
   side: "buy" | "sell";
   delta_vol: number;
+  /** 백엔드 aggregator가 실제 체결 이벤트마다 계산해 보냄(10s 롤링 건수/초). 프론트에서
+   * 합성한 footprint_delta(폴링 리컨실 등)에는 대응하는 실체결이 없으므로 optional. */
+  tape_trades_per_sec?: number;
 }
 
 export interface HeatmapDeltaMsg {
@@ -54,12 +57,42 @@ export interface BookSnapshotMsg {
   venues: string[];
 }
 
-export type OrderflowDeltaMsg = FootprintDeltaMsg | HeatmapDeltaMsg | BookSnapshotMsg | StatusMsg;
+/** 스푸핑 의심 휴리스틱 — L2 스냅샷(가격×잔량)만으로 만든 패턴 매칭, order-id 기반 진짜
+ * 스푸핑 탐지가 아니다. 항상 confidence:"low" + note 문구와 함께 취급할 것(backend orderflow/aggregator.py 참고). */
+export interface SpoofAlertMsg {
+  type: "spoof_alert";
+  ts: number;
+  side: "bid" | "ask";
+  price: number;
+  peak_size: number;
+  lifetime_sec: number;
+  confidence: "low";
+  note: string;
+}
+
+export type OrderflowDeltaMsg = FootprintDeltaMsg | HeatmapDeltaMsg | BookSnapshotMsg | SpoofAlertMsg | StatusMsg;
+
+export interface SpoofAlert {
+  ts: number;
+  side: "bid" | "ask";
+  price: number;
+  peakSize: number;
+  lifetimeSec: number;
+  note: string;
+}
+
+/** 패널 이벤트 피드에 표시할 최근 스푸핑 의심 알림 개수 상한. */
+export const SPOOF_ALERT_FEED_MAX = 30;
 
 export interface OrderflowState {
   footprint: Map<string, FootprintCell>;
   heatmap: Map<string, HeatmapCell>;
   book: OrderBookState;
+  /** 체결속도(건/초) — 최근 실체결 footprint_delta의 tape_trades_per_sec. 웜업 전(첫 실체결
+   * 도착 전)엔 null, snapshot()만으로는 채워지지 않음(과거 벌크 데이터엔 실시간 속도 개념 없음). */
+  tapeSpeed: number | null;
+  /** 최근 스푸핑 의심 알림(최신순, 최대 SPOOF_ALERT_FEED_MAX개) — snapshot에 과거분 없음(라이브 이벤트 전용). */
+  spoofAlerts: SpoofAlert[];
 }
 
 export const MAX_TIME_BUCKETS = 300;
@@ -103,7 +136,13 @@ function evictOldestHeatmapBuckets(heatmap: Map<string, HeatmapCell>): Map<strin
 }
 
 export function emptyOrderflowState(): OrderflowState {
-  return { footprint: new Map(), heatmap: new Map(), book: { bids: [], asks: [], venues: [] } };
+  return {
+    footprint: new Map(),
+    heatmap: new Map(),
+    book: { bids: [], asks: [], venues: [] },
+    tapeSpeed: null,
+    spoofAlerts: [],
+  };
 }
 
 export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
@@ -124,6 +163,8 @@ export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
     footprint: evictOldestFootprintBuckets(footprint),
     heatmap: evictOldestHeatmapBuckets(heatmap),
     book: { bids: [], asks: [], venues: [] },
+    tapeSpeed: null,
+    spoofAlerts: [],
   };
 }
 
@@ -145,7 +186,11 @@ export function applyFootprintDelta(state: OrderflowState, msg: FootprintDeltaMs
   let footprint = new Map(state.footprint);
   footprint.set(key, next);
   footprint = evictOldestFootprintBuckets(footprint);
-  return { ...state, footprint };
+  return {
+    ...state,
+    footprint,
+    tapeSpeed: msg.tape_trades_per_sec ?? state.tapeSpeed,
+  };
 }
 
 export function applyHeatmapDelta(state: OrderflowState, msg: HeatmapDeltaMsg): OrderflowState {
@@ -160,10 +205,23 @@ export function applyBookSnapshot(state: OrderflowState, msg: BookSnapshotMsg): 
   return { ...state, book: { bids: msg.bids, asks: msg.asks, venues: msg.venues } };
 }
 
+export function applySpoofAlert(state: OrderflowState, msg: SpoofAlertMsg): OrderflowState {
+  const alert: SpoofAlert = {
+    ts: msg.ts,
+    side: msg.side,
+    price: msg.price,
+    peakSize: msg.peak_size,
+    lifetimeSec: msg.lifetime_sec,
+    note: msg.note,
+  };
+  return { ...state, spoofAlerts: [alert, ...state.spoofAlerts].slice(0, SPOOF_ALERT_FEED_MAX) };
+}
+
 export function applyOrderflowMessage(state: OrderflowState, msg: OrderflowDeltaMsg): OrderflowState {
   if (msg.type === "footprint_delta") return applyFootprintDelta(state, msg);
   if (msg.type === "heatmap_delta") return applyHeatmapDelta(state, msg);
   if (msg.type === "book_snapshot") return applyBookSnapshot(state, msg);
+  if (msg.type === "spoof_alert") return applySpoofAlert(state, msg);
   return state;
 }
 
@@ -503,6 +561,98 @@ export function computeValueArea(levels: VolumeProfileLevel[]): ValueArea | null
   return { poc: rows[pocIdx].price, vah: rows[hi].price, val: rows[lo].price };
 }
 
+export interface CompositeValueArea extends ValueArea {
+  sessionCount: number;
+}
+
+/** bucketTs(초) 기준 UTC 캘린더 일자 키 — 크립토 24/7이라 거래소 세션 개념 없음, VWAP의 day 앵커와 동일 규칙. */
+function footprintDayKey(bucketTs: number): string {
+  return new Date(bucketTs * 1000).toISOString().slice(0, 10);
+}
+
+/** footprint 셀을 UTC 일자별로 분리 — Composite VA(다중 세션 합성)의 세션 단위. */
+export function splitFootprintByUtcDay(cells: FootprintCell[]): FootprintCell[][] {
+  const byDay = new Map<string, FootprintCell[]>();
+  for (const c of cells) {
+    const key = footprintDayKey(c.bucketTs);
+    const arr = byDay.get(key);
+    if (arr) arr.push(c);
+    else byDay.set(key, [c]);
+  }
+  return Array.from(byDay.values());
+}
+
+/**
+ * 여러 세션(day)의 볼륨 프로파일을 가격대별로 합산한 뒤 computeValueArea를 그대로 재사용
+ * (TPO와 동일 패턴 — 신규 POC/VA 로직 없음). 세션이 1개뿐이면 "합성"의 의미가 없어 null —
+ * 클라 버퍼가 MAX_TIME_BUCKETS=300*60s≈5시간이라 실제로는 버퍼가 UTC 자정을 걸치는 구간에서만
+ * 세션 2개 이상이 잡힌다(정직한 게이트: 데이터 없으면 표시 안 함).
+ */
+export function computeCompositeValueArea(dayProfiles: VolumeProfileLevel[][]): CompositeValueArea | null {
+  if (dayProfiles.length < 2) return null;
+  const merged = new Map<number, VolumeProfileLevel>();
+  for (const profile of dayProfiles) {
+    for (const lvl of profile) {
+      const existing = merged.get(lvl.price) ?? { price: lvl.price, buyVol: 0, sellVol: 0 };
+      existing.buyVol += lvl.buyVol;
+      existing.sellVol += lvl.sellVol;
+      merged.set(lvl.price, existing);
+    }
+  }
+  const va = computeValueArea(Array.from(merged.values()));
+  return va ? { ...va, sessionCount: dayProfiles.length } : null;
+}
+
+// Market Profile(TPO) — 30분 구간을 알파벳 1글자에 대응(전통적 CBOT 관례), 결과 보고 튜닝 안 함.
+export const TPO_PERIOD_SEC = 1800;
+const TPO_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/** 26개(대문자 A-Z) 넘는 구간(13시간+)은 소문자로 이어감 — 대문자 다 쓰면 소문자로 wrap하는 일반적 TPO 관례. */
+function tpoLetterForPeriod(periodIdx: number): string {
+  const letter = TPO_ALPHABET[periodIdx % 26];
+  return periodIdx < 26 ? letter : letter.toLowerCase();
+}
+
+export interface TpoLevel {
+  price: number;
+  letters: string;
+  periodsTouched: number;
+}
+
+export interface TpoProfile {
+  levels: TpoLevel[];
+  valueArea: ValueArea | null;
+}
+
+/**
+ * 시간대별(TPO_PERIOD_SEC) 가격 분포 — 체결량이 아니라 "이 가격이 몇 개 구간에서 찍혔는가"로
+ * POC/VA를 판정(전통적 Market Profile). computeValueArea를 그대로 재사용(periodsTouched를
+ * buyVol 자리에 넣어 동일 그리디 확장 알고리즘 적용) — 신규 POC/VA 로직 없음.
+ */
+export function computeTpoProfile(cells: FootprintCell[], periodSec: number = TPO_PERIOD_SEC): TpoProfile {
+  const traded = cells.filter((c) => c.buyVol + c.sellVol > 0);
+  if (traded.length === 0) return { levels: [], valueArea: null };
+
+  const anchor = Math.min(...traded.map((c) => c.bucketTs));
+  const periodsByPrice = new Map<number, Set<number>>();
+  for (const c of traded) {
+    const periodIdx = Math.floor((c.bucketTs - anchor) / periodSec);
+    const periods = periodsByPrice.get(c.price) ?? new Set<number>();
+    periods.add(periodIdx);
+    periodsByPrice.set(c.price, periods);
+  }
+
+  const levels: TpoLevel[] = Array.from(periodsByPrice.entries())
+    .map(([price, periods]) => {
+      const sorted = Array.from(periods).sort((a, b) => a - b);
+      return { price, letters: sorted.map(tpoLetterForPeriod).join(""), periodsTouched: periods.size };
+    })
+    .sort((a, b) => b.price - a.price);
+
+  const valueArea = computeValueArea(levels.map((l) => ({ price: l.price, buyVol: l.periodsTouched, sellVol: 0 })));
+  return { levels, valueArea };
+}
+
 export interface VwapPoint {
   time: number;
   vwap: number;
@@ -512,18 +662,40 @@ export interface VwapPoint {
   dn2: number;
 }
 
+export type VwapPeriod = "day" | "week" | "month";
+
+/** UTC 캘린더 기준 앵커 키 — 크립토는 24/7이라 거래소 세션 개념 없음, UTC로 통일.
+ * week는 ISO 주(월요일 시작) 대신 UTC epoch/7일 버킷으로 단순화 — 앵커 경계 일관성만 있으면 되고
+ * 실제 ISO 주 경계 여부는 중요하지 않음(밴드 anchor 재설정 타이밍 문제일 뿐). */
+function vwapPeriodKey(tsEventNs: number, period: VwapPeriod): string {
+  const d = new Date(Math.floor(tsEventNs / 1e6));
+  if (period === "day") return d.toISOString().slice(0, 10);
+  if (period === "month") return d.toISOString().slice(0, 7);
+  const dayBucket = Math.floor(d.getTime() / 86_400_000 / 7);
+  return `w${dayBucket}`;
+}
+
 /**
- * 보유 중인 bars 구간에 앵커된 VWAP과 ±1σ/±2σ 밴드. 거래량 가중 분산은
+ * period 경계(일/주/월, UTC)마다 리셋되는 VWAP과 ±1σ/±2σ 밴드. 거래량 가중 분산은
  * σ² = Σ(v·tp²)/Σv − vwap² 증분식으로 계산. 누적 거래량 0인 선두 구간은 건너뜀.
  */
 export function computeVwapBands(
-  bars: { ts_event: number; high: number; low: number; close: number; volume: number }[]
+  bars: { ts_event: number; high: number; low: number; close: number; volume: number }[],
+  period: VwapPeriod = "day"
 ): VwapPoint[] {
   const out: VwapPoint[] = [];
   let cumV = 0;
   let cumPV = 0;
   let cumPV2 = 0;
+  let curKey: string | null = null;
   for (const b of bars) {
+    const key = vwapPeriodKey(b.ts_event, period);
+    if (key !== curKey) {
+      curKey = key;
+      cumV = 0;
+      cumPV = 0;
+      cumPV2 = 0;
+    }
     const tp = (b.high + b.low + b.close) / 3;
     const v = b.volume > 0 ? b.volume : 0;
     cumV += v;

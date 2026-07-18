@@ -6,6 +6,7 @@ import {
   type KRSearchResult, type USSearchResult,
 } from "@/lib/api";
 import { setSymbolName } from "@/lib/symbol-names";
+import { Button } from "@/components/ui";
 
 interface SearchTabProps {
   onGoToChart: (instrumentId: string) => void;
@@ -93,12 +94,14 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
           className="flex-1 h-8 px-3 text-sm bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"autoFocus
         />
 
-        <button
+        <Button
+          variant="primary"
+          size="md"
           onClick={() => run()}
           disabled={loading || !query.trim()}
-          className="h-8 px-4 text-xs font-bold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 disabled:opacity-50 shrink-0">
+          className="shrink-0">
           {loading ? "…" : "검색"}
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-neg text-xs">{error}</p>}
@@ -130,11 +133,13 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
                   </div>
                   <div className="flex gap-1.5 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-[10px] text-text-3 self-center font-data">{instrId}</span>
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => { setSymbolName(instrId, r.name); onGoToChart(instrId); }}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0">
+                      className="shrink-0">
                       차트 →
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
@@ -160,11 +165,13 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
                   </div>
                   <div className="flex gap-1.5 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span className="text-[10px] text-text-3 self-center font-data">{instrId}</span>
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => { setSymbolName(instrId, r.name); onGoToChart(instrId); }}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 border-0 shrink-0">
+                      className="shrink-0">
                       차트 →
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );

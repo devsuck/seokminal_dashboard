@@ -6,6 +6,7 @@ import { toast } from "@/lib/toast";
 import {
   getPriceAlerts, addPriceAlert, removePriceAlert, markTriggered, type PriceAlert,
 } from "@/lib/price-alert-storage";
+import { Button, SegmentedToggle } from "@/components/ui";
 
 function suffixOf(sym: string) { return sym.split(".")[1]; }
 
@@ -76,17 +77,18 @@ export function AlertTab({ symbol }: { symbol: string }) {
   return (
     <div className="p-4 max-w-md space-y-3">
       <div className="text-text-2 text-sm font-semibold">{symbol} 가격 알림</div>
-      <div className="flex gap-2">
-        {(["above", "below"] as const).map(d => (
-          <button key={d} onClick={() => setDirection(d)}
-            className={`flex-1 text-xs py-1.5 rounded border ${direction === d ? "border-accent text-accent bg-accent/10" : "border-border text-text-3"}`}>
-            {d === "above" ? "이상 ≥" : "이하 ≤"}
-          </button>
-        ))}
-      </div>
+      <SegmentedToggle
+        value={direction}
+        onChange={setDirection}
+        size="md"
+        options={[
+          { value: "above", label: "이상 ≥" },
+          { value: "below", label: "이하 ≤" },
+        ]}
+      />
       <div className="flex gap-2">
         <input value={price} onChange={e => setPrice(e.target.value)} placeholder="목표 가격"className="flex-1 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
-        <button onClick={add} className="bg-accent text-black text-sm font-medium rounded px-4">추가</button>
+        <Button variant="primary" size="md" onClick={add}>추가</Button>
       </div>
 
       {forSymbol.length > 0 && (

@@ -6,6 +6,7 @@ import {
   type TradingAgent, type AgentCycle, type FREDObservation, type ECOSObservation,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
 
 type Market = "KR" | "US";
 
@@ -317,16 +318,15 @@ export default function MacroPage() {
             <span className="text-text-3 text-xs ml-2 font-normal">거시 분석 · 사고 기록</span>
           </h1>
         </div>
-        <div className="flex gap-1">
-          {(["KR", "US"] as Market[]).map(m => (
-            <button key={m} onClick={() => setMarket(m)}
-              className={`px-4 py-1 text-xs rounded border transition-colors ${
-                market === m ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"
-              }`}>
-              {m === "KR" ? "🇰🇷 KR 거시" : "🇺🇸 US 거시"}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          value={market}
+          onChange={setMarket}
+          size="sm"
+          options={[
+            { value: "KR", label: "🇰🇷 KR 거시" },
+            { value: "US", label: "🇺🇸 US 거시" },
+          ]}
+        />
       </div>
 
       <div className="flex flex-1 overflow-hidden min-h-0">

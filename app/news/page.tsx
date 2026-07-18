@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { NewsPanel } from "@/components/news/NewsPanel";
 import { GroqSummaryPanel } from "@/components/GroqSummaryPanel";
 import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui";
 
 const CATEGORIES = ["general", "forex", "crypto", "merger"] as const;
 
@@ -56,11 +57,9 @@ export default function NewsPage() {
                 onChange={e => setTickerInput(e.target.value.toUpperCase())}
                 onKeyDown={e => e.key === "Enter" && handleTickerSearch()}
                 placeholder="종목 뉴스: AAPL…"className="bg-bg border border-border rounded px-3 py-1 text-text-1 text-xs w-32 focus:border-accent outline-none"/>
-              <button
-                onClick={handleTickerSearch}
-                className="bg-accent text-black text-xs px-3 py-1 rounded font-medium hover:opacity-90">
+              <Button variant="primary" size="sm" onClick={handleTickerSearch}>
                 조회
-              </button>
+              </Button>
               {activeTicker && (
                 <button
                   onClick={() => { setActiveTicker(undefined); setTickerInput(""); }}

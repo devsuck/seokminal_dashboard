@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import type { BarOut } from "@/lib/api";
+import { TOKEN } from "@/lib/chart-colors";
 
 interface OBVChartProps {
   bars: BarOut[];
@@ -27,13 +28,13 @@ export function OBVChart({ bars }: OBVChartProps) {
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
       height: 100,
-      layout: { background: { color: "#0F131A" }, textColor: "#5F6B7A", fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
-      grid: { vertLines: { color: "#151A23" }, horzLines: { color: "#151A23" } },
-      rightPriceScale: { borderColor: "#242A35", scaleMargins: { top: 0.1, bottom: 0.1 } },
-      timeScale: { borderColor: "#242A35", timeVisible: true },
+      layout: { background: { color: TOKEN.panel2 }, textColor: TOKEN.text3, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
+      grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
+      rightPriceScale: { borderColor: TOKEN.border, scaleMargins: { top: 0.1, bottom: 0.1 } },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true },
     });
     const data = computeOBV(bars);
-    const series = chart.addSeries(LineSeries, { color: "#818CF8", lineWidth: 1, priceLineVisible: false, lastValueVisible: true });
+    const series = chart.addSeries(LineSeries, { color: TOKEN.info, lineWidth: 1, priceLineVisible: false, lastValueVisible: true });
     series.setData(data);
     chart.timeScale().fitContent();
     return () => chart.remove();

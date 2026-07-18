@@ -9,6 +9,7 @@ import {
 import { LivePulse, ThinkingLine } from "@/components/Jarvis";
 import AutoResearchPanel from "@/components/AutoResearchPanel";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Button } from "@/components/ui";
 
 // ── 진행바 폭: style={{}} 금지 → 리터럴 Tailwind 폭 클래스 룩업(10% 스텝) ──
 const WIDTHS = [
@@ -121,10 +122,9 @@ export default function LabPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onRunNext} disabled={busy}
-            className="px-3 py-1.5 text-sm font-medium rounded bg-accent text-black disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0 transition-opacity">
+          <Button variant="primary" size="md" onClick={onRunNext} disabled={busy}>
             ▶ 다음 가설 검토
-          </button>
+          </Button>
           <button onClick={onToggleAuto}
             className={`px-3 py-1.5 text-sm font-medium rounded border transition-colors cursor-pointer ${
               st?.autopilot ? "border-pos/50 text-pos bg-pos/10" : "border-border text-text-2 hover:text-text-1 bg-transparent"}`}>

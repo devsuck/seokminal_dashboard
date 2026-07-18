@@ -17,33 +17,41 @@ import {
 } from "lightweight-charts";
 import type { CanvasRenderingTarget2D } from "fancy-canvas";
 import type { IctBar, IctEvent } from "@/lib/api";
+import { TOKEN, categoricalColor } from "@/lib/chart-colors";
 
 interface IctChartProps {
   bars: IctBar[];
   events: Record<string, IctEvent[]>;
 }
 
+/** hex + alpha → rgba() 문자열. 토큰/카테고리컬 팔레트에서 파생시키기 위한 헬퍼 — 새 hex를 만들지 않는다. */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 const ZONE_COLORS: Record<string, { fill: string; border: string }> = {
-  fvg: { fill: "rgba(59,130,246,0.16)", border: "#3B82F6" },
-  order_block: { fill: "rgba(168,85,247,0.16)", border: "#a855f7" },
-  unicorn: { fill: "rgba(234,179,8,0.22)", border: "#eab308" },
-  killzone: { fill: "rgba(148,163,184,0.07)", border: "transparent" },
+  fvg: { fill: withAlpha(categoricalColor(4), 0.16), border: categoricalColor(4) },
+  order_block: { fill: withAlpha(categoricalColor(0), 0.16), border: categoricalColor(0) },
+  unicorn: { fill: withAlpha(TOKEN.warn, 0.22), border: TOKEN.warn },
+  killzone: { fill: withAlpha(TOKEN.text2, 0.07), border: "transparent" },
 };
 
 const POINT_COLORS: Record<string, string> = {
-  sweep: "#14b8a6",
-  market_structure: "#3B82F6",
-  ote: "#FF9F1C",
-  ifvg: "#ec4899",
-  cisd: "#22d3ee",
-  turtle_soup: "#84cc16",
+  sweep: categoricalColor(2),
+  market_structure: categoricalColor(4),
+  ote: TOKEN.accent,
+  ifvg: categoricalColor(1),
+  cisd: TOKEN.hud,
+  turtle_soup: categoricalColor(6),
 };
 
 export const ICT_LEGEND: { id: string; label: string; color: string; kind: "zone" | "point" }[] = [
   { id: "fvg", label: "FVG", color: ZONE_COLORS.fvg.border, kind: "zone" },
   { id: "order_block", label: "Order Block", color: ZONE_COLORS.order_block.border, kind: "zone" },
   { id: "unicorn", label: "Unicorn", color: ZONE_COLORS.unicorn.border, kind: "zone" },
-  { id: "killzone", label: "Kill Zone", color: "#94A3B8", kind: "zone" },
+  { id: "killzone", label: "Kill Zone", color: TOKEN.text2, kind: "zone" },
   { id: "sweep", label: "Sweep", color: POINT_COLORS.sweep, kind: "point" },
   { id: "market_structure", label: "BOS/CHoCH", color: POINT_COLORS.market_structure, kind: "point" },
   { id: "ote", label: "OTE", color: POINT_COLORS.ote, kind: "point" },
@@ -151,30 +159,30 @@ export function IctChart({ bars, events }: IctChartProps) {
       width: containerRef.current.clientWidth,
       height: 480,
       layout: {
-        background: { color: "#0F131A" },
-        textColor: "#5F6B7A",
+        background: { color: TOKEN.panel2 },
+        textColor: TOKEN.text3,
         fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#151A23" },
-        horzLines: { color: "#151A23" },
+        vertLines: { color: TOKEN.border },
+        horzLines: { color: TOKEN.border },
       },
       crosshair: {
-        vertLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
-        horzLine: { color: "#FF9F1C", labelBackgroundColor: "#FF9F1C" },
+        vertLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
+        horzLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
       },
-      rightPriceScale: { borderColor: "#242A35" },
-      timeScale: { borderColor: "#242A35", timeVisible: true },
+      rightPriceScale: { borderColor: TOKEN.border },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true },
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#22C55E",
-      downColor: "#EF4444",
-      borderUpColor: "#22C55E",
-      borderDownColor: "#EF4444",
-      wickUpColor: "#22C55E",
-      wickDownColor: "#EF4444",
+      upColor: TOKEN.pos,
+      downColor: TOKEN.neg,
+      borderUpColor: TOKEN.pos,
+      borderDownColor: TOKEN.neg,
+      wickUpColor: TOKEN.pos,
+      wickDownColor: TOKEN.neg,
     });
 
     candleSeries.setData(

@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import type { IcebergLevel, LargeTrade, SessionLevels, ValueArea } from "@/lib/orderflow-data";
+import type {
+  CompositeValueArea,
+  IcebergLevel,
+  LargeTrade,
+  SessionLevels,
+  SpoofAlert,
+  TpoLevel,
+  ValueArea,
+} from "@/lib/orderflow-data";
+import { CATEGORICAL } from "@/lib/chart-colors";
 
 interface MarkerEvent {
   time: number;
@@ -16,12 +25,22 @@ interface OrderflowSignalPanelProps {
   absorptionMarkers: MarkerEvent[];
   stopRunMarkers: MarkerEvent[];
   divergenceMarkers: MarkerEvent[];
+  /** 스푸핑 의심 휴리스틱 알림 — L2 스냅샷 패턴 매칭일 뿐 order-id 기반 실제 스푸핑 탐지 아님, 항상 낮은 신뢰도로 표기. */
+  spoofAlerts: SpoofAlert[];
   valueArea: ValueArea | null;
+  /** 여러 UTC 세션(일자) 합성 POC/VA — 세션 2개 미만 확보 시(버퍼가 자정을 안 걸침) null. */
+  compositeValueArea: CompositeValueArea | null;
+  /** TPO(마켓프로파일) 가격별 구간 리스트 — 체결량이 아니라 "몇 개 30분 구간에서 찍혔는가" 기준. */
+  tpoLevels: TpoLevel[];
+  /** TPO 기준 POC/VAH/VAL — 거래량 프로파일(valueArea)과는 다른 축이라 별도 표기. */
+  tpoValueArea: ValueArea | null;
   sessionLevels: SessionLevels | null;
   /** 세션 VWAP 마지막 값 — 레벨 판독용. */
   vwapLast: number | null;
   /** 현재가(마지막 종가) — 각 레벨과의 위/아래 관계 표기용. */
   lastPrice: number | null;
+  /** 체결속도(건/초, 최근 10초 롤링) — 백엔드 aggregator 계산값, 첫 실체결 도착 전엔 null. */
+  tapeSpeed: number | null;
   /** 대량체결 트래커 워밍업(표본 20건) 완료 여부 — 미완료 시 파생 시그널은 아직 침묵 상태. */
   warmedUp: boolean;
 }
@@ -30,9 +49,12 @@ type FeedEvent =
   | { kind: "absorption"; time: number; side: "buy" | "sell" }
   | { kind: "stopRun"; time: number; side: "buy" | "sell" }
   | { kind: "divergence"; time: number; side: "buy" | "sell" }
-  | { kind: "largeTrade"; time: number; side: "buy" | "sell"; price: number; size: number };
+  | { kind: "largeTrade"; time: number; side: "buy" | "sell"; price: number; size: number }
+  | { kind: "spoof"; time: number; side: "bid" | "ask"; price: number; peakSize: number; note: string };
 
 const FEED_MAX = 14;
+/** TPO 래더에 표시할 최대 가격행 수 — POC 중심으로 위아래 잘라서 스크롤 없이 훑어볼 정도만. */
+const TPO_ROW_MAX = 14;
 /** CVD 기울기 판정 시 비교할 과거 버킷 수 (1분봉 기준 10분 전 대비). */
 const CVD_SLOPE_LOOKBACK = 10;
 
@@ -81,10 +103,15 @@ export function OrderflowSignalPanel({
   absorptionMarkers,
   stopRunMarkers,
   divergenceMarkers,
+  spoofAlerts,
   valueArea,
+  compositeValueArea,
+  tpoLevels,
+  tpoValueArea,
   sessionLevels,
   vwapLast,
   lastPrice,
+  tapeSpeed,
   warmedUp,
 }: OrderflowSignalPanelProps) {
   const cvdLast = cvdSeries.length > 0 ? cvdSeries[cvdSeries.length - 1].value : null;
@@ -123,9 +150,17 @@ export function OrderflowSignalPanel({
         price: t.price,
         size: t.size,
       })),
+      ...spoofAlerts.map((a) => ({
+        kind: "spoof" as const,
+        time: a.ts,
+        side: a.side,
+        price: a.price,
+        peakSize: a.peakSize,
+        note: a.note,
+      })),
     ];
     return events.sort((a, b) => b.time - a.time).slice(0, FEED_MAX);
-  }, [absorptionMarkers, stopRunMarkers, divergenceMarkers, largeTrades]);
+  }, [absorptionMarkers, stopRunMarkers, divergenceMarkers, largeTrades, spoofAlerts]);
 
   return (
     <div className="text-xs">
@@ -137,6 +172,15 @@ export function OrderflowSignalPanel({
         ) : (
           <div className="text-text-3">데이터 대기 중</div>
         )}
+        <div
+          className="mt-1.5 text-[11px] text-text-3"
+          title="최근 10초 롤링 체결 건수/초 — 체결이 뜸해지면 다음 체결이 올 때까지 값이 안 내려가는 근사치"
+        >
+          체결속도{" "}
+          <span className="font-data text-text-1">
+            {tapeSpeed !== null ? `${tapeSpeed.toFixed(1)}건/초` : "—"}
+          </span>
+        </div>
       </Section>
 
       <Section title="수급 임밸런스">
@@ -187,6 +231,11 @@ export function OrderflowSignalPanel({
             rows.push({ label: "VAH", price: valueArea.vah });
             rows.push({ label: "VAL", price: valueArea.val });
           }
+          if (compositeValueArea) {
+            rows.push({ label: `cPOC(${compositeValueArea.sessionCount}일)`, price: compositeValueArea.poc, tone: "text-info" });
+            rows.push({ label: "cVAH", price: compositeValueArea.vah });
+            rows.push({ label: "cVAL", price: compositeValueArea.val });
+          }
           if (sessionLevels) {
             rows.push({ label: "금일 고가", price: sessionLevels.sessionHigh });
             rows.push({ label: "금일 저가", price: sessionLevels.sessionLow });
@@ -213,6 +262,40 @@ export function OrderflowSignalPanel({
             </ul>
           );
         })()}
+      </Section>
+
+      <Section title="마켓프로파일 (TPO, 30분 단위)">
+        {tpoLevels.length === 0 ? (
+          <div className="text-text-3">데이터 대기 중</div>
+        ) : (
+          (() => {
+            const pocPrice = tpoValueArea?.poc ?? null;
+            const pocIdx = pocPrice !== null ? tpoLevels.findIndex((l) => l.price === pocPrice) : -1;
+            let rows = tpoLevels;
+            if (tpoLevels.length > TPO_ROW_MAX) {
+              const center = pocIdx >= 0 ? pocIdx : Math.floor(tpoLevels.length / 2);
+              const half = Math.floor(TPO_ROW_MAX / 2);
+              const start = Math.min(Math.max(center - half, 0), tpoLevels.length - TPO_ROW_MAX);
+              rows = tpoLevels.slice(start, start + TPO_ROW_MAX);
+            }
+            return (
+              <ul className="space-y-0.5" title="같은 가격이 몇 개의 30분 구간에서 찍혔는지를 문자(A,B,C…)로 누적 표기 — 체결량이 아니라 '시간에 걸쳐 얼마나 자주 이 가격에서 거래됐는가' 기준의 분포">
+                {rows.map((lv) => {
+                  const isPoc = tpoValueArea?.poc === lv.price;
+                  const inVa = tpoValueArea ? lv.price <= tpoValueArea.vah && lv.price >= tpoValueArea.val : false;
+                  return (
+                    <li key={lv.price} className="flex gap-2 font-data">
+                      <span className={isPoc ? "text-accent" : inVa ? "text-text-2" : "text-text-3"}>
+                        {formatPrice(lv.price)}
+                      </span>
+                      <span className={`truncate ${isPoc ? "text-accent" : "text-text-3"}`}>{lv.letters}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          })()
+        )}
       </Section>
 
       <Section title="아이스버그 의심 레벨">
@@ -257,13 +340,19 @@ export function OrderflowSignalPanel({
                   </span>
                 )}
                 {ev.kind === "divergence" && (
-                  <span className="text-[#BF5AF2]" title="신고/신저가인데 캔들 델타가 반대 — 약한 고점/저점">
+                  <span style={{ color: CATEGORICAL[0] }} title="신고/신저가인데 캔들 델타가 반대 — 약한 고점/저점">
                     다이버전스 · {ev.side === "buy" ? "신저가+매수 델타" : "신고가+매도 델타"}
                   </span>
                 )}
                 {ev.kind === "largeTrade" && (
                   <span className={ev.side === "buy" ? "text-pos" : "text-neg"}>
                     대량 {ev.side === "buy" ? "매수" : "매도"} {ev.size.toFixed(2)} @ {formatPrice(ev.price)}
+                  </span>
+                )}
+                {ev.kind === "spoof" && (
+                  <span className="text-warn" title={ev.note}>
+                    스푸핑 의심(낮은 신뢰도) · {ev.side === "bid" ? "매수벽" : "매도벽"} {formatPrice(ev.price)} (피크{" "}
+                    {ev.peakSize.toFixed(2)})
                   </span>
                 )}
               </li>
@@ -283,6 +372,7 @@ export function OrderflowSignalPanel({
           <li>· VWAP -1σ~-2σ 매수 되돌림 / +1σ~+2σ 매도 되돌림이 기본 프레임, 편향과 결합해서 판단.</li>
           <li>· 다이버전스는 세션 고저·전일 고저 근처에서 떴을 때 신뢰도 높음.</li>
           <li>· 워밍업(체결 20건) 전에는 아이스버그/스탑런/대량체결이 의도적으로 침묵.</li>
+          <li>· 스푸핑 의심은 L2 스냅샷 패턴 매칭일 뿐 order-id 기반 탐지가 아님 — 참고 신호로만, 단독 판단 근거로 쓰지 말 것.</li>
         </ul>
       </details>
     </div>

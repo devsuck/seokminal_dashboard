@@ -8,6 +8,8 @@ import {
 import { computeEventStudy, type EventInput, type EventStudyResult } from "@/lib/event-study-utils";
 import { EventReturnChart } from "@/components/event-study/EventReturnChart";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { SegmentedToggle } from "@/components/ui";
+import { TOKEN } from "@/lib/chart-colors";
 
 type EventSource = "ksd_dividend" | "ksd_rights" | "fred" | "custom";
 
@@ -152,19 +154,12 @@ export default function EventStudyPage() {
         {/* Event source tabs */}
         <div className="space-y-1">
           <label className="text-text-3 text-[11px] uppercase tracking-wider">Event Source</label>
-          <div className="flex gap-1 flex-wrap">
-            {sourceOptions.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setSource(opt.value)}
-                className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
-                  source === opt.value
-                    ? "border-accent text-accent bg-accent/10": "border-border text-text-3 bg-transparent hover:text-text-2"}`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedToggle
+            size="sm"
+            value={source}
+            onChange={setSource}
+            options={sourceOptions}
+          />
         </div>
 
         {/* Conditional source sub-controls */}
@@ -199,19 +194,12 @@ export default function EventStudyPage() {
         <div className="flex items-end gap-4 flex-wrap">
           <div className="space-y-1">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">Window</label>
-            <div className="flex gap-1">
-              {WINDOW_OPTIONS.map(w => (
-                <button
-                  key={w}
-                  onClick={() => setWindowDays(w)}
-                  className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
-                    windowDays === w
-                      ? "border-accent text-accent bg-accent/10": "border-border text-text-3 bg-transparent hover:text-text-2"}`}
-                >
-                  ±{w}d
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              size="sm"
+              value={String(windowDays)}
+              onChange={v => setWindowDays(Number(v))}
+              options={WINDOW_OPTIONS.map(w => ({ value: String(w), label: `±${w}d` }))}
+            />
           </div>
           <button
             onClick={run}
@@ -260,7 +248,7 @@ export default function EventStudyPage() {
           {/* Legend */}
           <div className="flex gap-4 text-[10px] text-text-3 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="inline-block w-6 h-0.5 bg-[#6B7280] opacity-50 shrink-0" />
+              <span className="inline-block w-6 h-0.5 opacity-50 shrink-0" style={{ backgroundColor: TOKEN.text3 }} />
               Individual events
             </div>
             <div className="flex items-center gap-1.5">

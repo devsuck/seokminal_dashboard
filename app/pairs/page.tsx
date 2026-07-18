@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ApiError, getPairsBacktest, type PairsResult } from "@/lib/api";
-import { LoadingState } from "@/components/ui";
+import { Button, LoadingState } from "@/components/ui";
 import { SymbolSearchInput } from "@/components/SymbolSearchInput";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
@@ -64,7 +64,7 @@ export default function PairsPage() {
         <SymbolSearchInput value={a} onChange={setA} className="w-52" placeholder="티커/회사명 (예: 애플, apple)" />
         <span className="text-text-3">/</span>
         <SymbolSearchInput value={b} onChange={setB} className="w-52" placeholder="티커/회사명" />
-        <button onClick={() => run()} className="text-sm px-4 py-1.5 rounded bg-accent text-black font-medium">분석</button>
+        <Button variant="primary" size="md" onClick={() => run()}>분석</Button>
         <div className="flex gap-1.5 ml-2 flex-wrap">
           {PRESETS.map(([x, y]) => (
             <button key={x + y} onClick={() => run(x, y)}

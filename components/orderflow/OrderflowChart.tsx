@@ -18,12 +18,14 @@ import { OrderflowSignalPanel } from "@/components/orderflow/OrderflowSignalPane
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
+  computeCompositeValueArea,
   computeCvdSeries,
   computeDeltaSeries,
   computeImbalance,
   computeSessionLevels,
   computeValueArea,
   computeVolumeProfile,
+  computeTpoProfile,
   computeVwapBands,
   currencyForSymbol,
   detectAbsorption,
@@ -35,16 +37,22 @@ import {
   estimateLiquidationLevels,
   hlCoinForSymbol,
   MIN_WARMUP_SAMPLES,
+  splitFootprintByUtcDay,
   SVP_WINDOW_SEC,
   type FootprintCell,
   type HeatmapCell,
   type LargeTradeTrackerState,
   type OrderBookState,
+  type SpoofAlert,
+  type VwapPeriod,
 } from "@/lib/orderflow-data";
 import type { BarOut, FundingSnapshot, GexSnapshot } from "@/lib/api";
+import { TOKEN } from "@/lib/chart-colors";
 
 const REFRESH_INTERVAL_MS = 30_000;
 const LAYERS_STORAGE_KEY = "orderflow-layers";
+const VWAP_PERIOD_STORAGE_KEY = "orderflow-vwap-period";
+const DEFAULT_VWAP_PERIOD: VwapPeriod = "day";
 
 function loadStoredLayers(): Record<LayerKey, boolean> {
   if (typeof window === "undefined") return DEFAULT_LAYERS;
@@ -56,16 +64,33 @@ function loadStoredLayers(): Record<LayerKey, boolean> {
   }
 }
 
+function loadStoredVwapPeriod(): VwapPeriod {
+  if (typeof window === "undefined") return DEFAULT_VWAP_PERIOD;
+  const raw = window.localStorage.getItem(VWAP_PERIOD_STORAGE_KEY);
+  return raw === "day" || raw === "week" || raw === "month" ? raw : DEFAULT_VWAP_PERIOD;
+}
+
 interface OrderflowChartProps {
   symbol: string;
   footprint: FootprintCell[];
   heatmap: HeatmapCell[];
   book: OrderBookState;
+  tapeSpeed: number | null;
+  spoofAlerts: SpoofAlert[];
   gex: GexSnapshot | null;
   funding: FundingSnapshot | null;
 }
 
-export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding }: OrderflowChartProps) {
+export function OrderflowChart({
+  symbol,
+  footprint,
+  heatmap,
+  book,
+  tapeSpeed,
+  spoofAlerts,
+  gex,
+  funding,
+}: OrderflowChartProps) {
   const [bars, setBars] = useState<BarOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -97,9 +122,29 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
     { time: UTCTimestamp; side: "buy" | "sell" }[]
   >([]);
   const [trackerSnapshot, setTrackerSnapshot] = useState<LargeTradeTrackerState>(emptyLargeTradeTracker());
-  const [layers, setLayers] = useState<Record<LayerKey, boolean>>(loadStoredLayers);
+  const [layers, setLayers] = useState<Record<LayerKey, boolean>>(DEFAULT_LAYERS);
   const layersRef = useRef(layers);
   layersRef.current = layers;
+  const layersFirstEffectRef = useRef(true);
+  const [vwapPeriod, setVwapPeriod] = useState<VwapPeriod>(DEFAULT_VWAP_PERIOD);
+  const vwapPeriodFirstEffectRef = useRef(true);
+
+  useEffect(() => {
+    setLayers(loadStoredLayers());
+    setVwapPeriod(loadStoredVwapPeriod());
+  }, []);
+
+  useEffect(() => {
+    // layers와 동일한 이유로 마운트 첫 실행은 건너뜀 — 로드 effect 반영 전 기본값 덮어쓰기 방지.
+    if (!vwapPeriodFirstEffectRef.current) {
+      try {
+        window.localStorage.setItem(VWAP_PERIOD_STORAGE_KEY, vwapPeriod);
+      } catch {
+        // localStorage 불가 환경에서는 세션 내 상태만 유지.
+      }
+    }
+    vwapPeriodFirstEffectRef.current = false;
+  }, [vwapPeriod]);
 
   const cvdSeries = useMemo(
     () => computeCvdSeries(footprint).map((pt) => ({ time: pt.time as UTCTimestamp, value: pt.value })),
@@ -135,8 +180,8 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
   const imbalance = useMemo(() => computeImbalance(book, trackerSnapshot), [book, trackerSnapshot]);
 
   const vwapBands = useMemo(
-    () => computeVwapBands(bars).map((p) => ({ ...p, time: p.time as UTCTimestamp })),
-    [bars]
+    () => computeVwapBands(bars, vwapPeriod).map((p) => ({ ...p, time: p.time as UTCTimestamp })),
+    [bars, vwapPeriod]
   );
   const deltaSeries = useMemo(
     () => computeDeltaSeries(footprint).map((p) => ({ time: p.time as UTCTimestamp, value: p.value })),
@@ -151,6 +196,11 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
     [bars, footprint]
   );
   const valueArea = useMemo(() => computeValueArea(cvpProfile), [cvpProfile]);
+  const compositeValueArea = useMemo(
+    () => computeCompositeValueArea(splitFootprintByUtcDay(footprint).map((cells) => computeVolumeProfile(cells))),
+    [footprint]
+  );
+  const tpoProfile = useMemo(() => computeTpoProfile(footprint), [footprint]);
   const sessionLevels = useMemo(() => computeSessionLevels(bars), [bars]);
   const liqLevels = useMemo(
     () => estimateLiquidationLevels(funding?.mark_px ?? 0, funding?.open_interest ?? 0, funding?.funding ?? 0),
@@ -259,11 +309,16 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
   }, [imbalance]);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(LAYERS_STORAGE_KEY, JSON.stringify(layers));
-    } catch {
-      // localStorage 불가 환경(프라이빗 모드 등)에서는 세션 내 상태만 유지.
+    // 마운트 첫 실행(layers=DEFAULT_LAYERS, 아직 localStorage 미로드)은 건너뜀 —
+    // 안 그러면 로드 effect가 실제 값을 반영하기 전에 기본값으로 덮어씀.
+    if (!layersFirstEffectRef.current) {
+      try {
+        window.localStorage.setItem(LAYERS_STORAGE_KEY, JSON.stringify(layers));
+      } catch {
+        // localStorage 불가 환경(프라이빗 모드 등)에서는 세션 내 상태만 유지.
+      }
     }
+    layersFirstEffectRef.current = false;
     heatmapPrimitiveRef.current?.setVisible(layers.heatmap);
     footprintPrimitiveRef.current?.setVisible(layers.footprint);
     svpPrimitiveRef.current?.setVisible(layers.svp);
@@ -292,17 +347,22 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
       );
     };
     if (layers.valueArea && valueArea) {
-      add(valueArea.poc, "POC", "#FF9F1C", LineStyle.Solid, true);
-      add(valueArea.vah, "VAH", "#FF9F1C", LineStyle.Dashed, false);
-      add(valueArea.val, "VAL", "#FF9F1C", LineStyle.Dashed, false);
+      add(valueArea.poc, "POC", TOKEN.accent, LineStyle.Solid, true);
+      add(valueArea.vah, "VAH", TOKEN.accent, LineStyle.Dashed, false);
+      add(valueArea.val, "VAL", TOKEN.accent, LineStyle.Dashed, false);
+    }
+    if (layers.compositeValueArea && compositeValueArea) {
+      add(compositeValueArea.poc, `cPOC(${compositeValueArea.sessionCount}일)`, TOKEN.info, LineStyle.Solid, true);
+      add(compositeValueArea.vah, "cVAH", TOKEN.info, LineStyle.Dashed, false);
+      add(compositeValueArea.val, "cVAL", TOKEN.info, LineStyle.Dashed, false);
     }
     if (layers.sessionLevels && sessionLevels) {
-      add(sessionLevels.sessionHigh, "금일고", "#94A3B8", LineStyle.Dotted, false);
-      add(sessionLevels.sessionLow, "금일저", "#94A3B8", LineStyle.Dotted, false);
-      if (sessionLevels.prevHigh !== null) add(sessionLevels.prevHigh, "전일고", "#5F6B7A", LineStyle.Dotted, false);
-      if (sessionLevels.prevLow !== null) add(sessionLevels.prevLow, "전일저", "#5F6B7A", LineStyle.Dotted, false);
+      add(sessionLevels.sessionHigh, "금일고", TOKEN.text2, LineStyle.Dotted, false);
+      add(sessionLevels.sessionLow, "금일저", TOKEN.text2, LineStyle.Dotted, false);
+      if (sessionLevels.prevHigh !== null) add(sessionLevels.prevHigh, "전일고", TOKEN.text3, LineStyle.Dotted, false);
+      if (sessionLevels.prevLow !== null) add(sessionLevels.prevLow, "전일저", TOKEN.text3, LineStyle.Dotted, false);
     }
-  }, [valueArea, sessionLevels, layers.valueArea, layers.sessionLevels]);
+  }, [valueArea, compositeValueArea, sessionLevels, layers.valueArea, layers.compositeValueArea, layers.sessionLevels]);
 
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     candleSeriesApiRef.current = series;
@@ -357,7 +417,12 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
 
   return (
     <div className="border border-border bg-panel">
-      <OrderflowLegend layers={layers} onToggle={toggleLayer} />
+      <OrderflowLegend
+        layers={layers}
+        onToggle={toggleLayer}
+        vwapPeriod={vwapPeriod}
+        onVwapPeriodChange={setVwapPeriod}
+      />
       <div className="flex">
         <div className="flex-1 min-w-0">
           <CandlestickChart
@@ -381,10 +446,15 @@ export function OrderflowChart({ symbol, footprint, heatmap, book, gex, funding 
             absorptionMarkers={absorptionMarkers}
             stopRunMarkers={stopRunMarkers}
             divergenceMarkers={divergenceMarkers}
+            spoofAlerts={spoofAlerts}
             valueArea={valueArea}
+            compositeValueArea={compositeValueArea}
+            tpoLevels={tpoProfile.levels}
+            tpoValueArea={tpoProfile.valueArea}
             sessionLevels={sessionLevels}
             vwapLast={vwapBands.length > 0 ? vwapBands[vwapBands.length - 1].vwap : null}
             lastPrice={bars.length > 0 ? bars[bars.length - 1].close : null}
+            tapeSpeed={tapeSpeed}
             warmedUp={trackerSnapshot.recentSizes.length >= MIN_WARMUP_SAMPLES}
           />
         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import type { NotebookEntry, ChartBlock } from "@/lib/notebook-storage";
+import { TOKEN } from "@/lib/chart-colors";
 
 interface NoteBlockRendererProps {
   entry: NotebookEntry;
@@ -23,17 +24,17 @@ function ChartBlockView({ block }: { block: ChartBlock }) {
       width: el.clientWidth,
       height: 180,
       layout: {
-        background: { color: "#0F131A" },
-        textColor: "#6B7280",
+        background: { color: TOKEN.panel2 },
+        textColor: TOKEN.text3,
       },
       grid: {
-        vertLines: { color: "#1F2937" },
-        horzLines: { color: "#1F2937" },
+        vertLines: { color: TOKEN.border },
+        horzLines: { color: TOKEN.border },
       },
-      timeScale: { borderColor: "#1F2937" },
+      timeScale: { borderColor: TOKEN.border },
     });
 
-    const series = chart.addSeries(LineSeries, { color: "#FF9F1C", lineWidth: 2 });
+    const series = chart.addSeries(LineSeries, { color: TOKEN.accent, lineWidth: 2 });
     series.setData(
       block.data.map(d => ({
         time: Math.floor(new Date(d.time).getTime() / 1000) as UTCTimestamp,
