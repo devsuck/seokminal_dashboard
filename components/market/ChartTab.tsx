@@ -58,8 +58,17 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [liveStatus, setLiveStatus] = useState<"off" | "live">("off");
-  const [tf, setTf] = useState("1d");
+  const venueOf = (s: string) => s.split(".").slice(1).join(".");
+  const [tf, setTf] = useState(() => (venueOf(symbol) === "HL" ? "1m" : "1d"));
+  const prevVenueRef = useRef(venueOf(symbol));
   const abortRef = useRef<AbortController | null>(null);
+
+  // HL(크립토)은 TWS 없이도 항상 인트라데이 가능 — 다른 자산군에서 HL 심볼로 넘어오면 1분봉으로 스냅
+  useEffect(() => {
+    const venue = venueOf(symbol);
+    if (venue === "HL" && prevVenueRef.current !== "HL") setTf("1m");
+    prevVenueRef.current = venue;
+  }, [symbol]);
 
   async function loadBars(tfId: string) {
     abortRef.current?.abort();
@@ -68,7 +77,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
     setLoading(true); setError(null); setBars([]);
 
     const cfg = TIMEFRAMES.find(t => t.id === tfId) ?? TIMEFRAMES[4];
-    const venue = symbol.split(".").slice(1).join(".");
+    const venue = venueOf(symbol);
     const isDaily = tfId === "1d";
     const isIntraday = ["1m", "15m", "1h", "4h"].includes(tfId);
 
@@ -114,7 +123,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
 
   useEffect(() => {
     if (bars.length === 0) { setLiveStatus("off"); return; }
-    const venue = symbol.split(".").slice(1).join(".");
+    const venue = venueOf(symbol);
 
     if (venue === "HL") {
       // 크립토: Hyperliquid 북 mid 5초 폴링 (24/7 시장)
