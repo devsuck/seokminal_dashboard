@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 // 예시일 뿐 제한 아님 — 카탈로그에 없는 종목은 백엔드가 yfinance에서 자동 수집.
 // 형식: 미국 SYMBOL.NASDAQ|NYSE|ARCA · 한국 종목코드.XKRX · 크립토 COIN.HL
 const KNOWN_INSTRUMENTS = [
@@ -26,15 +28,48 @@ interface InstrumentSelectProps {
   instruments?: string[];
 }
 
+// 타이핑 중 글자마다 onChange를 그대로 흘리면 심볼이 바뀔 때마다 재구독/재연결(오더플로우는 WS
+// 재연결)이 일어나 상태가 계속 리셋된다 — 입력 표시는 즉시, 상위 커밋은 디바운스로 분리.
+const COMMIT_DEBOUNCE_MS = 350;
+
 export function InstrumentSelect({ value, onChange, instruments }: InstrumentSelectProps) {
   const options = instruments ?? KNOWN_INSTRUMENTS;
+  const [text, setText] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  function commit(next: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    onChange(next);
+  }
+
+  function handleChange(next: string) {
+    setText(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => commit(next), COMMIT_DEBOUNCE_MS);
+  }
+
   return (
     <>
       <input
         list="known-instruments"
         className="border border-border bg-panel-2 text-text-1 rounded px-3 py-1.5 text-sm font-mono uppercase"
-        value={value}
-        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        value={text}
+        onChange={(e) => handleChange(e.target.value.toUpperCase())}
+        onBlur={() => commit(text)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit(text);
+        }}
         placeholder="AAPL.NASDAQ"
       />
       <datalist id="known-instruments">

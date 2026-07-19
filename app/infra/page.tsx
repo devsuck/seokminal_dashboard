@@ -307,7 +307,7 @@ export default function InfraGraphPage() {
     .sort((a, b) => b.bottleneck_score - a.bottleneck_score) ?? [];
 
   return (
-    <div className="flex flex-col h-screen bg-bg overflow-hidden">
+    <div className="flex flex-col h-full bg-bg overflow-hidden">
       {/* 헤더 */}
       <div className="shrink-0 px-5 py-3 border-b border-border flex items-center justify-between">
         <div>

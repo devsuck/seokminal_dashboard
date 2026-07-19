@@ -16,10 +16,17 @@ export interface BookLevel {
   size: number;
 }
 
+export interface VenueBook {
+  bids: BookLevel[];
+  asks: BookLevel[];
+}
+
 export interface OrderBookState {
   bids: BookLevel[];
   asks: BookLevel[];
   venues: string[];
+  /** 거래소별 원장(풀링 전, 반올림/합산 없음) — 3분할 래더(BIN/OKX/HL) 컬럼용. 없는 거래소 키는 미도착. */
+  byVenue: Record<string, VenueBook>;
 }
 
 export interface OrderflowSnapshot {
@@ -36,6 +43,8 @@ export interface FootprintDeltaMsg {
   /** 백엔드 aggregator가 실제 체결 이벤트마다 계산해 보냄(10s 롤링 건수/초). 프론트에서
    * 합성한 footprint_delta(폴링 리컨실 등)에는 대응하는 실체결이 없으므로 optional. */
   tape_trades_per_sec?: number;
+  /** 실제 체결 시각(unix seconds) — tape_trades_per_sec과 동일 사유로 optional, 있으면 체결 테이프용 개별 프린트로 취급. */
+  ts?: number;
 }
 
 export interface HeatmapDeltaMsg {
@@ -55,6 +64,18 @@ export interface BookSnapshotMsg {
   bids: BookLevel[];
   asks: BookLevel[];
   venues: string[];
+  by_venue?: Record<string, VenueBook>;
+}
+
+/** 실제 강제청산 체결 이벤트(추정치 estimateLiquidationLevels와 다름) — 현재 유일한 소스는
+ * Binance 선물 forceOrder 퍼블릭 스트림. HL 자체 청산 아님, 프론트에서 반드시 출처 라벨과 함께 노출. */
+export interface LiquidationMsg {
+  type: "liquidation";
+  ts: number;
+  price: number;
+  size: number;
+  side: "long" | "short";
+  source: "binance";
 }
 
 /** 스푸핑 의심 휴리스틱 — L2 스냅샷(가격×잔량)만으로 만든 패턴 매칭, order-id 기반 진짜
@@ -70,7 +91,13 @@ export interface SpoofAlertMsg {
   note: string;
 }
 
-export type OrderflowDeltaMsg = FootprintDeltaMsg | HeatmapDeltaMsg | BookSnapshotMsg | SpoofAlertMsg | StatusMsg;
+export type OrderflowDeltaMsg =
+  | FootprintDeltaMsg
+  | HeatmapDeltaMsg
+  | BookSnapshotMsg
+  | SpoofAlertMsg
+  | LiquidationMsg
+  | StatusMsg;
 
 export interface SpoofAlert {
   ts: number;
@@ -84,6 +111,27 @@ export interface SpoofAlert {
 /** 패널 이벤트 피드에 표시할 최근 스푸핑 의심 알림 개수 상한. */
 export const SPOOF_ALERT_FEED_MAX = 30;
 
+export interface RecentTrade {
+  ts: number;
+  price: number;
+  side: "buy" | "sell";
+  size: number;
+}
+
+/** 체결 테이프에 들고 있을 최근 개별 체결 건수 상한 — snapshot에 과거분 없음(라이브 이벤트 전용). */
+export const TRADE_TAPE_MAX = 100;
+
+export interface LiqEvent {
+  ts: number;
+  price: number;
+  size: number;
+  side: "long" | "short";
+  source: "binance";
+}
+
+/** "Liq Bubbles" 피드에 들고 있을 최근 청산 이벤트 건수 상한 — snapshot에 과거분 없음(라이브 이벤트 전용). */
+export const LIQUIDATION_FEED_MAX = 100;
+
 export interface OrderflowState {
   footprint: Map<string, FootprintCell>;
   heatmap: Map<string, HeatmapCell>;
@@ -93,6 +141,10 @@ export interface OrderflowState {
   tapeSpeed: number | null;
   /** 최근 스푸핑 의심 알림(최신순, 최대 SPOOF_ALERT_FEED_MAX개) — snapshot에 과거분 없음(라이브 이벤트 전용). */
   spoofAlerts: SpoofAlert[];
+  /** 최근 개별 체결(최신순, 최대 TRADE_TAPE_MAX건) — footprint_delta 중 ts 있는(실체결) 것만 누적. */
+  recentTrades: RecentTrade[];
+  /** 실제 청산 체결(최신순, 최대 LIQUIDATION_FEED_MAX건) — Binance 소스, snapshot에 과거분 없음(라이브 전용). */
+  liquidations: LiqEvent[];
 }
 
 export const MAX_TIME_BUCKETS = 300;
@@ -139,9 +191,11 @@ export function emptyOrderflowState(): OrderflowState {
   return {
     footprint: new Map(),
     heatmap: new Map(),
-    book: { bids: [], asks: [], venues: [] },
+    book: { bids: [], asks: [], venues: [], byVenue: {} },
     tapeSpeed: null,
     spoofAlerts: [],
+    recentTrades: [],
+    liquidations: [],
   };
 }
 
@@ -162,9 +216,11 @@ export function applySnapshot(snapshot: OrderflowSnapshot): OrderflowState {
   return {
     footprint: evictOldestFootprintBuckets(footprint),
     heatmap: evictOldestHeatmapBuckets(heatmap),
-    book: { bids: [], asks: [], venues: [] },
+    book: { bids: [], asks: [], venues: [], byVenue: {} },
     tapeSpeed: null,
     spoofAlerts: [],
+    recentTrades: [],
+    liquidations: [],
   };
 }
 
@@ -186,10 +242,18 @@ export function applyFootprintDelta(state: OrderflowState, msg: FootprintDeltaMs
   let footprint = new Map(state.footprint);
   footprint.set(key, next);
   footprint = evictOldestFootprintBuckets(footprint);
+  const recentTrades =
+    msg.ts !== undefined
+      ? [{ ts: msg.ts, price: msg.price, side: msg.side, size: msg.delta_vol }, ...state.recentTrades].slice(
+          0,
+          TRADE_TAPE_MAX
+        )
+      : state.recentTrades;
   return {
     ...state,
     footprint,
     tapeSpeed: msg.tape_trades_per_sec ?? state.tapeSpeed,
+    recentTrades,
   };
 }
 
@@ -202,7 +266,12 @@ export function applyHeatmapDelta(state: OrderflowState, msg: HeatmapDeltaMsg): 
 }
 
 export function applyBookSnapshot(state: OrderflowState, msg: BookSnapshotMsg): OrderflowState {
-  return { ...state, book: { bids: msg.bids, asks: msg.asks, venues: msg.venues } };
+  return { ...state, book: { bids: msg.bids, asks: msg.asks, venues: msg.venues, byVenue: msg.by_venue ?? {} } };
+}
+
+export function applyLiquidation(state: OrderflowState, msg: LiquidationMsg): OrderflowState {
+  const event: LiqEvent = { ts: msg.ts, price: msg.price, size: msg.size, side: msg.side, source: msg.source };
+  return { ...state, liquidations: [event, ...state.liquidations].slice(0, LIQUIDATION_FEED_MAX) };
 }
 
 export function applySpoofAlert(state: OrderflowState, msg: SpoofAlertMsg): OrderflowState {
@@ -222,6 +291,7 @@ export function applyOrderflowMessage(state: OrderflowState, msg: OrderflowDelta
   if (msg.type === "heatmap_delta") return applyHeatmapDelta(state, msg);
   if (msg.type === "book_snapshot") return applyBookSnapshot(state, msg);
   if (msg.type === "spoof_alert") return applySpoofAlert(state, msg);
+  if (msg.type === "liquidation") return applyLiquidation(state, msg);
   return state;
 }
 
@@ -251,6 +321,164 @@ export function computeHeatmapLayout(cells: HeatmapCell[]): { buckets: number[];
   const buckets = Array.from(new Set(cells.map((c) => c.ts))).sort((a, b) => a - b);
   const prices = Array.from(new Set(cells.map((c) => c.price))).sort((a, b) => b - a);
   return { buckets, prices };
+}
+
+const FOOTPRINT_IMBALANCE_RATIO = 3; // 한쪽이 반대쪽의 300% 이상이면 임밸런스로 간주(표준 풋프린트 기준)
+const FOOTPRINT_STACK_MIN_RUN = 3; // 연속 3개 가격 레벨 이상 같은 방향 임밸런스면 "스택"
+
+export interface FootprintImbalanceCell {
+  bucketTs: number;
+  price: number;
+  side: "buy" | "sell";
+  ratio: number;
+}
+
+/** 같은 가격 셀에서 매수/매도 한쪽이 압도적으로 우세한 지점(임밸런스) 탐지 — 공격적 일방향 체결 신호. */
+export function detectImbalanceCells(cells: FootprintCell[]): FootprintImbalanceCell[] {
+  const out: FootprintImbalanceCell[] = [];
+  for (const c of cells) {
+    if (c.buyVol <= 0 && c.sellVol <= 0) continue;
+    const buyRatio = c.buyVol / Math.max(c.sellVol, 1e-9);
+    const sellRatio = c.sellVol / Math.max(c.buyVol, 1e-9);
+    if (buyRatio >= FOOTPRINT_IMBALANCE_RATIO) out.push({ bucketTs: c.bucketTs, price: c.price, side: "buy", ratio: buyRatio });
+    else if (sellRatio >= FOOTPRINT_IMBALANCE_RATIO) out.push({ bucketTs: c.bucketTs, price: c.price, side: "sell", ratio: sellRatio });
+  }
+  return out;
+}
+
+function inferFootprintTickSize(cells: FootprintCell[]): number {
+  const prices = Array.from(new Set(cells.map((c) => c.price))).sort((a, b) => a - b);
+  let min = Infinity;
+  for (let i = 1; i < prices.length; i++) {
+    const d = prices[i] - prices[i - 1];
+    if (d > 0 && d < min) min = d;
+  }
+  return Number.isFinite(min) ? min : 0.01;
+}
+
+export interface StackedImbalance {
+  bucketTs: number;
+  priceLow: number;
+  priceHigh: number;
+  side: "buy" | "sell";
+  count: number;
+}
+
+/** 한 캔들 안에서 연속된 가격 레벨이 같은 방향으로 임밸런스나면 "스택" — 추세 지속/흡수 반전의 핵심 근거. */
+export function detectStackedImbalances(cells: FootprintCell[]): StackedImbalance[] {
+  const imbalances = detectImbalanceCells(cells);
+  if (imbalances.length === 0) return [];
+  const tickSize = inferFootprintTickSize(cells);
+  const byBucket = new Map<number, FootprintImbalanceCell[]>();
+  for (const im of imbalances) {
+    const arr = byBucket.get(im.bucketTs) ?? [];
+    arr.push(im);
+    byBucket.set(im.bucketTs, arr);
+  }
+  const out: StackedImbalance[] = [];
+  for (const [bucketTs, arr] of byBucket) {
+    arr.sort((a, b) => a.price - b.price);
+    let runStart = 0;
+    for (let i = 1; i <= arr.length; i++) {
+      const broke =
+        i === arr.length ||
+        arr[i].side !== arr[i - 1].side ||
+        Math.abs(arr[i].price - arr[i - 1].price - tickSize) > tickSize * 0.5;
+      if (broke) {
+        const runLen = i - runStart;
+        if (runLen >= FOOTPRINT_STACK_MIN_RUN) {
+          out.push({
+            bucketTs,
+            priceLow: arr[runStart].price,
+            priceHigh: arr[i - 1].price,
+            side: arr[runStart].side,
+            count: runLen,
+          });
+        }
+        runStart = i;
+      }
+    }
+  }
+  return out;
+}
+
+/** 캔들(bucketTs)별 최대 체결량 가격 — 그 캔들의 "중심"으로 풋프린트에서 굵게 강조. */
+export function computeColumnPoc(cells: FootprintCell[]): Map<number, number> {
+  const best = new Map<number, { price: number; vol: number }>();
+  for (const c of cells) {
+    const vol = c.buyVol + c.sellVol;
+    const cur = best.get(c.bucketTs);
+    if (!cur || vol > cur.vol) best.set(c.bucketTs, { price: c.price, vol });
+  }
+  return new Map(Array.from(best.entries()).map(([bucketTs, v]) => [bucketTs, v.price]));
+}
+
+export interface FootprintAbsorptionLevel {
+  price: number;
+  totalVol: number;
+  netDelta: number;
+}
+
+/** 세션 누적 기준 거래량은 많은데 순델타 비중은 낮은 가격대 — 양쪽이 맞붙어 못 밀린 "흡수" 레벨. */
+export function computeFootprintAbsorptionLevels(cells: FootprintCell[], topN = 5): FootprintAbsorptionLevel[] {
+  const byPrice = new Map<number, { buy: number; sell: number }>();
+  for (const c of cells) {
+    const e = byPrice.get(c.price) ?? { buy: 0, sell: 0 };
+    e.buy += c.buyVol;
+    e.sell += c.sellVol;
+    byPrice.set(c.price, e);
+  }
+  const rows = Array.from(byPrice.entries())
+    .map(([price, { buy, sell }]) => ({ price, totalVol: buy + sell, netDelta: buy - sell }))
+    .filter((r) => r.totalVol > 0);
+  if (rows.length === 0) return [];
+  const maxVol = Math.max(...rows.map((r) => r.totalVol));
+  return rows
+    .filter((r) => r.totalVol >= maxVol * 0.5 && Math.abs(r.netDelta) / r.totalVol < 0.2)
+    .sort((a, b) => b.totalVol - a.totalVol)
+    .slice(0, topN);
+}
+
+export interface NakedPoc {
+  price: number;
+  ageDays: number;
+}
+
+/**
+ * 지난 UTC일들의 POC 중 그날 이후로 한 번도 재테스트(가격이 다시 지나감) 안 된 레벨 — "네이키드 POC".
+ * 시장이 아직 안 갚은 빚처럼 강하게 끌어당기는 자석 레벨로 취급된다.
+ */
+export function computeNakedPocs(
+  footprint: FootprintCell[],
+  bars: { ts_event: number; high: number; low: number }[]
+): NakedPoc[] {
+  const days = splitFootprintByUtcDay(footprint);
+  if (days.length < 2) return [];
+
+  const dayPocs = days
+    .map((cells) => {
+      if (cells.length === 0) return null;
+      const va = computeValueArea(computeVolumeProfile(cells));
+      if (!va) return null;
+      const dayEndTs = Math.max(...cells.map((c) => c.bucketTs));
+      return { price: va.poc, dayEndTs };
+    })
+    .filter((p): p is { price: number; dayEndTs: number } => p !== null)
+    .sort((a, b) => a.dayEndTs - b.dayEndTs);
+
+  if (dayPocs.length < 2) return [];
+  const latestTs = dayPocs[dayPocs.length - 1].dayEndTs;
+  const completedDayPocs = dayPocs.slice(0, -1); // 진행 중인 오늘은 제외
+
+  return completedDayPocs
+    .filter(
+      (p) =>
+        !bars.some((b) => {
+          const sec = Math.floor(b.ts_event / 1e9);
+          return sec > p.dayEndTs && b.low <= p.price && b.high >= p.price;
+        })
+    )
+    .map((p) => ({ price: p.price, ageDays: Math.max(1, Math.round((latestTs - p.dayEndTs) / 86400)) }));
 }
 
 /**
@@ -717,6 +945,25 @@ export function computeVwapBands(
   return out;
 }
 
+export interface VolumeBucket {
+  bucketTs: number;
+  buyVol: number;
+  sellVol: number;
+}
+
+/** 버킷(캔들)별 매수/매도 체결량 합계 — 차트 배경 전체폭 Volume 바용(OI 아님, 가격대별 OI 분포 데이터 없어
+ * 정직성 원칙상 체결량만 표시). 가격 레벨 무관하게 그 캔들에서 일어난 전체 체결량. */
+export function computeVolumeByBucket(cells: FootprintCell[]): VolumeBucket[] {
+  const byBucket = new Map<number, VolumeBucket>();
+  for (const c of cells) {
+    const e = byBucket.get(c.bucketTs) ?? { bucketTs: c.bucketTs, buyVol: 0, sellVol: 0 };
+    e.buyVol += c.buyVol;
+    e.sellVol += c.sellVol;
+    byBucket.set(c.bucketTs, e);
+  }
+  return Array.from(byBucket.values()).sort((a, b) => a.bucketTs - b.bucketTs);
+}
+
 /** 버킷(캔들)별 순델타(매수량-매도량) — CVD의 비누적 버전, 델타 히스토그램 서브페인용. */
 export function computeDeltaSeries(cells: FootprintCell[]): { time: number; value: number }[] {
   const netByBucket = new Map<number, number>();
@@ -815,6 +1062,31 @@ export function computeSessionLevels(
   };
 }
 
+export interface FibLevel {
+  ratio: number;
+  price: number;
+  label: string;
+  /** ICT OTE(Optimal Trade Entry, 61.8~78.6%) 구간 강조용. */
+  isOte: boolean;
+}
+
+const FIB_RATIOS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+
+/**
+ * 세션 고저(sessionLevels) 구간의 피보나치 되돌림 — ICT 프리미엄(50% 위, 매도 관점)/디스카운트(50% 아래, 매수 관점) 판단용.
+ * 방향성(상승/하락) 추세 판정 없이 항상 저→고 기준으로 그림 — 어느 쪽이 "되돌림 목표"인지는 현재가 위치로 유저가 해석.
+ */
+export function computeFibLevels(high: number, low: number): FibLevel[] {
+  if (!Number.isFinite(high) || !Number.isFinite(low) || high <= low) return [];
+  const range = high - low;
+  return FIB_RATIOS.map((ratio) => ({
+    ratio,
+    price: low + ratio * range,
+    label: `Fib ${(ratio * 100).toFixed(1)}%`,
+    isOte: ratio === 0.618 || ratio === 0.786,
+  }));
+}
+
 export interface LiqLevel {
   price: number;
   side: "long" | "short";
@@ -822,8 +1094,8 @@ export interface LiqLevel {
   leverage: number;
 }
 
-/** HL이 UI에 노출하는 대표 레버리지 구간(자산별 최대 레버리지는 다르지만 공통 구간만 사용). */
-export const LIQUIDATION_LEVERAGE_TIERS = [3, 5, 10, 20, 50] as const;
+/** HL 주요 코인 실제 최대 레버리지 상한(40x, BTC 기준) 이내 구간만 사용 — 50x는 실제로 열 수 없는 포지션이라 제외. */
+export const LIQUIDATION_LEVERAGE_TIERS = [3, 5, 10, 20, 40] as const;
 const LIQUIDATION_MAINTENANCE_MARGIN_RATE = 0.005;
 const LIQUIDATION_FUNDING_SKEW_SCALE = 1000;
 
@@ -848,4 +1120,43 @@ export function estimateLiquidationLevels(price: number, openInterest: number, f
     levels.push({ price: price * (1 + dist), side: "short", weight: shortWeight, leverage });
   }
   return levels.sort((a, b) => a.price - b.price);
+}
+
+export interface LiqHeatmapSample {
+  price: number;
+  side: "long" | "short";
+  weight: number;
+}
+
+const LIQUIDATION_HEATMAP_MIN_LEVERAGE = 2;
+const LIQUIDATION_HEATMAP_MAX_LEVERAGE = 40;
+const LIQUIDATION_HEATMAP_SAMPLES = 48;
+
+/**
+ * estimateLiquidationLevels와 같은 가정(OI 균등분산, funding 부호로 롱/숏만 약보정)을 5개 이산
+ * 레버리지 대신 로그간격 연속 샘플(레버리지 2~40x)로 확장 — 매끈한 그라디언트 렌더 전용.
+ * 레버리지별 실제 OI 분포는 알 수 없으므로 특정 분포 형태(정규분포 등)를 지어내지 않고
+ * 로그축 균등을 중립 가정으로 유지한다 — estimateLiquidationLevels의 5-tier 라인이 여전히
+ * 정확한 참조 레벨이고, 이 함수는 그 사이를 시각적으로 이어주는 배경일 뿐이다.
+ */
+export function estimateLiquidationHeatmap(price: number, openInterest: number, funding: number): LiqHeatmapSample[] {
+  if (price <= 0 || openInterest <= 0) return [];
+
+  const skew = Math.max(-0.5, Math.min(0.5, funding * LIQUIDATION_FUNDING_SKEW_SCALE));
+  const baseWeight = openInterest / LIQUIDATION_HEATMAP_SAMPLES;
+  const longWeight = baseWeight * (1 + skew);
+  const shortWeight = baseWeight * (1 - skew);
+
+  const logMin = Math.log(LIQUIDATION_HEATMAP_MIN_LEVERAGE);
+  const logMax = Math.log(LIQUIDATION_HEATMAP_MAX_LEVERAGE);
+  const samples: LiqHeatmapSample[] = [];
+  for (let i = 0; i < LIQUIDATION_HEATMAP_SAMPLES; i++) {
+    const t = i / (LIQUIDATION_HEATMAP_SAMPLES - 1);
+    const leverage = Math.exp(logMin + t * (logMax - logMin));
+    const dist = 1 / leverage - LIQUIDATION_MAINTENANCE_MARGIN_RATE;
+    if (dist <= 0) continue;
+    samples.push({ price: price * (1 - dist), side: "long", weight: longWeight });
+    samples.push({ price: price * (1 + dist), side: "short", weight: shortWeight });
+  }
+  return samples;
 }

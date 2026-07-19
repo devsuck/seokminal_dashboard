@@ -9,10 +9,12 @@ import {
   emptyOrderflowState,
   type FootprintCell,
   type HeatmapCell,
+  type LiqEvent,
   type OrderBookState,
   type OrderflowDeltaMsg,
   type OrderflowSnapshot,
   type OrderflowState,
+  type RecentTrade,
   type SpoofAlert,
 } from "@/lib/orderflow-data";
 
@@ -27,6 +29,8 @@ interface UseOrderflowSocketResult {
   book: OrderBookState;
   tapeSpeed: number | null;
   spoofAlerts: SpoofAlert[];
+  recentTrades: RecentTrade[];
+  liquidations: LiqEvent[];
   connectionState: OrderflowConnectionState;
 }
 
@@ -124,6 +128,8 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
     book: state.book,
     tapeSpeed: state.tapeSpeed,
     spoofAlerts: state.spoofAlerts,
+    recentTrades: state.recentTrades,
+    liquidations: state.liquidations,
     connectionState,
   };
 }

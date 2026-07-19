@@ -39,7 +39,8 @@ export default function OrderflowPage() {
   const [symbol, setSymbol] = useState("BTC.HL");
   const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
-  const { footprint, heatmap, book, tapeSpeed, spoofAlerts, connectionState } = useOrderflowSocket(symbol);
+  const { footprint, heatmap, book, tapeSpeed, spoofAlerts, recentTrades, liquidations, connectionState } =
+    useOrderflowSocket(symbol);
   const currency = currencyForSymbol(symbol);
   const { gex } = useGexSnapshot(currency ?? "");
   const hlCoin = hlCoinForSymbol(symbol);
@@ -80,6 +81,8 @@ export default function OrderflowPage() {
         book={book}
         tapeSpeed={tapeSpeed}
         spoofAlerts={spoofAlerts}
+        recentTrades={recentTrades}
+        liquidations={liquidations}
         gex={gex}
         funding={funding}
       />

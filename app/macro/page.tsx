@@ -309,7 +309,7 @@ export default function MacroPage() {
   const methodology = market === "KR" ? KR_METHODOLOGY : US_METHODOLOGY;
 
   return (
-    <div className="flex flex-col h-screen bg-bg overflow-hidden">
+    <div className="flex flex-col h-full bg-bg overflow-hidden">
       {/* 헤더 */}
       <div className="shrink-0 px-5 py-3 border-b border-border flex items-center justify-between">
         <div>

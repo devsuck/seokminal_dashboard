@@ -9,12 +9,18 @@ import { OrderBookPrimitive } from "@/components/orderflow/OrderBookPrimitive";
 import { LargeLotPrimitive } from "@/components/orderflow/LargeLotPrimitive";
 import { GexLevelsPrimitive } from "@/components/orderflow/GexLevelsPrimitive";
 import { LiquidationLevelsPrimitive } from "@/components/orderflow/LiquidationLevelsPrimitive";
+import { LiquidationBubblesPrimitive } from "@/components/orderflow/LiquidationBubblesPrimitive";
+import { VolumeBackgroundPrimitive } from "@/components/orderflow/VolumeBackgroundPrimitive";
+import { PositionLevelsPrimitive } from "@/components/orderflow/PositionLevelsPrimitive";
+import { useHLPosition } from "@/hooks/useHLPosition";
 import { VolumeProfilePrimitive } from "@/components/orderflow/VolumeProfilePrimitive";
 import { ImbalanceBarPrimitive } from "@/components/orderflow/ImbalanceBarPrimitive";
 import { OptionsFlowPanel } from "@/components/orderflow/OptionsFlowPanel";
 import { FundingPanel } from "@/components/orderflow/FundingPanel";
 import { OrderflowLegend, DEFAULT_LAYERS, type LayerKey } from "@/components/orderflow/OrderflowLegend";
 import { OrderflowSignalPanel } from "@/components/orderflow/OrderflowSignalPanel";
+import { OrderBookLadder } from "@/components/orderflow/OrderBookLadder";
+import { TradeTape } from "@/components/orderflow/TradeTape";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import {
   applyLargeTradeTracking,
@@ -26,6 +32,7 @@ import {
   computeValueArea,
   computeVolumeProfile,
   computeTpoProfile,
+  computeVolumeByBucket,
   computeVwapBands,
   currencyForSymbol,
   detectAbsorption,
@@ -34,6 +41,10 @@ import {
   detectStopRuns,
   diffFootprintCells,
   emptyLargeTradeTracker,
+  computeFibLevels,
+  computeFootprintAbsorptionLevels,
+  computeNakedPocs,
+  estimateLiquidationHeatmap,
   estimateLiquidationLevels,
   hlCoinForSymbol,
   MIN_WARMUP_SAMPLES,
@@ -42,7 +53,9 @@ import {
   type FootprintCell,
   type HeatmapCell,
   type LargeTradeTrackerState,
+  type LiqEvent,
   type OrderBookState,
+  type RecentTrade,
   type SpoofAlert,
   type VwapPeriod,
 } from "@/lib/orderflow-data";
@@ -50,6 +63,8 @@ import type { BarOut, FundingSnapshot, GexSnapshot } from "@/lib/api";
 import { TOKEN } from "@/lib/chart-colors";
 
 const REFRESH_INTERVAL_MS = 30_000;
+// footprint 버킷(aggregator 기본 60s) = fetchBarsForSymbol(symbol, "1m", ...) 캔들 간격과 동일.
+const CANDLE_INTERVAL_SEC = 60;
 const LAYERS_STORAGE_KEY = "orderflow-layers";
 const VWAP_PERIOD_STORAGE_KEY = "orderflow-vwap-period";
 const DEFAULT_VWAP_PERIOD: VwapPeriod = "day";
@@ -77,6 +92,8 @@ interface OrderflowChartProps {
   book: OrderBookState;
   tapeSpeed: number | null;
   spoofAlerts: SpoofAlert[];
+  recentTrades: RecentTrade[];
+  liquidations: LiqEvent[];
   gex: GexSnapshot | null;
   funding: FundingSnapshot | null;
 }
@@ -88,6 +105,8 @@ export function OrderflowChart({
   book,
   tapeSpeed,
   spoofAlerts,
+  recentTrades,
+  liquidations,
   gex,
   funding,
 }: OrderflowChartProps) {
@@ -100,13 +119,22 @@ export function OrderflowChart({
   const largeLotPrimitiveRef = useRef<LargeLotPrimitive | null>(null);
   const gexLevelsPrimitiveRef = useRef<GexLevelsPrimitive | null>(null);
   const liqLevelsPrimitiveRef = useRef<LiquidationLevelsPrimitive | null>(null);
+  const positionLevelsPrimitiveRef = useRef<PositionLevelsPrimitive | null>(null);
   const svpPrimitiveRef = useRef<VolumeProfilePrimitive | null>(null);
   const cvpPrimitiveRef = useRef<VolumeProfilePrimitive | null>(null);
   const imbalancePrimitiveRef = useRef<ImbalanceBarPrimitive | null>(null);
+  const liqBubblesPrimitiveRef = useRef<LiquidationBubblesPrimitive | null>(null);
+  const volumeBgPrimitiveRef = useRef<VolumeBackgroundPrimitive | null>(null);
   const candleSeriesApiRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const priceLinesRef = useRef<IPriceLine[]>([]);
+  const absorptionPriceLinesRef = useRef<IPriceLine[]>([]);
   const currency = currencyForSymbol(symbol);
   const hlCoin = hlCoinForSymbol(symbol);
+  const { positions, openOrders } = useHLPosition(hlCoin ?? "");
+  const positionsRef = useRef(positions);
+  const openOrdersRef = useRef(openOrders);
+  positionsRef.current = positions;
+  openOrdersRef.current = openOrders;
   const gexRef = useRef(gex);
   gexRef.current = gex;
   const prevFootprintRef = useRef<FootprintCell[]>([]);
@@ -114,9 +142,11 @@ export function OrderflowChart({
   const footprintRef = useRef(footprint);
   const heatmapRef = useRef(heatmap);
   const bookRef = useRef(book);
+  const liquidationsRef = useRef(liquidations);
   footprintRef.current = footprint;
   heatmapRef.current = heatmap;
   bookRef.current = book;
+  liquidationsRef.current = liquidations;
 
   const [absorptionMarkers, setAbsorptionMarkers] = useState<
     { time: UTCTimestamp; side: "buy" | "sell" }[]
@@ -157,6 +187,7 @@ export function OrderflowChart({
     return sizes.length > 0 ? [...sizes].sort((a, b) => a - b)[Math.floor(sizes.length / 2)] : 0;
   }, [trackerSnapshot]);
 
+  const volumeBuckets = useMemo(() => computeVolumeByBucket(footprint), [footprint]);
   const cvpProfile = useMemo(() => computeVolumeProfile(footprint), [footprint]);
   const svpProfile = useMemo(() => {
     const latestBucketTs = footprint.reduce((max, c) => Math.max(max, c.bucketTs), 0);
@@ -202,12 +233,24 @@ export function OrderflowChart({
   );
   const tpoProfile = useMemo(() => computeTpoProfile(footprint), [footprint]);
   const sessionLevels = useMemo(() => computeSessionLevels(bars), [bars]);
+  const fibLevels = useMemo(
+    () => (sessionLevels ? computeFibLevels(sessionLevels.sessionHigh, sessionLevels.sessionLow) : []),
+    [sessionLevels]
+  );
+  const absorptionLevels = useMemo(() => computeFootprintAbsorptionLevels(footprint), [footprint]);
+  const nakedPocs = useMemo(() => computeNakedPocs(footprint, bars), [footprint, bars]);
   const liqLevels = useMemo(
     () => estimateLiquidationLevels(funding?.mark_px ?? 0, funding?.open_interest ?? 0, funding?.funding ?? 0),
     [funding]
   );
   const liqLevelsRef = useRef(liqLevels);
   liqLevelsRef.current = liqLevels;
+  const liqHeatmapSamples = useMemo(
+    () => estimateLiquidationHeatmap(funding?.mark_px ?? 0, funding?.open_interest ?? 0, funding?.funding ?? 0),
+    [funding]
+  );
+  const liqHeatmapSamplesRef = useRef(liqHeatmapSamples);
+  liqHeatmapSamplesRef.current = liqHeatmapSamples;
 
   // 심볼 전환 시 이전 심볼의 롤링 중앙값/대형 트레이드 상태가 새 심볼에 섞이지 않도록 초기화.
   useEffect(() => {
@@ -296,6 +339,14 @@ export function OrderflowChart({
   }, [liqLevels]);
 
   useEffect(() => {
+    liqLevelsPrimitiveRef.current?.updateHeatmap(liqHeatmapSamples);
+  }, [liqHeatmapSamples]);
+
+  useEffect(() => {
+    positionLevelsPrimitiveRef.current?.updateData(positions, openOrders);
+  }, [positions, openOrders]);
+
+  useEffect(() => {
     svpPrimitiveRef.current?.updateData(svpProfile);
     cvpPrimitiveRef.current?.updateData(cvpProfile);
   }, [svpProfile, cvpProfile]);
@@ -307,6 +358,14 @@ export function OrderflowChart({
   useEffect(() => {
     imbalancePrimitiveRef.current?.updateData(imbalance);
   }, [imbalance]);
+
+  useEffect(() => {
+    volumeBgPrimitiveRef.current?.updateData(volumeBuckets);
+  }, [volumeBuckets]);
+
+  useEffect(() => {
+    liqBubblesPrimitiveRef.current?.updateData(liquidations, CANDLE_INTERVAL_SEC);
+  }, [liquidations]);
 
   useEffect(() => {
     // 마운트 첫 실행(layers=DEFAULT_LAYERS, 아직 localStorage 미로드)은 건너뜀 —
@@ -328,6 +387,9 @@ export function OrderflowChart({
     gexLevelsPrimitiveRef.current?.setVisible(layers.gex);
     imbalancePrimitiveRef.current?.setVisible(layers.imbalance);
     liqLevelsPrimitiveRef.current?.setVisible(layers.liqHeatmap);
+    positionLevelsPrimitiveRef.current?.setVisible(layers.positions);
+    liqBubblesPrimitiveRef.current?.setVisible(layers.liqBubbles);
+    volumeBgPrimitiveRef.current?.setVisible(layers.volBg);
   }, [layers]);
 
   function toggleLayer(key: LayerKey) {
@@ -362,7 +424,51 @@ export function OrderflowChart({
       if (sessionLevels.prevHigh !== null) add(sessionLevels.prevHigh, "전일고", TOKEN.text3, LineStyle.Dotted, false);
       if (sessionLevels.prevLow !== null) add(sessionLevels.prevLow, "전일저", TOKEN.text3, LineStyle.Dotted, false);
     }
-  }, [valueArea, compositeValueArea, sessionLevels, layers.valueArea, layers.compositeValueArea, layers.sessionLevels]);
+    if (layers.fib) {
+      // 0%/100%(세션 고저 자체)는 sessionLevels 라인과 중복이라 생략, 중간 되돌림 비율만 그림.
+      // axisLabelVisible 항상 false — 라벨 박스가 다른 레벨들과 겹쳐서 지저분해짐. 대신 50%(프리미엄/디스카운트 경계)만
+      // 색으로 구분해서 라벨 없이도 한눈에 띄게, 나머지는 배경처럼 옅게.
+      for (const fib of fibLevels) {
+        if (fib.ratio === 0 || fib.ratio === 1) continue;
+        const color = fib.ratio === 0.5 ? TOKEN.warn : fib.isOte ? TOKEN.pos : TOKEN.text3;
+        add(fib.price, fib.label, color, LineStyle.Dotted, false);
+      }
+    }
+  }, [valueArea, compositeValueArea, sessionLevels, fibLevels, layers.valueArea, layers.compositeValueArea, layers.sessionLevels, layers.fib]);
+
+  // 흡수 레벨은 footprint(실시간 틱마다 갱신)에서 나온 값이라 POC/VA 등 정적 레벨과 이펙트를 분리 —
+  // 안 그러면 틱마다 위 이펙트가 전체 라인을 지웠다 다시 그려서 깜빡임/낭비 발생.
+  useEffect(() => {
+    const series = candleSeriesApiRef.current;
+    if (!series) return;
+    for (const pl of absorptionPriceLinesRef.current) series.removePriceLine(pl);
+    absorptionPriceLinesRef.current = [];
+    if (!layers.footprint) return;
+    for (const lvl of absorptionLevels) {
+      absorptionPriceLinesRef.current.push(
+        series.createPriceLine({
+          price: lvl.price,
+          title: "흡수",
+          color: TOKEN.info,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: false,
+        })
+      );
+    }
+    for (const poc of nakedPocs) {
+      absorptionPriceLinesRef.current.push(
+        series.createPriceLine({
+          price: poc.price,
+          title: `nPOC ${poc.ageDays}일전`,
+          color: TOKEN.warn,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: false,
+        })
+      );
+    }
+  }, [absorptionLevels, nakedPocs, layers.footprint]);
 
   function handleSeriesReady(_chart: IChartApi, series: ISeriesApi<"Candlestick">) {
     candleSeriesApiRef.current = series;
@@ -373,23 +479,33 @@ export function OrderflowChart({
     const lp = new LargeLotPrimitive();
     const gp = new GexLevelsPrimitive();
     const qp = new LiquidationLevelsPrimitive();
+    const pp = new PositionLevelsPrimitive();
     const svp = new VolumeProfilePrimitive(0);
     const cvp = new VolumeProfilePrimitive(1);
     const ip = new ImbalanceBarPrimitive();
+    const vbg = new VolumeBackgroundPrimitive();
+    const lqb = new LiquidationBubblesPrimitive();
+    series.attachPrimitive(vbg);
     series.attachPrimitive(hp);
     series.attachPrimitive(fp);
     series.attachPrimitive(svp);
     series.attachPrimitive(cvp);
     series.attachPrimitive(bp);
     series.attachPrimitive(lp);
+    series.attachPrimitive(lqb);
     series.attachPrimitive(gp);
     series.attachPrimitive(qp);
+    series.attachPrimitive(pp);
     series.attachPrimitive(ip);
     hp.updateData(heatmapRef.current);
     fp.updateData(footprintRef.current);
     bp.updateData(bookRef.current);
     gp.updateData(currency && gexRef.current ? gexRef.current.levels : []);
     qp.updateData(liqLevelsRef.current);
+    qp.updateHeatmap(liqHeatmapSamplesRef.current);
+    pp.updateData(positionsRef.current, openOrdersRef.current);
+    vbg.updateData(computeVolumeByBucket(footprintRef.current));
+    lqb.updateData(liquidationsRef.current, CANDLE_INTERVAL_SEC);
     const initialLayers = layersRef.current;
     hp.setVisible(initialLayers.heatmap);
     fp.setVisible(initialLayers.footprint);
@@ -399,16 +515,22 @@ export function OrderflowChart({
     lp.setVisible(initialLayers.bubbles);
     gp.setVisible(initialLayers.gex);
     qp.setVisible(initialLayers.liqHeatmap);
+    pp.setVisible(initialLayers.positions);
     ip.setVisible(initialLayers.imbalance);
+    vbg.setVisible(initialLayers.volBg);
+    lqb.setVisible(initialLayers.liqBubbles);
     heatmapPrimitiveRef.current = hp;
     footprintPrimitiveRef.current = fp;
     bookPrimitiveRef.current = bp;
     largeLotPrimitiveRef.current = lp;
     gexLevelsPrimitiveRef.current = gp;
     liqLevelsPrimitiveRef.current = qp;
+    positionLevelsPrimitiveRef.current = pp;
     svpPrimitiveRef.current = svp;
     cvpPrimitiveRef.current = cvp;
     imbalancePrimitiveRef.current = ip;
+    volumeBgPrimitiveRef.current = vbg;
+    liqBubblesPrimitiveRef.current = lqb;
   }
 
   if (error) {
@@ -437,6 +559,16 @@ export function OrderflowChart({
             height={720}
           />
         </div>
+        {layers.book && (
+          <div className="w-[480px] shrink-0 h-[720px]">
+            <OrderBookLadder book={book} icebergLevels={icebergLevels} />
+          </div>
+        )}
+        {layers.tape && (
+          <div className="w-44 shrink-0 h-[720px]">
+            <TradeTape trades={recentTrades} />
+          </div>
+        )}
         <div className="w-72 shrink-0 border-l border-border h-[720px] overflow-y-auto">
           <OrderflowSignalPanel
             imbalance={imbalance}
@@ -459,14 +591,18 @@ export function OrderflowChart({
           />
         </div>
       </div>
-      {hlCoin && (
-        <div className="border-t border-border">
-          <FundingPanel coin={hlCoin} funding={funding} />
-        </div>
-      )}
-      {currency && (
-        <div className="border-t border-border">
-          <OptionsFlowPanel currency={currency} gex={gex} />
+      {(hlCoin || currency) && (
+        <div className="grid grid-cols-2 border-t border-border">
+          {hlCoin && (
+            <div className={currency ? "border-r border-border" : "col-span-2"}>
+              <FundingPanel coin={hlCoin} funding={funding} />
+            </div>
+          )}
+          {currency && (
+            <div className={hlCoin ? "" : "col-span-2"}>
+              <OptionsFlowPanel currency={currency} gex={gex} />
+            </div>
+          )}
         </div>
       )}
     </div>

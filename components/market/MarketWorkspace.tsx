@@ -79,7 +79,7 @@ export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-96px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-144px)] overflow-hidden">
       {/* Left: Watchlist sidebar (열었다 닫기) */}
       {sideOpen && (
         <WatchlistSidebar

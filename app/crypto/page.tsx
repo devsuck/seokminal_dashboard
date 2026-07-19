@@ -417,7 +417,7 @@ export default function CryptoPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-96px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-144px)] overflow-hidden">
       <CryptoSidebar
         coins={watchlist}
         activeCoin={activeCoin}

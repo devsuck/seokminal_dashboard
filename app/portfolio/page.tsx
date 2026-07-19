@@ -312,7 +312,7 @@ export default function PortfolioPage() {
     : krwAccounts.reduce((s, a) => s + (a.balance ?? 0), 0);
 
   return (
-    <div className="flex flex-col h-screen bg-bg overflow-hidden">
+    <div className="flex flex-col h-full bg-bg overflow-hidden">
       {/* 헤더 */}
       <div className="shrink-0 px-5 py-3 border-b border-border flex items-center justify-between">
         <h1 className="text-text-1 font-semibold text-sm">

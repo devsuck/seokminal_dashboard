@@ -34,6 +34,15 @@ import {
   hlCoinForSymbol,
   estimateLiquidationLevels,
   LIQUIDATION_LEVERAGE_TIERS,
+  detectImbalanceCells,
+  detectStackedImbalances,
+  computeColumnPoc,
+  computeFootprintAbsorptionLevels,
+  computeNakedPocs,
+  computeVolumeByBucket,
+  computeFibLevels,
+  estimateLiquidationHeatmap,
+  applyLiquidation,
   type FootprintCell,
   type VolumeProfileLevel,
   type LargeTradeTrackerState,
@@ -276,6 +285,7 @@ describe("applyBookSnapshot", () => {
       bids: [{ price: 100, size: 1 }],
       asks: [{ price: 101, size: 2 }],
       venues: ["hyperliquid"],
+      byVenue: {},
     });
 
     state = applyBookSnapshot(state, {
@@ -284,7 +294,7 @@ describe("applyBookSnapshot", () => {
       asks: [],
       venues: [],
     });
-    expect(state.book).toEqual({ bids: [{ price: 99, size: 5 }], asks: [], venues: [] });
+    expect(state.book).toEqual({ bids: [{ price: 99, size: 5 }], asks: [], venues: [], byVenue: {} });
   });
 
   it("leaves footprint/heatmap untouched", () => {
@@ -311,7 +321,7 @@ describe("applyOrderflowMessage with book_snapshot", () => {
 
 describe("emptyOrderflowState", () => {
   it("starts with an empty book", () => {
-    expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [], venues: [] });
+    expect(emptyOrderflowState().book).toEqual({ bids: [], asks: [], venues: [], byVenue: {} });
   });
 
   it("starts with tapeSpeed null", () => {
@@ -587,14 +597,14 @@ describe("computeImbalance", () => {
     const book: OrderBookState = {
       bids: [{ price: 100, size: 6 }],
       asks: [{ price: 101, size: 2 }],
-      venues: [],
+      venues: [], byVenue: {},
     };
     const tracker = trackerWith([{ side: "buy", size: 3 }, { side: "sell", size: 1 }]);
     expect(computeImbalance(book, tracker)).toEqual({ bookBidPct: 0.75, volBuyPct: 0.75 });
   });
 
   it("returns null when the book has no resting size on either side", () => {
-    const book: OrderBookState = { bids: [], asks: [], venues: [] };
+    const book: OrderBookState = { bids: [], asks: [], venues: [], byVenue: {} };
     const tracker = trackerWith([{ side: "buy", size: 3 }]);
     expect(computeImbalance(book, tracker)).toBeNull();
   });
@@ -603,7 +613,7 @@ describe("computeImbalance", () => {
     const book: OrderBookState = {
       bids: [{ price: 100, size: 6 }],
       asks: [{ price: 101, size: 2 }],
-      venues: [],
+      venues: [], byVenue: {},
     };
     expect(computeImbalance(book, emptyLargeTradeTracker())).toBeNull();
   });
@@ -612,28 +622,28 @@ describe("computeImbalance", () => {
 describe("detectIcebergLevels", () => {
   it("flags a price whose cumulative traded volume far exceeds current resting size", () => {
     const volumeProfile: VolumeProfileLevel[] = [{ price: 100, buyVol: 80, sellVol: 20 }]; // traded 100
-    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [] };
+    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [], byVenue: {} };
     // rollingMedian=1.0 -> noiseFloor=20; traded 100 >= 20; ratio 100/10=10 >= 5x threshold
     expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual([{ price: 100, side: "bid", ratio: 10 }]);
   });
 
   it("does not flag when traded volume at that price is below the noise floor", () => {
     const volumeProfile: VolumeProfileLevel[] = [{ price: 101, buyVol: 5, sellVol: 5 }]; // traded 10
-    const book: OrderBookState = { bids: [], asks: [{ price: 101, size: 1 }], venues: [] };
+    const book: OrderBookState = { bids: [], asks: [{ price: 101, size: 1 }], venues: [], byVenue: {} };
     // noiseFloor = 1.0 * 20 = 20; traded 10 < 20
     expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual([]);
   });
 
   it("does not flag when the refill ratio is below the threshold", () => {
     const volumeProfile: VolumeProfileLevel[] = [{ price: 100, buyVol: 30, sellVol: 0 }]; // traded 30
-    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [] };
+    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [], byVenue: {} };
     // noiseFloor=20, traded 30>=20 passes floor, but ratio 30/10=3 < 5x threshold
     expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual([]);
   });
 
   it("fails closed (returns []) when rollingMedian is 0 (not warmed up)", () => {
     const volumeProfile: VolumeProfileLevel[] = [{ price: 100, buyVol: 80, sellVol: 20 }];
-    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [] };
+    const book: OrderBookState = { bids: [{ price: 100, size: 10 }], asks: [], venues: [], byVenue: {} };
     expect(detectIcebergLevels(volumeProfile, book, 0)).toEqual([]);
   });
 
@@ -645,7 +655,7 @@ describe("detectIcebergLevels", () => {
     const book: OrderBookState = {
       bids: [{ price: 100, size: 10 }],
       asks: [{ price: 105, size: 10 }],
-      venues: [],
+      venues: [], byVenue: {},
     };
     expect(detectIcebergLevels(volumeProfile, book, 1.0)).toEqual(
       expect.arrayContaining([
@@ -1062,5 +1072,203 @@ describe("estimateLiquidationLevels", () => {
     for (const lv of levels) {
       expect(lv.weight).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe("detectImbalanceCells", () => {
+  it("flags a cell whose buy volume is >=3x the sell volume as a buy imbalance", () => {
+    const cells: FootprintCell[] = [{ bucketTs: 0, price: 100, buyVol: 90, sellVol: 10 }];
+    expect(detectImbalanceCells(cells)).toEqual([{ bucketTs: 0, price: 100, side: "buy", ratio: 9 }]);
+  });
+
+  it("flags a cell whose sell volume is >=3x the buy volume as a sell imbalance", () => {
+    const cells: FootprintCell[] = [{ bucketTs: 0, price: 100, buyVol: 10, sellVol: 90 }];
+    expect(detectImbalanceCells(cells)).toEqual([{ bucketTs: 0, price: 100, side: "sell", ratio: 9 }]);
+  });
+
+  it("does not flag a roughly balanced cell", () => {
+    const cells: FootprintCell[] = [{ bucketTs: 0, price: 100, buyVol: 10, sellVol: 10 }];
+    expect(detectImbalanceCells(cells)).toEqual([]);
+  });
+
+  it("skips cells with no volume on either side", () => {
+    const cells: FootprintCell[] = [{ bucketTs: 0, price: 100, buyVol: 0, sellVol: 0 }];
+    expect(detectImbalanceCells(cells)).toEqual([]);
+  });
+});
+
+describe("detectStackedImbalances", () => {
+  it("groups 3+ consecutive same-side imbalanced price levels in a bucket into a stack", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 90, sellVol: 10 },
+      { bucketTs: 0, price: 101, buyVol: 90, sellVol: 10 },
+      { bucketTs: 0, price: 102, buyVol: 90, sellVol: 10 },
+    ];
+    expect(detectStackedImbalances(cells)).toEqual([
+      { bucketTs: 0, priceLow: 100, priceHigh: 102, side: "buy", count: 3 },
+    ]);
+  });
+
+  it("does not form a stack from fewer than 3 consecutive levels", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 90, sellVol: 10 },
+      { bucketTs: 0, price: 101, buyVol: 90, sellVol: 10 },
+    ];
+    expect(detectStackedImbalances(cells)).toEqual([]);
+  });
+
+  it("breaks the run when the side flips", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 90, sellVol: 10 },
+      { bucketTs: 0, price: 101, buyVol: 90, sellVol: 10 },
+      { bucketTs: 0, price: 102, buyVol: 10, sellVol: 90 },
+      { bucketTs: 0, price: 103, buyVol: 10, sellVol: 90 },
+    ];
+    expect(detectStackedImbalances(cells)).toEqual([]);
+  });
+});
+
+describe("computeColumnPoc", () => {
+  it("picks the highest-volume price per bucket", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 3, sellVol: 2 }, // 5
+      { bucketTs: 0, price: 101, buyVol: 4, sellVol: 5 }, // 9 <- poc
+      { bucketTs: 60, price: 100, buyVol: 1, sellVol: 1 }, // 2 <- poc (only level)
+    ];
+    const poc = computeColumnPoc(cells);
+    expect(poc.get(0)).toBe(101);
+    expect(poc.get(60)).toBe(100);
+  });
+});
+
+describe("computeFootprintAbsorptionLevels", () => {
+  it("keeps only high-volume, low-net-delta price levels", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 50, sellVol: 50 }, // total 100, net 0 -> absorption
+      { bucketTs: 0, price: 101, buyVol: 90, sellVol: 10 }, // total 100, net 80 -> too directional
+      { bucketTs: 0, price: 102, buyVol: 20, sellVol: 20 }, // total 40 -> below 50% of maxVol
+    ];
+    expect(computeFootprintAbsorptionLevels(cells)).toEqual([{ price: 100, totalVol: 100, netDelta: 0 }]);
+  });
+
+  it("returns [] for empty input", () => {
+    expect(computeFootprintAbsorptionLevels([])).toEqual([]);
+  });
+});
+
+describe("computeVolumeByBucket", () => {
+  it("sums buy/sell volume across price levels within each bucket, sorted ascending", () => {
+    const cells: FootprintCell[] = [
+      { bucketTs: 60, price: 100, buyVol: 1, sellVol: 2 },
+      { bucketTs: 0, price: 100, buyVol: 3, sellVol: 1 },
+      { bucketTs: 0, price: 101, buyVol: 2, sellVol: 0 },
+    ];
+    expect(computeVolumeByBucket(cells)).toEqual([
+      { bucketTs: 0, buyVol: 5, sellVol: 1 },
+      { bucketTs: 60, buyVol: 1, sellVol: 2 },
+    ]);
+  });
+});
+
+describe("computeNakedPocs", () => {
+  it("returns [] when fewer than two days of footprint are held", () => {
+    const cells: FootprintCell[] = [{ bucketTs: 0, price: 100, buyVol: 1, sellVol: 0 }];
+    expect(computeNakedPocs(cells, [])).toEqual([]);
+  });
+
+  it("flags a prior day's POC as naked when no later bar retraded through it", () => {
+    const footprint: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 10, sellVol: 0 }, // day 1 (1970-01-01), poc=100
+      { bucketTs: 86_400, price: 200, buyVol: 5, sellVol: 0 }, // day 2 (1970-01-02, "today")
+    ];
+    expect(computeNakedPocs(footprint, [])).toEqual([{ price: 100, ageDays: 1 }]);
+  });
+
+  it("excludes a prior day's POC once a later bar's range covers it", () => {
+    const footprint: FootprintCell[] = [
+      { bucketTs: 0, price: 100, buyVol: 10, sellVol: 0 },
+      { bucketTs: 86_400, price: 200, buyVol: 5, sellVol: 0 },
+    ];
+    const bars = [{ ts_event: 43_200 * 1e9, high: 105, low: 95 }];
+    expect(computeNakedPocs(footprint, bars)).toEqual([]);
+  });
+});
+
+describe("computeFibLevels", () => {
+  it("returns [] when high<=low or non-finite", () => {
+    expect(computeFibLevels(100, 100)).toEqual([]);
+    expect(computeFibLevels(90, 100)).toEqual([]);
+    expect(computeFibLevels(NaN, 100)).toEqual([]);
+  });
+
+  it("computes retracement prices from low to high, flagging the 61.8/78.6% OTE band", () => {
+    const levels = computeFibLevels(110, 100);
+    const byRatio = new Map(levels.map((l) => [l.ratio, l]));
+    expect(byRatio.get(0)?.price).toBeCloseTo(100, 6);
+    expect(byRatio.get(0.5)?.price).toBeCloseTo(105, 6);
+    expect(byRatio.get(1)?.price).toBeCloseTo(110, 6);
+    expect(byRatio.get(0.618)?.isOte).toBe(true);
+    expect(byRatio.get(0.786)?.isOte).toBe(true);
+    expect(byRatio.get(0.5)?.isOte).toBe(false);
+  });
+});
+
+describe("estimateLiquidationHeatmap", () => {
+  it("returns [] when price<=0 or OI<=0", () => {
+    expect(estimateLiquidationHeatmap(0, 100, 0)).toEqual([]);
+    expect(estimateLiquidationHeatmap(100, 0, 0)).toEqual([]);
+  });
+
+  it("places long samples below entry price and short samples above it", () => {
+    const samples = estimateLiquidationHeatmap(100, 100, 0);
+    expect(samples.length).toBeGreaterThan(0);
+    for (const s of samples) {
+      if (s.side === "long") expect(s.price).toBeLessThan(100);
+      else expect(s.price).toBeGreaterThan(100);
+      expect(s.weight).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("skews weight toward longs when funding is positive, without going negative", () => {
+    const samples = estimateLiquidationHeatmap(100, 100, 10);
+    const long = samples.find((s) => s.side === "long")!;
+    const short = samples.find((s) => s.side === "short")!;
+    expect(long.weight).toBeGreaterThan(short.weight);
+    expect(short.weight).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("applyLiquidation / applyOrderflowMessage liquidation routing", () => {
+  it("prepends a liquidation event to state.liquidations", () => {
+    const state = applyLiquidation(emptyOrderflowState(), {
+      type: "liquidation",
+      ts: 1,
+      price: 100,
+      size: 5,
+      side: "long",
+      source: "binance",
+    });
+    expect(state.liquidations).toEqual([{ ts: 1, price: 100, size: 5, side: "long", source: "binance" }]);
+  });
+
+  it("applyOrderflowMessage routes type=liquidation to applyLiquidation", () => {
+    const state = applyOrderflowMessage(emptyOrderflowState(), {
+      type: "liquidation",
+      ts: 1,
+      price: 100,
+      size: 5,
+      side: "short",
+      source: "binance",
+    });
+    expect(state.liquidations).toEqual([{ ts: 1, price: 100, size: 5, side: "short", source: "binance" }]);
+  });
+
+  it("caps the feed at LIQUIDATION_FEED_MAX, keeping the newest first", () => {
+    let state = emptyOrderflowState();
+    for (let i = 0; i < 105; i++) {
+      state = applyLiquidation(state, { type: "liquidation", ts: i, price: 100, size: 1, side: "long", source: "binance" });
+    }
+    expect(state.liquidations).toHaveLength(100);
+    expect(state.liquidations[0].ts).toBe(104);
   });
 });

@@ -99,7 +99,7 @@ class OrderBookPaneView implements IPrimitivePaneView {
 }
 
 export class OrderBookPrimitive implements ISeriesPrimitive<Time> {
-  book: OrderBookState = { bids: [], asks: [], venues: [] };
+  book: OrderBookState = { bids: [], asks: [], venues: [], byVenue: {} };
   visible = true;
   icebergLevels: IcebergLevel[] = [];
   readonly levels = 20;

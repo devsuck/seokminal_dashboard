@@ -57,7 +57,7 @@ export function FundingPanel({ coin, funding }: FundingPanelProps) {
         </div>
       )}
       <p className="text-text-3 text-[11px]">
-        차트 위 청산 레벨(레버리지 3/5/10/20/50x 점선)은 OI+funding 기반 추정치이며, 실제 청산 데이터가 아닙니다.
+        차트 위 청산 레벨(레버리지 3/5/10/20/40x 점선)은 OI+funding 기반 추정치이며, 실제 청산 데이터가 아닙니다.
       </p>
     </div>
   );

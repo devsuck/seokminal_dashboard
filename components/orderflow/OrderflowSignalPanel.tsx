@@ -176,8 +176,9 @@ export function OrderflowSignalPanel({
   }, [absorptionMarkers, stopRunMarkers, divergenceMarkers, largeTrades, spoofAlerts]);
 
   // 숫자 6~7개를 조합해서 읽어야 했던 걸 한 줄 판단으로 압축 — 라이브로 지켜볼 때 바로 읽히게.
+  // 흡수/스탑런/다이버전스 같은 파생 이벤트만 워밍업 게이팅 — bias 자체(호가+체결+CVD)는 워밍업과 무관하게 바로 값이 있음.
   const headline = useMemo<string | null>(() => {
-    if (!warmedUp || !bias) return null;
+    if (!bias) return null;
     if (bias.label !== "매수 우위" && bias.label !== "매도 우위") {
       return "방향성 혼조 — POC/VWAP 근처 회귀매매 관점이 더 맞는 국면";
     }
@@ -196,12 +197,15 @@ export function OrderflowSignalPanel({
   return (
     <div className="text-xs">
       <Section title="종합 편향 (호가 + 체결 + CVD 합의)">
-        {!warmedUp ? (
-          <div className="text-text-3">워밍업 중 — 체결 표본 수집 (20건 필요)</div>
-        ) : bias ? (
+        {bias ? (
           <>
             <div className={`text-base font-data ${bias.tone}`}>{bias.label}</div>
             {headline && <div className="mt-1 text-[11px] text-text-2 leading-relaxed">{headline}</div>}
+            {!warmedUp && (
+              <div className="mt-1 text-[10px] text-text-3">
+                흡수/스탑런/아이스버그 워밍업 중 — 체결 표본 수집 (20건 필요)
+              </div>
+            )}
           </>
         ) : (
           <div className="text-text-3">데이터 대기 중</div>

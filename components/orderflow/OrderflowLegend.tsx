@@ -1,7 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { CATEGORICAL } from "@/lib/chart-colors";
 import type { VwapPeriod } from "@/lib/orderflow-data";
+
+/** 범례 펼침 상태 저장 키 — 기본은 접힘(차트 위 공간 절약), 한 번 펼치면 그 뒤로 유지. */
+const LEGEND_OPEN_KEY = "orderflow-legend-open";
 
 export type LayerKey =
   | "heatmap"
@@ -9,6 +13,7 @@ export type LayerKey =
   | "svp"
   | "cvp"
   | "book"
+  | "tape"
   | "bubbles"
   | "gex"
   | "imbalance"
@@ -17,7 +22,11 @@ export type LayerKey =
   | "compositeValueArea"
   | "sessionLevels"
   | "deltaHist"
-  | "liqHeatmap";
+  | "liqHeatmap"
+  | "liqBubbles"
+  | "volBg"
+  | "fib"
+  | "positions";
 
 export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   heatmap: true,
@@ -25,6 +34,7 @@ export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   svp: true,
   cvp: true,
   book: true,
+  tape: true,
   bubbles: true,
   gex: true,
   imbalance: true,
@@ -33,7 +43,11 @@ export const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
   compositeValueArea: true,
   sessionLevels: true,
   deltaHist: true,
-  liqHeatmap: true,
+  liqHeatmap: false,
+  liqBubbles: true,
+  volBg: true,
+  fib: true,
+  positions: true,
 };
 
 type LayerGroup = "레벨" | "수급" | "리스크";
@@ -86,6 +100,14 @@ const LAYER_DEFS: LayerDef[] = [
     group: "레벨",
   },
   {
+    key: "fib",
+    label: "Fib/프리미엄-디스카운트",
+    swatchClass: "bg-pos/60",
+    description:
+      "금일 고저 구간 피보나치 되돌림 — 50% 위는 프리미엄(매도 관점), 아래는 디스카운트(매수 관점). 초록 점선(61.8%/78.6%)이 ICT OTE 진입 구간",
+    group: "레벨",
+  },
+  {
     key: "svp",
     label: "SVP",
     swatchClass: "bg-pos/50",
@@ -110,7 +132,8 @@ const LAYER_DEFS: LayerDef[] = [
     key: "footprint",
     label: "풋프린트",
     swatchClass: "bg-gradient-to-r from-pos/60 to-neg/60",
-    description: "캔들 내부 가격대별 매수/매도 체결량 — 확대(barSpacing 40px 이상) 시 숫자 표시",
+    description:
+      "캔들 내부 가격대별 매수/매도 체결량 — 확대(barSpacing 40px 이상) 시 숫자 표시. 굵은 노란 테두리=캔들 POC, 초록/빨강 강조 테두리=임밸런스(300%+ 쏠림) 셀, 주황 점선 박스=스택 임밸런스(연속 3단+ 같은 방향, 강한 추세 신호), 파란 점선 수평선=흡수 레벨(거래량 많은데 안 밀린 자리), 노란 점선 수평선(nPOC N일전)=네이키드 POC(그날 이후 한 번도 재테스트 안 된 이전일 POC — 강한 자석 레벨)",
     group: "수급",
   },
   {
@@ -121,10 +144,32 @@ const LAYER_DEFS: LayerDef[] = [
     group: "수급",
   },
   {
+    key: "tape",
+    label: "체결테이프",
+    swatchClass: "bg-gradient-to-r from-pos/70 to-neg/70",
+    description: "실제 개별 체결 최신순 스크롤 — 가격/수량/방향(초록 매수/빨강 매도), 배경 바는 그 순간 체결 크기",
+    group: "수급",
+  },
+  {
     key: "bubbles",
     label: "대량체결",
     swatchClass: "bg-pos/80 rounded-full",
     description: "최근 체결 상위 5%(p95) 초과 대형 체결 버블 — 클수록 큰 체결",
+    group: "수급",
+  },
+  {
+    key: "liqBubbles",
+    label: "청산버블",
+    swatchClass: "bg-neg/60 rotate-45",
+    description:
+      "실제 강제청산 체결(다이아몬드 마커) — Binance 선물 forceOrder 퍼블릭 스트림 소스. HL 자체 청산 아님(타 거래소 참고 데이터), 클수록 큰 청산. 빨강=롱 청산(강제매도), 초록=숏 청산(강제매수)",
+    group: "수급",
+  },
+  {
+    key: "volBg",
+    label: "거래량(배경)",
+    swatchClass: "bg-text-2/40",
+    description: "차트 하단 전체폭 배경 바 — 캔들별 체결량(초록=매수우세/빨강=매도우세). OI 아님(가격대별 OI 분포 데이터 없음)",
     group: "수급",
   },
   {
@@ -153,7 +198,15 @@ const LAYER_DEFS: LayerDef[] = [
     label: "청산(추정)",
     swatchClass: "bg-gradient-to-r from-neg/50 to-pos/50",
     description:
-      "OI+funding 기반 청산가 클러스터 추정 — 레버리지 3/5/10/20/50x 점선. 실제 청산 데이터 아님(근사치)",
+      "OI+funding 기반 청산가 클러스터 추정 — 배경은 레버리지 2~40x 연속 그라디언트, 점선은 3/5/10/20/40x 정확 참조 레벨. 최고 레버리지(40x)도 가격 대비 2%↑ 떨어져 있어 인트라데이 진입/스탑 벽 아님, 스윙 리스크존 참고용. 실제 청산 데이터 아님(근사치)",
+    group: "리스크",
+  },
+  {
+    key: "positions",
+    label: "내 포지션/주문",
+    swatchClass: "bg-warn/70",
+    description:
+      "HL 라이브+페이퍼 보유 포지션 진입가·실제 청산가·미실현손익 + 미체결 주문가 인라인 표시 (15초 폴링)",
     group: "리스크",
   },
 ];
@@ -192,8 +245,34 @@ interface OrderflowLegendProps {
 }
 
 export function OrderflowLegend({ layers, onToggle, vwapPeriod, onVwapPeriodChange }: OrderflowLegendProps) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    try {
+      setOpen(window.localStorage.getItem(LEGEND_OPEN_KEY) === "1");
+    } catch {
+      // localStorage 불가 환경에서는 기본 접힘 유지.
+    }
+  }, []);
+  const onCount = LAYER_DEFS.filter((def) => layers[def.key]).length;
+
   return (
-    <div className="px-3 py-2 border-b border-border text-[11px] space-y-1.5">
+    <details
+      className="border-b border-border text-[11px]"
+      open={open}
+      onToggle={(e) => {
+        const isOpen = e.currentTarget.open;
+        setOpen(isOpen);
+        try {
+          window.localStorage.setItem(LEGEND_OPEN_KEY, isOpen ? "1" : "0");
+        } catch {
+          // localStorage 불가 환경에서는 세션 내 상태만 유지.
+        }
+      }}
+    >
+      <summary className="px-3 py-1.5 cursor-pointer text-text-3 select-none">
+        레이어 {onCount}/{LAYER_DEFS.length} 표시 중 — 펼쳐서 조정
+      </summary>
+      <div className="px-3 pb-2 space-y-1.5">
       {GROUP_ORDER.map((group) => (
         <div key={group} className="flex flex-wrap items-center gap-1.5">
           <span className="text-text-3 mr-1 w-10 shrink-0" title={GROUP_HINT[group]}>
@@ -252,6 +331,7 @@ export function OrderflowLegend({ layers, onToggle, vwapPeriod, onVwapPeriodChan
           </span>
         ))}
       </div>
-    </div>
+      </div>
+    </details>
   );
 }
