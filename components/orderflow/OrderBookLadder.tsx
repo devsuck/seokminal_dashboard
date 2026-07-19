@@ -195,7 +195,7 @@ function VenueColumn({
         <span className="text-right">수량</span>
         <span className="text-right">누적</span>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-end">
         {askRows.length === 0 ? (
           <div className="px-1.5 py-2 text-text-3">데이터 대기 중</div>
         ) : (
