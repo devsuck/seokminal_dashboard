@@ -46,6 +46,8 @@ interface CandlestickChartProps {
   onSeriesReady?: (chart: IChartApi, series: ISeriesApi<"Candlestick">) => void;
   /** 차트 픽셀 높이. 기본 480. */
   height?: number;
+  /** 우측 여백(바 개수). POC/VAH 등 price line 라벨이 최근 캔들과 겹치는 걸 막을 때 사용. 기본 0(라이브러리 기본값). */
+  rightOffset?: number;
 }
 
 function computeSMA(bars: BarOut[], period: number): { time: UTCTimestamp; value: number }[] {
@@ -158,7 +160,7 @@ function computeOBV(bars: BarOut[]): { time: UTCTimestamp; value: number }[] {
   return out;
 }
 
-export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, stopRunMarkers, divergenceMarkers, vwapSeries, deltaSeries, onSeriesReady, height = 480 }: CandlestickChartProps) {
+export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bollingerPeriod, bollingerStd, specs, cvdSeries, absorptionMarkers, stopRunMarkers, divergenceMarkers, vwapSeries, deltaSeries, onSeriesReady, height = 480, rightOffset = 0 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -192,7 +194,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         horzLine: { color: TOKEN.accent, labelBackgroundColor: TOKEN.accent },
       },
       rightPriceScale: { borderColor: TOKEN.border },
-      timeScale: { borderColor: TOKEN.border, timeVisible: true },
+      timeScale: { borderColor: TOKEN.border, timeVisible: true, rightOffset },
     });
     chartRef.current = chart;
 
@@ -220,6 +222,12 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
     // onSeriesReady는 마운트 시 1회만 호출 — 의도적으로 deps 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // height는 뷰포트에 맞춰 호출부에서 동적으로 바뀔 수 있다 — 차트를 통째로 재생성하지 않고
+  // applyOptions로만 갱신해 줌/스크롤 상태를 보존한다.
+  useEffect(() => {
+    chartRef.current?.applyOptions({ height });
+  }, [height]);
 
   // 데이터/지표 갱신 — 차트는 재생성하지 않고 시리즈 데이터만 교체한다.
   useEffect(() => {

@@ -7,7 +7,6 @@ import type {
   LargeTrade,
   SessionLevels,
   SpoofAlert,
-  TpoLevel,
   ValueArea,
 } from "@/lib/orderflow-data";
 import { CATEGORICAL } from "@/lib/chart-colors";
@@ -30,10 +29,6 @@ interface OrderflowSignalPanelProps {
   valueArea: ValueArea | null;
   /** 여러 UTC 세션(일자) 합성 POC/VA — 세션 2개 미만 확보 시(버퍼가 자정을 안 걸침) null. */
   compositeValueArea: CompositeValueArea | null;
-  /** TPO(마켓프로파일) 가격별 구간 리스트 — 체결량이 아니라 "몇 개 30분 구간에서 찍혔는가" 기준. */
-  tpoLevels: TpoLevel[];
-  /** TPO 기준 POC/VAH/VAL — 거래량 프로파일(valueArea)과는 다른 축이라 별도 표기. */
-  tpoValueArea: ValueArea | null;
   sessionLevels: SessionLevels | null;
   /** 세션 VWAP 마지막 값 — 레벨 판독용. */
   vwapLast: number | null;
@@ -55,8 +50,6 @@ type FeedEvent =
 const FEED_MAX = 14;
 /** 활용 가이드 최초 1회 자동 펼침 여부 저장 키 — 처음엔 가르쳐주고, 닫으면 그 뒤로 기본 접힘. */
 const GUIDE_SEEN_KEY = "orderflow-guide-seen";
-/** TPO 래더에 표시할 최대 가격행 수 — POC 중심으로 위아래 잘라서 스크롤 없이 훑어볼 정도만. */
-const TPO_ROW_MAX = 14;
 /** CVD 기울기 판정 시 비교할 과거 버킷 수 (1분봉 기준 10분 전 대비). */
 const CVD_SLOPE_LOOKBACK = 10;
 
@@ -108,8 +101,6 @@ export function OrderflowSignalPanel({
   spoofAlerts,
   valueArea,
   compositeValueArea,
-  tpoLevels,
-  tpoValueArea,
   sessionLevels,
   vwapLast,
   lastPrice,
@@ -300,40 +291,6 @@ export function OrderflowSignalPanel({
             </ul>
           );
         })()}
-      </Section>
-
-      <Section title="마켓프로파일 (TPO, 30분 단위)">
-        {tpoLevels.length === 0 ? (
-          <div className="text-text-3">데이터 대기 중</div>
-        ) : (
-          (() => {
-            const pocPrice = tpoValueArea?.poc ?? null;
-            const pocIdx = pocPrice !== null ? tpoLevels.findIndex((l) => l.price === pocPrice) : -1;
-            let rows = tpoLevels;
-            if (tpoLevels.length > TPO_ROW_MAX) {
-              const center = pocIdx >= 0 ? pocIdx : Math.floor(tpoLevels.length / 2);
-              const half = Math.floor(TPO_ROW_MAX / 2);
-              const start = Math.min(Math.max(center - half, 0), tpoLevels.length - TPO_ROW_MAX);
-              rows = tpoLevels.slice(start, start + TPO_ROW_MAX);
-            }
-            return (
-              <ul className="space-y-0.5" title="같은 가격이 몇 개의 30분 구간에서 찍혔는지를 문자(A,B,C…)로 누적 표기 — 체결량이 아니라 '시간에 걸쳐 얼마나 자주 이 가격에서 거래됐는가' 기준의 분포">
-                {rows.map((lv) => {
-                  const isPoc = tpoValueArea?.poc === lv.price;
-                  const inVa = tpoValueArea ? lv.price <= tpoValueArea.vah && lv.price >= tpoValueArea.val : false;
-                  return (
-                    <li key={lv.price} className="flex gap-2 font-data">
-                      <span className={isPoc ? "text-accent" : inVa ? "text-text-2" : "text-text-3"}>
-                        {formatPrice(lv.price)}
-                      </span>
-                      <span className={`truncate ${isPoc ? "text-accent" : "text-text-3"}`}>{lv.letters}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            );
-          })()
-        )}
       </Section>
 
       <Section title="아이스버그 의심 레벨">

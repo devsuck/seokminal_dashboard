@@ -530,8 +530,9 @@ export interface LargeTradeTrackerState {
 
 const ROLLING_WINDOW = 200;
 export const MIN_WARMUP_SAMPLES = 20;
-const LARGE_TRADE_PERCENTILE = 0.95;
-const MAX_LARGE_TRADES = 50;
+// 0.95면 캔들 하나에 여러 가격행이 동시에 걸려 버블이 겹쳐 노이즈가 심해짐 — 0.98(상위 2%)로 좁힘.
+const LARGE_TRADE_PERCENTILE = 0.98;
+const MAX_LARGE_TRADES = 20;
 
 export function emptyLargeTradeTracker(): LargeTradeTrackerState {
   return { recentSizes: [], recentSides: [], largeTrades: [] };

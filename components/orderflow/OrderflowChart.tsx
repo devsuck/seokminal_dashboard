@@ -31,7 +31,6 @@ import {
   computeSessionLevels,
   computeValueArea,
   computeVolumeProfile,
-  computeTpoProfile,
   computeVolumeByBucket,
   computeVwapBands,
   currencyForSymbol,
@@ -159,6 +158,37 @@ export function OrderflowChart({
   const [vwapPeriod, setVwapPeriod] = useState<VwapPeriod>(DEFAULT_VWAP_PERIOD);
   const vwapPeriodFirstEffectRef = useRef(true);
 
+  // 고정 720px 대신 뷰포트 남은 세로공간에 맞춘다 — 레이어 토글바를 접어도/펼쳐도, 창을 늘려도
+  // 스크롤 없이 화면을 최대로 채우도록. 차트/래더/우측 패널이 다 이 값을 공유.
+  const MIN_CHART_HEIGHT = 420;
+  const PAGE_BOTTOM_PADDING = 24;
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [chartHeight, setChartHeight] = useState(720);
+
+  useEffect(() => {
+    function recompute() {
+      if (!rowRef.current) return;
+      const top = rowRef.current.getBoundingClientRect().top;
+      const available = window.innerHeight - top - PAGE_BOTTOM_PADDING;
+      setChartHeight(Math.max(MIN_CHART_HEIGHT, Math.round(available)));
+    }
+    recompute();
+    // 레전드가 마운트 후 localStorage 값으로 비동기 펼쳐지는 와중에 recompute→setChartHeight가
+    // 자기 자신(행 높이)을 줄여 관찰 대상(parentElement)도 같이 줄어드는 피드백이 생기면, 브라우저가
+    // ResizeObserver 알림을 한 프레임 늦추거나 스킵해 그 상태로 멈출 수 있다 — 더블 rAF로 레이아웃이
+    // 완전히 가라앉은 뒤 한 번 더 강제 재계산해 이 경우를 확실히 잡는다.
+    const raf = requestAnimationFrame(() => requestAnimationFrame(recompute));
+    window.addEventListener("resize", recompute);
+    const containerEl = rowRef.current?.parentElement;
+    const ro = containerEl ? new ResizeObserver(recompute) : null;
+    if (containerEl) ro?.observe(containerEl);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", recompute);
+      ro?.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     setLayers(loadStoredLayers());
     setVwapPeriod(loadStoredVwapPeriod());
@@ -231,7 +261,6 @@ export function OrderflowChart({
     () => computeCompositeValueArea(splitFootprintByUtcDay(footprint).map((cells) => computeVolumeProfile(cells))),
     [footprint]
   );
-  const tpoProfile = useMemo(() => computeTpoProfile(footprint), [footprint]);
   const sessionLevels = useMemo(() => computeSessionLevels(bars), [bars]);
   const fibLevels = useMemo(
     () => (sessionLevels ? computeFibLevels(sessionLevels.sessionHigh, sessionLevels.sessionLow) : []),
@@ -545,7 +574,7 @@ export function OrderflowChart({
         vwapPeriod={vwapPeriod}
         onVwapPeriodChange={setVwapPeriod}
       />
-      <div className="flex">
+      <div className="flex" ref={rowRef}>
         <div className="flex-1 min-w-0">
           <CandlestickChart
             bars={bars}
@@ -556,20 +585,21 @@ export function OrderflowChart({
             vwapSeries={layers.vwap ? vwapBands : undefined}
             deltaSeries={layers.deltaHist ? deltaSeries : undefined}
             onSeriesReady={handleSeriesReady}
-            height={720}
+            height={chartHeight}
+            rightOffset={10}
           />
         </div>
         {layers.book && (
-          <div className="w-[480px] shrink-0 h-[720px]">
+          <div className="w-[480px] shrink-0" style={{ height: `${chartHeight}px` }}>
             <OrderBookLadder book={book} icebergLevels={icebergLevels} />
           </div>
         )}
         {layers.tape && (
-          <div className="w-44 shrink-0 h-[720px]">
+          <div className="w-44 shrink-0" style={{ height: `${chartHeight}px` }}>
             <TradeTape trades={recentTrades} />
           </div>
         )}
-        <div className="w-72 shrink-0 border-l border-border h-[720px] overflow-y-auto">
+        <div className="w-72 shrink-0 border-l border-border overflow-y-auto" style={{ height: `${chartHeight}px` }}>
           <OrderflowSignalPanel
             imbalance={imbalance}
             icebergLevels={icebergLevels}
@@ -581,8 +611,6 @@ export function OrderflowChart({
             spoofAlerts={spoofAlerts}
             valueArea={valueArea}
             compositeValueArea={compositeValueArea}
-            tpoLevels={tpoProfile.levels}
-            tpoValueArea={tpoProfile.valueArea}
             sessionLevels={sessionLevels}
             vwapLast={vwapBands.length > 0 ? vwapBands[vwapBands.length - 1].vwap : null}
             lastPrice={bars.length > 0 ? bars[bars.length - 1].close : null}

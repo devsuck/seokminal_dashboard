@@ -21,9 +21,9 @@ function median(values: number[]): number {
 }
 
 function radiusFor(size: number, medianSize: number): number {
-  if (medianSize <= 0) return 5;
-  const scaled = 5 + Math.log2(size / medianSize) * 2.5;
-  return Math.min(16, Math.max(5, scaled));
+  if (medianSize <= 0) return 4;
+  const scaled = 4 + Math.log2(size / medianSize) * 2;
+  return Math.min(11, Math.max(4, scaled));
 }
 
 class LiquidationBubblesPaneRenderer implements IPrimitivePaneRenderer {
@@ -53,10 +53,10 @@ class LiquidationBubblesPaneRenderer implements IPrimitivePaneRenderer {
         ctx.lineTo(col.center, y + radius);
         ctx.lineTo(col.center - radius, y);
         ctx.closePath();
-        ctx.fillStyle = `rgba(${rgb}, 0.35)`;
+        ctx.fillStyle = `rgba(${rgb}, 0.2)`;
         ctx.fill();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = `rgba(${rgb}, 1)`;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = `rgba(${rgb}, 0.55)`;
         ctx.stroke();
       }
     });

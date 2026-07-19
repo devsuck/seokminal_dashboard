@@ -15,7 +15,7 @@ const NEG_RGB = "255, 59, 48"; // --color-neg #FF3B30
 function radiusFor(size: number, medianSize: number): number {
   if (medianSize <= 0) return 4;
   const scaled = 4 + Math.log2(size / medianSize) * 2;
-  return Math.min(12, Math.max(4, scaled));
+  return Math.min(8, Math.max(3, scaled));
 }
 
 class LargeLotPaneRenderer implements IPrimitivePaneRenderer {

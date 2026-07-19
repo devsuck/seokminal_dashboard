@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { heatmapCellRect, footprintColumnX, footprintCellRect, bookBarLayout, stackedInsetColumns } from "../../lib/orderflow-chart-coords";
+import { heatmapCellRect, footprintColumnX, footprintCellRect, stackedInsetColumns } from "../../lib/orderflow-chart-coords";
 
 describe("heatmapCellRect", () => {
   // candleIntervalSec=60, barSpacing=20px → 캔들 하나 폭 20px, 셀은 항상 캔들 폭 전체를 채움
@@ -66,33 +66,6 @@ describe("footprintCellRect", () => {
 
   it("가격이 1개뿐이면(이웃 없음) null", () => {
     expect(footprintCellRect({ bucketTs: 5, price: 50 }, [50], timeToX, priceToY, 8)).toBeNull();
-  });
-});
-
-describe("bookBarLayout", () => {
-  it("scales bar width by size relative to the max visible size", () => {
-    const half = bookBarLayout(0, 10, 5, 480, "ask", 20);
-    expect(half).not.toBeNull();
-    expect(half!.widthFrac).toBeCloseTo(0.5);
-  });
-
-  it("returns null for a size of 0", () => {
-    expect(bookBarLayout(0, 10, 0, 480, "ask", 20)).toBeNull();
-  });
-
-  it("asks stack downward from the top, bids stack upward from the bottom", () => {
-    const ask0 = bookBarLayout(0, 10, 5, 480, "ask", 20);
-    const ask1 = bookBarLayout(1, 10, 5, 480, "ask", 20);
-    expect(ask1!.yFrac).toBeGreaterThan(ask0!.yFrac);
-
-    const bid0 = bookBarLayout(0, 10, 5, 480, "bid", 20);
-    const bid1 = bookBarLayout(1, 10, 5, 480, "bid", 20);
-    expect(bid1!.yFrac).toBeLessThan(bid0!.yFrac);
-  });
-
-  it("clamps widthFrac to 1 when size exceeds maxVisibleSize", () => {
-    const over = bookBarLayout(0, 10, 999, 480, "ask", 20);
-    expect(over!.widthFrac).toBe(1);
   });
 });
 
