@@ -1,3 +1,33 @@
+## Phase 181 — 호가 래더/COB 버그 수정 + ×1000 그룹핑 + OKX→Bybit 벤뉴 교체 (2026-07-19) ✅ SHIPPED
+
+사용자 리포트 "100배했을 때 호가창 이거 너무 정보가 적어. 그리고 리퀴디티 풀 차트에서 안나오는거 이거 너무해" → 두 버그 root-cause. (a) ×100에서 행이 몇 개 안 채워짐: `orderflow/multi_venue_adapter.py`의 `VENUE_DEPTH_LEVELS`가 백엔드 어댑터가 실제 확보한 뎁스보다 앞서 잘라내고 있었음. (b) 온차트 COB 유동성 바가 캔들/현재가 근처에 안 뜸: `OrderBookPrimitive.ts`가 `bookBarLayout()`으로 순위 기반(차트 높이를 행 개수로 균등분할) y좌표를 썼던 게 원인 — 실제 가격과 무관하게 배치됨.
+
+이어서 "오더플로우 실시간 풋프린트·호가·체결 흐름을... 이거 텍스트 지우고. 100배보다 더 높게 확대?" → 페이지 부제 제거 + ×1000 옵션 추가. 마지막으로 "okx 보다 폭이 넓다는거잖아. 바이비트로 대신 껴봐" → 멀티벤뉴 오더플로우 뎁스 소스를 OKX에서 Bybit로 교체(Binance >> OKX≈Bybit > Coinbase > Kraken 순으로 판단, Bybit가 OKX 대비 유동성 열위 아님).
+
+### 완료된 작업
+- (백엔드, `seokminal-multi-venue`) `orderflow/binance_adapter.py`: `DEPTH_SNAPSHOT_LIMIT`/`LOCAL_BOOK_MAX_LEVELS` 5000까지 확장(REST 공식 상한까지). `orderflow/multi_venue_adapter.py`: `VENUE_DEPTH_LEVELS` 150→3000, OKX 클라이언트/펌프 라벨(`okx-trades`/`okx-depth`)을 Bybit로 전면 교체.
+- (신규) `orderflow/bybit_adapter.py` — `okx_adapter.py`와 동일 계약(`stream`/`stream_depth`, REST 없이 WS `type: snapshot/delta` 병합)으로 Bybit v5 퍼블릭 WS(`publicTrade.{symbol}`/`orderbook.200.{symbol}`) 신규 구현. `okx_adapter.py` 자체는 `research/run_cross_venue_skew_collect.py`가 여전히 참조 중이라 삭제하지 않고 유지.
+- (신규) `tests/test_orderflow_bybit_adapter.py`, `tests/test_orderflow_multi_venue_adapter.py` 벤뉴 페이크 이름 bybit로 갱신.
+- (프론트, `seokminal-dashboard`) `lib/orderflow-chart-coords.ts`: `bookBarLayout()`(순위 기반 레이아웃) 완전 제거. `OrderBookPrimitive.ts`: `series.priceToCoordinate(price)`로 실제 가격 기준 y좌표 렌더링으로 교체, `VENUE_LABELS`를 Bybit로 갱신.
+- `OrderBookLadder.tsx`: `GROUP_MULTIPLIERS`에 1000 추가, `VENUE_LABELS`/`VENUE_ORDER` Bybit로 교체.
+- `lib/i18n-utils.ts` + `components/PageBanner.tsx`: `page.orderflow.desc` 빈 문자열로 비우고 배너 쪽 조건부 렌더 가드 추가(빈 desc여도 `<p>` 안 뜨게).
+- `lib/orderflow-data.ts`: 벤뉴 라벨 주석 갱신.
+
+### 변경된 파일
+- `seokminal-multi-venue/orderflow/{binance_adapter,multi_venue_adapter,bybit_adapter}.py`(신규 bybit_adapter), `tests/test_orderflow_{bybit,multi_venue}_adapter.py`
+- `seokminal-dashboard/lib/{orderflow-chart-coords,orderflow-data,i18n-utils}.ts`, `components/PageBanner.tsx`, `components/orderflow/{OrderBookLadder.tsx,OrderBookPrimitive.ts}`, `tests/lib/orderflow-chart-coords.test.ts`
+
+### 검증
+- 백엔드: `pytest tests/ -q` 1173 passed(pre-existing 실패 5개 — test_auth×3, test_backtest_happy_path, test_orderflow_ib_adapter 무관 이슈 — 무시 대상과 일치).
+- 프론트: `npx tsc --noEmit` 클린, `npx vitest run tests/lib/orderflow-chart-coords.test.ts` 15/15 통과.
+- 브라우저 라이브 확인: COB 바가 현재가(64350-64650) 근처로 이동(수정 전엔 65200/64200에 붕 떠 있었음), 래더 3컬럼이 "BIN BYBIT HL"로 정상 렌더, ×1000에서 Binance~6행/Bybit~2행/HL~1행(과장 없이 실제 확보 뎁스 그대로), 온차트 COB 라벨도 "BIN BYBIT HL"로 정상 표시. WS로 `bybit-depth` 200레벨 라이브 확인.
+
+### 다음 할 일
+- 없음(요청 항목 전부 완료, 커밋 완료).
+- 참고: `DEPTH_SNAPSHOT_LIMIT=5000`처럼 큰 뎁스 상한 올릴 때 `uvicorn --reload` 재기동이 60-100초 걸릴 수 있음(크래시 아님, REST 재스냅샷 시간).
+
+---
+
 ## Phase 180 — Bloomberg UX/UI 업그레이드: 공통 프리미티브 + 전체 롤아웃 (2026-07-18) ✅ SHIPPED
 
 사용자 요청 "전반적으로 UXUI 업그레이드하고싶어, 블룸버그 디자인 그대로 따라가면서". 37개 페이지 전체를 한 번에 손대지 않고 공통 프리미티브부터(전체 페이지에 자동 반영되는 지레점) + 이탈 심한 페이지 하나 파일럿으로 검증 → 승인 후 나머지 페이지 일괄 롤아웃 순서로 진행. SDD 없이 직접 구현.
