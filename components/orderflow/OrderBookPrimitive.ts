@@ -17,7 +17,7 @@ const BAR_HEIGHT_PX = 2;
 const VENUE_LABELS: Record<string, string> = {
   hyperliquid: "HL",
   "binance-depth": "BIN",
-  "okx-depth": "OKX",
+  "bybit-depth": "BYBIT",
 };
 
 class OrderBookPaneRenderer implements IPrimitivePaneRenderer {

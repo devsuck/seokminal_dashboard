@@ -25,7 +25,7 @@ export interface OrderBookState {
   bids: BookLevel[];
   asks: BookLevel[];
   venues: string[];
-  /** 거래소별 원장(풀링 전, 반올림/합산 없음) — 3분할 래더(BIN/OKX/HL) 컬럼용. 없는 거래소 키는 미도착. */
+  /** 거래소별 원장(풀링 전, 반올림/합산 없음) — 3분할 래더(BIN/BYBIT/HL) 컬럼용. 없는 거래소 키는 미도착. */
   byVenue: Record<string, VenueBook>;
 }
 

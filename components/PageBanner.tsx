@@ -17,7 +17,7 @@ export function PageBanner({ pageKey }: PageBannerProps) {
   return (
     <div className="mb-4">
       <h1 className="text-text-1 text-lg font-semibold tracking-tight">{title}</h1>
-      <p className="text-text-3 text-sm mt-0.5">{desc}</p>
+      {desc && <p className="text-text-3 text-sm mt-0.5">{desc}</p>}
     </div>
   );
 }

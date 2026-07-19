@@ -5,18 +5,18 @@ import type { BookLevel, IcebergLevel, OrderBookState, VenueBook } from "@/lib/o
 
 /** 그룹핑 배율 저장 키 — 기본 ×10(원장 최소틱보다 굵게 묶어 벽이 덜 반짝이게). */
 const GROUP_MULTIPLIER_KEY = "orderflow-ladder-group";
-const GROUP_MULTIPLIERS = [1, 10, 100] as const;
+const GROUP_MULTIPLIERS = [1, 10, 100, 1000] as const;
 type GroupMultiplier = (typeof GROUP_MULTIPLIERS)[number];
 const DEFAULT_GROUP_MULTIPLIER: GroupMultiplier = 10;
 
 const VENUE_LABELS: Record<string, string> = {
   hyperliquid: "HL",
   "binance-depth": "BIN",
-  "okx-depth": "OKX",
+  "bybit-depth": "BYBIT",
 };
 
-// 3분할 뷰(거래소별 독립 컬럼) 표시 순서 — 사용자 요청: binance, okx, hl.
-const VENUE_ORDER = ["binance-depth", "okx-depth", "hyperliquid"];
+// 3분할 뷰(거래소별 독립 컬럼) 표시 순서 — 사용자 요청: binance, bybit, hl.
+const VENUE_ORDER = ["binance-depth", "bybit-depth", "hyperliquid"];
 
 // 차트 위 COB 오버레이(OrderBookPrimitive, levels=20)와 동일하게 맞춤 — 백엔드
 // VENUE_DEPTH_LEVELS=400 상한 이내라 그룹핑 배율(×100)에서도 20행 채울 raw 뎁스 확보.
@@ -81,7 +81,7 @@ interface OrderBookLadderProps {
   icebergLevels: IcebergLevel[];
 }
 
-/** 실제 호가 래더 — 거래소별(binance/okx/hl) 독립 컬럼 3분할. 풀링된 단일 래더 대신 각 거래소
+/** 실제 호가 래더 — 거래소별(binance/bybit/hl) 독립 컬럼 3분할. 풀링된 단일 래더 대신 각 거래소
  * 원장을 그대로 보여줘 더 깊은 뎁스 확보(반올림/합산으로 인한 정보 손실 없음). */
 export function OrderBookLadder({ book, icebergLevels }: OrderBookLadderProps) {
   const icebergSet = new Set(icebergLevels.map((lv) => `${lv.side}:${lv.price}`));
