@@ -183,7 +183,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
         background: { color: TOKEN.panel2 },
         textColor: TOKEN.text3,
         fontFamily: "'JetBrains Mono', 'IBM Plex Mono', monospace",
-        fontSize: 11,
+        fontSize: 13,
       },
       grid: {
         vertLines: { color: TOKEN.border },
@@ -466,10 +466,11 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
       deltaSeriesRef.current = deltaSeriesApi;
     }
 
-    // 서브페인이 생기면 가격 페인이 눌리지 않게 전체 높이 보정
+    // 서브페인이 생기면 가격 페인이 눌리지 않게 전체 높이 보정 — 서브페인이 늘어날수록(CVD+델타+
+    // 조건식 오실레이터 등) 메인 캔들 페인이 상대적으로 더 눌리므로, 개수에 비례해 비율을 키운다.
     if (paneIdx > 1) {
       const panes = chart.panes();
-      panes[0]?.setStretchFactor(3);
+      panes[0]?.setStretchFactor(Math.max(4, paneIdx));
       for (let i = 1; i < panes.length; i++) panes[i]?.setStretchFactor(1);
     }
 
