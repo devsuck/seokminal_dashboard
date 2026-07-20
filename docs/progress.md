@@ -1,3 +1,28 @@
+## Phase 183 — ICT+오더플로우 페이퍼 트레이딩 엔진 구현 (2026-07-20) ✅ SHIPPED
+
+사용자가 "ICT+오더플로우 합쳐서 거래 로그 적는 기능 이전에 요청했었다" + "금 전용 ICT 전략은 다른 클로드 세션에서 만들어 붙였다" 확인 요청 → 조사 결과 (1) `docs/superpowers/plans/2026-07-20-ict-orderflow-paper-engine.md`에 6-태스크 플랜은 이미 존재하지만 구현 0% 상태였고, (2) 금 ICT 전략은 완전히 별개 프로젝트(`~/Desktop/claude-test/ict-confluence-indicator/`)에 존재하지만 seokminal-multi-venue와 연결 안 됨(별건으로 남겨둠, 이번 세션에서 손대지 않음). 사용자가 "ICT+오더플로우 엔진 구현 시작" 선택 → `superpowers:subagent-driven-development` 스킬로 6개 태스크 전부 구현 완료, main에 직접 커밋, origin에 push까지 완료.
+
+### 완료된 작업 (SHIPPED) — `seokminal-multi-venue` 저장소
+6개 태스크 전부: implementer subagent → task reviewer(spec+quality 2개 verdict) → (필요시 fix+재리뷰) 사이클로 진행, 마지막에 최종 전체-브랜치 리뷰(opus) + fix 1회 + 재리뷰까지 완료.
+
+- **Task 1** (`7c52ada`): `research/ict/paper/reversal_triggers.py` — LTF 1분봉 빌더(`LTFBarBuilder`) + 흡수(absorption)/스탑런(stop_run)/델타다이버전스(divergence) 반전 트리거 판정. 프론트 `lib/orderflow-data.ts`의 `detectAbsorption`/`detectStopRuns`/`detectDeltaDivergence` 임계값 그대로 1:1 포팅(재튜닝 없음).
+- **Task 2** (`02070cb`→`cac6b4a`→최종수정 `0d97357`): `research/ict/paper/htf_zones.py` — HTF 15분봉 REST 폴링(`fetch_htf_bars`) + OB/iFVG 존 추적기(`ZoneTracker`). **리뷰 사이클 2번**: (a) 1차 구현에서 반영한 "존 플립 억제" 로직이 명세에 없는 변경이라 리뷰어 REJECT → verbatim 명세 코드로 롤백 + 테스트 픽스처만 수정하는 걸로 재수정. (b) 최종 전체-브랜치 리뷰에서 **Critical 버그** 발견: HTF 폴링이 겹치는 봉을 매번 재주입하면서 dedup이 없어 유령 존/스윙이 생성되는 문제 — timestamp 기반 dedup(재수신 봉 no-op, 형성 중인 봉은 in-place 덮어쓰기) + 무효화된 존 자동 프루닝(`_prune_stale_zones`) 추가로 수정, 재리뷰 통과.
+- **Task 3** (`fdafee8`): `research/ict/paper/position_state.py` — 크래시 복구용 포지션 상태 JSON 저장/로드/삭제.
+- **Task 4** (`17f10b2`): `research/ict/paper/journal_writer.py` — 거래 저널 CSV append (헤더 고정: `datetime,symbol,direction,ict_context,of_trigger,level_basis,entry,stop,target,risk_r,result_r,note`).
+- **Task 5** (`440502b`): `research/ict/paper/state_machine.py` — `PaperEngine` (FLAT/IN_POSITION 상태머신, Task 1~4 통합, CISD 컨플루언스 확인 후 진입).
+- **Task 6** (`4a717c4`): `research/run_ict_paper_engine.py` — Hyperliquid WS 오더플로우 스트림 + HTF REST 폴링 + `PaperEngine` 배선하는 상시 실행 진입점. `COIN="BTC"`, `HTF_POLL_SEC=900`, 저널은 `seokminal-dashboard/docs/orderflow-journal.csv`로 기록.
+
+테스트: 격리 테스트 전부 통과, 전체 스위트 1217 passed / 5 failed (전부 기존부터 있던 무관한 실패 — test_auth.py×3, test_backtest_happy_path, test_orderflow_ib_adapter IB_PORT 환경변수 불일치).
+
+**커밋 히스토리**: `f60608d..0d97357` (main에 직접 커밋, 8개 커밋) → `git push origin main` 완료.
+
+### 아직 안 한 것 (다음 실행 시 수동 단계)
+- **아직 실행 중이 아님** — 코드는 완성됐지만 tmux 세션으로 띄우는 건 사용자 몫: `tmux new -s ict-orderflow-paper 'cd .../seokminal-multi-venue && PYTHONPATH=. python3 research/run_ict_paper_engine.py'`
+- 최종 리뷰에서 Minor로 남긴 것(고치지 않음, 향후 폴리시 대상): (1) 재시작 시 `ZoneTracker`의 존-소진(mark_consumed) 상태가 복원 안 됨 — 방금 청산한 존에 재진입 가능해짐, (2) 형성 중인 봉에서 파생된 존이 일시적으로 phantom "active" 상태로 남을 수 있음(가격이 무효화하면서 자연 소멸), (3) `active` 상태 존은 무효화 트리거 전까진 계속 쌓임(실전에선 자연 순환되지만 이론상 무제한).
+- 30개 저널 항목 쌓이면 진행 상황 보고하라는 규칙 있음 (아직 거래 0건, 미해당).
+
+---
+
 ## Phase 182 — HUD 수집기 kill/재시작 + 가격 트리거 자동화 브레인스토밍 착수 (2026-07-20)
 
 사용자 "잠자기 같은거나 뭐 다운되어서 멈췄을 때에 hud에서 확인할 수 있게, 그리고 꺼졌을 경우에는 킬 수 있게 설정해줄래?" → HUD 수집기 kill+재시작 기능 SHIPPED. 이어서 "LangAlpha(외부 투자AI 플랫폼) 기능 어때?" 리서치 후 "가격 트리거 자동화 아이디어 브레인스토밍" 요청 → 진행 중 세션 종료.

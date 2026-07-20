@@ -1,6 +1,6 @@
 # Seokminal Dashboard — Roadmap
 
-**마지막 업데이트:** 2026-07-09  
+**마지막 업데이트:** 2026-07-20  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
 > 🧭 **알파/에이전트 진화 로드맵은 별도:** [`agentic-roadmap.md`](agentic-roadmap.md) — Lv1 룰봇 → Lv2 검증플랫폼(현재) → Lv3 자율리서치 → Lv4/5. 안전모델·검증표준·단계 게이팅. 이 파일(기능 로드맵)과 축이 다름.
@@ -119,6 +119,7 @@
 | 98 | 수동 가설 5종(전부 REJECT) | 제네릭 `hypotheses/runner`+5 signal(VWAP-MR/실패돌파/갭/ATR압축/섹터상대). **6/6 REJECT**(전부 pooled 음수·BH생존0). 결론: 15m 대형주 롱온리 교과서 패턴 엣지 없음 → Lv3 진입 안 함, 자산군/타임프레임 재검. main 커밋 | — |
 | 149 | Gold Haven 가설 REJECT | 실질금리 레짐게이트+리스크오프 부스트, SDD 전체 파이프라인. buyhold 못 이김·random 15pct·p=.85 → REJECT | — |
 | 150 | ICT 조합빌더 오버레이 + GC/ES/NQ/EURUSD/USDJPY/GOLD 데이터 | `research/ict/combinator.py`(자유조합)+캔들 오버레이, IB 선물/FX 1m/5m/15m 확보(XAUUSD만 미해결), HL 빌더dex `xyz:GOLD`로 대체(PAXG 10배 유동성) | eeea0de(BE) |
+| 183 | ICT+오더플로우 페이퍼 트레이딩 엔진 (BTC.HL) | `research/ict/paper/{reversal_triggers,htf_zones,position_state,journal_writer,state_machine}.py`+`research/run_ict_paper_engine.py` — HTF OB/iFVG 존+CISD+LTF 흡수/스탑런/다이버전스 컨플루언스 진입, 크래시복구, CSV 저널(`orderflow-journal.csv`). SDD 6태스크+최종리뷰(Critical: HTF폴링 dedup 버그 fix)까지 완료, tmux `ict-orderflow-paper` 라이브 가동 중. 상세: `seokminal-dashboard/docs/progress.md` Phase 183 | f60608d..0d97357(BE) |
 
 ## 다음 세션 최우선 (채팅 리셋 인수인계)
 0. **[알파검증 트랙 — Phase 97 후속] 수동 가설 3~5개** (agentic-roadmap Phase 2) — ORB는 REJECT 확정(pooled −5402, 랜덤보다 나쁨, BH생존0). 기존 하네스(`research/`)로 손으로 다음 검증, 고정파라미터·random 분포·비용·walk-forward: ① VWAP 평균회귀 ② ORB 실패돌파 반전 ③ 섹터상대 모멘텀 ④ 갭 페이드/지속 ⑤ ATR 압축돌파. 하나라도 net>0·95pct·p<.05·WF OOS 유지하면 → Phase 3 안전뼈대(퍼미션가드·스키마·registry) → Phase 4 제한 Lv3. **전부 REJECT면 데이터/자산군/타임프레임 재검(Lv3 아님).** 상세 `docs/agentic-roadmap.md`
