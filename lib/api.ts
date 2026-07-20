@@ -2436,6 +2436,7 @@ export interface LabStatus {
     cross_venue_skew_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     polymarket_whale_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     polymarket_updown_arb?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_sharp_wallet_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     error?: string;
   };
 }
@@ -2463,7 +2464,8 @@ export async function getLabStatus(signal?: AbortSignal): Promise<LabStatus> {
 }
 
 export type CollectorKey = "polymarket_tick" | "polymarket_arb" | "hl_orderflow_tick"
-  | "cross_venue_skew_tick" | "polymarket_whale_tick" | "polymarket_updown_arb";
+  | "cross_venue_skew_tick" | "polymarket_whale_tick" | "polymarket_updown_arb"
+  | "polymarket_sharp_wallet_tick";
 
 export async function restartCollector(key: CollectorKey): Promise<{ running: boolean; last_write: string | null; age_sec: number | null }> {
   const r = await fetch(`${API_URL}/lab/collectors/${key}/restart`, { method: "POST" });

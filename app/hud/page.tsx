@@ -229,6 +229,10 @@ export default function HudPage() {
     kind: "BOT", name: "폴리마켓 고래 체결 수집기", running: sys.processes.polymarket_whale_tick.running,
     detail: formatAge(sys.processes.polymarket_whale_tick.age_sec), href: "/orderflow", collectorKey: "polymarket_whale_tick",
   });
+  if (sys?.processes?.polymarket_sharp_wallet_tick) units.push({
+    kind: "BOT", name: "폴리마켓 샤프월렛 수집기", running: sys.processes.polymarket_sharp_wallet_tick.running,
+    detail: formatAge(sys.processes.polymarket_sharp_wallet_tick.age_sec), href: "/orderflow", collectorKey: "polymarket_sharp_wallet_tick",
+  });
   if (sys?.processes?.polymarket_updown_arb) units.push({
     kind: "BOT", name: "폴리마켓 초단기 up/down 차익 스캐너", running: sys.processes.polymarket_updown_arb.running,
     detail: formatAge(sys.processes.polymarket_updown_arb.age_sec), href: "/lab", collectorKey: "polymarket_updown_arb",
