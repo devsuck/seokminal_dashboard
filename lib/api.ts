@@ -2430,12 +2430,12 @@ export interface LabStatus {
   };
   congress: { type: string; note: string };
   processes?: {
-    polymarket_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
-    polymarket_arb?: { running: boolean; last_write: string | null; age_sec: number | null };
-    hl_orderflow_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
-    cross_venue_skew_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
-    polymarket_whale_tick?: { running: boolean; last_write: string | null; age_sec: number | null };
-    polymarket_updown_arb?: { running: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_arb?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    hl_orderflow_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    cross_venue_skew_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_whale_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_updown_arb?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     error?: string;
   };
 }
@@ -2460,6 +2460,14 @@ export async function toggleResearchService(on: boolean): Promise<LabStatus["res
 export async function getLabStatus(signal?: AbortSignal): Promise<LabStatus> {
   const r = await fetch(`${API_URL}/lab/status`, { signal });
   return handleResponse<LabStatus>(r);
+}
+
+export type CollectorKey = "polymarket_tick" | "polymarket_arb" | "hl_orderflow_tick"
+  | "cross_venue_skew_tick" | "polymarket_whale_tick" | "polymarket_updown_arb";
+
+export async function restartCollector(key: CollectorKey): Promise<{ running: boolean; last_write: string | null; age_sec: number | null }> {
+  const r = await fetch(`${API_URL}/lab/collectors/${key}/restart`, { method: "POST" });
+  return handleResponse(r);
 }
 
 // ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────

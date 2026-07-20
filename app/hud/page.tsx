@@ -5,13 +5,15 @@ import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
   getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts, getVrpBotStatus,
+  restartCollector,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
-  type AccountBalances, type TriggeredAlert, type VrpBotStatus,
+  type AccountBalances, type TriggeredAlert, type VrpBotStatus, type CollectorKey,
 } from "@/lib/api";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { displayLevel } from "@/lib/agent-level";
+import { toast } from "@/lib/toast";
 
 /* HUD 홈 — 미니멀 재설계.
    질문 하나에 답하는 페이지: "지금 뭐가 돌고 있고, 문제 없나?"
@@ -68,7 +70,10 @@ interface Feed {
   vrp: VrpBotStatus | null;
 }
 
-interface Unit { kind: "AI" | "BOT"; name: string; running: boolean; detail: string; href: string; }
+interface Unit {
+  kind: "AI" | "BOT"; name: string; running: boolean; detail: string; href: string;
+  collectorKey?: CollectorKey;
+}
 
 function formatAge(ageSec: number | null): string {
   if (ageSec == null) return "데이터 없음";
@@ -77,19 +82,34 @@ function formatAge(ageSec: number | null): string {
   return `${Math.floor(ageSec / 3600)}시간 전`;
 }
 
-function UnitCard({ u }: { u: Unit }) {
+function UnitCard({ u, onRestart, restarting }: {
+  u: Unit; onRestart?: (key: CollectorKey) => void; restarting?: boolean;
+}) {
+  const deadCollector = !!u.collectorKey && !u.running;
   return (
-    <Link href={u.href}
-      className={`flex items-center gap-2 border-b border-border px-2 py-1 no-underline transition-colors hover:bg-panel-2 ${
-        u.running ? "bg-pos/5" : ""}`}>
-      <StatusDot tone={u.running ? "pos" : "text-3"} />
-      <span className="text-[11px] font-data text-text-1 truncate flex-1">{u.name}</span>
-      <span className="text-[10px] font-data text-text-3 truncate">{u.detail}</span>
+    <div className={`flex items-center gap-2 border-b border-border px-2 py-1 transition-colors ${
+      u.running ? "bg-pos/5" : deadCollector ? "bg-neg/10" : ""}`}>
+      <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80">
+        <StatusDot tone={u.running ? "pos" : deadCollector ? "neg" : "text-3"} />
+        <span className="text-[11px] font-data text-text-1 truncate flex-1">{u.name}</span>
+        <span className="text-[10px] font-data text-text-3 truncate">{u.detail}</span>
+      </Link>
       <span className={`text-[8px] px-1 border font-data shrink-0 ${
         u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
       <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${
-        u.running ? "bg-pos/20 text-pos" : "bg-neg/10 text-text-3"}`}>{u.running ? "ON" : "OFF"}</span>
-    </Link>
+        u.running ? "bg-pos/20 text-pos" : deadCollector ? "bg-neg/15 text-neg animate-blink" : "bg-neg/10 text-text-3"}`}>
+        {u.running ? "ON" : "OFF"}
+      </span>
+      {deadCollector && (
+        <button
+          onClick={() => onRestart?.(u.collectorKey!)}
+          disabled={restarting}
+          className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 font-data font-bold shrink-0 hover:bg-neg/25 disabled:opacity-40"
+        >
+          {restarting ? "재시작중" : "재시작"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -97,7 +117,22 @@ export default function HudPage() {
   const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
+  const [restarting, setRestarting] = useState<Partial<Record<CollectorKey, boolean>>>({});
   const abortRef = useRef<AbortController | null>(null);
+
+  async function handleRestart(key: CollectorKey) {
+    setRestarting((r) => ({ ...r, [key]: true }));
+    try {
+      await restartCollector(key);
+      toast.show(`${key} 재시작 완료`, "success");
+      const sys = await getLabStatus().catch(() => null);
+      if (sys) setF((prev) => ({ ...prev, sys }));
+    } catch (e) {
+      toast.show(`${key} 재시작 실패: ${e instanceof Error ? e.message : String(e)}`, "error");
+    } finally {
+      setRestarting((r) => ({ ...r, [key]: false }));
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -176,27 +211,27 @@ export default function HudPage() {
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} tick`, href: "/lab" });
   if (sys?.processes?.polymarket_tick) units.push({
     kind: "BOT", name: "폴리마켓 틱 수집기", running: sys.processes.polymarket_tick.running,
-    detail: formatAge(sys.processes.polymarket_tick.age_sec), href: "/lab",
+    detail: formatAge(sys.processes.polymarket_tick.age_sec), href: "/lab", collectorKey: "polymarket_tick",
   });
   if (sys?.processes?.polymarket_arb) units.push({
     kind: "BOT", name: "폴리마켓 arb 스캐너", running: sys.processes.polymarket_arb.running,
-    detail: formatAge(sys.processes.polymarket_arb.age_sec), href: "/lab",
+    detail: formatAge(sys.processes.polymarket_arb.age_sec), href: "/lab", collectorKey: "polymarket_arb",
   });
   if (sys?.processes?.hl_orderflow_tick) units.push({
     kind: "BOT", name: "HL 오더플로우 틱 수집기", running: sys.processes.hl_orderflow_tick.running,
-    detail: formatAge(sys.processes.hl_orderflow_tick.age_sec), href: "/orderflow",
+    detail: formatAge(sys.processes.hl_orderflow_tick.age_sec), href: "/orderflow", collectorKey: "hl_orderflow_tick",
   });
   if (sys?.processes?.cross_venue_skew_tick) units.push({
     kind: "BOT", name: "크로스벤뉴 스큐 수집기", running: sys.processes.cross_venue_skew_tick.running,
-    detail: formatAge(sys.processes.cross_venue_skew_tick.age_sec), href: "/orderflow",
+    detail: formatAge(sys.processes.cross_venue_skew_tick.age_sec), href: "/orderflow", collectorKey: "cross_venue_skew_tick",
   });
   if (sys?.processes?.polymarket_whale_tick) units.push({
     kind: "BOT", name: "폴리마켓 고래 체결 수집기", running: sys.processes.polymarket_whale_tick.running,
-    detail: formatAge(sys.processes.polymarket_whale_tick.age_sec), href: "/orderflow",
+    detail: formatAge(sys.processes.polymarket_whale_tick.age_sec), href: "/orderflow", collectorKey: "polymarket_whale_tick",
   });
   if (sys?.processes?.polymarket_updown_arb) units.push({
     kind: "BOT", name: "폴리마켓 초단기 up/down 차익 스캐너", running: sys.processes.polymarket_updown_arb.running,
-    detail: formatAge(sys.processes.polymarket_updown_arb.age_sec), href: "/lab",
+    detail: formatAge(sys.processes.polymarket_updown_arb.age_sec), href: "/lab", collectorKey: "polymarket_updown_arb",
   });
   if (vrp) {
     const lastLog = vrp.log?.[0];
@@ -245,7 +280,14 @@ export default function HudPage() {
           유닛 로스터
         </PanelHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2">
-          {units.map((u, i) => <UnitCard key={`${u.name}-${i}`} u={u} />)}
+          {units.map((u, i) => (
+            <UnitCard
+              key={`${u.name}-${i}`}
+              u={u}
+              onRestart={handleRestart}
+              restarting={u.collectorKey ? !!restarting[u.collectorKey] : false}
+            />
+          ))}
         </div>
       </Panel>
 
