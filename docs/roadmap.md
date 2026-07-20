@@ -122,7 +122,7 @@
 | 183 | ICT+오더플로우 페이퍼 트레이딩 엔진 (BTC.HL) | `research/ict/paper/{reversal_triggers,htf_zones,position_state,journal_writer,state_machine}.py`+`research/run_ict_paper_engine.py` — HTF OB/iFVG 존+CISD+LTF 흡수/스탑런/다이버전스 컨플루언스 진입, 크래시복구, CSV 저널(`orderflow-journal.csv`). SDD 6태스크+최종리뷰(Critical: HTF폴링 dedup 버그 fix)까지 완료, tmux `ict-orderflow-paper` 라이브 가동 중. 상세: `seokminal-dashboard/docs/progress.md` Phase 183 | f60608d..0d97357(BE) |
 
 ## 다음 세션 최우선 (채팅 리셋 인수인계)
-0. **[알파검증 트랙 — Phase 97 후속] 수동 가설 3~5개** (agentic-roadmap Phase 2) — ORB는 REJECT 확정(pooled −5402, 랜덤보다 나쁨, BH생존0). 기존 하네스(`research/`)로 손으로 다음 검증, 고정파라미터·random 분포·비용·walk-forward: ① VWAP 평균회귀 ② ORB 실패돌파 반전 ③ 섹터상대 모멘텀 ④ 갭 페이드/지속 ⑤ ATR 압축돌파. 하나라도 net>0·95pct·p<.05·WF OOS 유지하면 → Phase 3 안전뼈대(퍼미션가드·스키마·registry) → Phase 4 제한 Lv3. **전부 REJECT면 데이터/자산군/타임프레임 재검(Lv3 아님).** 상세 `docs/agentic-roadmap.md`
+> ~~[알파검증 트랙] 수동 가설 5종(VWAP평균회귀/ORB실패돌파/섹터모멘텀/갭페이드/ATR압축)~~ — **stale, 삭제(2026-07-20).** Phase 98(2026-07-02)에서 이미 6/6 REJECT, Phase 99에서 크립토 funding 포함 9/9 REJECT, 같은 날 Phase 100에서 유저가 "알파 사냥 중단 → Strategy Validation Terminal" 전략 전환 명시 결정(agentic-roadmap 참조). 이후 재검 시도(Gold Haven narrow-universe, Phase 149)도 REJECT. **이 방향 재개하지 말 것** — 재개하려면 유저가 명시적으로 새 자산군/알파원 지정해야 함.
 1. **스윙 페이퍼 검증 지속** — 봇 `스윙검증-US`(id 7591f352, 잠금됨) 가동중. 노트북 켤 때 tmux 살아있는지 확인, 죽었으면 /agents에서 재시작. 며칠~몇주 후 성과페이지 SPY 초과수익 확인
 2. KR 단타 실투자(KIS 실계좌) / IB(TWS) 실계좌 라이브 검증
 3. 차트 US 분봉 = IB(TWS) 필요 (무료 대체 없음). 하루봉만 catalog
