@@ -1,3 +1,32 @@
+## Phase 182 — HUD 수집기 kill/재시작 + 가격 트리거 자동화 브레인스토밍 착수 (2026-07-20)
+
+사용자 "잠자기 같은거나 뭐 다운되어서 멈췄을 때에 hud에서 확인할 수 있게, 그리고 꺼졌을 경우에는 킬 수 있게 설정해줄래?" → HUD 수집기 kill+재시작 기능 SHIPPED. 이어서 "LangAlpha(외부 투자AI 플랫폼) 기능 어때?" 리서치 후 "가격 트리거 자동화 아이디어 브레인스토밍" 요청 → 진행 중 세션 종료.
+
+### 완료된 작업 (SHIPPED)
+- (백엔드) `api_server/lab_api.py`: `_tmux_process_status`가 기존엔 `tmux has-session`만 확인해 크래시(세션은 살아있는데 안의 python이 죽어 쉘만 남은 경우)를 못 잡던 문제 수정 — `tmux list-panes ... pane_current_command`로 실제 python 프로세스 생존까지 확인. `COLLECTOR_SESSIONS` 레지스트리(6개 수집기: polymarket_tick/arb/updown_arb, hl_orderflow_tick, cross_venue_skew_tick, polymarket_whale_tick) + `POST /lab/collectors/{key}/restart`(kill+재기동) 신규.
+- (프론트) `lib/api.ts`: `CollectorKey` 타입, `restartCollector()`, `LabStatus.processes`에 `session_exists` 필드 추가. `app/hud/page.tsx`: `UnitCard`에 죽은 수집기용 빨간 깜빡임 OFF 배지 + 재시작 버튼(클릭 시 restartCollector 호출 → 토스트 → 즉시 재조회) 추가.
+- 브라우저 라이브 검증: `cross-venue-skew-tick` tmux pane의 python 프로세스 강제 kill(-9) → HUD에서 OFF 배지+재시작 버튼 뜨는 것 확인 → 버튼 클릭 → "재시작 완료" 토스트 + ON 복구까지 실제 확인.
+- 커밋 2건: `seokminal-multi-venue` f60608d(백엔드), `seokminal-dashboard` 450068c(프론트).
+
+### 변경된 파일
+- `seokminal-multi-venue/api_server/lab_api.py`
+- `seokminal-dashboard/lib/api.ts`, `app/hud/page.tsx`
+
+### 진행 중 — 가격 트리거 자동화 브레인스토밍 (미완료, 스펙 파일 없음)
+LangAlpha(github.com/ginlix-ai/LangAlpha) 리서치 결과 참고 소재: "가격 연동 자동화"(가격 조건 도달 시 액션 실행) 개념. 기존 alert 시스템(`api_server/main.py:3500-`, `price_above/below`/`pnl_above/below`/`bot_error`/`bot_stopped`)은 **풀링 방식**(`GET /alerts/triggered` 호출될 때만 평가, 상시 백그라운드 루프 없음)이라 트리거돼도 "알림 표시"까지만 하고 액션 실행은 없음 — 이게 갭.
+
+사용자가 원하는 액션 4종(전부 다 원함): ① 알림 강화(Slack/Discord 등 외부 채널 푸시) ② 리서치 자동 재실행(AI LAB 훅 필요, 미조사) ③ 페이퍼 포지션 자동 진입(`docs/superpowers/plans/2026-07-20-ict-orderflow-paper-engine.md`의 CISD+iFVG+오더플로우 컨플루언스 진입 로직과 겹침/충돌 가능성 — 같은 포지션 슬롯 쓰면 안 됨, 정리 필요) ④ 저널 자동 기록.
+
+내가 제안한 단계 분리(사용자 응답 대기 중, 확정 안 됨):
+- **1단계(이번 스펙 후보)**: 트리거 엔진 자체를 풀링→상시 백그라운드 루프(다른 수집기처럼 tmux 프로세스)로 전환 + 액션 ①(저널 기록, 가장 단순·사이드이펙트 없음), ②(알림 강화, 낮은 리스크)만 붙임
+- **2단계 이후(별도 스펙)**: ③ 페이퍼 진입(ICT 엔진과 관계 정리 먼저), ④ 리서치 재실행(AI LAB 훅 존재 여부부터 조사)
+
+### 다음 할 일
+- **새 세션 시작 시**: 사용자에게 위 단계 분리 제안에 대한 답 받고 브레인스토밍 이어가기(`superpowers:brainstorming` 스킬 진행 중, 질문 1개 답변 대기 상태였음 — 컨텍스트 재확인 위해 이 progress.md와 대화 이어가면 됨). 아직 design spec 파일 생성 전 단계.
+- ICT+오더플로우 페이퍼 엔진(`docs/superpowers/plans/2026-07-20-ict-orderflow-paper-engine.md`)도 여전히 미착수 상태로 남아있음 — Subagent-Driven vs Inline 실행 방식 미확정.
+
+---
+
 ## Phase 181 — 호가 래더/COB 버그 수정 + ×1000 그룹핑 + OKX→Bybit 벤뉴 교체 (2026-07-19) ✅ SHIPPED
 
 사용자 리포트 "100배했을 때 호가창 이거 너무 정보가 적어. 그리고 리퀴디티 풀 차트에서 안나오는거 이거 너무해" → 두 버그 root-cause. (a) ×100에서 행이 몇 개 안 채워짐: `orderflow/multi_venue_adapter.py`의 `VENUE_DEPTH_LEVELS`가 백엔드 어댑터가 실제 확보한 뎁스보다 앞서 잘라내고 있었음. (b) 온차트 COB 유동성 바가 캔들/현재가 근처에 안 뜸: `OrderBookPrimitive.ts`가 `bookBarLayout()`으로 순위 기반(차트 높이를 행 개수로 균등분할) y좌표를 썼던 게 원인 — 실제 가격과 무관하게 배치됨.
