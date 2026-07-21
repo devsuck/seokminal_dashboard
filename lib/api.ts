@@ -2472,6 +2472,23 @@ export async function restartCollector(key: CollectorKey): Promise<{ running: bo
   return handleResponse(r);
 }
 
+export interface HealthViolation {
+  severity: "error" | "warn";
+  entity: string;
+  code: string;
+  detail: string;
+}
+export interface LabHealth {
+  ok: boolean;
+  n_violations: number;
+  n_errors: number;
+  violations: HealthViolation[];
+}
+export async function getLabHealth(signal?: AbortSignal): Promise<LabHealth> {
+  const r = await fetch(`${API_URL}/lab/health`, { signal });
+  return handleResponse<LabHealth>(r);
+}
+
 // ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────
 
 export interface DartSignal {

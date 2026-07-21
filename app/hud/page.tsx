@@ -5,10 +5,11 @@ import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
   getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts, getVrpBotStatus,
-  restartCollector,
+  restartCollector, getLabHealth,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
   type AccountBalances, type TriggeredAlert, type VrpBotStatus, type CollectorKey,
+  type LabHealth,
 } from "@/lib/api";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -67,7 +68,7 @@ interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
   exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
-  vrp: VrpBotStatus | null;
+  vrp: VrpBotStatus | null; health: LabHealth | null;
 }
 
 interface Unit {
@@ -114,7 +115,7 @@ function UnitCard({ u, onRestart, restarting }: {
 }
 
 export default function HudPage() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null });
+  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
   const [restarting, setRestarting] = useState<Partial<Record<CollectorKey, boolean>>>({});
@@ -140,7 +141,7 @@ export default function HudPage() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -151,8 +152,9 @@ export default function HudPage() {
         getExecutionEdge(c.signal).catch(() => null),  // read_only 캐시 — 서버 계산 없음
         getTriggeredAlerts(c.signal).catch(() => null),
         getVrpBotStatus(c.signal).catch(() => null),
+        getLabHealth(c.signal).catch(() => null),  // 봇·에이전트 정합성 불변식
       ]);
-      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp });
+      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health });
     }
     load();
     const iv = setInterval(load, 4000);
@@ -184,7 +186,7 @@ export default function HudPage() {
     return () => clearInterval(t);
   }, []);
 
-  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp } = f;
+  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp, health } = f;
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -275,6 +277,9 @@ export default function HudPage() {
           {wd?.critical && (
             <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 animate-blink font-data font-bold">감시견 경보</span>
           )}
+          {(health?.n_errors ?? 0) > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 animate-blink font-data font-bold">정합성 오류 {health!.n_errors}</span>
+          )}
         </div>
       </Panel>
 
@@ -293,6 +298,37 @@ export default function HudPage() {
             />
           ))}
         </div>
+      </Panel>
+
+      {/* 정합성 감시 — 봇·에이전트 회계 불변식(조용한 돈 버그 감지). /lab/health */}
+      <Panel className="mb-1">
+        <PanelHeader right={
+          <span className={`tabular-nums ${(health?.n_errors ?? 0) > 0 ? "text-neg" : health ? "text-pos" : "text-text-3"}`}>
+            {health ? (health.ok ? "이상 없음" : `${health.n_errors} 오류 · ${health.n_violations} 위반`) : "…"}
+          </span>
+        }>
+          정합성 감시
+        </PanelHeader>
+        {health && health.violations.length === 0 && (
+          <div className="px-2 py-1.5">
+            <StatusDot tone="pos" label="봇·에이전트 회계 정합성 정상" />
+          </div>
+        )}
+        {health && health.violations.length > 0 && (
+          <div className="max-h-56 overflow-y-auto">
+            {health.violations.map((v, i) => (
+              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
+                <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
+                <span className="text-text-3 shrink-0 w-32 truncate">{v.entity}</span>
+                <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-neg" : "text-warn"}`}>{v.code}</span>
+                <span className="text-text-2 truncate flex-1">{v.detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {!health && (
+          <div className="px-2 py-1.5 text-text-3 text-[11px]">정합성 상태 로딩 중…</div>
+        )}
       </Panel>
 
       {/* 계좌 + 돈길 핵심 */}
