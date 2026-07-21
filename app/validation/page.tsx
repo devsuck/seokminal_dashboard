@@ -7,6 +7,10 @@ import {
   type EdgeValidationResponse, type EdgeReport,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Heatmap, type HeatCell } from "@/components/charts/Heatmap";
+import { NullDistribution } from "@/components/charts/NullDistribution";
+import { ChartFrame } from "@/components/charts/ChartFrame";
+import { seqColor } from "@/lib/chart-colors";
 
 function statusStyle(s: string): string {
   if (s.startsWith("paper_candidate")) return "border-pos/40 text-pos bg-pos/10";
@@ -177,6 +181,33 @@ function EdgeValidationSection({ edge, onRefresh }: { edge: EdgeValidationRespon
   );
 }
 
+function EdgeHeatmap({ rep }: { rep: EdgeReport }) {
+  const groups = rep.groups ?? [];
+  const rows = groups.map(g => g.group);
+  const colSet = new Set<string>();
+  groups.forEach(g => (g.horizons ?? []).forEach(h => colSet.add(h.horizon)));
+  const cols = [...colSet].sort((a, b) => parseInt(a) - parseInt(b));
+  if (cols.length === 0) return null; // 전부 BLOCKED — 히트맵 생략
+
+  const byName = new Map(groups.map(g => [g.group, g]));
+  const cellOf = (row: string, col: string): HeatCell => {
+    const g = byName.get(row);
+    if (!g || g.blocked) return { value: null, blocked: true, tooltip: `${row}: BLOCKED${g?.reason ? " · " + g.reason : ""}` };
+    const h = (g.horizons ?? []).find(hh => hh.horizon === col);
+    if (!h) return { value: null, blocked: true, tooltip: `${row}:${col}: 없음` };
+    return { value: h.p_value, tooltip: `${row}:${col} · p=${h.p_value.toFixed(4)} · n=${h.n_events} · net=${h.total_pnl.toFixed(2)}` };
+  };
+
+  return (
+    <ChartFrame
+      title="p-value 히트맵 (group × horizon)"
+      caption="셀 밝을수록 유의(낮은 p). 정확한 값은 아래 테이블 · 유의 ≠ BH-FDR 생존."
+    >
+      <Heatmap rows={rows} cols={cols} cellOf={cellOf} colorOf={(p) => seqColor(1 - p)} />
+    </ChartFrame>
+  );
+}
+
 function EdgeReportCard({ hyp, rep }: { hyp: string; rep: EdgeReport }) {
   const vb = VERDICT_BADGE[rep.verdict ?? ""] ?? { label: rep.verdict ?? "—", cls: "border-border text-text-3" };
   const nAnchors = rep.n_anchors ?? 0;
@@ -198,7 +229,10 @@ function EdgeReportCard({ hyp, rep }: { hyp: string; rep: EdgeReport }) {
               <span className="text-text-3">cost {rep.cost_bps}bps</span>
             </div>
 
-            {/* p-value 테이블 */}
+            {/* group×horizon p-value 히트맵 (셀 밝을수록 유의) */}
+            <EdgeHeatmap rep={rep} />
+
+            {/* p-value 테이블 (정확한 수치 · 접근성 table view) */}
             <div className="overflow-x-auto">
               <table className="w-full text-[11px] font-data">
                 <thead>
@@ -207,7 +241,7 @@ function EdgeReportCard({ hyp, rep }: { hyp: string; rep: EdgeReport }) {
                     <th className="px-2 py-1 text-right font-medium">n</th>
                     <th className="px-2 py-1 text-right font-medium">net</th>
                     <th className="px-2 py-1 text-right font-medium">p-value</th>
-                    <th className="px-2 py-1 text-right font-medium">pct</th>
+                    <th className="px-2 py-1 text-left font-medium">vs 랜덤(percentile)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -222,7 +256,7 @@ function EdgeReportCard({ hyp, rep }: { hyp: string; rep: EdgeReport }) {
                       <td className="px-2 py-1 text-right text-text-2 tabular-nums">{h.n_events}</td>
                       <td className={`px-2 py-1 text-right tabular-nums ${h.total_pnl >= 0 ? "text-pos" : "text-neg"}`}>{h.total_pnl.toFixed(2)}</td>
                       <td className={`px-2 py-1 text-right tabular-nums ${h.p_value < 0.05 ? "text-accent font-bold" : "text-text-2"}`}>{h.p_value.toFixed(4)}</td>
-                      <td className="px-2 py-1 text-right text-text-3 tabular-nums">{h.percentile.toFixed(0)}</td>
+                      <td className="px-2 py-1"><NullDistribution percentile={h.percentile} pValue={h.p_value} /></td>
                     </tr>
                   )))}
                 </tbody>
