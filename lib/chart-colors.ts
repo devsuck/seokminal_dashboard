@@ -33,3 +33,13 @@ export const CATEGORICAL = [
 export function categoricalColor(index: number): string {
   return CATEGORICAL[index % CATEGORICAL.length];
 }
+
+// sequential 램프(매그니튜드 인코딩) — 시안 단일 hue. 순흑 배경이라 dim→bright
+// (강할수록 밝게 튐). globals.css --color-seq-1..4와 일치. 리터럴 hex.
+export const SEQ = ["#164E63", "#0E7490", "#22D3EE", "#A5F3FC"] as const;
+
+// t in [0,1] (0=약함 → 1=강함) → SEQ 4스텝 이산 색(t=1이 가장 밝음).
+export function seqColor(t: number): string {
+  const c = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0));
+  return SEQ[Math.min(SEQ.length - 1, Math.floor(c * SEQ.length))];
+}

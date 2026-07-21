@@ -17,6 +17,19 @@
   --color-warn:     #FFD60A;
   --color-info:     #3B9CFF;
 
+  /* data-viz 램프 — 상태색과 분리. categorical은 #000 서피스에서 dataviz
+     validate_palette.js 전항목 PASS(명도밴드·CVD·대비). 고정 순서, 순환 금지. */
+  --color-chart-1:  #2563EB;
+  --color-chart-2:  #EA580C;
+  --color-chart-3:  #0D9488;
+  --color-chart-4:  #9333EA;
+  --color-chart-5:  #DB2777;
+  /* sequential(매그니튜드) — 시안 단일 hue. 순흑 배경이라 dim→bright(강할수록 밝게 튐) */
+  --color-seq-1:    #164E63;
+  --color-seq-2:    #0E7490;
+  --color-seq-3:    #22D3EE;
+  --color-seq-4:    #A5F3FC;
+
   /* Corners — Bloomberg 무드: 전역 각짐. rounded-full은 별도 고정 유틸이라 미적용 */
   --radius:     0px;
   --radius-xs:  0px;
