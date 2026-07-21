@@ -8,6 +8,10 @@ import {
 } from "@/lib/api";
 import { EmptyState, LoadingState, SegmentedToggle } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
+import { BarChart, type BarItem } from "@/components/charts/BarChart";
+import { ChartFrame } from "@/components/charts/ChartFrame";
+import { TOKEN } from "@/lib/chart-colors";
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
@@ -84,6 +88,30 @@ export default function PolymarketPage() {
 
   const on = bot?.enabled ?? false;
 
+  // 실현손익 누적 곡선 — resolve 로그(창)로 최근 추이, 마지막 점을 총 realized_pnl에 앵커
+  const pnlSeries: TSSeries[] = (() => {
+    if (!bot) return [];
+    const resolves = bot.log
+      .filter(l => l.kind === "resolve" && typeof l.pnl === "number")
+      .map(l => ({ t: Math.floor(new Date(l.ts).getTime() / 1000), pnl: l.pnl as number }))
+      .filter(r => Number.isFinite(r.t))
+      .sort((a, b) => a.t - b.t);
+    if (resolves.length === 0) return [];
+    const totalVisible = resolves.reduce((s, r) => s + r.pnl, 0);
+    let running = bot.realized_pnl - totalVisible;
+    const points = resolves.map(r => { running += r.pnl; return { time: r.t, value: Math.round(running * 100) / 100 }; });
+    const last = points[points.length - 1].value;
+    return [{ label: "누적 실현손익", color: last >= 0 ? TOKEN.pos : TOKEN.neg, points }];
+  })();
+
+  // 리더보드 상위 PnL 막대(top 12)
+  const lbBars: BarItem[] = (lb?.entries ?? []).slice(0, 12).map(e => ({
+    label: `#${e.rank} ${e.proxyWallet.slice(0, 6)}…`,
+    value: Math.round(e.pnl),
+    href: `https://polymarket.com/profile/${e.proxyWallet}`,
+    sub: `$${Math.round(e.vol).toLocaleString()}`,
+  }));
+
   return (
     <div className="p-6 space-y-4">
       <div>
@@ -137,6 +165,20 @@ export default function PolymarketPage() {
           <span className={`font-data px-1 font-bold ${bot.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>실현손익 {bot.realized_pnl >= 0 ? "+" : ""}${bot.realized_pnl.toLocaleString()}</span>
           <button onClick={resetSpent} className="ml-auto text-text-3 hover:text-accent border border-border rounded px-2 py-1">누적 지출 리셋</button>
         </div>
+      )}
+
+      {/* 실현손익 추이 곡선 */}
+      {pnlSeries.length > 0 && (
+        <Panel>
+          <PanelHeader right={<span className="text-text-3 text-[10px] font-data">최근 정산 {pnlSeries[0].points.length}건</span>}>
+            실현손익 추이
+          </PanelHeader>
+          <div className="p-2">
+            <ChartFrame caption="최근 정산 이벤트 누적(총 realized_pnl 앵커) · 페이퍼 · 표본 작을수록 노이즈 큼">
+              <TimeSeries series={pnlSeries} height={200} yFormat={(v) => `$${v.toFixed(0)}`} />
+            </ChartFrame>
+          </div>
+        </Panel>
       )}
 
       {bot && (
@@ -229,6 +271,13 @@ export default function PolymarketPage() {
         }>
           고래 리더보드 <span className="text-text-3 text-[10px] font-normal">(전체기간 PnL 상위 · 샤프월렛 명단 소스)</span>
         </PanelHeader>
+        {lb && lb.entries.length > 0 && lbBars.length > 0 && (
+          <div className="p-2 border-b border-border">
+            <ChartFrame title="상위 PnL (top 12)">
+              <BarChart items={lbBars} valueFmt={(v) => `$${v.toLocaleString()}`} />
+            </ChartFrame>
+          </div>
+        )}
         {!lb ? <LoadingState message="리더보드 로딩 중…" />
           : lb.entries.length === 0 ? <EmptyState message="리더보드 비어있음" hint={lb.error ?? "Polymarket API 응답 없음"} />
           : (
