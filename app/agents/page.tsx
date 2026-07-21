@@ -198,6 +198,7 @@ function PortfolioPie({ perf }: { perf: AgentPerformance }) {
     value: p.qty * (p.current_price ?? p.avg_price),
     color: categoricalColor(i),
   }));
+  const cashNegative = perf.cash < 0;
   slices.push({ label: "현금", value: Math.max(perf.cash, 0), color: TOKEN.border });
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
 
@@ -224,6 +225,13 @@ function PortfolioPie({ perf }: { perf: AgentPerformance }) {
             <span className="text-text-3 font-data">{((s.value / total) * 100).toFixed(0)}%</span>
           </div>
         ))}
+        {cashNegative && (
+          <div className="flex items-center gap-1.5 text-[11px] pt-0.5">
+            <span className="w-2 h-2 rounded-sm shrink-0 bg-neg" />
+            <span className="text-neg font-data truncate flex-1">현금 마이너스</span>
+            <span className="text-neg font-data font-bold">{fmtMoney(perf.cash)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
