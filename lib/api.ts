@@ -2489,6 +2489,15 @@ export async function getLabHealth(signal?: AbortSignal): Promise<LabHealth> {
   return handleResponse<LabHealth>(r);
 }
 
+// ── 논문 → 가설 파이프라인 산출물(읽기 전용) ────────────────────────────────────
+export interface IngestedPaper { file: string; title: string | null; name: string | null; description: string | null; }
+export interface RejectedPaper { arxiv_id?: string; title?: string; stage?: string; reason?: string; ts?: string; }
+export interface PapersResponse { ingested: IngestedPaper[]; n_ingested: number; rejected: RejectedPaper[]; n_rejected: number; }
+export async function getPapers(signal?: AbortSignal): Promise<PapersResponse> {
+  const r = await fetch(`${API_URL}/lab/papers`, { signal });
+  return handleResponse<PapersResponse>(r);
+}
+
 // ── DART 기업행위 오토파일럿 ─────────────────────────────────────────────────────
 
 export interface DartSignal {
