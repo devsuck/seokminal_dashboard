@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getRealizedPnl, type VenuePnl } from "@/lib/api";
 import { LoadingState, EmptyState } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
+import { ChartFrame } from "@/components/charts/ChartFrame";
+import { TOKEN } from "@/lib/chart-colors";
 
 function fmtTs(ts: string) {
   return ts.replace("T", " ").slice(0, 19);
@@ -19,6 +22,20 @@ function pnlColor(v: number) {
 }
 
 function VenueCard({ v }: { v: VenuePnl }) {
+  // 체결 원장 running-sum → 누적 실현손익 곡선(gross)
+  const pnlCurve: TSSeries[] = (() => {
+    const pts = v.trades
+      .filter(t => typeof t.realized_pnl === "number")
+      .map(t => ({ t: Math.floor(new Date(t.ts).getTime() / 1000), pnl: t.realized_pnl as number }))
+      .filter(t => Number.isFinite(t.t))
+      .sort((a, b) => a.t - b.t);
+    if (pts.length < 2) return [];
+    let run = 0;
+    const points = pts.map(p => { run += p.pnl; return { time: p.t, value: Math.round(run * 100) / 100 }; });
+    const last = points[points.length - 1].value;
+    return [{ label: "누적 실현손익", color: last >= 0 ? TOKEN.pos : TOKEN.neg, points }];
+  })();
+
   return (
     <Panel>
       <PanelHeader right={<span className="text-text-3">체결 {v.trades.length}건</span>}>{v.venue}</PanelHeader>
@@ -40,6 +57,14 @@ function VenueCard({ v }: { v: VenuePnl }) {
       {v.unpriced_fills > 0 && (
         <div className="px-4 py-2 text-xs text-warn bg-warn/10 border-b border-warn/30">
           체결가 미확인 주문 {v.unpriced_fills}건 — 손익 계산에서 제외됨
+        </div>
+      )}
+
+      {pnlCurve.length > 0 && (
+        <div className="p-3 border-b border-border/50">
+          <ChartFrame title="누적 실현손익 추이" caption="체결 원장 running-sum (gross, 수수료 전)">
+            <TimeSeries series={pnlCurve} height={160} yFormat={(x) => x.toFixed(0)} />
+          </ChartFrame>
         </div>
       )}
 
