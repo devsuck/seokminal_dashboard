@@ -3317,6 +3317,17 @@ export async function runPolymarketBotNow(): Promise<Record<string, unknown>> {
   return handleResponse(r);
 }
 
+export interface PolymarketLeaderEntry {
+  rank: number; proxyWallet: string; pnl: number; vol: number;
+}
+export interface PolymarketLeaderboard {
+  entries: PolymarketLeaderEntry[]; cached: boolean; age_sec: number | null; error?: string;
+}
+export async function getPolymarketLeaderboard(signal?: AbortSignal): Promise<PolymarketLeaderboard> {
+  const r = await fetch(`${API_URL}/polymarket/leaderboard`, { signal });
+  return handleResponse<PolymarketLeaderboard>(r);
+}
+
 // ── ICT 프리미티브 자유조합 백테스트(탐색용) ─────────────────────────────────
 export interface IctSymbolsResponse {
   symbols: Record<string, string[]>;

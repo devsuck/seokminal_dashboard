@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError, getPolymarketBotStatus, setPolymarketBotConfig, runPolymarketBotNow,
-  type PolymarketBotStatus,
+  getPolymarketLeaderboard,
+  type PolymarketBotStatus, type PolymarketLeaderboard,
 } from "@/lib/api";
 import { EmptyState, LoadingState, SegmentedToggle } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -23,6 +24,7 @@ export default function PolymarketPage() {
   const [budget, setBudget] = useState("500");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [lb, setLb] = useState<PolymarketLeaderboard | null>(null);
   const bCtrl = useRef<AbortController | null>(null);
 
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2800); }
@@ -40,6 +42,16 @@ export default function PolymarketPage() {
     const iv = setInterval(loadBot, 60_000);
     return () => { clearInterval(iv); bCtrl.current?.abort(); };
   }, [loadBot]);
+
+  // 고래 리더보드 — 서버가 5분 캐시하므로 느슨하게 폴링
+  useEffect(() => {
+    let mounted = true;
+    const ctrl = new AbortController();
+    const load = () => getPolymarketLeaderboard(ctrl.signal).then(d => { if (mounted) setLb(d); }).catch(() => {});
+    load();
+    const iv = setInterval(load, 300_000);
+    return () => { mounted = false; clearInterval(iv); ctrl.abort(); };
+  }, []);
 
   async function toggleBot() {
     const next = !(bot?.enabled ?? false);
@@ -207,6 +219,52 @@ export default function PolymarketPage() {
           )}
         </Panel>
       </div>
+
+      {/* 고래 리더보드 — Polymarket 공식 전체기간 PnL 상위 지갑(샤프월렛 명단과 동일 소스). 읽기 전용 */}
+      <Panel className="mt-4">
+        <PanelHeader right={
+          <span className="text-text-3 text-[10px] font-data">
+            {lb?.error ? "조회 실패" : lb ? `${lb.entries.length}명${lb.cached ? " · 캐시" : ""}` : "…"}
+          </span>
+        }>
+          고래 리더보드 <span className="text-text-3 text-[10px] font-normal">(전체기간 PnL 상위 · 샤프월렛 명단 소스)</span>
+        </PanelHeader>
+        {!lb ? <LoadingState message="리더보드 로딩 중…" />
+          : lb.entries.length === 0 ? <EmptyState message="리더보드 비어있음" hint={lb.error ?? "Polymarket API 응답 없음"} />
+          : (
+            <div className="max-h-[420px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-text-3 text-[11px] border-b border-border sticky top-0 bg-panel">
+                    <th className="text-right font-medium px-3 py-2 w-12">#</th>
+                    <th className="text-left font-medium px-3 py-2">지갑</th>
+                    <th className="text-right font-medium px-3 py-2">전체 PnL</th>
+                    <th className="text-right font-medium px-3 py-2">거래량</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lb.entries.map((e) => (
+                    <tr key={e.proxyWallet} className="border-b border-border/50 hover:bg-panel-2">
+                      <td className="px-3 py-1.5 text-right font-data text-text-3 tabular-nums">{e.rank}</td>
+                      <td className="px-3 py-1.5">
+                        <a href={`https://polymarket.com/profile/${e.proxyWallet}`} target="_blank" rel="noopener noreferrer"
+                          className="font-data text-[11px] text-info hover:underline">
+                          {e.proxyWallet.slice(0, 6)}…{e.proxyWallet.slice(-4)}
+                        </a>
+                      </td>
+                      <td className={`px-3 py-1.5 text-right font-data tabular-nums font-bold ${e.pnl >= 0 ? "text-pos" : "text-neg"}`}>
+                        ${Math.round(e.pnl).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-data tabular-nums text-text-2">
+                        ${Math.round(e.vol).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </Panel>
 
       {bot && (
         <p className="text-text-3 text-[10px] px-1">{bot.note}</p>
