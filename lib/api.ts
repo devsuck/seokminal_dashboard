@@ -3328,6 +3328,33 @@ export async function getPolymarketLeaderboard(signal?: AbortSignal): Promise<Po
   return handleResponse<PolymarketLeaderboard>(r);
 }
 
+// ── Polymarket 엣지 검증(p-value/BH-FDR) — 읽기 전용 스크리닝 결과 ────────────────
+export interface EdgeHorizon {
+  horizon: string; n_events: number; total_pnl: number; p_value: number; percentile: number;
+}
+export interface EdgeGroup {
+  group: string; blocked: boolean; reason?: string; horizons?: EdgeHorizon[];
+}
+export interface EdgePool {
+  name: string; alpha: number; n_tested: number; n_survivors: number;
+  survivors: string[]; threshold: number | null;
+}
+export interface EdgeReport {
+  hypothesis: string; cost_bps?: number; dates?: string[]; n_anchors?: number;
+  groups?: EdgeGroup[]; pools?: EdgePool[]; verdict?: string; error?: string;
+}
+export interface EdgeValidationResponse {
+  reports: Record<string, EdgeReport>; ts: number; warming: boolean; age_sec: number | null;
+}
+export async function getEdgeValidation(signal?: AbortSignal): Promise<EdgeValidationResponse> {
+  const r = await fetch(`${API_URL}/lab/edge-validation`, { signal });
+  return handleResponse<EdgeValidationResponse>(r);
+}
+export async function refreshEdgeValidation(): Promise<{ warming: boolean }> {
+  const r = await fetch(`${API_URL}/lab/edge-validation/refresh`, { method: "POST" });
+  return handleResponse(r);
+}
+
 // ── ICT 프리미티브 자유조합 백테스트(탐색용) ─────────────────────────────────
 export interface IctSymbolsResponse {
   symbols: Record<string, string[]>;

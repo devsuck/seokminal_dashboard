@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  getExperiments, getTsmomForward,
+  getExperiments, getTsmomForward, getEdgeValidation, refreshEdgeValidation,
   type Experiment, type ExperimentsResponse, type TsmomForward,
+  type EdgeValidationResponse, type EdgeReport,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
@@ -28,6 +29,7 @@ export default function ValidationPage() {
   const [exp, setExp] = useState<ExperimentsResponse | null>(null);
   const [tsmom, setTsmom] = useState<TsmomForward | null>(null);
   const [tsmomErr, setTsmomErr] = useState<string | null>(null);
+  const [edge, setEdge] = useState<EdgeValidationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -58,6 +60,21 @@ export default function ValidationPage() {
     })();
     return () => ctrl.abort();
   }, []);
+
+  // 엣지 검증은 백그라운드 워밍(첫 호출 warming:true → 잠시 후 reports 채워짐) → 주기 폴링
+  useEffect(() => {
+    let mounted = true;
+    const ctrl = new AbortController();
+    const load = () => getEdgeValidation(ctrl.signal).then(d => { if (mounted) setEdge(d); }).catch(() => {});
+    load();
+    const iv = setInterval(load, 15_000);
+    return () => { mounted = false; clearInterval(iv); ctrl.abort(); };
+  }, []);
+
+  async function handleEdgeRefresh() {
+    try { await refreshEdgeValidation(); } catch { /* noop */ }
+    setEdge(e => e ? { ...e, warming: true } : e);
+  }
 
   const counts = exp?.counts ?? {};
 
@@ -121,7 +138,114 @@ export default function ValidationPage() {
       {tsmomErr && <div className="text-warn text-xs bg-warn/10 border border-warn/20 rounded px-4 py-2.5">
         TSMOM forward-test 데이터 없음(선물 데이터 pull 필요): {tsmomErr}</div>}
       {tsmom && <TsmomPanel t={tsmom} />}
+
+      {/* Polymarket 엣지 검증 (p-value / BH-FDR) */}
+      <EdgeValidationSection edge={edge} onRefresh={handleEdgeRefresh} />
     </div>
+  );
+}
+
+const VERDICT_BADGE: Record<string, { label: string; cls: string }> = {
+  candidate: { label: "후보 (BH-FDR 생존)", cls: "border-pos/50 text-pos bg-pos/15" },
+  no_edge: { label: "확인된 엣지 없음", cls: "border-text-3/40 text-text-3 bg-black/20" },
+  no_data: { label: "데이터 대기", cls: "border-info/40 text-info bg-info/10" },
+};
+
+function EdgeValidationSection({ edge, onRefresh }: { edge: EdgeValidationResponse | null; onRefresh: () => void }) {
+  const reports = edge?.reports ?? {};
+  const hyps = Object.keys(reports);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-sm font-semibold text-text-1">Polymarket 엣지 검증 <span className="text-text-3 font-normal text-xs">(p-value / BH-FDR)</span></h2>
+        <button onClick={onRefresh} disabled={edge?.warming}
+          className="text-[11px] px-2.5 py-1 rounded border border-border text-text-3 hover:text-accent disabled:opacity-40">
+          {edge?.warming ? "계산 중…" : "지금 다시 계산"}
+        </button>
+      </div>
+      <div className="text-warn text-[11px] bg-warn/10 border border-warn/20 rounded px-3 py-2">
+        ⚠ 스크리닝 결과일 뿐 <b>실집행 근거 아님</b>. walk-forward 생략, 표본 기간 미달. BH-FDR 통과해도 전체 파이프라인 승격 검토 대상.
+      </div>
+      {!edge ? <div className="text-text-3 text-xs">엣지 검증 로딩 중…</div>
+        : hyps.length === 0 ? <div className="text-text-3 text-xs">{edge.warming ? "백그라운드 계산 중 — 잠시 후 표시됩니다…" : "검증 결과 없음"}</div>
+        : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {hyps.map(h => <EdgeReportCard key={h} hyp={h} rep={reports[h]} />)}
+          </div>
+        )}
+    </div>
+  );
+}
+
+function EdgeReportCard({ hyp, rep }: { hyp: string; rep: EdgeReport }) {
+  const vb = VERDICT_BADGE[rep.verdict ?? ""] ?? { label: rep.verdict ?? "—", cls: "border-border text-text-3" };
+  const nAnchors = rep.n_anchors ?? 0;
+  const smallSample = nAnchors > 0 && nAnchors < 30;
+  return (
+    <Panel>
+      <PanelHeader right={<span className={`px-2 py-0.5 rounded border text-[10px] ${vb.cls}`}>{vb.label}</span>}>
+        {hyp}
+      </PanelHeader>
+      {rep.error ? <div className="p-3 text-neg text-xs">검증 실패: {rep.error}</div>
+        : rep.verdict === "no_data" ? <div className="p-3 text-text-3 text-xs">수집 데이터 대기 중 — 틱 쌓이면 자동 계산됨</div>
+        : (
+          <div className="p-3 space-y-3">
+            <div className="flex items-center gap-3 text-[11px] flex-wrap">
+              <span className="text-text-3">커버리지 {rep.dates?.length ?? 0}일</span>
+              <span className={smallSample ? "text-warn font-bold" : "text-text-3"}>
+                표본 {nAnchors}{smallSample ? " · 부족(신뢰도 낮음)" : ""}
+              </span>
+              <span className="text-text-3">cost {rep.cost_bps}bps</span>
+            </div>
+
+            {/* p-value 테이블 */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px] font-data">
+                <thead>
+                  <tr className="text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
+                    <th className="px-2 py-1 text-left font-medium">그룹:호라이즌</th>
+                    <th className="px-2 py-1 text-right font-medium">n</th>
+                    <th className="px-2 py-1 text-right font-medium">net</th>
+                    <th className="px-2 py-1 text-right font-medium">p-value</th>
+                    <th className="px-2 py-1 text-right font-medium">pct</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(rep.groups ?? []).map(g => g.blocked ? (
+                    <tr key={g.group} className="border-b border-border/40">
+                      <td className="px-2 py-1 text-text-3">{g.group}</td>
+                      <td className="px-2 py-1 text-text-3 text-[10px] text-right" colSpan={4}>BLOCKED · {g.reason}</td>
+                    </tr>
+                  ) : (g.horizons ?? []).map(h => (
+                    <tr key={`${g.group}:${h.horizon}`} className="border-b border-border/40 hover:bg-panel-2">
+                      <td className="px-2 py-1 text-text-1">{g.group}:{h.horizon}</td>
+                      <td className="px-2 py-1 text-right text-text-2 tabular-nums">{h.n_events}</td>
+                      <td className={`px-2 py-1 text-right tabular-nums ${h.total_pnl >= 0 ? "text-pos" : "text-neg"}`}>{h.total_pnl.toFixed(2)}</td>
+                      <td className={`px-2 py-1 text-right tabular-nums ${h.p_value < 0.05 ? "text-accent font-bold" : "text-text-2"}`}>{h.p_value.toFixed(4)}</td>
+                      <td className="px-2 py-1 text-right text-text-3 tabular-nums">{h.percentile.toFixed(0)}</td>
+                    </tr>
+                  )))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* BH-FDR 풀 */}
+            <div className="space-y-1 border-t border-border pt-2">
+              {(rep.pools ?? []).map(p => (
+                <div key={p.name} className="flex items-center gap-2 text-[11px]">
+                  <span className="text-text-3 w-28 shrink-0">BH-FDR [{p.name}]</span>
+                  <span className={`font-data font-bold px-1 ${p.n_survivors > 0 ? "bg-pos/20 text-pos" : "text-text-3"}`}>
+                    {p.n_survivors}/{p.n_tested} 생존
+                  </span>
+                  <span className="text-text-3 truncate">
+                    {p.n_survivors > 0 ? p.survivors.join(", ") : "확인된 엣지 없음 (정직한 결과)"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+    </Panel>
   );
 }
 
