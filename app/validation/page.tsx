@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  getExperiments, getTsmomForward, getEdgeValidation, refreshEdgeValidation,
-  type Experiment, type ExperimentsResponse, type TsmomForward,
-  type EdgeValidationResponse, type EdgeReport,
+  getExperiments, getTsmomForward, getXauSession, getEdgeValidation, refreshEdgeValidation,
+  type Experiment, type ExperimentsResponse, type TsmomForward, type XauSessionSummary,
+  type EdgeValidationResponse,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
-import { Heatmap, type HeatCell } from "@/components/charts/Heatmap";
-import { NullDistribution } from "@/components/charts/NullDistribution";
-import { ChartFrame } from "@/components/charts/ChartFrame";
-import { seqColor } from "@/lib/chart-colors";
+import { EdgeReportCard } from "@/components/charts/EdgeReportCard";
+
+const MLB_HYP = "mlb_specialist_consensus"; // 전용 페이지(/mlb)로 분리 — 여기선 중복 렌더 안 함
 
 function statusStyle(s: string): string {
   if (s.startsWith("paper_candidate")) return "border-pos/40 text-pos bg-pos/10";
@@ -33,6 +32,8 @@ export default function ValidationPage() {
   const [exp, setExp] = useState<ExperimentsResponse | null>(null);
   const [tsmom, setTsmom] = useState<TsmomForward | null>(null);
   const [tsmomErr, setTsmomErr] = useState<string | null>(null);
+  const [xau, setXau] = useState<XauSessionSummary | null>(null);
+  const [xauErr, setXauErr] = useState<string | null>(null);
   const [edge, setEdge] = useState<EdgeValidationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,13 @@ export default function ValidationPage() {
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setTsmomErr(err instanceof Error ? err.message : String(err));
+      }
+      try {
+        const x = await getXauSession(ctrl.signal);
+        if (!ctrl.signal.aborted) setXau(x);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setXauErr(err instanceof Error ? err.message : String(err));
       }
     })();
     return () => ctrl.abort();
@@ -143,21 +151,20 @@ export default function ValidationPage() {
         TSMOM forward-test 데이터 없음(선물 데이터 pull 필요): {tsmomErr}</div>}
       {tsmom && <TsmomPanel t={tsmom} />}
 
+      {/* XAU Session Confluence 백테스트 (TV 대조용) */}
+      {xauErr && <div className="text-warn text-xs bg-warn/10 border border-warn/20 rounded px-4 py-2.5">
+        XAU 백테스트 데이터 없음: {xauErr}</div>}
+      {xau && <XauSessionPanel x={xau} />}
+
       {/* Polymarket 엣지 검증 (p-value / BH-FDR) */}
       <EdgeValidationSection edge={edge} onRefresh={handleEdgeRefresh} />
     </div>
   );
 }
 
-const VERDICT_BADGE: Record<string, { label: string; cls: string }> = {
-  candidate: { label: "후보 (BH-FDR 생존)", cls: "border-pos/50 text-pos bg-pos/15" },
-  no_edge: { label: "확인된 엣지 없음", cls: "border-text-3/40 text-text-3 bg-black/20" },
-  no_data: { label: "데이터 대기", cls: "border-info/40 text-info bg-info/10" },
-};
-
 function EdgeValidationSection({ edge, onRefresh }: { edge: EdgeValidationResponse | null; onRefresh: () => void }) {
   const reports = edge?.reports ?? {};
-  const hyps = Object.keys(reports);
+  const hyps = Object.keys(reports).filter(h => h !== MLB_HYP);
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -178,108 +185,6 @@ function EdgeValidationSection({ edge, onRefresh }: { edge: EdgeValidationRespon
           </div>
         )}
     </div>
-  );
-}
-
-function EdgeHeatmap({ rep }: { rep: EdgeReport }) {
-  const groups = rep.groups ?? [];
-  const rows = groups.map(g => g.group);
-  const colSet = new Set<string>();
-  groups.forEach(g => (g.horizons ?? []).forEach(h => colSet.add(h.horizon)));
-  const cols = [...colSet].sort((a, b) => parseInt(a) - parseInt(b));
-  if (cols.length === 0) return null; // 전부 BLOCKED — 히트맵 생략
-
-  const byName = new Map(groups.map(g => [g.group, g]));
-  const cellOf = (row: string, col: string): HeatCell => {
-    const g = byName.get(row);
-    if (!g || g.blocked) return { value: null, blocked: true, tooltip: `${row}: BLOCKED${g?.reason ? " · " + g.reason : ""}` };
-    const h = (g.horizons ?? []).find(hh => hh.horizon === col);
-    if (!h) return { value: null, blocked: true, tooltip: `${row}:${col}: 없음` };
-    return { value: h.p_value, tooltip: `${row}:${col} · p=${h.p_value.toFixed(4)} · n=${h.n_events} · net=${h.total_pnl.toFixed(2)}` };
-  };
-
-  return (
-    <ChartFrame
-      title="p-value 히트맵 (group × horizon)"
-      caption="셀 밝을수록 유의(낮은 p). 정확한 값은 아래 테이블 · 유의 ≠ BH-FDR 생존."
-    >
-      <Heatmap rows={rows} cols={cols} cellOf={cellOf} colorOf={(p) => seqColor(1 - p)} />
-    </ChartFrame>
-  );
-}
-
-function EdgeReportCard({ hyp, rep }: { hyp: string; rep: EdgeReport }) {
-  const vb = VERDICT_BADGE[rep.verdict ?? ""] ?? { label: rep.verdict ?? "—", cls: "border-border text-text-3" };
-  const nAnchors = rep.n_anchors ?? 0;
-  const smallSample = nAnchors > 0 && nAnchors < 30;
-  return (
-    <Panel>
-      <PanelHeader right={<span className={`px-2 py-0.5 rounded border text-[10px] ${vb.cls}`}>{vb.label}</span>}>
-        {hyp}
-      </PanelHeader>
-      {rep.error ? <div className="p-3 text-neg text-xs">검증 실패: {rep.error}</div>
-        : rep.verdict === "no_data" ? <div className="p-3 text-text-3 text-xs">수집 데이터 대기 중 — 틱 쌓이면 자동 계산됨</div>
-        : (
-          <div className="p-3 space-y-3">
-            <div className="flex items-center gap-3 text-[11px] flex-wrap">
-              <span className="text-text-3">커버리지 {rep.dates?.length ?? 0}일</span>
-              <span className={smallSample ? "text-warn font-bold" : "text-text-3"}>
-                표본 {nAnchors}{smallSample ? " · 부족(신뢰도 낮음)" : ""}
-              </span>
-              <span className="text-text-3">cost {rep.cost_bps}bps</span>
-            </div>
-
-            {/* group×horizon p-value 히트맵 (셀 밝을수록 유의) */}
-            <EdgeHeatmap rep={rep} />
-
-            {/* p-value 테이블 (정확한 수치 · 접근성 table view) */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-[11px] font-data">
-                <thead>
-                  <tr className="text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
-                    <th className="px-2 py-1 text-left font-medium">그룹:호라이즌</th>
-                    <th className="px-2 py-1 text-right font-medium">n</th>
-                    <th className="px-2 py-1 text-right font-medium">net</th>
-                    <th className="px-2 py-1 text-right font-medium">p-value</th>
-                    <th className="px-2 py-1 text-left font-medium">vs 랜덤(percentile)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(rep.groups ?? []).map(g => g.blocked ? (
-                    <tr key={g.group} className="border-b border-border/40">
-                      <td className="px-2 py-1 text-text-3">{g.group}</td>
-                      <td className="px-2 py-1 text-text-3 text-[10px] text-right" colSpan={4}>BLOCKED · {g.reason}</td>
-                    </tr>
-                  ) : (g.horizons ?? []).map(h => (
-                    <tr key={`${g.group}:${h.horizon}`} className="border-b border-border/40 hover:bg-panel-2">
-                      <td className="px-2 py-1 text-text-1">{g.group}:{h.horizon}</td>
-                      <td className="px-2 py-1 text-right text-text-2 tabular-nums">{h.n_events}</td>
-                      <td className={`px-2 py-1 text-right tabular-nums ${h.total_pnl >= 0 ? "text-pos" : "text-neg"}`}>{h.total_pnl.toFixed(2)}</td>
-                      <td className={`px-2 py-1 text-right tabular-nums ${h.p_value < 0.05 ? "text-accent font-bold" : "text-text-2"}`}>{h.p_value.toFixed(4)}</td>
-                      <td className="px-2 py-1"><NullDistribution percentile={h.percentile} pValue={h.p_value} /></td>
-                    </tr>
-                  )))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* BH-FDR 풀 */}
-            <div className="space-y-1 border-t border-border pt-2">
-              {(rep.pools ?? []).map(p => (
-                <div key={p.name} className="flex items-center gap-2 text-[11px]">
-                  <span className="text-text-3 w-28 shrink-0">BH-FDR [{p.name}]</span>
-                  <span className={`font-data font-bold px-1 ${p.n_survivors > 0 ? "bg-pos/20 text-pos" : "text-text-3"}`}>
-                    {p.n_survivors}/{p.n_tested} 생존
-                  </span>
-                  <span className="text-text-3 truncate">
-                    {p.n_survivors > 0 ? p.survivors.join(", ") : "확인된 엣지 없음 (정직한 결과)"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-    </Panel>
   );
 }
 
@@ -344,6 +249,56 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
               })}
             </div>}
       </div>
+    </Panel>
+  );
+}
+
+function XauSessionPanel({ x }: { x: XauSessionSummary }) {
+  const symbols = Object.entries(x.symbols);
+  return (
+    <Panel>
+      <PanelHeader right={
+        <span className="normal-case tracking-normal font-normal text-[10px] text-text-3">⚠ TV Strategy Tester 대조용, 실집행 근거 아님</span>
+      }>
+        XAU Session Confluence 백테스트
+      </PanelHeader>
+      <div className="px-4 pt-3 text-[11px] text-text-3">
+        R:R {fmt(x.config.risk_reward, 2)} · risk% {fmt(x.config.risk_percent, 1)} ·
+        런던돌파 {x.config.use_london_breakout ? "ON" : "OFF"} · NY연속 {x.config.use_ny_continuation ? "ON" : "OFF"}
+      </div>
+      {symbols.length === 0 ? (
+        <div className="p-4 text-text-3 text-xs">XAU 15m 데이터 없음 — intraday_store에 xyz:GOLD/PAXG/GC 저장 후 재계산됨.</div>
+      ) : (
+        <div className="overflow-x-auto p-3">
+          <table className="w-full text-[11px] font-data">
+            <thead>
+              <tr className="text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
+                <th className="px-2 py-1 text-left font-medium">심볼</th>
+                <th className="px-2 py-1 text-right font-medium">봉수</th>
+                <th className="px-2 py-1 text-right font-medium">tick</th>
+                <th className="px-2 py-1 text-right font-medium">트레이드</th>
+                <th className="px-2 py-1 text-right font-medium">승률</th>
+                <th className="px-2 py-1 text-right font-medium">PF</th>
+                <th className="px-2 py-1 text-right font-medium">순손익</th>
+              </tr>
+            </thead>
+            <tbody>
+              {symbols.map(([sym, s]) => (
+                <tr key={sym} className="border-b border-border/40 hover:bg-panel-2">
+                  <td className="px-2 py-1 text-text-1">{sym}</td>
+                  <td className="px-2 py-1 text-right text-text-2 tabular-nums">{s.n_bars}</td>
+                  <td className="px-2 py-1 text-right text-text-2 tabular-nums">{s.tick_size}</td>
+                  <td className="px-2 py-1 text-right text-text-2 tabular-nums">{s.n_trades}</td>
+                  <td className="px-2 py-1 text-right text-text-2 tabular-nums">{(s.win_rate * 100).toFixed(1)}%</td>
+                  <td className="px-2 py-1 text-right text-text-2 tabular-nums">{s.profit_factor === null ? "—" : s.profit_factor.toFixed(2)}</td>
+                  <td className={`px-2 py-1 text-right tabular-nums ${s.net >= 0 ? "text-pos" : "text-neg"}`}>{s.net.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="px-4 pb-3 text-[10px] text-text-3">{x.note}</div>
     </Panel>
   );
 }

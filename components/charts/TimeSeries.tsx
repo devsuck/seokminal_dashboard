@@ -31,7 +31,17 @@ export function TimeSeries({ series, height = 220, yFormat }: {
 
     for (const s of series) {
       const line = chart.addSeries(LineSeries, { color: s.color, lineWidth: 2, title: s.label });
-      line.setData(s.points.map((p) => ({ time: Math.floor(p.time) as UTCTimestamp, value: p.value })));
+      const sorted = [...s.points].sort((a, b) => a.time - b.time);
+      const deduped: { time: UTCTimestamp; value: number }[] = [];
+      for (const p of sorted) {
+        const time = Math.floor(p.time) as UTCTimestamp;
+        if (deduped.length > 0 && deduped[deduped.length - 1].time === time) {
+          deduped[deduped.length - 1] = { time, value: p.value };
+        } else {
+          deduped.push({ time, value: p.value });
+        }
+      }
+      line.setData(deduped);
     }
     chart.timeScale().fitContent();
 

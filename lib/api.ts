@@ -2290,6 +2290,21 @@ export async function getTsmomForward(signal?: AbortSignal): Promise<TsmomForwar
   return handleResponse<TsmomForward>(r);
 }
 
+export interface XauSymbolStat {
+  n_trades: number; wins: number; win_rate: number; profit_factor: number;
+  gross_win: number; gross_loss: number; net: number; final_equity: number;
+  tick_size: number; n_bars: number;
+}
+export interface XauSessionSummary {
+  symbols: Record<string, XauSymbolStat>;
+  config: { risk_reward: number; risk_percent: number; use_london_breakout: boolean; use_ny_continuation: boolean };
+  note: string;
+}
+export async function getXauSession(signal?: AbortSignal): Promise<XauSessionSummary> {
+  const r = await fetch(`${API_URL}/research/xau-session`, { signal });
+  return handleResponse<XauSessionSummary>(r);
+}
+
 // ── AI LAB (자율 리서치 루프: 자체생각→검토→집행→학습) ────────────────────────────
 
 export interface LabHypothesis {
@@ -2437,6 +2452,7 @@ export interface LabStatus {
     polymarket_whale_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     polymarket_updown_arb?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     polymarket_sharp_wallet_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
+    polymarket_mlb_specialist_tick?: { running: boolean; session_exists?: boolean; last_write: string | null; age_sec: number | null };
     error?: string;
   };
 }
@@ -2465,7 +2481,7 @@ export async function getLabStatus(signal?: AbortSignal): Promise<LabStatus> {
 
 export type CollectorKey = "polymarket_tick" | "polymarket_arb" | "hl_orderflow_tick"
   | "cross_venue_skew_tick" | "polymarket_whale_tick" | "polymarket_updown_arb"
-  | "polymarket_sharp_wallet_tick";
+  | "polymarket_sharp_wallet_tick" | "polymarket_mlb_specialist_tick";
 
 export async function restartCollector(key: CollectorKey): Promise<{ running: boolean; last_write: string | null; age_sec: number | null }> {
   const r = await fetch(`${API_URL}/lab/collectors/${key}/restart`, { method: "POST" });
@@ -3348,9 +3364,13 @@ export interface EdgePool {
   name: string; alpha: number; n_tested: number; n_survivors: number;
   survivors: string[]; threshold: number | null;
 }
+export interface EdgeVariant {
+  variant: string; blocked: boolean; reason?: string; n_events?: number;
+  total_pnl?: number; p_value?: number; percentile?: number;
+}
 export interface EdgeReport {
   hypothesis: string; cost_bps?: number; dates?: string[]; n_anchors?: number;
-  groups?: EdgeGroup[]; pools?: EdgePool[]; verdict?: string; error?: string;
+  groups?: EdgeGroup[]; variants?: EdgeVariant[]; pools?: EdgePool[]; verdict?: string; error?: string;
 }
 export interface EdgeValidationResponse {
   reports: Record<string, EdgeReport>; ts: number; warming: boolean; age_sec: number | null;

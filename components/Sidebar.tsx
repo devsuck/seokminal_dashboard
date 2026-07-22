@@ -161,6 +161,7 @@ export function Sidebar() {
       label: "검증", icon: <IconBacktest />,
       items: [
         { href: "/validation",   label: "검증 터미널" },
+        { href: "/mlb",          label: "MLB 스페셜리스트" },
         { href: "/backtest",     label: t("nav.backtest") },
         { href: "/ict",          label: "ICT 조합 백테스트" },
         { href: "/event-study",  label: t("nav.event-study") },

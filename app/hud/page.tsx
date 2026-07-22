@@ -239,6 +239,10 @@ export default function HudPage() {
     kind: "BOT", name: "폴리마켓 초단기 up/down 차익 스캐너", running: sys.processes.polymarket_updown_arb.running,
     detail: formatAge(sys.processes.polymarket_updown_arb.age_sec), href: "/lab", collectorKey: "polymarket_updown_arb",
   });
+  if (sys?.processes?.polymarket_mlb_specialist_tick) units.push({
+    kind: "BOT", name: "폴리마켓 MLB 스페셜리스트 수집기", running: sys.processes.polymarket_mlb_specialist_tick.running,
+    detail: formatAge(sys.processes.polymarket_mlb_specialist_tick.age_sec), href: "/mlb", collectorKey: "polymarket_mlb_specialist_tick",
+  });
   if (vrp) {
     const lastLog = vrp.log?.[0];
     // log는 실패/진입/청산 등 이벤트가 있을 때만 기록됨 — 조용히 성공한(포지션 미진입) tick은
