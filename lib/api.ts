@@ -3364,6 +3364,43 @@ export async function refreshEdgeValidation(): Promise<{ warming: boolean }> {
   return handleResponse(r);
 }
 
+// ── 엣지 메타-대시보드 (전 가설 포트폴리오 + 감쇠 궤적) ─────────────────────────
+export interface EdgeTrajPoint {
+  ts: number; verdict: string; min_p_value: number | null;
+  n_survivors: number; n_tested: number; n_events: number; significant: boolean;
+}
+export interface EdgeSummary {
+  hypothesis: string; verdict: string; min_p_value: number | null;
+  n_survivors: number; n_tested: number; n_events: number; significant: boolean;
+}
+export interface EdgeTrend { points: number; direction: string; latest_p: number | null; first_p?: number | null; }
+export interface EdgeMetaRow {
+  key: string; title: string; category: string; data_source: string;
+  validator: string | null; warmable: boolean; status: string;
+  summary?: EdgeSummary; trajectory: EdgeTrajPoint[]; trend: EdgeTrend;
+}
+export interface EdgesResponse {
+  edges: EdgeMetaRow[];
+  portfolio: { n_total: number; n_warmable: number; n_significant: number; n_pending: number };
+  ts: number; warming: boolean; age_sec: number | null;
+}
+export async function getEdges(signal?: AbortSignal): Promise<EdgesResponse> {
+  return handleResponse<EdgesResponse>(await fetch(`${API_URL}/lab/edges`, { signal }));
+}
+
+// ── 수집기 함대 헬스 ──────────────────────────────────────────────────────────
+export interface FleetCollector {
+  key: string; verdict: "fresh" | "stale" | "dead"; reason: string; stale_after_s: number;
+  running: boolean; session_exists: boolean; last_write: string | null; age_sec: number | null;
+}
+export interface FleetResponse {
+  ok: boolean; worst_verdict: string; counts: { fresh: number; stale: number; dead: number };
+  n_total: number; collectors: FleetCollector[];
+}
+export async function getFleet(signal?: AbortSignal): Promise<FleetResponse> {
+  return handleResponse<FleetResponse>(await fetch(`${API_URL}/lab/fleet`, { signal }));
+}
+
 // ── ICT 프리미티브 자유조합 백테스트(탐색용) ─────────────────────────────────
 export interface IctSymbolsResponse {
   symbols: Record<string, string[]>;
