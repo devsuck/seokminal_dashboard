@@ -1,3 +1,29 @@
+## Phase 184 — XAU 백테스트 노출 + MLB `/mlb` 페이지 분리 + 두 저장소 동기화 (2026-07-22) ✅ SHIPPED
+
+XAU Session Confluence 백테스트를 `/validation` 페이지에 노출, 이어서 MLB Specialist Consensus(Polymarket 지갑 스코어링)를 공용 카드에서 전용 `/mlb` 페이지로 분리 요청 → 상단 네비 반영 확인까지 완료. 마지막으로 데스크탑 세션에서 넘어온 미동기화 작업(플랫폼 업그레이드 6종: 엣지 메타-대시보드/함대헬스/감쇠추적/집행시임/워치독) 확인 → 두 저장소 commit→pull(merge)→push로 동기화. 상세 로그는 `seokminal-multi-venue/docs/progress.md` "2026-07-22 (이어서 2~6)" 참조(백엔드 위주라 그쪽에 기록, 이 항목은 프론트+저장소 관점 요약).
+
+### 완료된 작업 (SHIPPED)
+- **XAU 노출**: `research_api.py`에 `/research/xau-session`(TSMOM과 동일한 60초 캐시 패턴, p-value 가설검증 아닌 단순 백테스트 통계라 `_EDGE_VAL_RUNNERS`엔 안 넣음) — `app/validation/page.tsx`에 `XauSessionPanel` 신설(심볼별 봉수/tick/트레이드/승률/PF/순손익 테이블), `lib/api.ts`에 `XauSessionSummary`/`getXauSession` 추가.
+- **MLB `/mlb` 분리**: `EdgeReportCard`/`EdgeHeatmap`/`EdgeVariantTable`/`VERDICT_BADGE`를 `app/validation/page.tsx` 로컬정의 → `components/charts/EdgeReportCard.tsx`로 추출·export(양쪽 페이지 재사용). `app/mlb/page.tsx` 신설(`mlb_specialist_consensus` 리포트 전용 렌더 + 수집기 ON/OFF·재시작 버튼 + 재계산 버튼). `/validation`의 `EdgeValidationSection`에서 MLB 제외(중복 방지, sharp_wallet/whale만 남음).
+- `lib/api.ts` `CollectorKey`/`LabStatus.processes`에 `polymarket_mlb_specialist_tick` 추가(백엔드는 이미 등록, 프론트 타입 누락 상태였음).
+- `components/Sidebar.tsx` "검증" 그룹에 `/mlb` 링크 추가 — 병합 중 origin이 같은 자리에 추가한 `/edges`(데스크탑의 엣지 메타-대시보드 페이지)와 충돌, 둘 다 유지(`/validation`→`/edges`→`/mlb` 순).
+- `app/hud/page.tsx` Unit 목록에 MLB 수집기 row 추가(기존 폴리마켓 수집기 패턴 동일).
+- 브라우저 실검증(Chrome MCP): XAU 3심볼 테이블 정상, MLB 카드 `/validation`에서 사라지고 `/mlb`에서 정상 렌더, 상단 네비 "검증"→"MLB 스페셜리스트" 클릭 이동 확인, 콘솔 에러 0건.
+- **저장소 동기화**: 데스크탑 미동기화 커밋(플랫폼 업그레이드 6종 + `/edges` 페이지) 확인 → `seokminal-dashboard`/`seokminal-multi-venue` 둘 다 commit→`git pull --no-rebase`(병합, git config 미변경)→충돌 해결→push 완료. `seokminal-multi-venue` 쪽은 `_EDGE_VAL_RUNNERS`(내 구버전) vs `research/hypothesis_registry.py` 기반 신규 아키텍처(origin) 충돌 — origin 채택 + `mlb_specialist_consensus`를 `warmable: True`로 승격(구현+수집기 라이브 기동 완료 확인됨, 테스트 갱신 포함). 최종 커밋: dashboard `ff88fc2`, multi-venue `adc93e9`.
+
+### 변경된 파일
+- `app/validation/page.tsx`, `app/mlb/page.tsx`(신규), `components/charts/EdgeReportCard.tsx`(신규), `lib/api.ts`, `components/Sidebar.tsx`, `app/hud/page.tsx`
+- (multi-venue) `api_server/research_api.py`, `research/run_xau_session_backtest.py`, `research/hypothesis_registry.py`, `api_server/lab_api.py`, `tests/test_xau_backtest.py`, `tests/test_hypothesis_registry.py`
+
+### 다음 할 일
+- `/edges` 프론트 페이지(데스크탑 신규, 엣지 메타-대시보드) 브라우저 렌더 미확인 — 다음 세션에 확인.
+- XAU TV 대조(유저 몫), MLB 데이터 축적(수집기 상시구동 중, 표본 쌓이면 자동 계산).
+
+### 막힌 부분/결정사항
+- MLB `warmable: True` 승격은 병합 중 내가 내린 판단(기계적 병합 아님) — 근거는 `load_and_report()` 구현 확인 + 수집기 라이브 확인, 두 전제 모두 레지스트리 자체 주석이 요구하는 승격조건과 일치.
+
+---
+
 ## Phase 183 — ICT+오더플로우 페이퍼 트레이딩 엔진 구현 (2026-07-20) ✅ SHIPPED
 
 사용자가 "ICT+오더플로우 합쳐서 거래 로그 적는 기능 이전에 요청했었다" + "금 전용 ICT 전략은 다른 클로드 세션에서 만들어 붙였다" 확인 요청 → 조사 결과 (1) `docs/superpowers/plans/2026-07-20-ict-orderflow-paper-engine.md`에 6-태스크 플랜은 이미 존재하지만 구현 0% 상태였고, (2) 금 ICT 전략은 완전히 별개 프로젝트(`~/Desktop/claude-test/ict-confluence-indicator/`)에 존재하지만 seokminal-multi-venue와 연결 안 됨(별건으로 남겨둠, 이번 세션에서 손대지 않음). 사용자가 "ICT+오더플로우 엔진 구현 시작" 선택 → `superpowers:subagent-driven-development` 스킬로 6개 태스크 전부 구현 완료, main에 직접 커밋, origin에 push까지 완료.
