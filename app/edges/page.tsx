@@ -8,16 +8,20 @@ import {
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
-// ── 상태 색(예약 status 색만 사용) ──────────────────────────────────────────────
-function edgeStatusStyle(s: string): string {
-  switch (s) {
-    case "significant": return "border-pos/40 text-pos bg-pos/10";
-    case "no_data": return "border-warn/40 text-warn bg-warn/10";
-    case "warming": return "border-accent/40 text-accent bg-accent/10";
-    case "error": return "border-neg/40 text-neg bg-neg/10";
-    default: return "border-text-3/30 text-text-3 bg-text-3/5"; // not_significant / pending
-  }
+// ── 졸업 스코어카드(수익 게이트) 색/라벨 ────────────────────────────────────────
+function gradeStyle(s: string): string {
+  if (s === "graduated") return "border-pos/50 text-pos bg-pos/10";
+  if (s === "failed") return "border-neg/50 text-neg bg-neg/10";
+  return "border-warn/40 text-warn bg-warn/10"; // accumulating
 }
+function gradeLabel(s: string): string {
+  return ({ graduated: "졸업", failed: "탈락", accumulating: "축적중" } as Record<string, string>)[s] ?? s;
+}
+const GRADE_CHECK_LABEL: Record<string, string> = {
+  powered: "표본 검정력", p_strong: "p-value", fdr_survivor: "FDR 생존", oos_persistence: "OOS 지속성",
+};
+
+// ── 검증 상태 라벨(디테일용) ────────────────────────────────────────────────────
 function edgeStatusLabel(s: string): string {
   return ({ significant: "유의(FDR생존)", not_significant: "미유의", no_data: "데이터없음",
     warming: "계산중", pending: "대기(맥조립)", error: "오류" } as Record<string, string>)[s] ?? s;
@@ -86,7 +90,14 @@ export default function EdgesPage() {
   const [fleet, setFleet] = useState<FleetResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [fleetErr, setFleetErr] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
+
+  const toggle = (k: string) => setExpanded((prev) => {
+    const next = new Set(prev);
+    next.has(k) ? next.delete(k) : next.add(k);
+    return next;
+  });
 
   const load = useCallback(async () => {
     abortRef.current?.abort();
@@ -121,13 +132,22 @@ export default function EdgesPage() {
         >검증 재계산</button>
       </div>
 
-      {/* 포트폴리오 요약 */}
+      {/* 포트폴리오 요약 — 졸업(=소액 라이브 후보)이 히어로 */}
       {pf && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Tile label="유의(FDR)" value={pf.n_significant} tone="text-pos" />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <Tile label="졸업(라이브 후보)" value={pf.n_graduated} tone={pf.n_graduated > 0 ? "text-pos" : "text-text-2"} />
+          <Tile label="유의(FDR)" value={pf.n_significant} />
           <Tile label="검증가능" value={pf.n_warmable} />
           <Tile label="대기(맥)" value={pf.n_pending} tone="text-text-2" />
           <Tile label="전체 가설" value={pf.n_total} />
+        </div>
+      )}
+      <p className="text-text-3 text-xs">
+        졸업 기준(전부 통과해야 라이브 후보): 표본 검정력 · p≤0.05 · FDR 생존(비용후) · OOS 지속성(forward 반복검증). 축적중=데이터/이력 대기, 탈락=표본 충분한데 신호 없음(진짜 음성).
+      </p>
+      {pf && pf.n_graduated === 0 && (
+        <div className="border border-warn/30 bg-warn/5 text-warn text-xs px-3 py-2">
+          아직 졸업한 엣지 없음 — 실거래 후보 0. 챔피언(폴리마켓 샤프월렛)을 OOS 지속성까지 밀어야 함. 수집기 계속 구동 = forward 실탄 축적.
         </div>
       )}
 
@@ -174,7 +194,7 @@ export default function EdgesPage() {
             <thead>
               <tr className="text-text-3 text-xs text-left border-b border-text-3/20">
                 <th className="px-3 py-2 font-normal">가설</th>
-                <th className="px-3 py-2 font-normal">상태</th>
+                <th className="px-3 py-2 font-normal">졸업</th>
                 <th className="px-3 py-2 font-normal">최소 p-value</th>
                 <th className="px-3 py-2 font-normal">FDR 생존</th>
                 <th className="px-3 py-2 font-normal">표본</th>
@@ -182,27 +202,53 @@ export default function EdgesPage() {
               </tr>
             </thead>
             <tbody>
-              {edges?.edges.map((e: EdgeMetaRow) => (
-                <tr key={e.key} className="border-b border-text-3/10 align-middle">
-                  <td className="px-3 py-2">
-                    <div className="text-text-1">{e.title}</div>
-                    <div className="text-text-3 text-xs">{e.category} · {e.data_source}</div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className={`text-xs px-1.5 py-0.5 border whitespace-nowrap ${edgeStatusStyle(e.status)}`}>
-                      {edgeStatusLabel(e.status)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2"><PBar p={e.summary?.min_p_value ?? null} /></td>
-                  <td className="px-3 py-2 text-text-2 text-xs tabular-nums">
-                    {e.summary ? `${e.summary.n_survivors}/${e.summary.n_tested}` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-text-2 text-xs tabular-nums">
-                    {e.summary ? e.summary.n_events.toLocaleString() : "—"}
-                  </td>
-                  <td className="px-3 py-2"><Sparkline traj={e.trajectory} dir={e.trend.direction} /></td>
-                </tr>
-              ))}
+              {edges?.edges.flatMap((e: EdgeMetaRow) => {
+                const isOpen = expanded.has(e.key);
+                const rows = [(
+                  <tr key={e.key} className="border-b border-text-3/10 align-middle hover:bg-text-3/5 cursor-pointer"
+                      onClick={() => toggle(e.key)}>
+                    <td className="px-3 py-2">
+                      <div className="text-text-1">{isOpen ? "▾" : "▸"} {e.title}</div>
+                      <div className="text-text-3 text-xs pl-3">{e.category} · {e.data_source}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs px-1.5 py-0.5 border whitespace-nowrap ${gradeStyle(e.grade.status)}`}>
+                        {gradeLabel(e.grade.status)} {Math.round(e.grade.readiness * 4)}/4
+                      </span>
+                    </td>
+                    <td className="px-3 py-2"><PBar p={e.summary?.min_p_value ?? null} /></td>
+                    <td className="px-3 py-2 text-text-2 text-xs tabular-nums">
+                      {e.summary ? `${e.summary.n_survivors}/${e.summary.n_tested}` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-text-2 text-xs tabular-nums">
+                      {e.summary ? e.summary.n_events.toLocaleString() : "—"}
+                    </td>
+                    <td className="px-3 py-2"><Sparkline traj={e.trajectory} dir={e.trend.direction} /></td>
+                  </tr>
+                )];
+                if (isOpen) rows.push(
+                  <tr key={`${e.key}-detail`} className="border-b border-text-3/10 bg-text-3/[0.03]">
+                    <td colSpan={6} className="px-3 py-2">
+                      <div className="text-text-3 text-xs mb-1.5">{e.grade.reason} · 상태: {edgeStatusLabel(e.status)}</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {Object.entries(e.grade.checks).map(([k, c]) => (
+                          <div key={k} className="border border-text-3/15 px-2 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={c.pass ? "text-pos" : "text-text-3"}>{c.pass ? "✓" : "○"}</span>
+                              <span className="text-text-2 text-xs">{GRADE_CHECK_LABEL[k] ?? k}</span>
+                            </div>
+                            <div className="text-text-3 text-xs pl-4">{c.detail}</div>
+                          </div>
+                        ))}
+                        {Object.keys(e.grade.checks).length === 0 && (
+                          <div className="text-text-3 text-xs col-span-full">검증 리포트 없음 — {e.grade.reason}</div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+                return rows;
+              })}
             </tbody>
           </table>
         </div>

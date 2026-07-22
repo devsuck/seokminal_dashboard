@@ -3394,14 +3394,20 @@ export interface EdgeSummary {
   n_survivors: number; n_tested: number; n_events: number; significant: boolean;
 }
 export interface EdgeTrend { points: number; direction: string; latest_p: number | null; first_p?: number | null; }
+export interface EdgeGradeCheck { pass: boolean; detail: string; }
+export interface EdgeGrade {
+  status: "graduated" | "failed" | "accumulating";
+  readiness: number; reason: string;
+  checks: Record<string, EdgeGradeCheck>;
+}
 export interface EdgeMetaRow {
   key: string; title: string; category: string; data_source: string;
   validator: string | null; warmable: boolean; status: string;
-  summary?: EdgeSummary; trajectory: EdgeTrajPoint[]; trend: EdgeTrend;
+  summary?: EdgeSummary; trajectory: EdgeTrajPoint[]; trend: EdgeTrend; grade: EdgeGrade;
 }
 export interface EdgesResponse {
   edges: EdgeMetaRow[];
-  portfolio: { n_total: number; n_warmable: number; n_significant: number; n_pending: number };
+  portfolio: { n_total: number; n_warmable: number; n_significant: number; n_graduated: number; n_pending: number };
   ts: number; warming: boolean; age_sec: number | null;
 }
 export async function getEdges(signal?: AbortSignal): Promise<EdgesResponse> {
