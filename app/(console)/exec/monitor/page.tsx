@@ -12,7 +12,7 @@ const stageTone = (by: Record<string, number>, n: number) => {
 };
 
 export default function ExecMonitor() {
-  const { data, err, loading } = useConsole(getMonitor);
+  const { data, err, loading } = useConsole(getMonitor, [], 10000);
   return (
     <div className="min-h-full">
       <PageHeader kicker="EXECUTION" title="Pipeline Monitor"

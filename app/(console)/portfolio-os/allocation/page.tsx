@@ -1,31 +1,41 @@
 "use client";
 import { getAllocation } from "@/lib/console-api";
-import { useConsole, PageHeader, StateBlock } from "@/components/console/widgets";
-import { Panel, PanelHead, StatTile } from "@/components/console/primitives";
+import { useConsole, PageHeader, StateBlock, StatusPill } from "@/components/console/widgets";
+import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
 
 export default function Allocation() {
   const { data, err, loading } = useConsole(getAllocation);
-  const empty = !(data?.allocations.length || data?.decisions.length || data?.rebalances.length);
+  const derived = data?.derived_proposal ?? [];
+  const hasLedger = (data?.allocations.length ?? 0) > 0;
   return (
     <div className="min-h-full">
-      <PageHeader kicker="PORTFOLIO OS" title="Allocation" />
-      <div className="p-5 space-y-5 max-w-[1200px]">
+      <PageHeader kicker="PORTFOLIO OS" title="Allocation"
+        right={<Badge tone={hasLedger?"pos":"hud"}>{hasLedger?"ORCHESTRATOR":"DERIVED PROPOSAL"}</Badge>} />
+      <div className="p-5 space-y-5 max-w-[1150px]">
         <StateBlock loading={loading} err={err}>
           <div className="grid grid-cols-3 gap-4">
-            <StatTile label="Proposals" value={data?.allocations.length ?? 0} tone="hud" accent="hud" />
-            <StatTile label="Decisions" value={data?.decisions.length ?? 0} accent="info" />
-            <StatTile label="Rebalances" value={data?.rebalances.length ?? 0} accent="warn" />
+            <StatTile label="Active Strategies" value={derived.length} tone="hud" accent="hud" />
+            <StatTile label="Ledger Proposals" value={data?.allocations.length ?? 0} accent="info" />
+            <StatTile label="Decisions" value={data?.decisions.length ?? 0} accent="warn" />
           </div>
-          {empty ? (
-            <Panel className="p-10 text-center">
-              <div className="text-[12px] text-[var(--c-text-2)]">배분 제안 없음</div>
-              <div className="mt-1.5 text-[10.5px] text-[var(--c-text-3)]">{data?.note ?? "포트폴리오 오케스트레이터(Meta Portfolio)가 제안을 생성하면 여기에 표시됩니다. 현재는 제안 전용 · 미실행."}</div>
-            </Panel>
-          ) : (
-            <Panel><PanelHead kicker="LEDGER" title="Allocation Proposals" />
-              <pre className="p-4 text-[11px] c-num text-[var(--c-text-2)] overflow-x-auto">{JSON.stringify(data?.allocations, null, 2)}</pre>
-            </Panel>
-          )}
+          <Panel className="overflow-hidden">
+            <PanelHead kicker="PROPOSAL" title="Equal-Weight Allocation (제안 전용 · 미집행)"
+              right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{data?.derived_note}</span>} />
+            <div className="p-4 space-y-2">
+              {derived.length===0 && <div className="text-[11px] text-[var(--c-text-3)] p-3">활성 전략 없음</div>}
+              {derived.map((d) => (
+                <div key={d.strategy_id} className="flex items-center gap-3">
+                  <span className="text-[12px] text-[var(--c-text-1)] w-52 shrink-0 truncate">{d.name}</span>
+                  <span className="text-[10px] text-[var(--c-hud)] w-24 shrink-0">{d.factor}</span>
+                  <StatusPill status={d.status} />
+                  <div className="flex-1 h-2 bg-[var(--c-panel-3)] overflow-hidden">
+                    <div className="h-full" style={{width:`${d.target_weight*100}%`, background:"var(--c-hud)", boxShadow:"0 0 8px var(--c-hud)"}} />
+                  </div>
+                  <span className="c-num text-[12px] font-semibold text-[var(--c-text-1)] w-14 text-right">{(d.target_weight*100).toFixed(1)}%</span>
+                </div>
+              ))}
+            </div>
+          </Panel>
         </StateBlock>
       </div>
     </div>

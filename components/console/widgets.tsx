@@ -4,21 +4,28 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Panel, Dot } from "@/components/console/primitives";
 import type { AgentNode } from "@/lib/console-api";
 
-// ── generic fetch hook ────────────────────────────────────────────
-export function useConsole<T>(fn: (s: AbortSignal) => Promise<T>, deps: unknown[] = []) {
+// ── generic fetch hook (옵션: pollMs 마다 조용히 자동 새로고침) ────
+export function useConsole<T>(fn: (s: AbortSignal) => Promise<T>, deps: unknown[] = [], pollMs = 0) {
   const [data, setData] = useState<T | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     const ac = new AbortController();
-    setLoading(true);
+    let first = tick === 0;
+    if (first) setLoading(true);
     fn(ac.signal)
       .then((d) => { setData(d); setErr(null); })
       .catch((e) => { if ((e as Error).name !== "AbortError") setErr((e as Error).message); })
       .finally(() => setLoading(false));
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, tick]);
+  useEffect(() => {
+    if (!pollMs) return;
+    const id = setInterval(() => setTick((t) => t + 1), pollMs);
+    return () => clearInterval(id);
+  }, [pollMs]);
   return { data, err, loading };
 }
 

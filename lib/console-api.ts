@@ -90,9 +90,22 @@ export interface AgentNode {
 }
 export interface AgentsResp { council: AgentNode; archetypes: string[]; live_execution_enabled: boolean }
 export interface LogsResp { logs: Array<Record<string, unknown>>; count: number }
-export interface KnowledgeResp { built: boolean; nodes: unknown[]; edges: unknown[]; failed_strategies: unknown[]; note: string }
-export interface ResearchResp { proposals: Array<Record<string, unknown>>; count?: number; note?: string }
-export interface AllocationResp { allocations: unknown[]; decisions: unknown[]; rebalances: unknown[]; note: string }
+export interface GraphNode { id: string; label: string; type: "strategy" | "factor"; factor?: string; status?: string; count?: number }
+export interface GraphEdge { source: string; target: string; kind?: string }
+export interface KnowledgeResp {
+  built: boolean; derived?: boolean; nodes: GraphNode[]; edges: GraphEdge[];
+  factors?: Record<string, number>; statuses?: Record<string, number>;
+  failed_strategies: unknown[]; note: string;
+}
+export interface CoverageGap { factor: string; total: number; active: number; gap: string; severity: string }
+export interface ResearchResp {
+  proposals: Array<Record<string, unknown>>; count?: number; note?: string;
+  coverage_gaps?: CoverageGap[]; factor_coverage?: Record<string, { total: number; active: number }>;
+}
+export interface PostureRow { factor: string; total: number; active: number; rejected: number; conviction: number }
+export interface MarketResp { regime: ConsoleRegime; posture?: PostureRow[]; note?: string }
+export interface DerivedAlloc { strategy_id: string; name: string; factor: string; status: string; target_weight: number }
+export interface AllocationResp { allocations: unknown[]; decisions: unknown[]; rebalances: unknown[]; note: string; derived_proposal?: DerivedAlloc[]; derived_note?: string }
 export interface PositionsResp { positions: Array<Record<string, unknown>>; count: number; note: string }
 export interface RiskResp {
   governor: string; limits: Record<string, unknown>; capital: ConsoleStatus["capital"];
@@ -111,7 +124,7 @@ export const getAgents = (s?: AbortSignal) => get<AgentsResp>("/console/agents",
 export const getLogs = (limit = 60, s?: AbortSignal) => get<LogsResp>(`/console/logs?limit=${limit}`, s);
 export const getKnowledge = (s?: AbortSignal) => get<KnowledgeResp>("/console/knowledge", s);
 export const getResearch = (s?: AbortSignal) => get<ResearchResp>("/console/research", s);
-export const getMarket = (s?: AbortSignal) => get<ConsoleRegime & { regime: ConsoleRegime }>("/console/market", s);
+export const getMarket = (s?: AbortSignal) => get<MarketResp>("/console/market", s);
 export const getAllocation = (s?: AbortSignal) => get<AllocationResp>("/console/allocation", s);
 export const getPositions = (s?: AbortSignal) => get<PositionsResp>("/console/positions", s);
 export const getRisk = (s?: AbortSignal) => get<RiskResp>("/console/risk", s);
