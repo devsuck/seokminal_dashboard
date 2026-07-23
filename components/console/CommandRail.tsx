@@ -140,7 +140,7 @@ export function CommandRail() {
             )}
             {g.items.map((it) => {
               const active = isActive(it.href);
-              const ready = it.ready ?? false;
+              const ready = it.ready ?? true;
               const cls = active
                 ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]"
                 : ready
