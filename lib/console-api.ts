@@ -42,10 +42,18 @@ export interface ConsolePipeline {
 }
 
 // ── /console/regime ───────────────────────────────────────────────
+export interface Posture {
+  label: string;
+  confidence: number;
+  total_active: number;
+  breakdown: Record<string, number>;
+  basis: string;
+}
 export interface ConsoleRegime {
   regime: string;
   confidence: number | null;
   note?: string;
+  posture?: Posture | null;
   [k: string]: unknown;
 }
 

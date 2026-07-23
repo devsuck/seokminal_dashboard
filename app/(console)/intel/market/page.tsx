@@ -16,13 +16,17 @@ export default function MarketIntel() {
         <StateBlock loading={loading} err={err}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-5">
             <Panel grid hud className="overflow-hidden p-6">
-              <div className="text-[9.5px] font-semibold tracking-[0.24em] text-[var(--c-hud)] uppercase">Market Regime</div>
-              <div className="mt-3 text-[38px] font-semibold tracking-tight text-[var(--c-text-1)] leading-none">{name}</div>
+              <div className="text-[9.5px] font-semibold tracking-[0.24em] text-[var(--c-hud)] uppercase">Portfolio Posture</div>
+              <div className="mt-3 text-[30px] font-semibold tracking-tight text-[var(--c-hud)] leading-none">{r?.posture?.label ?? "—"}</div>
               <div className="mt-5">
-                <div className="flex justify-between text-[10px] c-num text-[var(--c-text-2)] mb-1.5"><span>CONFIDENCE</span><span>{conf!=null?`${Math.round(conf*100)}%`:"—"}</span></div>
-                <Meter value={conf ?? 0} tone="hud" />
+                <div className="flex justify-between text-[10px] c-num text-[var(--c-text-2)] mb-1.5"><span>CONVICTION</span><span>{r?.posture?`${Math.round(r.posture.confidence*100)}%`:"—"}</span></div>
+                <Meter value={r?.posture?.confidence ?? 0} tone="hud" />
               </div>
-              <div className="mt-4 text-[11px] text-[var(--c-text-3)]">{r?.note ?? ""}</div>
+              <div className="mt-4 pt-4 border-t border-[var(--c-border)] flex items-center justify-between">
+                <span className="text-[10px] c-num tracking-wider text-[var(--c-text-3)]">MARKET REGIME</span>
+                <span className="text-[11px] c-num text-[var(--c-text-2)]">{name}</span>
+              </div>
+              <div className="mt-2 text-[10px] text-[var(--c-text-3)]">{r?.posture?.basis ?? r?.note ?? ""}</div>
             </Panel>
             <Panel className="overflow-hidden">
               <PanelHead kicker="POSTURE" title="Factor Conviction" right={<span className="text-[10px] c-num text-[var(--c-text-3)]">활성/전체</span>} />

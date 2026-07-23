@@ -18,10 +18,6 @@ function useClock() {
   return t;
 }
 
-const REGIME_TONE: Record<string, "pos" | "neg" | "warn" | "hud" | "mute"> = {
-  "RISK ON": "pos", RISK_ON: "pos", RISK_OFF: "neg", "RISK OFF": "neg",
-  TRENDING: "hud", RANGING: "warn", UNKNOWN: "mute",
-};
 
 export default function CommandCenter() {
   const clock = useClock();
@@ -54,8 +50,7 @@ export default function CommandCenter() {
 
   const live = status?.autonomy.live_execution_enabled;
   const regimeName = (regime?.regime ?? "UNKNOWN").toUpperCase();
-  const regimeTone = REGIME_TONE[regimeName] ?? "mute";
-  const conf = regime?.confidence ?? null;
+  const posture = regime?.posture ?? null;
 
   return (
     <div className="min-h-full">
@@ -81,25 +76,25 @@ export default function CommandCenter() {
         {/* ── JARVIS STATUS hero ── */}
         <Panel hud grid className="p-0 overflow-hidden">
           <div className="relative grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr] divide-y lg:divide-y-0 lg:divide-x divide-[var(--c-border)]">
-            {/* Regime */}
+            {/* Portfolio Posture (정직한 파생 지표) */}
             <div className="p-5">
               <div className="flex items-center gap-2 text-[9.5px] font-semibold tracking-[0.24em] text-[var(--c-hud)] uppercase">
-                <Dot tone="hud" pulse /> JARVIS · Market Regime
+                <Dot tone="hud" pulse /> JARVIS · Portfolio Posture
               </div>
               <div className="mt-3 flex items-baseline gap-3">
-                <span className={`text-[34px] leading-none font-semibold tracking-tight ${
-                  regimeTone === "pos" ? "text-[var(--c-pos)]" : regimeTone === "neg" ? "text-[var(--c-neg)]" :
-                  regimeTone === "hud" ? "text-[var(--c-hud)]" : regimeTone === "warn" ? "text-[var(--c-warn)]" : "text-[var(--c-text-2)]"}`}>
-                  {regimeName}
+                <span className="text-[30px] leading-none font-semibold tracking-tight text-[var(--c-hud)]">
+                  {posture?.label ?? "—"}
                 </span>
               </div>
               <div className="mt-4">
                 <div className="flex items-center justify-between text-[10px] c-num text-[var(--c-text-2)] mb-1.5">
-                  <span>CONFIDENCE</span>
-                  <span className="text-[var(--c-text-1)]">{conf != null ? `${Math.round(conf * 100)}%` : "—"}</span>
+                  <span>CONVICTION</span>
+                  <span className="text-[var(--c-text-1)]">{posture ? `${Math.round(posture.confidence * 100)}%` : "—"}</span>
                 </div>
-                <Meter value={conf ?? 0} tone={regimeTone === "mute" ? "mute" : "hud"} />
-                {conf == null && <div className="mt-2 text-[10.5px] text-[var(--c-text-3)]">{regime?.note ?? "레짐 추정기 데이터 없음"}</div>}
+                <Meter value={posture?.confidence ?? 0} tone="hud" />
+                <div className="mt-2 text-[10px] text-[var(--c-text-3)]">
+                  {posture ? `${posture.total_active} active · market regime: ${regimeName}` : (regime?.note ?? "데이터 없음")}
+                </div>
               </div>
             </div>
             {/* Capital */}
