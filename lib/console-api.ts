@@ -161,3 +161,12 @@ export interface ResearchOSResp {
   disclaimer: string;
 }
 export const getResearchOS = (s?: AbortSignal) => get<ResearchOSResp>("/console/research-os", s);
+
+// ── /console/assistant (C3 대화형 어시스턴트) ─────────────────────
+export interface AssistantResp {
+  question: string; intent: string; topic?: string; answer: string;
+  data?: Record<string, unknown>; suggestions?: string[];
+  is_advisory?: boolean; is_decision?: boolean; disclaimer?: string;
+}
+export const getAssistant = (q: string, s?: AbortSignal) =>
+  get<AssistantResp>(`/console/assistant?q=${encodeURIComponent(q)}`, s);
