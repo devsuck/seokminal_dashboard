@@ -53,13 +53,73 @@ const POS: Record<string, { x: number; y: number }> = {
 };
 function radius(n: number) { return 15 + Math.sqrt(Math.max(0, n)) * 2.4; }
 
-function DepGraph({ graph }: { graph: ResearchOSGraph }) {
+function ModuleGraph({ section, modules, moduleEdges, onBack }:
+  { section: string; modules: string[]; moduleEdges: NonNullable<ResearchOSGraph["module_edges"]>; onBack: () => void }) {
   const [hover, setHover] = useState<string | null>(null);
+  const col = SECTION_COLOR[section];
+  const W = 430, H = 330, cx = W / 2, cy = H / 2 + 6, R = Math.min(150, 60 + modules.length * 3);
+  const pos: Record<string, { x: number; y: number }> = {};
+  modules.forEach((m, i) => {
+    const a = (2 * Math.PI * i) / Math.max(1, modules.length) - Math.PI / 2;
+    pos[m] = { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+  });
+  const inSet = new Set(modules);
+  const intra = moduleEdges.filter((e) => inSet.has(e.source) && inSet.has(e.target));
+  const outbound = moduleEdges.filter((e) => inSet.has(e.source) && !inSet.has(e.target)).length;
+  const inbound = moduleEdges.filter((e) => !inSet.has(e.source) && inSet.has(e.target)).length;
+  const deg: Record<string, number> = {};
+  intra.forEach((e) => { deg[e.source] = (deg[e.source] || 0) + 1; deg[e.target] = (deg[e.target] || 0) + 1; });
+
+  return (
+    <div className="relative">
+      <button onClick={onBack} className="absolute top-1 left-1 z-10 flex items-center gap-1 text-[10px] text-[var(--c-text-3)] hover:text-[var(--c-hud)] bg-transparent border-0 cursor-pointer">
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M6.5 2 L3.5 5 L6.5 8" /></svg>
+        섹션 뷰
+      </button>
+      <div className="absolute top-1 right-2 z-10 text-right">
+        <div className="flex items-center gap-1.5 justify-end"><span className="h-2 w-2 rounded-[2px]" style={{ background: col }} /><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{section}</span></div>
+        <div className="c-num text-[9.5px] text-[var(--c-text-3)]">{modules.length} modules · {intra.length} intra · {outbound + inbound} cross</div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 340 }}>
+        {intra.map((e, i) => {
+          const a = pos[e.source], b = pos[e.target]; if (!a || !b) return null;
+          const hot = hover != null && (e.source === hover || e.target === hover);
+          return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={hot ? col : "var(--c-border-2)"} strokeWidth={hot ? 1.6 : 1} strokeOpacity={hover && !hot ? 0.1 : hot ? 0.85 : 0.4} className="transition-all" />;
+        })}
+        {modules.map((m) => {
+          const p = pos[m]; const on = !hover || m === hover || intra.some((e) => (e.source === hover && e.target === m) || (e.target === hover && e.source === m));
+          const r = 3.5 + Math.min(6, (deg[m] || 0) * 1.5);
+          return (
+            <g key={m} onMouseEnter={() => setHover(m)} onMouseLeave={() => setHover(null)} style={{ cursor: "pointer", opacity: on ? 1 : 0.2 }} className="transition-opacity">
+              <circle cx={p.x} cy={p.y} r={r} fill={deg[m] ? `color-mix(in srgb,${col} 30%,var(--c-panel))` : "var(--c-panel-2)"} stroke={col} strokeWidth={hover === m ? 2 : 1} />
+              {(hover === m || modules.length <= 16) && (
+                <text x={p.x} y={p.y - r - 3} textAnchor="middle" fontSize="8" fill={hover === m ? "var(--c-text-1)" : "var(--c-text-3)"} className="c-num">{m.replace(/^research_|^governance_/, "…")}</text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="px-2 text-[10px] text-[var(--c-text-3)]">
+        원 = 모듈(크기 = 섹션 내 연결도) · 대부분 연결 없는 독립 섬 → 과잉 분할의 시각적 증거.
+      </div>
+    </div>
+  );
+}
+
+function DepGraph({ graph, modulesBySection }:
+  { graph: ResearchOSGraph; modulesBySection: Record<string, string[]> }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const [focus, setFocus] = useState<string | null>(null);
   const nodeById = Object.fromEntries(graph.nodes.map((n) => [n.id, n]));
   const touches = (e: { source: string; target: string }) => !hover || e.source === hover || e.target === hover;
   const nodeActive = (id: string) => !hover || id === hover ||
     graph.edges.some((e) => (e.source === hover && e.target === id) || (e.target === hover && e.source === id));
   const hn = hover ? nodeById[hover] : null;
+
+  if (focus) {
+    return <ModuleGraph section={focus} modules={modulesBySection[focus] ?? []}
+      moduleEdges={graph.module_edges ?? []} onBack={() => setFocus(null)} />;
+  }
 
   return (
     <div className="relative">
@@ -94,6 +154,7 @@ function DepGraph({ graph }: { graph: ResearchOSGraph }) {
           const r = radius(n.moduleCount), col = SECTION_COLOR[n.id], on = nodeActive(n.id);
           return (
             <g key={n.id} onMouseEnter={() => setHover(n.id)} onMouseLeave={() => setHover(null)}
+              onClick={() => setFocus(n.id)}
               style={{ cursor: "pointer", opacity: on ? 1 : 0.28 }} className="transition-opacity duration-150">
               <circle cx={p.x} cy={p.y} r={r} fill={`color-mix(in srgb, ${col} 16%, var(--c-panel))`}
                 stroke={col} strokeWidth={hover === n.id ? 2.4 : 1.4}
@@ -289,9 +350,10 @@ export default function ResearchOS() {
         {live && graph && graph.nodes && graph.nodes.length > 0 && (
           <Panel className="overflow-hidden">
             <PanelHead kicker="P41 · DEPENDENCY GRAPH" title="Cross-Section Import Dependencies"
-              right={<span className="c-num text-[9px] text-[var(--c-text-3)]">{graph.edge_total} edges · 노드 호버</span>} />
+              right={<span className="c-num text-[9px] text-[var(--c-text-3)]">{graph.edge_total} edges · 호버·클릭</span>} />
             <div className="p-3">
-              <DepGraph graph={graph} />
+              <DepGraph graph={graph}
+                modulesBySection={Object.fromEntries(sections.map((s) => [s.section, s.items.flatMap((i) => i.modules ?? [])]))} />
               <div className="px-2 pb-1 text-[10px] text-[var(--c-text-3)] leading-relaxed">
                 노드 크기 = 모듈 수 · 화살표 = import 방향(굵기 = 빈도) · ↻ = 섹션 내부 의존.
                 계층은 원장 파일로 주로 결합돼 코드 import 는 희소합니다(의도된 느슨한 결합).

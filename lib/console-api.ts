@@ -142,7 +142,12 @@ export const getMonitor = (s?: AbortSignal) => get<MonitorResp>("/console/monito
 
 // ── /console/research-os (P41~P45 로컬 연구 환경 라이브) ──────────
 export interface ResearchOSSection { section: string; moduleCount: number; items: { item: string; moduleCount: number; modules?: string[] }[] }
-export interface ResearchOSGraph { nodes: { id: string; moduleCount: number; internal: number }[]; edges: { source: string; target: string; weight: number }[]; edge_total: number }
+export interface ResearchOSGraph {
+  nodes: { id: string; moduleCount: number; internal: number }[];
+  edges: { source: string; target: string; weight: number }[];
+  edge_total: number;
+  module_edges?: { source: string; target: string; sourceSection: string; targetSection: string }[];
+}
 export interface ResearchOSCapability { phase: string; name: string; summary: string; metric: string }
 export interface ResearchOSResp {
   meta: { section_count: number; item_count: number; module_count: number; coverage: number; duplicate_families: number; digest: string };
