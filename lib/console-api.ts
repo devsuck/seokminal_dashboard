@@ -139,3 +139,18 @@ export const getRisk = (s?: AbortSignal) => get<RiskResp>("/console/risk", s);
 export const getOrders = (s?: AbortSignal) => get<OrdersResp>("/console/orders", s);
 export const getBroker = (s?: AbortSignal) => get<BrokerResp>("/console/broker", s);
 export const getMonitor = (s?: AbortSignal) => get<MonitorResp>("/console/monitor", s);
+
+// ── /console/research-os (P41~P45 로컬 연구 환경 라이브) ──────────
+export interface ResearchOSSection { section: string; moduleCount: number; items: { item: string; moduleCount: number }[] }
+export interface ResearchOSCapability { phase: string; name: string; summary: string; metric: string }
+export interface ResearchOSResp {
+  meta: { section_count: number; item_count: number; module_count: number; coverage: number; duplicate_families: number; digest: string };
+  sections: ResearchOSSection[];
+  audit: { module_count?: number; duplicate_cluster_count?: number; orphan_count?: number; category_distribution?: Record<string, number>; digest?: string };
+  runtime: { env_status?: string; health_status?: string; module_count?: number; runtime_state?: string; checks?: { name: string; status: string; detail: string }[] };
+  assistant: { total_records?: number; active_sources?: number; failure_count?: number; knowledge_count?: number; experiment_run_count?: number; potential_areas?: { area: string; rationale: string; evidence: number }[]; is_advisory?: boolean; is_decision?: boolean };
+  automation: { job_count?: number; enabled_job_count?: number; run_count?: number; success_count?: number; failed_count?: number; schedule_count?: number };
+  capabilities: ResearchOSCapability[];
+  disclaimer: string;
+}
+export const getResearchOS = (s?: AbortSignal) => get<ResearchOSResp>("/console/research-os", s);

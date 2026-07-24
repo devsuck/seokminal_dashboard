@@ -84,3 +84,16 @@ export const RESEARCH_OS_CAPABILITIES: Capability[] = [
   { phase: "P45", name: "Local Automation", live: true, href: "/auto-research",
     summary: "반복 연구 작업 워크플로 보조(자동 거래·배포·배분 없음)." },
 ];
+
+// 섹션/항목 → 기존 콘솔 라우트 조회(라이브 데이터에 href 를 입히기 위한 UI 매핑).
+export function itemHref(section: string, item: string): string {
+  const s = RESEARCH_OS_SECTIONS.find((x) => x.section === section);
+  return s?.items.find((i) => i.item === item)?.href ?? "/command";
+}
+export function itemNote(section: string, item: string): string {
+  const s = RESEARCH_OS_SECTIONS.find((x) => x.section === section);
+  return s?.items.find((i) => i.item === item)?.note ?? "";
+}
+export function capHref(phase: string): string {
+  return RESEARCH_OS_CAPABILITIES.find((c) => c.phase === phase)?.href ?? "/command";
+}
