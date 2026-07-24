@@ -152,6 +152,7 @@ export interface ResearchOSCapability { phase: string; name: string; summary: st
 export interface ResearchOSResp {
   meta: { section_count: number; item_count: number; module_count: number; coverage: number; duplicate_families: number; digest: string };
   sections: ResearchOSSection[];
+  workspaces?: { workspace: string; description: string; moduleCount: number }[];
   graph?: ResearchOSGraph;
   audit: { module_count?: number; duplicate_cluster_count?: number; orphan_count?: number; category_distribution?: Record<string, number>; digest?: string };
   runtime: { env_status?: string; health_status?: string; module_count?: number; runtime_state?: string; checks?: { name: string; status: string; detail: string }[] };

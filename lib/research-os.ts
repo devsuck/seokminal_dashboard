@@ -106,3 +106,13 @@ export const SECTION_COLOR: Record<string, string> = {
   System: "var(--c-warn)",           // amber
 };
 export const SECTION_ORDER = ["Research", "Knowledge", "Agents", "System"] as const;
+
+// 헌장 6워크스페이스 → 대표 라우트(있는 것으로 연결).
+export const WORKSPACE_HREF: Record<string, string> = {
+  Home: "/command",
+  Research: "/lab",
+  Experiments: "/quant/experiments",
+  Knowledge: "/intel/knowledge",
+  Assistant: "/intel/assistant",
+  System: "/exec/monitor",
+};

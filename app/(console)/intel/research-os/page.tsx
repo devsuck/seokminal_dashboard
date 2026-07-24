@@ -8,7 +8,7 @@ import { useConsole, PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, Badge } from "@/components/console/primitives";
 import {
   RESEARCH_OS_SECTIONS, RESEARCH_OS_META, RESEARCH_OS_CAPABILITIES,
-  SECTION_COLOR, SECTION_ORDER, itemHref, itemNote, capHref,
+  SECTION_COLOR, SECTION_ORDER, WORKSPACE_HREF, itemHref, itemNote, capHref,
 } from "@/lib/research-os";
 
 /* ── 커버리지 링 ─────────────────────────────────────── */
@@ -245,6 +245,24 @@ export default function ResearchOS() {
             </div>
           </div>
         </div>
+
+        {/* 헌장 6워크스페이스 (C4) */}
+        {data?.workspaces && data.workspaces.length > 0 && (
+          <Panel className="overflow-hidden">
+            <PanelHead kicker="C4 · CONSTITUTION IA" title="Six Workspaces"
+              right={<span className="text-[9px] text-[var(--c-text-3)]">Home · Research · Experiments · Knowledge · Assistant · System</span>} />
+            <div className="p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              {data.workspaces.map((w) => (
+                <Link key={w.workspace} href={WORKSPACE_HREF[w.workspace] ?? "/command"}
+                  className="no-underline border border-[var(--c-border)] rounded-sm p-2.5 hover:border-[color-mix(in_srgb,var(--c-hud)_40%,var(--c-border))] hover:bg-[var(--c-panel-2)] transition-colors">
+                  <div className="text-[12px] font-semibold text-[var(--c-text-1)]">{w.workspace}</div>
+                  <div className="c-num text-[18px] text-[var(--c-hud)] leading-none mt-1">{w.moduleCount}</div>
+                  <div className="text-[9px] text-[var(--c-text-3)] mt-1 leading-snug line-clamp-2">{w.description}</div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+        )}
 
         {/* 라이브 상태 스트립 */}
         {live && (
