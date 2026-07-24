@@ -97,3 +97,12 @@ export function itemNote(section: string, item: string): string {
 export function capHref(phase: string): string {
   return RESEARCH_OS_CAPABILITIES.find((c) => c.phase === phase)?.href ?? "/command";
 }
+
+// 섹션 → 색(이 앱 고유 토큰). CVD-safe(ΔE 10.3>8) · 항상 라벨 병기(색 단독 의존 금지).
+export const SECTION_COLOR: Record<string, string> = {
+  Research: "var(--c-hud)",       // cyan
+  Knowledge: "var(--c-blue)",      // blue
+  Agents: "var(--c-emerald)",       // emerald
+  System: "var(--c-warn)",           // amber
+};
+export const SECTION_ORDER = ["Research", "Knowledge", "Agents", "System"] as const;
