@@ -13,6 +13,7 @@ interface RailGroup { label: string; items: RailItem[] }
 // 콘솔(거버넌스 OS) 그룹 — 신규 라우트
 const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Intelligence", items: [
+    { href: "/intel/research-os", label: "Research OS" },
     { href: "/intel/research", label: "AI Research" },
     { href: "/intel/market", label: "Market Intelligence" },
     { href: "/intel/knowledge", label: "Knowledge Graph" },
