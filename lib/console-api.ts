@@ -309,3 +309,58 @@ export interface CockpitResp {
   health_score: number; is_advisory: boolean; is_decision: boolean; disclaimer: string;
 }
 export const getCockpit = (s?: AbortSignal) => get<CockpitResp>("/console/cockpit", s);
+
+// ══════════════ Market Intelligence & Investment Research OS (P86-95) ══════════════
+export interface MarketRegimeResp {
+  regime: string; labels?: string[]; confidence?: number;
+  historical_similar_periods?: { period: string; overlap: string[] }[];
+  favorable_strategies?: string[]; unfavorable_strategies?: string[];
+  recommended_research?: string[]; avoid?: string[]; note?: string; is_decision?: boolean;
+}
+export const getMarketRegime = (s?: AbortSignal) => get<MarketRegimeResp>("/console/market-regime", s);
+
+export interface OpportunityResp {
+  opportunities: { type: string; title: string; reason: string; evidence: string[];
+    suggested_hypothesis: string; confidence: string; is_trade_signal: boolean }[];
+  count: number; by_type?: Record<string, number>; note?: string;
+}
+export const getOpportunityQueue = (s?: AbortSignal) => get<OpportunityResp>("/console/opportunity-queue", s);
+
+export interface AltDataResp {
+  sources: Record<string, { maps_to: string; signal: string }>; count: number; flow: string[]; note: string;
+}
+export const getAltData = (s?: AbortSignal) => get<AltDataResp>("/console/alt-data", s);
+
+export interface CouncilExpandedResp {
+  question?: string; expanded_perspectives: string[]; recommendation?: string;
+  lenses?: { lens: string; stance: string; rationale: string }[];
+  conflicts?: { support: string; caution: string }[]; note?: string; is_decision?: boolean;
+}
+export const getCouncilExpanded = (q: string, s?: AbortSignal) =>
+  get<CouncilExpandedResp>(`/console/council-expanded?q=${encodeURIComponent(q)}`, s);
+
+export interface StrategyLabResp {
+  strategy?: string; type?: string;
+  dna?: { factors: string[]; universe: string; time_horizon: string; entry_logic: string;
+    exit_logic: string; risk_model: Record<string, unknown>; validation_method: unknown;
+    failure_history: { count?: number; by_category?: Record<string, number> }; successful_regimes: string[] };
+  repeated_mistakes?: { made_this_mistake: boolean; failure_count: number; headline: string };
+  note?: string;
+}
+export const getStrategyLab = (q: string, s?: AbortSignal) =>
+  get<StrategyLabResp>(`/console/strategy-lab?q=${encodeURIComponent(q)}`, s);
+
+export interface MarketCockpitResp {
+  market_state: { regime: string; confidence?: number; labels: string[]; recommended_research: string[];
+    avoid: string[]; historical_similar_periods: { period: string; overlap: string[] }[] };
+  research_opportunities: OpportunityResp["opportunities"];
+  active_experiments: Record<string, unknown>;
+  validation_status: { health?: number; coverage?: Record<string, number>; incomplete?: number };
+  risk: { total_failures?: number; top_category?: string; by_category?: Record<string, number> };
+  portfolio_context: { capital?: number; gross_exposure?: number; n_positions?: number };
+  decision_queue: { run_id: string; request: string }[];
+  knowledge_growth: { total: number; graph_nodes: number; graph_edges: number };
+  timeline: TimelineEntry[]; top_opportunities: { name: string; kind: string; confidence: string; expected_value: string }[];
+  health_score: number; is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getMarketCockpit = (s?: AbortSignal) => get<MarketCockpitResp>("/console/market-cockpit", s);
