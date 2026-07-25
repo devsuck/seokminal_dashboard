@@ -254,3 +254,58 @@ export interface OperatingConsoleResp {
   is_advisory: boolean; is_decision: boolean; disclaimer: string;
 }
 export const getOperatingConsole = (s?: AbortSignal) => get<OperatingConsoleResp>("/console/operating-console", s);
+
+// ══════════════ Research OS Completion (P77-85) ══════════════
+export interface AutonomousRuntimeResp {
+  topic: string; loop_stages: string[];
+  preview: { hypotheses?: { hypothesis_id: string; statement: string; rationale: string; expected_edge: string; assumptions: string[]; invalidation_conditions: string[]; source: string; confidence: string }[];
+    ranked?: { items: { hypothesis_id: string; statement: string; score: number; rank: number; source: string }[]; recommended: Record<string, unknown> };
+    recommended_spec?: Record<string, unknown>;
+    critique?: { subject: string; verdict: string; blocks: boolean; blocking_dimensions: string[]; critiques: { dimension: string; severity: string; finding: string; evidence: string }[] } };
+  loops: { loop_id: string; idea: string; current_stage: string; completed_stages: string[]; blocked_stage: string; cancelled: boolean; paused: boolean; requires_human_checkpoint: boolean; audit_trail: { stage: string; status: string; note: string }[] }[];
+  counts: { loops: number; awaiting_checkpoint: number };
+  is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getAutonomousRuntime = (q = "", s?: AbortSignal) =>
+  get<AutonomousRuntimeResp>(`/console/autonomous-runtime?q=${encodeURIComponent(q)}`, s);
+
+export interface TimelineEntry { timestamp: string; stage: string; source: string; ref: string; label: string }
+export interface TimelineResp { topic: string; entries: TimelineEntry[]; count: number; by_stage: Record<string, number>; stage_order: string[]; note: string }
+export const getResearchTimeline = (q = "", s?: AbortSignal) =>
+  get<TimelineResp>(`/console/research-timeline?q=${encodeURIComponent(q)}`, s);
+
+export interface KGraphNode { id: string; type: string; label: string }
+export interface KGraphEdge { source: string; target: string; kind: string }
+export interface ResearchGraphResp {
+  topic: string; nodes: KGraphNode[]; edges: KGraphEdge[]; node_count: number; edge_count: number;
+  node_types: Record<string, number>; edge_kinds: Record<string, number>; relationship_kinds: string[]; note: string;
+}
+export const getResearchGraph = (q = "", s?: AbortSignal) =>
+  get<ResearchGraphResp>(`/console/research-graph?q=${encodeURIComponent(q)}`, s);
+
+export interface HealthResp {
+  active_research: number; waiting_human_review: number; validation_missing: number;
+  incomplete_research: number; knowledge_growth: number; failure_distribution: Record<string, number>;
+  total_failures: number; research_velocity: number;
+  coverage: { validation: number; portfolio: number; risk: number; memory: number };
+  score_components: Record<string, number>; overall_health_score: number; health_band: string; trend: string;
+}
+export const getResearchHealth = (s?: AbortSignal) => get<HealthResp>("/console/research-health", s);
+
+export interface CockpitResp {
+  research: { total_records?: number; experiment_runs?: number; active_sources?: number };
+  current_loop: { loop_id?: string; idea?: string; current_stage?: string; completed?: string[]; blocked_stage?: string; requires_human_checkpoint?: boolean };
+  top_opportunities: { name: string; kind: string; confidence: string; expected_value: string }[];
+  highest_risks: { total_failures?: number; top_category?: string; by_category?: Record<string, number> };
+  portfolio_exposure: { capital?: number; gross_exposure?: number; n_positions?: number };
+  research_health: HealthResp;
+  knowledge_growth: { total: number; channels: Record<string, number>; graph_nodes: number; graph_edges: number };
+  timeline: TimelineEntry[];
+  knowledge_graph: { node_count: number; edge_count: number; node_types: Record<string, number> };
+  research_queue: { name: string; kind: string; confidence: string; expected_value: string }[];
+  human_review_queue: { run_id: string; request: string }[];
+  recent_sessions: SessionLite[];
+  quick_resume: { session_id: string; goal: string; state: string }[];
+  health_score: number; is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getCockpit = (s?: AbortSignal) => get<CockpitResp>("/console/cockpit", s);
