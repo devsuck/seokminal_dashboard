@@ -448,3 +448,40 @@ export interface LiveIntelligenceResp {
 }
 export const getLiveIntelligence = (s?: AbortSignal) =>
   get<LiveIntelligenceResp>(`/console/live-intelligence`, s);
+
+// ── /console/agent-workspace (P121-130 Research Agent OS) ─────────────────────
+export interface AgentRow {
+  agent: string; role: string; level: string; purpose: string;
+  input: string; output: string; used_engines: string[];
+}
+export interface AgentWorkspaceResp {
+  agents: AgentRow[];
+  role_hierarchy: string[];
+  active_research: {
+    objective: string;
+    pipeline: string[];
+    director_plan: {
+      hypothesis?: string;
+      required_data?: string[];
+      assigned_agents?: { agent: string; task: string }[];
+      validation_plan?: string[];
+    };
+  };
+  agent_status: { agent: string; role: string; ok: boolean }[];
+  current_tasks: { agent: string; task: string }[];
+  generated_reports: { objective: string; confidence: string; sections: string[]; limitations: string[] }[];
+  critic_feedback: {
+    verdict: string;
+    blocks: boolean;
+    dimensions: Record<string, unknown>;
+    quality: { grade?: string; score?: number; weaknesses?: string[]; missing_validations?: string[] };
+  };
+  human_review_queue: { objective: string; verdict: string; confidence: string }[];
+  specialist_memos: Record<string, string>;
+  is_demo: boolean;
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getAgentWorkspace = (objective = "", company = "", s?: AbortSignal) =>
+  get<AgentWorkspaceResp>(`/console/agent-workspace?objective=${encodeURIComponent(objective)}&company=${encodeURIComponent(company)}`, s);
