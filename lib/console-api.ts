@@ -364,3 +364,15 @@ export interface MarketCockpitResp {
   health_score: number; is_advisory: boolean; is_decision: boolean; disclaimer: string;
 }
 export const getMarketCockpit = (s?: AbortSignal) => get<MarketCockpitResp>("/console/market-cockpit", s);
+
+// ══════════════ Live Market Intelligence Integration (P96-100) ══════════════
+export interface MarketIntelFeedResp {
+  query: string;
+  live_event_feed: { category: string; event_type: string; label: string; affected: string[]; relevance: string }[];
+  impact_map: { origin?: string; affected_entities?: { entity: string; category: string; distance: number; relationship_path: string[]; uncertainty: string }[]; customers?: string[]; direct_suppliers?: string[] };
+  research_opportunities: { type: string; title: string; confidence: string; suggested_hypothesis: string }[];
+  market_context: { regime: string; labels: string[]; recommended_research: string[]; avoid: string[] };
+  adapters: string[]; is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getMarketIntelFeed = (q = "", entity = "", s?: AbortSignal) =>
+  get<MarketIntelFeedResp>(`/console/market-intel-feed?q=${encodeURIComponent(q)}&entity=${encodeURIComponent(entity)}`, s);

@@ -14,6 +14,7 @@ interface RailGroup { label: string; items: RailItem[] }
 const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Research OS", items: [
     { href: "/research-os/market", label: "Market Intelligence" },
+    { href: "/research-os/intel-feed", label: "Market Intel Feed" },
     { href: "/research-os/cockpit", label: "Executive Cockpit" },
     { href: "/research-os/committee", label: "Investment Committee" },
     { href: "/research-os/strategy-lab", label: "Strategy Lab" },
