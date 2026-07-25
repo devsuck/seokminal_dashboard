@@ -485,3 +485,35 @@ export interface AgentWorkspaceResp {
 }
 export const getAgentWorkspace = (objective = "", company = "", s?: AbortSignal) =>
   get<AgentWorkspaceResp>(`/console/agent-workspace?objective=${encodeURIComponent(objective)}&company=${encodeURIComponent(company)}`, s);
+
+// ── /console/research-brain (P131-140 Research Knowledge Intelligence) ────────
+export interface BrainNode { id: string; type: string; label: string }
+export interface BrainEdge { source: string; target: string; kind: string }
+export interface ResearchBrainResp {
+  knowledge_graph: {
+    nodes: BrainNode[];
+    edges: BrainEdge[];
+    node_count: number;
+    node_types: Record<string, number>;
+    research_chain: string[];
+  };
+  past_research: BrainNode[];
+  failure_patterns: { total_failures: number; by_category: Record<string, number>; top_category: string | null; lessons: string[] };
+  strategy_memory: BrainNode[];
+  company_memory: BrainNode[];
+  conflicts: {
+    topic: string;
+    study_a: { conclusion: string; summary: string };
+    study_b: { conclusion: string; summary: string };
+    period: string;
+    possible_explanation: string;
+  }[];
+  lessons: BrainNode[];
+  knowledge_health: { health_score: number | null; grade: string; issues: Record<string, number> };
+  entity_counts: Record<string, number>;
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getResearchBrain = (topic = "", s?: AbortSignal) =>
+  get<ResearchBrainResp>(`/console/research-brain?topic=${encodeURIComponent(topic)}`, s);

@@ -20,6 +20,7 @@ const CONSOLE_GROUPS: RailGroup[] = [
     { href: "/research-os/committee", label: "Investment Committee" },
     { href: "/research-os/strategy-lab", label: "Strategy Lab" },
     { href: "/research-os/agents", label: "Research Agents" },
+    { href: "/research-os/brain", label: "Research Brain" },
     { href: "/research-os/validation", label: "Validation Loop" },
     { href: "/research-os/autonomous", label: "Autonomous Runtime" },
     { href: "/research-os/workflow", label: "Workflow" },
