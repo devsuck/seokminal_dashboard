@@ -418,3 +418,33 @@ export interface ValidationLoopResp {
 }
 export const getValidationLoop = (strategy = "", s?: AbortSignal) =>
   get<ValidationLoopResp>(`/console/validation-loop?strategy=${encodeURIComponent(strategy)}`, s);
+
+// ── /console/live-intelligence (P111-120 Live Data Infrastructure) ────────────
+export interface ProviderRow {
+  name: string; category: string; vendor: string; module: string; env_key: string;
+  available_data: string; consumer: string; available: boolean; status: string;
+}
+export interface LiveIntelligenceResp {
+  data_sources: {
+    providers: ProviderRow[];
+    count: number;
+    available_count: number;
+    by_category: Record<string, number>;
+  };
+  market_feed: { category: string; label: string; event_type: string; affected: string[] }[];
+  research_queue: { type: string; title: string; confidence: string; suggested_hypothesis: string }[];
+  research_queue_count: number;
+  dropped_duplicates: number;
+  data_health: {
+    overall_status: string;
+    api_availability: { available: number; total: number; ratio: number; unavailable: string[] };
+    issue_count: number;
+    checks: string[];
+  };
+  is_demo: boolean;
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getLiveIntelligence = (s?: AbortSignal) =>
+  get<LiveIntelligenceResp>(`/console/live-intelligence`, s);
