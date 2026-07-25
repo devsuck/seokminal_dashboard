@@ -1,0 +1,133 @@
+"use client";
+// P70 — Hedge Fund Operating Console. 오늘의 연구·기회·리스크·이벤트·노출·페이퍼·세션·추천을 한 화면에.
+// /console/operating-console 실데이터. READ ONLY · 분석/요약/추천만, 자동 거래·집행·자본배분 없음.
+import { getOperatingConsole, type OperatingConsoleResp } from "@/lib/console-api";
+import { PageHeader, useConsole, StateBlock, KV } from "@/components/console/widgets";
+import { Panel, PanelHead, StatTile, Badge, Meter } from "@/components/console/primitives";
+
+const CONF_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
+const num = (n: number | undefined | null, d = 0) => (n == null ? "—" : n.toLocaleString(undefined, { maximumFractionDigits: d }));
+
+export default function OperatingConsole() {
+  const { data, err, loading } = useConsole<OperatingConsoleResp>((s) => getOperatingConsole(s), [], 60000);
+  return (
+    <div className="min-h-full">
+      <PageHeader kicker="P70" title="Operating Console"
+        right={data && <Badge tone="hud">{data.date}</Badge>} />
+      <StateBlock loading={loading} err={err}>
+        {data && (
+          <div className="p-5 space-y-5">
+            {/* 상단 KPI */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatTile label="Research Records" value={num(data.research.total_records)} accent="hud"
+                sub={`${num(data.research.experiment_runs)} runs · ${num(data.research.active_sources)} sources`} />
+              <StatTile label="Opportunities" value={data.opportunities.length} accent="pos"
+                sub="today's research queue" tone="pos" />
+              <StatTile label="Open Risks" value={num(data.risks.total_failures)} accent="warn"
+                tone="warn" sub={`top: ${data.risks.top_category ?? "—"}`} />
+              <StatTile label="Active Sessions" value={data.sessions.active} accent="info"
+                sub={`${data.sessions.count} total`} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* 오늘의 기회 */}
+              <Panel>
+                <PanelHead kicker="P58" title="Today's Opportunities" right={<Badge tone="pos">{data.opportunities.length}</Badge>} />
+                <div className="p-4 space-y-2">
+                  {data.opportunities.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">축적 메모리가 채워지면 연구 후보가 제안됩니다.</div>}
+                  {data.opportunities.map((o, i) => (
+                    <div key={i} className="c-panel-2 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[12px] font-medium text-[var(--c-text-1)]">{o.name}</span>
+                        <div className="flex gap-1.5 shrink-0">
+                          <Badge tone={CONF_TONE[o.expected_value] ?? "mute"}>EV {o.expected_value}</Badge>
+                          <Badge tone={CONF_TONE[o.confidence] ?? "mute"}>{o.confidence}</Badge>
+                        </div>
+                      </div>
+                      <div className="text-[10.5px] text-[var(--c-text-3)] mt-1">{o.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+
+              {/* 오늘의 리스크 */}
+              <Panel>
+                <PanelHead kicker="P62" title="Today's Risks" right={<Badge tone="warn">{data.risks.top_category ?? "—"}</Badge>} />
+                <div className="p-4 space-y-3">
+                  {Object.entries(data.risks.by_category ?? {}).slice(0, 6).map(([cat, n]) => {
+                    const max = Math.max(1, ...Object.values(data.risks.by_category ?? { x: 1 }));
+                    return (
+                      <div key={cat}>
+                        <div className="flex justify-between text-[10.5px] mb-1">
+                          <span className="text-[var(--c-text-2)]">{cat}</span>
+                          <span className="c-num text-[var(--c-text-3)]">{n}</span>
+                        </div>
+                        <Meter value={(n as number) / max} tone="warn" />
+                      </div>
+                    );
+                  })}
+                  {(data.risks.lessons ?? []).slice(0, 3).map((l, i) => (
+                    <div key={i} className="text-[10px] text-[var(--c-text-3)] leading-snug">· {l}</div>
+                  ))}
+                  {!data.risks.total_failures && <div className="text-[11px] text-[var(--c-text-3)]">기록된 실패 없음.</div>}
+                </div>
+              </Panel>
+
+              {/* 포트폴리오 노출 + 페이퍼 */}
+              <Panel>
+                <PanelHead kicker="P61·P63" title="Exposure & Paper Trading" />
+                <div className="p-4 space-y-2">
+                  <KV k="Paper capital" v={`$${num(data.exposure.capital)}`} />
+                  <KV k="Gross exposure" v={`$${num(data.exposure.gross_exposure)} (${num(data.exposure.exposure_pct, 1)}%)`} />
+                  <KV k="Open positions" v={data.exposure.n_positions ?? 0} />
+                  <KV k="Portfolio value" v={`$${num(data.paper.portfolio_value, 2)}`} />
+                  <div className="mt-2"><Meter value={(data.exposure.exposure_pct ?? 0) / 100} tone="hud" /></div>
+                  <div className="text-[10px] text-[var(--c-text-3)] mt-1">Paper only — 라이브 브로커·집행·자본배분 없음.</div>
+                </div>
+              </Panel>
+
+              {/* 이벤트 + 추천 */}
+              <Panel>
+                <PanelHead kicker="P60·P59" title="Events & Recommendations" />
+                <div className="p-4 space-y-3">
+                  <KV k="Supply-chain map" v={`${data.events.node_count ?? 0} nodes · ${data.events.edge_count ?? 0} edges`} />
+                  {data.recommendations.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">추천할 상위 기회 없음.</div>}
+                  {data.recommendations.map((r, i) => (
+                    <div key={i} className="c-panel-2 p-3">
+                      <div className="text-[11px] font-medium text-[var(--c-text-1)]">{r.topic}</div>
+                      <div className="text-[10.5px] text-[var(--c-hud)] mt-1">{r.recommendation}</div>
+                      {r.conflicts > 0 && <div className="text-[10px] text-[var(--c-warn)] mt-0.5">관점 상충 {r.conflicts}건 — 사람 검토</div>}
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            </div>
+
+            {/* 세션 */}
+            <Panel>
+              <PanelHead kicker="P66" title="Active Sessions" right={<Badge tone="info">{data.sessions.active} active</Badge>} />
+              <div className="p-4">
+                {data.sessions.items.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">활성 세션 없음 — Workflow 탭에서 세션을 시작하세요.</div>}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {data.sessions.items.map((s) => (
+                    <div key={s.session_id} className="c-panel-2 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11.5px] font-medium text-[var(--c-text-1)] truncate">{s.goal}</span>
+                        <Badge tone={s.state === "ACTIVE" ? "pos" : s.state === "PAUSED" ? "warn" : "mute"}>{s.state}</Badge>
+                      </div>
+                      <div className="text-[10px] text-[var(--c-text-3)] mt-1">
+                        {s.pending_work.length} pending · {s.completed_experiments.length} done · {s.open_questions.length} open Q
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Panel>
+
+            <div className="text-[10px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
+          </div>
+        )}
+      </StateBlock>
+    </div>
+  );
+}

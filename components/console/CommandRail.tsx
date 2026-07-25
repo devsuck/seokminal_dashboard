@@ -12,6 +12,12 @@ interface RailGroup { label: string; items: RailItem[] }
 
 // 콘솔(거버넌스 OS) 그룹 — 신규 라우트
 const CONSOLE_GROUPS: RailGroup[] = [
+  { label: "Research OS", items: [
+    { href: "/research-os/console", label: "Operating Console" },
+    { href: "/research-os/workflow", label: "Workflow" },
+    { href: "/research-os/chat", label: "Research Chat" },
+    { href: "/research-os/explain", label: "Explainability" },
+  ] },
   { label: "Intelligence", items: [
     { href: "/intel/assistant", label: "Assistant" },
     { href: "/intel/research-os", label: "Research OS" },
@@ -110,6 +116,7 @@ function Diamond() {
 
 function GroupGlyph({ label }: { label: string }) {
   const g: Record<string, React.ReactNode> = {
+    "Research OS": <><circle cx="8" cy="8" r="6.5" /><path d="M8 4.5v3.5l2.5 1.5" /><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" /></>,
     Intelligence: <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
     "Quant Lab": <><path d="M6 1.5v4L2.5 12A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 12L10 5.5v-4" /><path d="M5 1.5h6M4.5 9h7" /></>,
     "Portfolio OS": <><rect x="1.5" y="8" width="3" height="6" rx="0.5" /><rect x="6.5" y="4" width="3" height="10" rx="0.5" /><rect x="11.5" y="1.5" width="3" height="12.5" rx="0.5" /></>,
@@ -227,5 +234,5 @@ export function CommandRail() {
 }
 
 // 하위호환: 이전에 AppChrome이 쓰던 export(현재는 전 페이지 레일 통일이라 미사용).
-export const CONSOLE_PREFIXES = ["/command", "/intel", "/quant", "/portfolio-os", "/exec", "/council"];
+export const CONSOLE_PREFIXES = ["/command", "/research-os", "/intel", "/quant", "/portfolio-os", "/exec", "/council"];
 export const isConsoleRoute = (p: string) => CONSOLE_PREFIXES.some((x) => p === x || p.startsWith(x + "/"));

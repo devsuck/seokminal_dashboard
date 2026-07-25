@@ -11,6 +11,12 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function post<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, { method: "POST", signal, cache: "no-store" });
+  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  return (await res.json()) as T;
+}
+
 // ── /console/status ───────────────────────────────────────────────
 export interface ConsoleStatus {
   system: string;
@@ -182,3 +188,69 @@ export interface FailureIntelResp {
 }
 export const getFailureIntel = (q = "", s?: AbortSignal) =>
   get<FailureIntelResp>(`/console/failure-intel?q=${encodeURIComponent(q)}`, s);
+
+// ══════════════ Research OS Dashboard (P68-71) ══════════════
+export interface WorkflowRun {
+  run_id: string; request: string; current_stage: string; completed_stages: string[];
+  blocked_stage: string; cancelled: boolean; requires_human_decision: boolean;
+  execution_log: { stage: string; status: string; note: string; output_digest: string }[];
+}
+export interface SessionLite {
+  session_id: string; goal: string; state: string; goals: string[]; progress: string[];
+  pending_work: string[]; completed_experiments: string[]; lessons_learned: string[];
+  open_questions: string[]; updated_at: string;
+}
+export interface QueueProposal {
+  proposal_id: string; name: string; kind: string; reason: string; confidence: string;
+  expected_value: string; basis: string[]; requires_human_approval: boolean;
+}
+export interface ResearchWorkflowResp {
+  stages: string[]; runs: WorkflowRun[]; sessions: SessionLite[];
+  queue: { proposal_count: number; by_kind: Record<string, number>; proposals: QueueProposal[] };
+  counts: { runs: number; sessions: number; active_sessions: number; awaiting_human: number; proposals: number };
+  is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getResearchWorkflow = (s?: AbortSignal) => get<ResearchWorkflowResp>("/console/research-workflow", s);
+export const sessionAction = (action: string, sessionId = "", goal = "", s?: AbortSignal) =>
+  post<SessionLite & { error?: string }>(
+    `/console/session/${action}?session_id=${encodeURIComponent(sessionId)}&goal=${encodeURIComponent(goal)}`, s);
+
+export interface DecisionMemoResp {
+  question?: string; recommendation?: string; rationale?: string;
+  evidence?: { digest: string; sources: string[] };
+  supporting_arguments?: { lens: string; rationale: string }[];
+  counter_arguments?: { lens: string; rationale: string }[];
+  historical_similar_cases?: { source: string; ref: string; text: string }[];
+  portfolio_impact?: Record<string, unknown>;
+  risk_summary?: { main_risk?: string; label?: string; strength?: string; weakness?: string; confidence?: string; category_flags?: Record<string, string> };
+  confidence?: string; confidence_breakdown?: Record<string, unknown>;
+  remaining_unknowns?: string[]; suggested_next_research?: string[];
+  requires_human_review?: boolean; is_decision?: boolean; note?: string;
+}
+export const getDecisionMemo = (q: string, s?: AbortSignal) =>
+  get<DecisionMemoResp>(`/console/decision-memo?q=${encodeURIComponent(q)}`, s);
+
+export interface EvidenceNode { stage: string; label: string; refs?: string[] }
+export interface ExplainabilityResp {
+  topic?: string; chain: EvidenceNode[]; edges: { from: string; to: string; kind: string }[];
+  confidence?: string; confidence_breakdown?: Record<string, unknown>;
+  why_this_conclusion?: string; why_it_may_be_wrong?: string[];
+  alternative_interpretations?: string[]; missing_evidence?: string[];
+  references_experiments?: string[]; requires_human_review?: boolean; is_decision?: boolean; note?: string;
+}
+export const getExplainability = (q: string, s?: AbortSignal) =>
+  get<ExplainabilityResp>(`/console/explainability?q=${encodeURIComponent(q)}`, s);
+
+export interface OperatingConsoleResp {
+  date: string;
+  research: { total_records?: number; active_sources?: number; experiment_runs?: number; results?: number };
+  opportunities: { name: string; kind: string; confidence: string; expected_value: string; reason: string }[];
+  risks: { total_failures?: number; top_category?: string; by_category?: Record<string, number>; lessons?: string[] };
+  events: { node_count?: number; edge_count?: number; note?: string };
+  paper: { portfolio_value?: number; n_positions?: number; pnl_summary?: Record<string, unknown> };
+  exposure: { capital?: number; gross_exposure?: number; exposure_pct?: number; n_positions?: number };
+  sessions: { count: number; active: number; items: SessionLite[] };
+  recommendations: { topic: string; recommendation: string; conflicts: number }[];
+  is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getOperatingConsole = (s?: AbortSignal) => get<OperatingConsoleResp>("/console/operating-console", s);
