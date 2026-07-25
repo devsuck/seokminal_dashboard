@@ -376,3 +376,45 @@ export interface MarketIntelFeedResp {
 }
 export const getMarketIntelFeed = (q = "", entity = "", s?: AbortSignal) =>
   get<MarketIntelFeedResp>(`/console/market-intel-feed?q=${encodeURIComponent(q)}&entity=${encodeURIComponent(entity)}`, s);
+
+// ── /console/validation-loop (P101-110 Research Validation Loop) ──────────────
+export interface LifecycleStep { state: string; done: boolean; current: boolean }
+export interface LifecycleRow { strategy: string; current_state: string; checklist: LifecycleStep[] }
+export interface GapDetail { [k: string]: unknown }
+export interface ValidationLoopResp {
+  lifecycle_board: {
+    lifecycle: string[];
+    strategies: LifecycleRow[];
+    count: number;
+    by_state: Record<string, number>;
+  };
+  validation_panel: {
+    backtest: Record<string, number>;
+    paper: Record<string, number>;
+    tracked_metrics: Record<string, { expected: number | null; actual: number | null; gap: number | null }>;
+    status: string;
+    divergence_detected: boolean;
+    cause: string;
+    gaps: Record<string, GapDetail>;
+    possible_causes: { cause: string; why: string }[];
+    is_demo: boolean;
+  };
+  quality_panel: {
+    quality_score: number | null;
+    grade: string;
+    core_dimensions: Record<string, number>;
+    weaknesses: string[];
+    missing_validations: string[];
+    gate: string;
+    is_demo: boolean;
+  };
+  review_queue: { timestamp: string; event_type: string; source: string; ref: string; label: string }[];
+  ops_events: { timestamp: string; event_type: string; source: string; ref: string; label: string; requires_human_review: boolean }[];
+  ops_by_type: Record<string, number>;
+  loop_status: { loop_complete: boolean; release_ready: boolean; safe: boolean; capabilities: string[] };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getValidationLoop = (strategy = "", s?: AbortSignal) =>
+  get<ValidationLoopResp>(`/console/validation-loop?strategy=${encodeURIComponent(strategy)}`, s);
