@@ -2,9 +2,14 @@
 // Research Assistant — 대화형 진입점(헌장: The Assistant Is The Primary Interface).
 // /console/assistant 에 질문을 보내 누적 지식으로 답한다. 읽기전용 · 분석·회상만, 결정/집행 없음.
 import { useState, useEffect, useCallback } from "react";
-import { getAssistant, type AssistantResp } from "@/lib/console-api";
+import { getAssistant, getFailureIntel, type AssistantResp, type FailureIntelResp } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, Badge } from "@/components/console/primitives";
+
+const STANCE_TONE: Record<string, string> = {
+  SUPPORT: "var(--c-pos)", OPPOSE: "var(--c-neg)", CAUTION: "var(--c-warn)",
+  NEUTRAL: "var(--c-text-3)", INFO: "var(--c-blue)",
+};
 
 const INTENT_LABEL: Record<string, string> = {
   recall: "MEMORY RECALL", failure: "FAILURE ANALYSIS", recent: "RECENT ACTIVITY",
@@ -15,6 +20,7 @@ const INTENT_LABEL: Record<string, string> = {
 export default function Assistant() {
   const [q, setQ] = useState("");
   const [resp, setResp] = useState<AssistantResp | null>(null);
+  const [fi, setFi] = useState<FailureIntelResp | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [history, setHistory] = useState<{ q: string; a: string }[]>([]);
@@ -22,8 +28,11 @@ export default function Assistant() {
   const run = useCallback(async (question: string) => {
     setLoading(true); setErr(null);
     try {
-      const r = await getAssistant(question);
-      setResp(r);
+      const [r, f] = await Promise.all([
+        getAssistant(question),
+        getFailureIntel(question).catch(() => null),
+      ]);
+      setResp(r); setFi(f);
       if (question.trim()) setHistory((h) => [{ q: question, a: r.answer }, ...h].slice(0, 8));
     } catch (e) { setErr((e as Error).message); }
     finally { setLoading(false); }
@@ -78,6 +87,63 @@ export default function Assistant() {
               )}
               <div className="text-[10px] text-[var(--c-text-3)] leading-relaxed border-t border-[var(--c-border)] pt-2">
                 {resp.disclaimer ?? "어시스턴트는 분석·회상만 한다 — 결정/승인/집행은 사람이 한다."}
+              </div>
+            </div>
+          </Panel>
+        )}
+
+        {/* 다관점 비평(Critic 포함) */}
+        {fi?.perspectives && fi.perspectives.lenses.length > 0 && (
+          <Panel className="overflow-hidden">
+            <PanelHead kicker="MULTI-PERSPECTIVE" title={`Perspectives · ${fi.perspectives.topic || "—"}`}
+              right={<Badge tone={fi.perspectives.conflicting ? "warn" : "mute"}>{fi.perspectives.conflicting ? "CONFLICTING" : "aligned"}</Badge>} />
+            <div className="p-3 space-y-1.5">
+              {fi.perspectives.lenses.map((l) => (
+                <div key={l.lens} className="grid grid-cols-[70px_74px_1fr] items-center gap-2.5">
+                  <span className="text-[11.5px] text-[var(--c-text-1)]">{l.lens}</span>
+                  <span className="c-num text-[9.5px] font-semibold tracking-wider px-1.5 py-0.5 rounded-[2px] text-center"
+                    style={{ color: STANCE_TONE[l.stance], border: `1px solid color-mix(in srgb,${STANCE_TONE[l.stance]} 40%,transparent)`, background: `color-mix(in srgb,${STANCE_TONE[l.stance]} 8%,transparent)` }}>{l.stance}</span>
+                  <span className="text-[10.5px] text-[var(--c-text-3)] truncate">{l.rationale}</span>
+                </div>
+              ))}
+              <div className="text-[11px] text-[var(--c-text-1)] border-t border-[var(--c-border)] pt-2 mt-1">
+                <span className="text-[var(--c-hud)] font-semibold">결론: </span>{fi.perspectives.conclusion}
+              </div>
+            </div>
+          </Panel>
+        )}
+
+        {/* 실패 지능(9종 분류 분포) */}
+        {fi?.failure_intelligence && (
+          <Panel className="overflow-hidden">
+            <PanelHead kicker="FAILURE INTELLIGENCE" title="Failure Taxonomy"
+              right={<span className="c-num text-[10px] text-[var(--c-text-3)]">{fi.failure_intelligence.total_failures} failures · top {fi.failure_intelligence.top_category}</span>} />
+            <div className="p-4 space-y-1.5">
+              {Object.entries(fi.failure_intelligence.by_category).length === 0 && (
+                <div className="text-[11px] text-[var(--c-text-3)]">축적된 실패 기록 없음 — 실험이 쌓이면 9종으로 자동 분류됩니다.</div>
+              )}
+              {(() => {
+                const cats = Object.entries(fi.failure_intelligence.by_category);
+                const max = cats.length ? Math.max(...cats.map(([, n]) => n)) : 1;
+                return cats.map(([c, n]) => (
+                  <div key={c} className="grid grid-cols-[150px_1fr_24px] items-center gap-2.5">
+                    <span className="text-[10.5px] text-[var(--c-text-2)] truncate">{c}</span>
+                    <span className="h-2.5 bg-[var(--c-panel-3)] rounded-[2px] overflow-hidden">
+                      <span className="block h-full rounded-[2px]" style={{ width: `${(n / max) * 100}%`, background: c === "UNCLASSIFIED" ? "var(--c-text-3)" : "var(--c-warn)" }} />
+                    </span>
+                    <span className="c-num text-[10.5px] text-[var(--c-text-1)] text-right">{n}</span>
+                  </div>
+                ));
+              })()}
+              {fi.failure_intelligence.lessons.length > 0 && (
+                <div className="border-t border-[var(--c-border)] pt-2 mt-1 space-y-1">
+                  {fi.failure_intelligence.lessons.slice(0, 5).map((l, i) => (
+                    <div key={i} className="text-[10px] text-[var(--c-text-3)] leading-snug">· {l}</div>
+                  ))}
+                </div>
+              )}
+              <div className="text-[9.5px] text-[var(--c-text-3)] pt-1">
+                메모리 그래프: 노드 <span className="c-num text-[var(--c-text-2)]">{fi.memory_graph.node_count}</span> · 엣지 <span className="c-num text-[var(--c-text-2)]">{fi.memory_graph.edge_count}</span> (실험→실패유형→교훈 연결)
               </div>
             </div>
           </Panel>

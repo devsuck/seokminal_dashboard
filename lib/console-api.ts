@@ -171,3 +171,14 @@ export interface AssistantResp {
 }
 export const getAssistant = (q: string, s?: AbortSignal) =>
   get<AssistantResp>(`/console/assistant?q=${encodeURIComponent(q)}`, s);
+
+// ── /console/failure-intel (실패지능 + 다관점 + 메모리 그래프) ─────
+export interface FailureIntelResp {
+  failure_intelligence: { total_failures: number; by_category: Record<string, number>; top_category: string; lessons: string[] };
+  memory_graph: { nodes: { id: string; type: string; label: string }[]; edges: { source: string; target: string; kind: string }[]; node_count: number; edge_count: number };
+  perspectives?: { topic: string; lenses: { lens: string; stance: string; rationale: string; evidence: number }[]; conflicting: boolean; conclusion: string };
+  mistake_check?: { made_this_mistake: boolean; failure_count: number; by_category: Record<string, number>; headline: string };
+  is_advisory?: boolean; is_decision?: boolean;
+}
+export const getFailureIntel = (q = "", s?: AbortSignal) =>
+  get<FailureIntelResp>(`/console/failure-intel?q=${encodeURIComponent(q)}`, s);
