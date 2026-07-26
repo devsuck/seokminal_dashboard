@@ -517,3 +517,36 @@ export interface ResearchBrainResp {
 }
 export const getResearchBrain = (topic = "", s?: AbortSignal) =>
   get<ResearchBrainResp>(`/console/research-brain?topic=${encodeURIComponent(topic)}`, s);
+
+// ── /console/research-organization (P141-150 Institutional Research) ──────────
+export interface ResearchOrganizationResp {
+  market_overview: {
+    regime: { regime?: string; labels?: string[]; recommended_research?: string[] };
+    opportunities: { title: string; confidence: string }[];
+    risk_factors: string[];
+    confidence: string;
+  };
+  company_monitoring: {
+    company: string;
+    events: { kind: string; label: string; detail: string }[];
+    impact: { direction?: string; positive_surprises?: number; negative_surprises?: number };
+    research_priority: string;
+  };
+  strategy_health: {
+    strategies: { strategy: string; health_score: number; grade: string; warnings: number; review_needed: boolean }[];
+    review_needed_count: number;
+  };
+  agent_status: {
+    agents: Record<string, { metric: string; score: number }>;
+    overall_effectiveness: number | null;
+  };
+  knowledge_health: { health_score: number | null; grade: string; issues: Record<string, number> };
+  research_reports: { agent: string; role: string; output: string }[];
+  review_queue: { event_type: string; label: string; source: string }[];
+  operational_status: { operational: boolean; version: string; capabilities: string[] };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getResearchOrganization = (topic = "", s?: AbortSignal) =>
+  get<ResearchOrganizationResp>(`/console/research-organization?topic=${encodeURIComponent(topic)}`, s);
