@@ -621,3 +621,77 @@ export interface ProductionReadinessResp {
 }
 export const getProductionReadiness = (q = "", s?: AbortSignal) =>
   get<ProductionReadinessResp>(`/console/production-readiness?q=${encodeURIComponent(q)}`, s);
+
+// P171-180 Autonomous Research Intelligence Enhancement (READ ONLY)
+export interface CreativeHypothesis {
+  hypothesis_id: string;
+  statement: string;
+  source: string;
+  novelty_score: number;
+  uncertainty: number;
+  confidence: string;
+  expected_edge?: string;
+  evidence_chain: string[];
+  similar_historical_research: {
+    prior_research_count: number;
+    past_conclusions: number;
+    similar_failures: number;
+    tried_before: boolean;
+  };
+  conflicting_evidence: { count: number; contradictions: number; examples: unknown[] };
+  required_validation: string[];
+}
+export interface ResearchIntelligenceResp {
+  query: string;
+  creative_hypotheses: {
+    count: number;
+    diversity: { sources?: string[]; novelty_range?: number[] };
+    hypotheses: CreativeHypothesis[];
+  };
+  research_search: {
+    surfaced_count: number;
+    merged_duplicates: number;
+    candidates: { statement: string; dimension: string; value: string; score: number }[];
+  };
+  continuous_queue: {
+    queue_size: number;
+    by_source: Record<string, number>;
+    backlog: { statement: string; score: number; source: string; rank: number }[];
+    recommended_next: { statement?: string; score?: number };
+  };
+  experiment_prioritization: {
+    coverage_context: {
+      knowledge_nodes?: number;
+      knowledge_edges?: number;
+      research_coverage?: number;
+      knowledge_gap?: number;
+    };
+    recommendations: {
+      statement: string;
+      source: string;
+      composite_score: number;
+      factors: Record<string, number>;
+    }[];
+  };
+  research_planning: Record<
+    string,
+    { cadence?: string; agenda?: { item: string; source: string }[]; roadmap?: { theme: string; quarter_slot: number }[] }
+  >;
+  productivity: {
+    metrics: Record<string, { value: unknown; detail?: string; grade?: string; unit?: string }>;
+    recommendations: { area: string; priority: string; recommendation: string }[];
+  };
+  self_reflection: Record<string, string[]>;
+  autonomy_validation: {
+    validated: boolean;
+    checks: { check: string; ok: boolean; detail?: string }[];
+    reuse_count: number;
+    duplicated_logic: string[];
+    remaining_limitations: string[];
+  };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getResearchIntelligence = (q = "", s?: AbortSignal) =>
+  get<ResearchIntelligenceResp>(`/console/research-intelligence?q=${encodeURIComponent(q)}`, s);
