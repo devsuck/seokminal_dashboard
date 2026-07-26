@@ -20,6 +20,7 @@ const CONSOLE_GROUPS: RailGroup[] = [
     { href: "/research-os/intel-feed", label: "Market Intel Feed" },
     { href: "/research-os/cockpit", label: "Executive Cockpit" },
     { href: "/research-os/committee", label: "Investment Committee" },
+    { href: "/research-os/production", label: "Committee & Production" },
     { href: "/research-os/strategy-lab", label: "Strategy Lab" },
     { href: "/research-os/agents", label: "Research Agents" },
     { href: "/research-os/brain", label: "Research Brain" },

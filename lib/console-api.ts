@@ -582,3 +582,42 @@ export interface InstitutionalIntelligenceResp {
 }
 export const getInstitutionalIntelligence = (topic = "", sector = "semiconductor", entity = "TSMC", s?: AbortSignal) =>
   get<InstitutionalIntelligenceResp>(`/console/institutional-intelligence?topic=${encodeURIComponent(topic)}&sector=${encodeURIComponent(sector)}&entity=${encodeURIComponent(entity)}`, s);
+
+// ── /console/production-readiness (P161-170 Committee & Production) ───────────
+export interface ProductionReadinessResp {
+  institutional_overview: { version: string; release_ready: boolean; architecture_frozen: boolean; capabilities: string[] };
+  committee_packet: {
+    research_summary: string;
+    confidence: string;
+    limitations: string[];
+    questions_for_human: string[];
+    risk_summary: Record<string, unknown>;
+    alternative_views: Record<string, unknown>;
+  };
+  debate: {
+    bull_case: { claim?: string; evidence?: unknown[] };
+    bear_case: { claim?: string; evidence?: unknown[] };
+    risk_case: { main_risk?: string; label?: string };
+    historical_counterexamples: { topic: string; study_a: string; study_b: string; explanation: string }[];
+  };
+  conviction: { level: string; score: number | null; factors: Record<string, number> };
+  portfolio_research: {
+    strategy_health: { strategy: string; health_score: number; review_needed: boolean }[];
+    factor_exposure: Record<string, number>;
+    concentration: { n_strategies?: number; concentration?: string; review_needed?: number };
+    correlation: { pair: string; value: number; label: string }[];
+  };
+  governance_status: { governance: string; passed: boolean; checks: { check: string; ok: boolean; detail: string }[] };
+  production_health: {
+    overall_severity: string;
+    components: { component: string; severity: string; detail: string }[];
+    counts: Record<string, number>;
+  };
+  operational_metrics: Record<string, unknown>;
+  review_queue: { task: string; source: string }[];
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getProductionReadiness = (q = "", s?: AbortSignal) =>
+  get<ProductionReadinessResp>(`/console/production-readiness?q=${encodeURIComponent(q)}`, s);
