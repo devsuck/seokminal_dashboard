@@ -550,3 +550,35 @@ export interface ResearchOrganizationResp {
 }
 export const getResearchOrganization = (topic = "", s?: AbortSignal) =>
   get<ResearchOrganizationResp>(`/console/research-organization?topic=${encodeURIComponent(topic)}`, s);
+
+// ── /console/institutional-intelligence (P151-160) ───────────────────────────
+export interface InstitutionalIntelligenceResp {
+  data_production_health: {
+    overall_status: string;
+    available_count: number;
+    count: number;
+    average_quality: number;
+    reports: { provider: string; category: string; availability: string; freshness: string; quality_score: number }[];
+  };
+  market_intelligence: { regime: string; labels: string[] };
+  sector_intelligence: { sector: string; key_entities: string[]; risk_factors: string[]; research_questions: string[] };
+  macro_context: {
+    macro_state: string;
+    indicators: Record<string, { value: number | null; state: string }>;
+    affected_assets: { asset_class: string; sensitivity: string; direction: string }[];
+    uncertainty: string;
+  };
+  company_intelligence: {
+    entity: string;
+    relationships: { suppliers?: string[]; customers?: string[]; competitors?: string[]; related_sectors?: string[] };
+    risks: string[];
+  };
+  knowledge_context: { health_score: number | null; grade: string };
+  quality_scores: { confidence: string; dimensions: Record<string, number>; reliability: number | null };
+  validation: { validated: boolean; capabilities: string[] };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getInstitutionalIntelligence = (topic = "", sector = "semiconductor", entity = "TSMC", s?: AbortSignal) =>
+  get<InstitutionalIntelligenceResp>(`/console/institutional-intelligence?topic=${encodeURIComponent(topic)}&sector=${encodeURIComponent(sector)}&entity=${encodeURIComponent(entity)}`, s);
