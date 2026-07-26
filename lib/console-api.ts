@@ -695,3 +695,68 @@ export interface ResearchIntelligenceResp {
 }
 export const getResearchIntelligence = (q = "", s?: AbortSignal) =>
   get<ResearchIntelligenceResp>(`/console/research-intelligence?q=${encodeURIComponent(q)}`, s);
+
+// P181-200 Autonomous Research Discovery & Validation Loop v3.0 (READ ONLY)
+export interface AutonomousResearchResp {
+  query: string;
+  cycle_status: {
+    state: string;
+    history: string[];
+    human_checkpoint_pending: boolean;
+    auto_backtest: boolean;
+  };
+  opportunities: {
+    count: number;
+    by_type: Record<string, number>;
+    items: {
+      opportunity_id: string;
+      type: string;
+      observation: string;
+      possible_questions: string[];
+      confidence: number;
+      is_signal: boolean;
+    }[];
+  };
+  hypotheses: {
+    count: number;
+    with_why_different: number;
+    items: {
+      hypothesis_id: string;
+      question: string;
+      why_now: string;
+      novelty: number;
+      past_failures: number;
+      confidence: number;
+      why_different_this_time?: string;
+    }[];
+  };
+  experiment_queue: {
+    queue_size: number;
+    requests: { request_id: string; question: string; priority_score: number; why_important: string }[];
+    available_actions: string[];
+    forbidden_actions: string[];
+  };
+  research_ranking: {
+    queue: { rank: number; question: string; priority_score: number; why_important: string }[];
+    formula: string;
+  };
+  validation_results: { by_outcome?: Record<string, number> };
+  human_review_queue: { pending: number; actions: string[] };
+  metrics: Record<string, unknown>;
+  loop_validation: { validated: boolean; checks: { stage: string; ok: boolean }[] };
+  production_audit: { audited: boolean; ledger_count: number; duplicate_logic: string[] };
+  release: {
+    version: string;
+    status: string;
+    research_automation: string;
+    execution: string;
+    decision_authority: string;
+    production_ready: boolean;
+    capabilities: { can?: string[]; cannot?: string[] };
+  };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getAutonomousResearch = (q = "", s?: AbortSignal) =>
+  get<AutonomousResearchResp>(`/console/autonomous-research?q=${encodeURIComponent(q)}`, s);
