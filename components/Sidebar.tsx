@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage, type Lang } from "@/lib/i18n";
 import { ShutdownButton } from "@/components/ShutdownButton";
+import { UpdateButton } from "@/components/UpdateButton";
 import { JokerLogo } from "@/components/JokerLogo";
 
 const LANGS: { code: Lang; label: string }[] = [
@@ -297,6 +298,7 @@ export function Sidebar() {
             </button>
           ))}
         </div>
+        <UpdateButton collapsed />
         <ShutdownButton collapsed />
       </div>
     </nav>

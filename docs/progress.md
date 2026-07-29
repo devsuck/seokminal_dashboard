@@ -1,3 +1,38 @@
+## Phase 185 — `router_autopilot.py` 도메인별 분리 + 수집기 워치독 가동 (2026-07-26) ✅ SHIPPED
+
+`seokminal-multi-venue` 백엔드 세션. 사용자 요청 3건: ① `api_server/router_autopilot.py`(1700줄+ 모놀리스) 도메인별 라우터로 분리 ② 9개 tmux 수집기 헬스체크/자동재시작 워치독 구축 ③ 이번 세션 정리(progress.md). (④ 업데이트 버튼에 Claude-핸드오프 플로우 추가는 "필요없다"고 명시 거부 — 손 안 댐.)
+
+### 완료된 작업 (SHIPPED)
+- **라우터 분리**: `api_server/router_autopilot.py`(1700줄+, 계좌/시세/주문 + 터미널(tmux/ttyd) + shutdown/update + 멀티에이전트 CRUD/틱/성과가 한 파일에 뒤섞여 있었음) → `api_server/routers/{alpaca_shared,alpaca_account,terminal,agents}.py` 4개 도메인 모듈로 분리. `router_autopilot.py`는 20줄짜리 재수출 shim으로 축소(`main.py`의 기존 import 그대로 동작하게). `alpaca_account.router`/`terminal.router` 둘 다 `prefix="/alpaca"`라 shim에서 `router=APIRouter()`(prefix 없음)로 include_router 두 번 해서 병합 — 처음에 shim에도 `prefix="/alpaca"` 붙였으면 `/alpaca/alpaca/...`로 겹쳤을 뻔, 코드 작성 중 자체 리뷰로 사전 발견.
+  - 핵심 설계 제약: pytest `monkeypatch.setattr`은 특정 모듈 객체의 속성을 패치하므로, 분리된 모듈들은 서로의 헬퍼를 부를 때 반드시 `from api_server.routers import alpaca_shared as shared; shared.X(...)` 형태(모듈-한정 호출)로 참조해야 패치가 실제로 먹음. 이 원칙 위반을 조립 중 2건 자체 발견·수정: `agents.py`에서 `_fetch_kr_intraday_bars`/`_fetch_intraday_bars` 호출이 `shared.` 없이 bare로 남아있던 것(grep 자체점검으로 발견), `import os` 누락(원본엔 `import os` + `import os as _os` 둘 다 있었는데 새 헤더엔 `_os`만 챙기고 bare `os.environ.get(...)`용 plain import 빠뜨림).
+  - 검증: `ast.parse` 문법체크 → 개별 모듈 import → `TestClient`로 `/alpaca/terminal/status`·`/agents` 실제 히트(FastAPI 0.138.0은 `include_router()` 후 `.routes`가 lazy `_IncludedRouter`라 `.path` 속성이 없어 직접 introspection 안 됨 — 발견 후 TestClient 방식으로 전환) → `api_server.main`(실제 앱) import → 전체 pytest 1397 passed(기존부터 있던 무관 실패 4~5건 제외, 리그레션 0).
+  - 테스트 3개 파일도 갱신: `test_shutdown_api.py`(`router_autopilot`→`terminal` 모듈로 monkeypatch 대상 변경), `test_daytrade_tick.py`/`test_intraday_endpoint.py`(`rp`→`alpaca_shared as shared`로 변경).
+- **워치독 가동**: 조사해보니 `ops/collector_watchdog.py`(순수 `to_restart()` + `/lab/fleet` 폴링+재시작 루프, 테스트까지 이미 존재) + `api_server/fleet_health.py`(`classify`/`fleet_summary` 순수 판정) + `api_server/lab_api.py`의 `COLLECTOR_SESSIONS`/`/lab/fleet`/`/lab/collectors/{key}/restart`가 이미 완성돼있었는데 한 번도 가동된 적 없었음(재구축 대신 활성화만 함).
+  - 라이브로 죽어있던 `polymarket_updown_arb`(`dead`, `session_exists: false`) 기존 restart 엔드포인트로 즉시 복구.
+  - 9개 tmux 수집기 중 레지스트리에 안 올라가 있던 `polymarket_event_divergence` 발견 → `COLLECTOR_SESSIONS`/`/lab/status`/`fleet_health.STALE_AFTER_S`(1800s, 스캔류)에 추가, `/lab/fleet`가 `n_total: 9`(기존 8)로 즉시 반영·`fresh` 확인.
+  - `collector_watchdog.py`를 `collector-watchdog` tmux 세션으로 실제 가동(기존 tmux 컨벤션 그대로, launchd 미사용) — 이제 120초마다 `/lab/fleet` 폴링해서 `dead` 판정 나면 자동 재시작. `--restart-stale` 플래그는 README 자체 권고대로 더 공격적이라 켜지 않음(죽은 것만 재시작, 단순 stale은 안 건드림).
+  - **의도적으로 안 건드린 것**: `research/run_ict_paper_engine.py`(ICT+오더플로우 페이퍼 엔진, `ict-orderflow-paper` 세션)는 tick 수집기가 아니라 실행 엔진 — 포지션 변화 있을 때만 상태 기록이라 기존 jsonl-mtime 방식 그대로 넣으면 거래 뜸한 구간에 가짜 `dead`가 뜸. 코드 읽고 판단해서 `COLLECTOR_SESSIONS`에 안 넣음(다음 세션 참고용으로 여기 기록).
+- 업데이트 버튼 dogfooding: 이번 세션에서 만든 `lab_api.py`/`fleet_health.py` 변경 반영에 실제로 `/alpaca/update/execute`(지난 세션에 만든 그 업데이트 버튼 API) 써서 API 서버 재기동 — 발열 대응으로 만든 기능이 실제 설정변경 반영에도 정상 작동함을 실사용으로 확인.
+
+### 변경된 파일
+- (신규) `api_server/routers/alpaca_account.py`, `api_server/routers/terminal.py`, `api_server/routers/agents.py`
+- (수정) `api_server/router_autopilot.py`(1700줄+ → 20줄 shim), `api_server/lab_api.py`(`polymarket_event_divergence` 등록), `api_server/fleet_health.py`(`STALE_AFTER_S`에 동일 키 추가)
+- (수정, 테스트) `tests/test_shutdown_api.py`, `tests/test_daytrade_tick.py`, `tests/test_intraday_endpoint.py`
+- `api_server/routers/alpaca_shared.py`는 지난 세션에 이미 작성 완료 상태라 이번 세션엔 무변경(참조만)
+
+### 다음 할 일
+- `ict-orderflow-paper` 세션 헬스 트래킹 — 지금은 워치독 커버리지 밖. 실행엔진용 다른 판정 로직(예: 포지션 상태파일 mtime이 아니라 프로세스 생존 + WS 하트비트 기반) 설계 필요, 다음에 붙일지 결정.
+- Phase 183에서 남겨둔 ICT 엔진 자체의 Minor 항목들(재시작 시 존-소진 상태 미복원 등)은 여전히 미해결.
+- 라우터 분리는 `router_autopilot.py` shim이 남아있는 구조 — 당장 문제 없으니 이번엔 shim까지 걷어내진 않음(호출부(`main.py`) 그대로 두고 안전하게 검증하는 쪽 택함).
+
+### 막힌 부분/결정사항
+- monkeypatch가 모듈 객체 단위로 동작한다는 제약이 분리 설계 전체를 결정함 — 분리 후 헬퍼 호출은 전부 `shared.X()` 식 모듈-한정 참조로 통일(안 그러면 테스트가 조용히 원본 함수를 패치 못 하고 실제 함수가 실행돼버림).
+- 워치독 launchd 대신 tmux 세션으로 가동 — 기존 9개 수집기 전부 tmux 컨벤션이라 통일성 우선, `ops/com.seokminal.watchdog.plist`는 존재하지만 안 씀(단순함 우선).
+- `--restart-stale` 계속 OFF 유지 — README 자체가 "더 공격적"이라 명시한 옵션이라 기본값(죽은 것만 재시작)이 안전.
+- 업데이트 버튼에 Claude-핸드오프 플로우 추가는 사용자가 "필요없다"고 명시 거부 → 스코프에서 완전히 제외.
+
+---
+
 ## Phase 184 — XAU 백테스트 노출 + MLB `/mlb` 페이지 분리 + 두 저장소 동기화 (2026-07-22) ✅ SHIPPED
 
 XAU Session Confluence 백테스트를 `/validation` 페이지에 노출, 이어서 MLB Specialist Consensus(Polymarket 지갑 스코어링)를 공용 카드에서 전용 `/mlb` 페이지로 분리 요청 → 상단 네비 반영 확인까지 완료. 마지막으로 데스크탑 세션에서 넘어온 미동기화 작업(플랫폼 업그레이드 6종: 엣지 메타-대시보드/함대헬스/감쇠추적/집행시임/워치독) 확인 → 두 저장소 commit→pull(merge)→push로 동기화. 상세 로그는 `seokminal-multi-venue/docs/progress.md` "2026-07-22 (이어서 2~6)" 참조(백엔드 위주라 그쪽에 기록, 이 항목은 프론트+저장소 관점 요약).

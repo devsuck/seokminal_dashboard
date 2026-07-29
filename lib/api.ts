@@ -3042,6 +3042,19 @@ export async function executeShutdown(signal?: AbortSignal): Promise<{ status: s
   return handleResponse(await fetch(`${API_URL}/alpaca/shutdown/execute`, { method: "POST", signal }));
 }
 
+export async function executeUpdate(signal?: AbortSignal): Promise<{ status: string }> {
+  return handleResponse(await fetch(`${API_URL}/alpaca/update/execute`, { method: "POST", signal }));
+}
+
+export async function checkApiHealth(signal?: AbortSignal): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/health`, { signal });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface FGMarket { value: number; classification: string; }
 export interface FGMarketsResponse { crypto: FGMarket; us: FGMarket; kr: FGMarket; }
 
