@@ -35,6 +35,9 @@ const CONSOLE_GROUPS: RailGroup[] = [
     { href: "/research-os/explain", label: "Explainability" },
     { href: "/research-os/console", label: "Operating Console" },
   ] },
+  { label: "Investment OS", items: [
+    { href: "/investment-os", label: "Investment OS" },
+  ] },
   { label: "Intelligence", items: [
     { href: "/intel/assistant", label: "Assistant" },
     { href: "/intel/research-os", label: "Research OS" },

@@ -760,3 +760,23 @@ export interface AutonomousResearchResp {
 }
 export const getAutonomousResearch = (q = "", s?: AbortSignal) =>
   get<AutonomousResearchResp>(`/console/autonomous-research?q=${encodeURIComponent(q)}`, s);
+
+// Investment OS — Research OS 와 완전 분리된 계층 (READ ONLY, 추천/시뮬레이션)
+export interface InvestmentOsResp {
+  knowledge: { consumed_candidates: number; research_os_modified: boolean; edge_score_status: string };
+  portfolio: { weights: Record<string, number>; method: string };
+  exposure: { max_weight?: number; n_positions?: number; herfindahl?: number };
+  risk_budget: { within_budget?: boolean; breaches?: string[]; summary?: string; max_risk_contrib_cap?: number };
+  scenarios: { scenario?: string; portfolio_impact_pct?: number; estimated_pnl?: number };
+  compliance: { compliant?: boolean; human_can_override?: boolean };
+  gates: { passed?: boolean; bypass_possible?: boolean };
+  position_sizing: Record<string, number>;
+  capital_allocation_executes: boolean;
+  execution_ladder: { rungs: string[]; auto_execution_enabled: boolean; human_approval_mandatory: boolean };
+  separation: { separated?: boolean; invariants?: { check: string; ok: boolean }[] };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getInvestmentOs = (notional = 1_000_000, s?: AbortSignal) =>
+  get<InvestmentOsResp>(`/console/investment-os?notional=${notional}`, s);
