@@ -780,3 +780,21 @@ export interface InvestmentOsResp {
 }
 export const getInvestmentOs = (notional = 1_000_000, s?: AbortSignal) =>
   get<InvestmentOsResp>(`/console/investment-os?notional=${notional}`, s);
+
+export interface LadderAdvanceResp {
+  requested_from: string;
+  approved: boolean;
+  advanced: boolean;
+  new_rung: string;
+  blocked_reason: string | null;
+  gates: { gate: string; ok: boolean; detail: string }[];
+  gates_passed: boolean;
+  failed_gates: string[];
+  auto_execution_enabled: boolean;
+  human_approval_mandatory: boolean;
+  is_decision: boolean;
+  note: string;
+}
+export const advanceLadder = (currentRung: string, approve: boolean, s?: AbortSignal) =>
+  post<LadderAdvanceResp>(
+    `/console/investment-os/advance?current_rung=${encodeURIComponent(currentRung)}&approve=${approve}`, s);
