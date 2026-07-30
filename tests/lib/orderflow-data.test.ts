@@ -446,28 +446,25 @@ describe("applyLargeTradeTracking", () => {
     expect(tracker.largeTrades.at(-1)?.size).not.toBe(1.0);
   });
 
-  it("caps largeTrades at 50 entries, dropping the oldest", () => {
-    // 대량 체결끼리 연달아 오면 그 자체가 p95 문턱을 밀어올려 더 이상 "대량"으로
-    // 안 잡힘(적응형 임계값의 정상 동작). 캡(50) 자체를 검증하려면 대량 체결
-    // 밀도를 창(200)의 5% 밑으로 유지해야 한다 — 정상 체결 24건마다 1건 비율.
+  it("caps largeTrades at 20 entries, dropping the oldest", () => {
+    // 대량 체결끼리 연달아 오면 그 자체가 p98 문턱을 밀어올려 더 이상 "대량"으로
+    // 안 잡힘(적응형 임계값의 정상 동작). 캡(20) 자체를 검증하려면 대량 체결
+    // 밀도를 창(200)의 2%(p98) 밑으로 유지해야 한다 — 정상 체결 150건마다 1건 비율로
+    // 충분히 신뢰성 있게 매번 플래그됨(2026-07-19 0.95→0.98/50→20 변경 후 갱신,
+    // 옛 24건 비율은 새 2% 문턱을 넘겨 while 루프가 무한 대기하는 회귀가 있었음).
     let tracker = feedNormalTrades(20, 1.0);
     let ts = 3000;
-    let flagged = 0;
-    while (flagged < 55) {
-      for (let j = 0; j < 24; j++) {
+    for (let round = 0; round < 25; round++) {
+      for (let j = 0; j < 150; j++) {
         tracker = applyLargeTradeTracking(tracker, {
           type: "footprint_delta", bucket_ts: ts++, price: 100, side: "buy", delta_vol: 1.0,
         });
       }
-      const largeTs = ts++;
       tracker = applyLargeTradeTracking(tracker, {
-        type: "footprint_delta", bucket_ts: largeTs, price: 100, side: "buy", delta_vol: 10.0,
+        type: "footprint_delta", bucket_ts: ts++, price: 100, side: "buy", delta_vol: 10.0,
       });
-      // 캡(50)에 도달하면 length는 안 늘어도 최신 항목은 갱신되므로,
-      // length 대신 방금 넣은 체결이 실제로 마지막 항목인지로 판정한다.
-      if (tracker.largeTrades.at(-1)?.bucketTs === largeTs) flagged++;
     }
-    expect(tracker.largeTrades).toHaveLength(50);
+    expect(tracker.largeTrades).toHaveLength(20);
   });
 });
 
