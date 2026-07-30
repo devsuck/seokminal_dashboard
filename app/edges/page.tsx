@@ -27,9 +27,10 @@ function edgeStatusLabel(s: string): string {
     warming: "계산중", pending: "대기(맥조립)", error: "오류" } as Record<string, string>)[s] ?? s;
 }
 function fleetStyle(v: string): string {
-  if (v === "fresh") return "border-pos/40 text-pos bg-pos/10";
-  if (v === "stale") return "border-warn/40 text-warn bg-warn/10";
-  return "border-neg/40 text-neg bg-neg/10"; // dead
+  if (v === "fresh" || v === "ok") return "border-pos/40 text-pos bg-pos/10";
+  if (v === "stale" || v === "warn") return "border-warn/40 text-warn bg-warn/10";
+  if (v === "stuck") return "border-neg/40 text-neg bg-neg/20"; // dead보다 옅지만 경고
+  return "border-neg/40 text-neg bg-neg/10"; // dead / critical
 }
 function fmtP(p: number | null | undefined): string {
   return typeof p === "number" ? p.toFixed(4) : "—";
@@ -154,15 +155,22 @@ export default function EdgesPage() {
       {/* 수집기 함대 헬스 */}
       <Panel>
         <PanelHeader right={fleet && (
-          <span className={`text-xs px-2 py-0.5 border ${fleetStyle(fleet.worst_verdict)}`}>
-            {fleet.ok ? "정상" : `주의: ${fleet.worst_verdict}`}
+          <span className={`text-xs px-2 py-0.5 border ${fleetStyle(fleet.ok ? "fresh" : fleet.worst_verdict === "fresh" ? "stale" : fleet.worst_verdict)}`}>
+            {fleet.ok ? "정상" : fleet.worst_verdict === "fresh" ? "주의: 반복재기동" : `주의: ${fleet.worst_verdict}`}
           </span>
         )}>수집기 함대 헬스</PanelHeader>
         {fleetErr && <div className="text-neg text-xs px-3 py-2">함대 조회 실패(백엔드 미기동?): {fleetErr}</div>}
         {fleet && (
           <div className="px-3 pb-3">
-            <div className="text-text-3 text-xs mb-2">
-              fresh {fleet.counts.fresh} · stale {fleet.counts.stale} · dead {fleet.counts.dead} / {fleet.n_total}
+            <div className="text-text-3 text-xs mb-2 flex items-center justify-between flex-wrap gap-x-3 gap-y-1">
+              <span>
+                fresh {fleet.counts.fresh} · stale {fleet.counts.stale} · stuck {fleet.counts.stuck} · dead {fleet.counts.dead} / {fleet.n_total}
+              </span>
+              {fleet.disk && (
+                <span className={`px-1.5 py-0.5 border ${fleetStyle(fleet.disk.verdict)}`} title={fleet.disk.reason}>
+                  디스크 여유 {fleet.disk.free_gb != null ? `${fleet.disk.free_gb}GB` : "—"}
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {fleet.collectors.map((c: FleetCollector) => (
@@ -170,6 +178,12 @@ export default function EdgesPage() {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`text-xs px-1.5 py-0.5 border shrink-0 ${fleetStyle(c.verdict)}`}>{c.verdict}</span>
                     <span className="text-text-2 text-xs truncate">{c.key}</span>
+                    {c.flapping && (
+                      <span className="text-xs px-1.5 py-0.5 border shrink-0 border-warn/40 text-warn bg-warn/10"
+                        title="24h 내 반복 재기동 — 근본원인 미해결 의심">
+                        재기동×{c.restart_count_24h}
+                      </span>
+                    )}
                   </div>
                   <span className="text-text-3 text-xs tabular-nums shrink-0" title={c.reason}>
                     {fmtAge(c.age_sec)}

@@ -3429,12 +3429,18 @@ export async function getEdges(signal?: AbortSignal): Promise<EdgesResponse> {
 
 // ── 수집기 함대 헬스 ──────────────────────────────────────────────────────────
 export interface FleetCollector {
-  key: string; verdict: "fresh" | "stale" | "dead"; reason: string; stale_after_s: number;
+  key: string; verdict: "fresh" | "stale" | "stuck" | "dead"; reason: string; stale_after_s: number;
   running: boolean; session_exists: boolean; last_write: string | null; age_sec: number | null;
+  restart_count_24h: number; flapping: boolean;
+}
+export interface FleetDisk {
+  verdict: "ok" | "warn" | "critical" | "unknown"; reason: string;
+  free_gb: number | null; total_gb: number | null;
 }
 export interface FleetResponse {
-  ok: boolean; worst_verdict: string; counts: { fresh: number; stale: number; dead: number };
-  n_total: number; collectors: FleetCollector[];
+  ok: boolean; worst_verdict: string;
+  counts: { fresh: number; stale: number; dead: number; stuck: number };
+  n_total: number; collectors: FleetCollector[]; disk?: FleetDisk;
 }
 export async function getFleet(signal?: AbortSignal): Promise<FleetResponse> {
   return handleResponse<FleetResponse>(await fetch(`${API_URL}/lab/fleet`, { signal }));
