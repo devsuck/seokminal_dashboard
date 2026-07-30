@@ -11,47 +11,53 @@ import { CommandPalette } from "@/components/console/CommandPalette";
 interface RailItem { href: string; label: string }
 interface RailGroup { label: string; items: RailItem[] }
 
-// 콘솔(거버넌스 OS) 그룹 — 신규 라우트
+// 콘솔(거버넌스 OS) 그룹 — 신규 라우트. Phase 132 집행전환 최종목표의 메인 레이어라
+// TERMINAL_GROUPS(레거시)보다 위계상 상위 — 항상 먼저 렌더.
+// Research OS 21개는 flat 1그룹이라 스캔 불가능했음 → 성격별 4그룹으로 분리.
 const CONSOLE_GROUPS: RailGroup[] = [
-  { label: "Research OS", items: [
+  { label: "Research · 모니터링", items: [
     { href: "/research-os/organization", label: "Research Org" },
     { href: "/research-os/intelligence", label: "Intelligence" },
     { href: "/research-os/market", label: "Market Intelligence" },
     { href: "/research-os/live-intelligence", label: "Live Intelligence" },
     { href: "/research-os/intel-feed", label: "Market Intel Feed" },
     { href: "/research-os/cockpit", label: "Executive Cockpit" },
-    { href: "/research-os/committee", label: "Investment Committee" },
-    { href: "/research-os/production", label: "Committee & Production" },
-    { href: "/research-os/intelligence-plus", label: "Research Intelligence+" },
-    { href: "/research-os/discovery", label: "Autonomous Discovery v3.0" },
-    { href: "/research-os/strategy-lab", label: "Strategy Lab" },
+    { href: "/research-os/console", label: "Operating Console" },
+  ] },
+  { label: "Research · 파이프라인", items: [
     { href: "/research-os/agents", label: "Research Agents" },
     { href: "/research-os/brain", label: "Research Brain" },
+    { href: "/research-os/workflow", label: "Workflow" },
     { href: "/research-os/validation", label: "Validation Loop" },
     { href: "/research-os/autonomous", label: "Autonomous Runtime" },
-    { href: "/research-os/workflow", label: "Workflow" },
-    { href: "/research-os/chat", label: "Research Chat" },
-    { href: "/research-os/timeline", label: "Timeline" },
-    { href: "/research-os/graph", label: "Knowledge Graph" },
+    { href: "/research-os/discovery", label: "Autonomous Discovery v3.0" },
+    { href: "/research-os/intelligence-plus", label: "Research Intelligence+" },
+  ] },
+  { label: "Research · 거버넌스", items: [
+    { href: "/research-os/committee", label: "Investment Committee" },
+    { href: "/research-os/production", label: "Committee & Production" },
     { href: "/research-os/explain", label: "Explainability" },
-    { href: "/research-os/console", label: "Operating Console" },
+    { href: "/research-os/graph", label: "Knowledge Graph" },
+    { href: "/research-os/timeline", label: "Timeline" },
+  ] },
+  { label: "Research · Lab", items: [
+    { href: "/research-os/strategy-lab", label: "Strategy Lab" },
+    { href: "/research-os/chat", label: "Research Chat" },
+    { href: "/intel/research-os", label: "Jarvis Live View" },
   ] },
   { label: "Investment OS", items: [
     { href: "/investment-os", label: "Investment OS" },
   ] },
-  { label: "Intelligence", items: [
-    { href: "/intel/research-os", label: "Research OS" },
-  ] },
   { label: "Quant Lab", items: [
-    { href: "/quant/validation", label: "Validation" },
+    { href: "/quant/validation", label: "Quant Validation Gates" },
   ] },
   { label: "Portfolio OS", items: [
     { href: "/portfolio-os/allocation", label: "Allocation" },
-    { href: "/portfolio-os/risk", label: "Risk" },
+    { href: "/portfolio-os/risk", label: "Risk Limits" },
     { href: "/portfolio-os/positions", label: "Positions" },
   ] },
   { label: "Execution", items: [
-    { href: "/exec/orders", label: "Orders" },
+    { href: "/exec/orders", label: "Execution Gates" },
     { href: "/exec/monitor", label: "Monitoring" },
   ] },
   { label: "AI Council", items: [
@@ -64,12 +70,10 @@ const CONSOLE_GROUPS: RailGroup[] = [
 // 레거시 트레이딩 터미널 그룹 — 기존 45페이지(기능 유지, 셸만 통합)
 const TERMINAL_GROUPS: RailGroup[] = [
   { label: "Markets", items: [
+    // crypto/futures/forex/options는 /market이 탭으로 그대로 렌더하는 하위기능이라
+    // 최상위 nav에서 중복 노출하지 않음(진입은 /market 탭에서).
     { href: "/market", label: "Market" },
     { href: "/orderflow", label: "Orderflow" },
-    { href: "/crypto", label: "Crypto" },
-    { href: "/futures", label: "Futures" },
-    { href: "/forex", label: "Forex" },
-    { href: "/options", label: "Options" },
     { href: "/news", label: "News" },
     { href: "/calendar", label: "Calendar" },
     { href: "/ib", label: "IB Data" },
@@ -94,11 +98,12 @@ const TERMINAL_GROUPS: RailGroup[] = [
   ] },
   { label: "Research Lab", items: [
     { href: "/lab", label: "AI Lab" },
-    { href: "/auto-research", label: "Auto Research" },
+    // /auto-research 삭제: 코드 자체 주석이 "사이드바 은퇴, AI LAB에 흡수됨"이라 명시.
     { href: "/macro", label: "Macro Lab" },
     { href: "/infra", label: "Supply Graph" },
     { href: "/buyback-doctor", label: "Buyback Doctor" },
     { href: "/insider", label: "Insider" },
+    { href: "/edges", label: "Edge Portfolio" },
   ] },
   { label: "Validation & Backtest", items: [
     { href: "/validation", label: "Validation Terminal" },
@@ -132,8 +137,10 @@ function Diamond() {
 
 function GroupGlyph({ label }: { label: string }) {
   const g: Record<string, React.ReactNode> = {
-    "Research OS": <><circle cx="8" cy="8" r="6.5" /><path d="M8 4.5v3.5l2.5 1.5" /><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" /></>,
-    Intelligence: <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
+    "Research · 모니터링": <><circle cx="8" cy="8" r="6.5" /><path d="M8 4.5v3.5l2.5 1.5" /><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" /></>,
+    "Research · 파이프라인": <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
+    "Research · 거버넌스": <><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M5 8h6M8 5v6" /></>,
+    "Research · Lab": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,
     "Quant Lab": <><path d="M6 1.5v4L2.5 12A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 12L10 5.5v-4" /><path d="M5 1.5h6M4.5 9h7" /></>,
     "Portfolio OS": <><rect x="1.5" y="8" width="3" height="6" rx="0.5" /><rect x="6.5" y="4" width="3" height="10" rx="0.5" /><rect x="11.5" y="1.5" width="3" height="12.5" rx="0.5" /></>,
     Execution: <><path d="M2 8h3l1.5-4 3 8L13 8h1" /></>,
