@@ -193,6 +193,48 @@ export async function getHlFunding(coin: string, signal?: AbortSignal): Promise<
   return handleResponse<FundingSnapshot>(response);
 }
 
+export interface OrderflowHistoryDatesResponse {
+  symbol: string;
+  dates: string[];
+}
+
+/** symbol(HL 심볼만 지원)의 DOM 리플레이 저장 날짜 목록(UTC, 오름차순). */
+export async function getOrderflowHistoryDates(
+  symbol: string,
+  signal?: AbortSignal
+): Promise<OrderflowHistoryDatesResponse> {
+  const response = await fetch(`${API_URL}/orderflow/history/${encodeURIComponent(symbol)}/dates`, { signal });
+  return handleResponse<OrderflowHistoryDatesResponse>(response);
+}
+
+export interface OrderflowHistorySnapshot {
+  ts: number;
+  bids: [number, number][];
+  asks: [number, number][];
+}
+
+export interface OrderflowHistoryResponse {
+  symbol: string;
+  date: string;
+  snapshots: OrderflowHistorySnapshot[];
+  truncated: boolean;
+}
+
+/** symbol의 date(UTC, YYYY-MM-DD) 저장 스냅샷 조회 — start/end(unix seconds)로 구간 축소 가능. */
+export async function getOrderflowHistory(
+  symbol: string,
+  date: string,
+  opts?: { start?: number; end?: number; limit?: number },
+  signal?: AbortSignal
+): Promise<OrderflowHistoryResponse> {
+  const params = new URLSearchParams({ date });
+  if (opts?.start !== undefined) params.set("start", String(opts.start));
+  if (opts?.end !== undefined) params.set("end", String(opts.end));
+  if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
+  const response = await fetch(`${API_URL}/orderflow/history/${encodeURIComponent(symbol)}?${params}`, { signal });
+  return handleResponse<OrderflowHistoryResponse>(response);
+}
+
 export interface GexLevel {
   strike: number;
   call_gex: number;

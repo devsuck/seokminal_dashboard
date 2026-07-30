@@ -6,6 +6,7 @@ import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { LivePulse } from "@/components/Jarvis";
 import { PageBanner } from "@/components/PageBanner";
 import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
+import { OrderbookReplay } from "@/components/orderflow/OrderbookReplay";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
 import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 import { useFundingSnapshot } from "@/hooks/useFundingSnapshot";
@@ -35,9 +36,12 @@ const CONNECTION_LABEL: Record<OrderflowConnectionState, string> = {
   error: "오류",
 };
 
+type ViewMode = "live" | "replay";
+
 export default function OrderflowPage() {
   const [symbol, setSymbol] = useState("BTC.HL");
   const [activeSymbols, setActiveSymbols] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>("live");
   const abortRef = useRef<AbortController | null>(null);
   const { footprint, heatmap, book, tapeSpeed, spoofAlerts, recentTrades, liquidations, connectionState } =
     useOrderflowSocket(symbol);
@@ -69,23 +73,41 @@ export default function OrderflowPage() {
       <PageBanner pageKey="orderflow" />
       <div className="flex items-center gap-4">
         <InstrumentSelect value={symbol} onChange={setSymbol} instruments={ORDERFLOW_SYMBOLS} />
-        <LivePulse tone={CONNECTION_TONE[connectionState]} label={CONNECTION_LABEL[connectionState]} />
+        <div className="flex border border-border rounded overflow-hidden">
+          {(["live", "replay"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`px-3 py-1 text-xs ${
+                viewMode === mode ? "border-accent text-accent bg-accent/10" : "text-text-2"
+              }`}
+              onClick={() => setViewMode(mode)}
+            >
+              {mode === "live" ? "라이브" : "리플레이"}
+            </button>
+          ))}
+        </div>
+        {viewMode === "live" && <LivePulse tone={CONNECTION_TONE[connectionState]} label={CONNECTION_LABEL[connectionState]} />}
         {activeSymbols.length > 0 && (
           <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
-      <OrderflowChart
-        symbol={symbol}
-        footprint={footprint}
-        heatmap={heatmap}
-        book={book}
-        tapeSpeed={tapeSpeed}
-        spoofAlerts={spoofAlerts}
-        recentTrades={recentTrades}
-        liquidations={liquidations}
-        gex={gex}
-        funding={funding}
-      />
+      {viewMode === "live" ? (
+        <OrderflowChart
+          symbol={symbol}
+          footprint={footprint}
+          heatmap={heatmap}
+          book={book}
+          tapeSpeed={tapeSpeed}
+          spoofAlerts={spoofAlerts}
+          recentTrades={recentTrades}
+          liquidations={liquidations}
+          gex={gex}
+          funding={funding}
+        />
+      ) : (
+        <OrderbookReplay symbol={symbol} />
+      )}
     </div>
   );
 }
