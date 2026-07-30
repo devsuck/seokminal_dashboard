@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage, type Lang } from "@/lib/i18n";
 import { ShutdownButton } from "@/components/ShutdownButton";
+import { CommandPalette } from "@/components/console/CommandPalette";
 
 // ── IA ──────────────────────────────────────────────────────────────
 interface RailItem { href: string; label: string }
@@ -112,6 +113,9 @@ const TERMINAL_GROUPS: RailGroup[] = [
   ] },
 ];
 
+const ALL_GROUPS: RailGroup[] = [...CONSOLE_GROUPS, ...TERMINAL_GROUPS];
+const OPEN_GROUPS_KEY = "commandRailOpenGroups";
+
 const LANGS: { code: Lang; label: string }[] = [
   { code: "ko", label: "한" }, { code: "en", label: "EN" }, { code: "de", label: "DE" },
 ];
@@ -151,32 +155,84 @@ export function CommandRail() {
   const pathname = usePathname();
   const { lang, setLang } = useLanguage();
   const [open, setOpen] = useState(true);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const groupIsActive = (g: RailGroup) => g.items.some((it) => isActive(it.href));
+
+  // 70개 가까운 페이지가 늘 펼쳐진 채 쌓여있어 스크롤 없인 다 안 보였음 —
+  // 현재 위치가 속한 그룹만 기본으로 펼치고 나머지는 접어서 스캔 부담을 줄임.
+  // 사용자가 직접 펼친 그룹은 새로고침·이동 후에도 유지(localStorage).
+  useEffect(() => {
+    let stored: Record<string, boolean> = {};
+    try {
+      stored = JSON.parse(localStorage.getItem(OPEN_GROUPS_KEY) ?? "{}");
+    } catch { /* 저장된 값 손상 시 무시 */ }
+    const active = ALL_GROUPS.find(groupIsActive);
+    setOpenGroups(active ? { ...stored, [active.label]: true } : stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   const renderGroups = (groups: RailGroup[]) =>
-    groups.map((g) => (
-      <div key={g.label} className="mb-0.5">
-        {open && (
-          <div className="px-3.5 pt-3 pb-1 text-[9.5px] font-semibold tracking-[0.2em] text-[var(--c-text-3)] uppercase flex items-center gap-2">
-            <GroupGlyph label={g.label} />{g.label}
-          </div>
-        )}
-        {g.items.map((it) => {
-          const active = isActive(it.href);
-          return (
-            <Link key={it.href} href={it.href} className="block no-underline">
-              <div className={`group relative flex items-center gap-2.5 h-8 pl-7 pr-3 no-underline transition-colors ${
-                active ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]"
-                       : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
-                {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
-                <span className={`h-1 w-1 rounded-full shrink-0 ${active ? "bg-[var(--c-hud)]" : "bg-[var(--c-text-3)]"}`} />
-                {open && <span className="text-[12px] tracking-wide truncate flex-1">{it.label}</span>}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    ));
+    groups.map((g) => {
+      // 목적지가 하나뿐인 그룹(Investment OS 등)은 아코디언 없이 바로 링크
+      if (g.items.length === 1) {
+        const it = g.items[0];
+        const active = isActive(it.href);
+        return (
+          <Link key={g.label} href={it.href} className="block no-underline">
+            <div className={`group relative flex items-center gap-2.5 h-8 px-3.5 no-underline transition-colors ${
+              active ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]"
+                     : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
+              {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
+              <GroupGlyph label={g.label} />
+              {open && <span className="text-[12px] tracking-wide truncate flex-1">{g.label}</span>}
+            </div>
+          </Link>
+        );
+      }
+
+      const expanded = !!openGroups[g.label];
+      return (
+        <div key={g.label} className="mb-0.5">
+          <button
+            onClick={() => toggleGroup(g.label)}
+            className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1 border-0 bg-transparent cursor-pointer text-[9.5px] font-semibold tracking-[0.2em] uppercase transition-colors ${
+              groupIsActive(g) ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)] hover:text-[var(--c-text-2)]"}`}
+          >
+            <GroupGlyph label={g.label} />
+            {open && <span className="flex-1 text-left">{g.label}</span>}
+            {open && (
+              <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                className={`shrink-0 transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}>
+                <line x1="2" y1="3.5" x2="5" y2="6.5" /><line x1="8" y1="3.5" x2="5" y2="6.5" />
+              </svg>
+            )}
+          </button>
+          {(expanded || !open) && g.items.map((it) => {
+            const active = isActive(it.href);
+            return (
+              <Link key={it.href} href={it.href} className="block no-underline">
+                <div className={`group relative flex items-center gap-2.5 h-8 pl-7 pr-3 no-underline transition-colors ${
+                  active ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]"
+                         : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
+                  {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
+                  <span className={`h-1 w-1 rounded-full shrink-0 ${active ? "bg-[var(--c-hud)]" : "bg-[var(--c-text-3)]"}`} />
+                  {open && <span className="text-[12px] tracking-wide truncate flex-1">{it.label}</span>}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      );
+    });
 
   return (
     <nav className={`console-rail relative flex flex-col shrink-0 h-full border-r border-[var(--c-border)] bg-[var(--c-panel)] transition-[width] duration-200 ${open ? "w-60" : "w-14"}`}>
@@ -201,6 +257,11 @@ export function CommandRail() {
         </svg>
         {open && <span className="text-[12.5px] font-medium tracking-wide">Command Center</span>}
       </Link>
+
+      {/* Search */}
+      <div className="border-b border-[var(--c-border)] shrink-0">
+        <CommandPalette groups={ALL_GROUPS} iconOnly={!open} />
+      </div>
 
       {/* Groups (scroll) */}
       <div className="flex-1 min-h-0 overflow-y-auto py-1.5">
