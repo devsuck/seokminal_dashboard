@@ -1,3 +1,26 @@
+## Phase 187 — CommandRail 아코디언 접기 + Cmd+K 검색 팔레트 (2026-07-30) ✅ SHIPPED
+
+이전 세션에서 넘어온 "사이드바 UX 재설계 + pre-existing 테스트 수정" 3파트 지시 중 나머지 두 파트 완료: (1) `seokminal-multi-venue` pytest 실패 6건 수정 커밋, (2) 사이드바 재설계.
+
+### 완료된 작업
+- **오진 주의**: 처음엔 `components/Sidebar.tsx`(상단 네비바 형태, `NAV_GROUPS` 6그룹)를 대상으로 착각해서 수정+`CommandPalette.tsx` 만들었다가, 브라우저로 실제 화면 스크린샷 찍어보니 렌더링 안 되는 다른 컴포넌트인 걸 발견. grep으로 전체 확인해보니 `Sidebar.tsx`는 앱 어디서도 import 안 되는 **완전 죽은 코드**(`04c7567` 커밋에서 좌측 사이드바→상단 네비바로 갈아탈 때 남겨진 잔재로 추정). 헛수고분 `git checkout -- Sidebar.tsx` + `rm CommandPalette.tsx`로 되돌리고, 진짜 대상인 `components/console/CommandRail.tsx`(`app/layout.tsx`에서 렌더되는 좌측 레일, 콘솔 7그룹+터미널 5그룹 합쳐 약 70개 링크가 전부 상시 펼쳐진 채 스크롤 하나에 쌓여있었음 — "사이드바에 페이지 너무 많다" 불만의 실제 원인)로 재작업.
+- `components/console/CommandRail.tsx` — 그룹별 아코디언 접기/펼치기 추가. 기본은 현재 라우트가 속한 그룹만 펼침(active-group auto-expand), 수동으로 펼친/접은 상태는 `localStorage`(`commandRailOpenGroups`) 유지. 아이템 1개짜리 그룹(Investment OS 등)은 아코디언 없이 바로 링크로 축약.
+- `components/console/CommandPalette.tsx`(신규) — Cmd/Ctrl+K 검색 팔레트. `ALL_GROUPS`(`CONSOLE_GROUPS`+`TERMINAL_GROUPS`) 평탄화해서 라벨/그룹명/href로 필터, 화살표+Enter로 즉시 라우팅. `.console-shell` CSS 커스텀 프로퍼티 디자인 토큰(`--c-panel`/`--c-hud` 등) 사용 — 메인 앱 Tailwind 토큰 규칙과 별개 시스템이라 프로젝트 CLAUDE.md의 `bg-bg/panel` 등 규칙 대상 아님.
+- 검증: `npx tsc --noEmit` clean, `npx vitest run` 27 files/305 tests 전부 통과, 브라우저로 `/hud`·`/signal` 라이브 테스트(레일 접기/펼치기, 아코디언 토글, active-group 자동펼침, Cmd+K 검색→이동, 콘솔 에러 0건) 확인.
+- `seokminal-multi-venue` 쪽: pytest 실패 6건(asyncio import 누락 1건 + 테스트 격리 4건 + assertion 갱신 1건) 수정 커밋(`0234faa`) — 상세는 그쪽 progress.md 참조.
+
+### 변경된 파일
+- `components/console/CommandRail.tsx` (수정)
+- `components/console/CommandPalette.tsx` (신규)
+- `components/Sidebar.tsx` — 최종적으로 무변경(헛수고분 되돌림), **죽은 코드로 확정, 다음 세션에서 삭제 후보**
+
+### 다음 할 일
+- `components/Sidebar.tsx`(및 그 안의 미사용 `IconDiscovery`/`IconStrategy`) 삭제 여부 — 이번 세션엔 남의 미완성 작업일 가능성 배제 못 해서 안 건드림, 확인 후 삭제 검토.
+- `roadmap.md`에 존재하지 않는 `components/NavBar.tsx` 참조 남아있음 — `CommandRail.tsx`로 갱신 필요.
+- `CONSOLE_GROUPS`/`TERMINAL_GROUPS` 두 계층이 중복 성격 있어보임(콘솔 신규 OS vs 레거시 터미널) — 통폐합은 이번엔 스코프 밖(유저 판단 필요한 IA 결정이라 임의로 안 건드림).
+
+---
+
 ## Phase 186 — CPU 발열 원인(vitest 좀비 프로세스) 진단·제거 (2026-07-30) ✅ 완료
 
 세션 중 유저가 "컴퓨터 왜 이렇게 뜨거워?" 질문 → `ps -Ao pcpu` 스캔으로 원인 특정: `--reload` 상시가동(기존 known 발열원)은 이번엔 안 켜져 있었음, 실제 범인은 `seokminal-dashboard`의 vitest fork worker(`node .../vitest/dist/workers/forks.js`, pid 78025) — 오래된 `npm test` watch 세션이 안 닫힌 채 CPU 100% 고정으로 9시간12분째 방치.
