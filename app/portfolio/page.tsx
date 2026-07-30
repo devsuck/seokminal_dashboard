@@ -144,7 +144,7 @@ function HLPositions({ positions }: { positions: HLAssetPosition[] }) {
               <td className="py-1 text-text-1 font-medium">{pos.coin}</td>
               <td className="py-1">
                 <span className={`text-[9px] px-1 py-0.5 rounded ${isLong ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>
-                  {isLong ? "LONG" : "SHORT"}
+                  {isLong ? "롱" : "숏"}
                 </span>
               </td>
               <td className="py-1 font-mono text-text-2">{Math.abs(szi)}</td>
@@ -334,7 +334,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader kicker="ACCOUNTS · 연동 계좌" title="Portfolio"
+      <PageHeader kicker="계좌현황 · 연동 계좌" title="포트폴리오"
         right={
           <SegmentedToggle
             value={tab}
@@ -355,10 +355,10 @@ export default function PortfolioPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4 items-start">
               {/* LEFT — currency totals, quick nav */}
               <div className="space-y-3">
-                <FinancialMetric label="USD Total" value={usdTotal} format="currency" precision={0} size="md" />
-                {krwTotal != null && <FinancialMetric label="KRW Total" value={krwTotal} format="currency" precision={0} size="md" />}
-                {eurTotal != null && <FinancialMetric label="EUR Total" value={eurTotal} format="currency" precision={0} size="md" />}
-                {usdcTotal != null && <FinancialMetric label="USDC Total" value={usdcTotal} format="currency" precision={0} size="md" />}
+                <FinancialMetric label="USD 합계" value={usdTotal} format="currency" precision={0} size="md" />
+                {krwTotal != null && <FinancialMetric label="KRW 합계" value={krwTotal} format="currency" precision={0} size="md" />}
+                {eurTotal != null && <FinancialMetric label="EUR 합계" value={eurTotal} format="currency" precision={0} size="md" />}
+                {usdcTotal != null && <FinancialMetric label="USDC 합계" value={usdcTotal} format="currency" precision={0} size="md" />}
               </div>
 
               {/* CENTER — account cards by currency, main workspace */}
@@ -418,7 +418,7 @@ export default function PortfolioPage() {
 
               {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
               <Panel>
-                <PanelHead kicker="Composition" title="Venue Breakdown" />
+                <PanelHead kicker="구성" title="거래소별 분포" />
                 <div className="p-2">
                   {compositionRows.length === 0 ? (
                     <p className="text-[var(--c-text-3)] text-xs p-2">연동 계좌 없음</p>
@@ -429,10 +429,10 @@ export default function PortfolioPage() {
                       keyFn={(r) => `${r.venue}-${r.ccy}`}
                       defaultSort={{ key: "balance", dir: "desc" }}
                       columns={[
-                        { key: "venue", label: "Venue" },
-                        { key: "ccy", label: "CCY" },
-                        { key: "balance", label: "Balance", align: "r", sortable: true, render: (r) => fmt(r.balance, r.ccy, true) },
-                        { key: "share", label: "Share", align: "r", sortable: true, render: (r) => `${(r.share * 100).toFixed(1)}%` },
+                        { key: "venue", label: "거래소" },
+                        { key: "ccy", label: "통화" },
+                        { key: "balance", label: "잔고", align: "r", sortable: true, render: (r) => fmt(r.balance, r.ccy, true) },
+                        { key: "share", label: "비중", align: "r", sortable: true, render: (r) => `${(r.share * 100).toFixed(1)}%` },
                       ]}
                     />
                   )}

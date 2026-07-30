@@ -19,8 +19,8 @@ function statusStyle(s: string): string {
 }
 
 function metricOf(e: Experiment): string {
-  if (typeof e.sharpe === "number") return `Sharpe ${e.sharpe}`;
-  if (typeof e.net_pnl === "number") return `net ${e.net_pnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  if (typeof e.sharpe === "number") return `샤프 ${e.sharpe}`;
+  if (typeof e.net_pnl === "number") return `순손익 ${e.net_pnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   return "—";
 }
 
@@ -93,7 +93,7 @@ export default function ValidationPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-text-1">Strategy Validation Terminal</h1>
+        <h1 className="text-xl font-semibold text-text-1">전략 검증 터미널</h1>
         <p className="text-text-3 text-sm mt-1">
           당신의 전략이 진짜 엣지인지, 랜덤인지, 비용 후 죽는지 검증한다. — 알파 주장 아님, 검증 결과.
         </p>
@@ -199,20 +199,20 @@ function TsmomPanel({ t }: { t: TsmomForward }) {
       <PanelHeader right={
         <span className="flex items-center gap-2 normal-case tracking-normal font-normal">
           <span className="px-2 py-0.5 rounded border border-pos text-pos bg-black/10 text-[10px]">{t.status}</span>
-          <span>as of {t.as_of} · ⚠ PAPER, NO LIVE</span>
+          <span>기준일 {t.as_of} · ⚠ 페이퍼, 실거래 아님</span>
         </span>
       }>
         {t.version}
       </PanelHeader>
       <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Metric label="Backtest Sharpe" value={fmt(env.sharpe, 2)} tone="pos" />
-        <Metric label="Max Drawdown" value={fmt(env.max_drawdown, 3)} tone="neg" />
+        <Metric label="백테스트 샤프" value={fmt(env.sharpe, 2)} tone="pos" />
+        <Metric label="최대 낙폭" value={fmt(env.max_drawdown, 3)} tone="neg" />
         <Metric label="월수익 P10 / P90" value={`${fmt(env.monthly_p10, 3)} / ${fmt(env.monthly_p90, 3)}`} />
-        <Metric label="Trend Regime" value={`${fmt(t.trend_regime.regime_score, 2)} (${fmt((t.trend_regime.trending_frac ?? 0) * 100, 0)}%)`} />
-        <Metric label="Cost base / 20bps" value={`${fmt(t.cost.base_sharpe, 2)} / ${fmt(t.cost.stress_sharpe, 2)}`} />
-        <Metric label="Avg Turnover" value={fmt(env.avg_turnover, 2)} />
-        <Metric label="Universe" value={`${t.config_frozen.universe_n} 시장`} />
-        <Metric label="Rebalance" value={`${t.config_frozen.rebalance_days}d`} />
+        <Metric label="추세 레짐" value={`${fmt(t.trend_regime.regime_score, 2)} (${fmt((t.trend_regime.trending_frac ?? 0) * 100, 0)}%)`} />
+        <Metric label="비용 기준 / 20bps 스트레스" value={`${fmt(t.cost.base_sharpe, 2)} / ${fmt(t.cost.stress_sharpe, 2)}`} />
+        <Metric label="평균 회전율" value={fmt(env.avg_turnover, 2)} />
+        <Metric label="유니버스" value={`${t.config_frozen.universe_n} 시장`} />
+        <Metric label="리밸런싱" value={`${t.config_frozen.rebalance_days}d`} />
       </div>
 
       {/* Sleeve contribution */}
@@ -275,7 +275,7 @@ function XauSessionPanel({ x }: { x: XauSessionSummary }) {
               <tr className="text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
                 <th className="px-2 py-1 text-left font-medium">심볼</th>
                 <th className="px-2 py-1 text-right font-medium">봉수</th>
-                <th className="px-2 py-1 text-right font-medium">tick</th>
+                <th className="px-2 py-1 text-right font-medium">틱</th>
                 <th className="px-2 py-1 text-right font-medium">트레이드</th>
                 <th className="px-2 py-1 text-right font-medium">승률</th>
                 <th className="px-2 py-1 text-right font-medium">PF</th>

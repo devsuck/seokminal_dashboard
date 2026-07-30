@@ -51,7 +51,7 @@ function ChartBlockView({ block }: { block: ChartBlock }) {
       {block.title && <div className="text-text-3 text-xs mb-2">{block.title}</div>}
       {block.data.length === 0 ? (
         <div className="h-[180px] bg-panel-2 rounded flex items-center justify-center text-text-3 text-xs">
-          No data
+          데이터 없음
         </div>
       ) : (
         <div ref={containerRef} className="w-full rounded overflow-hidden" />
@@ -126,7 +126,7 @@ export function NoteBlockRenderer({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={block.src}
-            alt={block.alt || "notebook image"}
+            alt={block.alt || "노트 이미지"}
             className="max-w-full h-auto rounded border border-border"/>
         );
     }
@@ -148,7 +148,7 @@ export function NoteBlockRenderer({
           )}
           {onEdit && (
             <button onClick={onEdit} className="text-[10px] px-1.5 h-5 bg-panel-2 border border-border rounded text-text-3 hover:text-text-1 cursor-pointer transition-colors">
-              Edit
+              편집
             </button>
           )}
           {onDelete && (

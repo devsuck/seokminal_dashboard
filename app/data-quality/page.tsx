@@ -18,75 +18,75 @@ interface SourceMeta {
 const STATIC_SOURCES: SourceMeta[] = [
   {
     source: "KIS (KRX)",
-    type: "Price / OHLCV",
+    type: "가격/OHLCV",
     coverageFrom: "2020-01-01",
-    coverageTo: "Present",
-    updateFreq: "Daily",
-    corpActions: "No",
-    notes: "Korean equities. Requires KIS token.",
+    coverageTo: "현재",
+    updateFreq: "매일",
+    corpActions: "아니오",
+    notes: "한국 주식. KIS 토큰 필요.",
   },
   {
     source: "IB (US)",
-    type: "Price / OHLCV",
+    type: "가격/OHLCV",
     coverageFrom: "2020-01-01",
-    coverageTo: "Present",
-    updateFreq: "Daily",
-    corpActions: "No",
-    notes: "US equities via Interactive Brokers.",
+    coverageTo: "현재",
+    updateFreq: "매일",
+    corpActions: "아니오",
+    notes: "Interactive Brokers를 통한 미국 주식.",
   },
   {
     source: "FRED",
-    type: "Macro",
+    type: "매크로",
     coverageFrom: "1960+",
-    coverageTo: "Present",
-    updateFreq: "Monthly / Weekly",
-    corpActions: "N/A",
-    notes: "14 US macro series.",
+    coverageTo: "현재",
+    updateFreq: "월간/주간",
+    corpActions: "해당없음",
+    notes: "미국 매크로 지표 14종.",
   },
   {
     source: "ECOS",
-    type: "Macro",
+    type: "매크로",
     coverageFrom: "1960+",
-    coverageTo: "Present",
-    updateFreq: "Monthly",
-    corpActions: "N/A",
-    notes: "14 Korean macro series (Bank of Korea).",
+    coverageTo: "현재",
+    updateFreq: "월간",
+    corpActions: "해당없음",
+    notes: "한국 매크로 지표 14종 (한국은행).",
   },
   {
     source: "SEC EDGAR",
-    type: "Fundamentals",
+    type: "펀더멘털",
     coverageFrom: "2000+",
-    coverageTo: "Present",
-    updateFreq: "Annual / Quarterly",
-    corpActions: "N/A",
-    notes: "US company XBRL filings. Free, no key.",
+    coverageTo: "현재",
+    updateFreq: "연간/분기",
+    corpActions: "해당없음",
+    notes: "미국 기업 XBRL 공시. 무료, 키 불필요.",
   },
   {
     source: "FSC (Corp Finance)",
-    type: "Fundamentals",
+    type: "펀더멘털",
     coverageFrom: "2015+",
-    coverageTo: "Present",
-    updateFreq: "Annual",
-    corpActions: "N/A",
-    notes: "Korean corp finance via 금융위원회. crno required.",
+    coverageTo: "현재",
+    updateFreq: "연간",
+    corpActions: "해당없음",
+    notes: "금융위원회를 통한 한국 기업 재무정보. crno 필요.",
   },
   {
     source: "KSD",
-    type: "Corporate Events",
-    coverageFrom: "Rolling 30d",
-    coverageTo: "Present",
-    updateFreq: "Daily",
-    corpActions: "N/A",
-    notes: "Dividend, rights schedule, borrow rank.",
+    type: "기업행위 이벤트",
+    coverageFrom: "최근 30일 롤링",
+    coverageTo: "현재",
+    updateFreq: "매일",
+    corpActions: "해당없음",
+    notes: "배당, 유상증자 일정, 대차 순위.",
   },
   {
     source: "KRX OpenAPI",
-    type: "Market Data",
+    type: "시장 데이터",
     coverageFrom: "—",
     coverageTo: "—",
-    updateFreq: "Daily",
-    corpActions: "N/A",
-    notes: "KRX listing, index data. Requires API key approval.",
+    updateFreq: "매일",
+    corpActions: "해당없음",
+    notes: "KRX 상장, 지수 데이터. API 키 승인 필요.",
   },
 ];
 
@@ -154,7 +154,7 @@ export default function DataQualityPage() {
             lastDate: null,
             expectedBars: expected,
             missingPct: 100,
-            error: err instanceof ApiError ? err.message : "Failed",
+            error: err instanceof ApiError ? err.message : "실패",
           };
         }
         const bars = r.value.bars;
@@ -193,20 +193,20 @@ export default function DataQualityPage() {
   return (
     <div className="p-6 space-y-6 max-w-[1200px]">
       <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Data Quality Center</h1>
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">데이터 품질 센터</h1>
         <p className="text-text-3 text-sm mt-0.5">
-          Source metadata and per-instrument bar coverage.
+          소스 메타데이터와 종목별 바 데이터 커버리지.
         </p>
       </div>
 
       {/* Source metadata table */}
       <Panel>
-        <PanelHeader>Data Sources</PanelHeader>
+        <PanelHeader>데이터 소스</PanelHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border">
-                {["Source", "Type", "From", "To", "Freq", "Corp Actions", "Notes"].map(h => (
+                {["소스", "유형", "시작", "종료", "주기", "기업행위", "비고"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-text-3 text-[10px] uppercase tracking-wider font-medium whitespace-nowrap">
                     {h}
                   </th>
@@ -237,16 +237,16 @@ export default function DataQualityPage() {
       <div className="bg-panel border border-border rounded-lg p-4 space-y-3">
         <div className="space-y-1">
           <label className="text-text-3 text-[11px] uppercase tracking-wider">
-            Instrument Coverage Check
+            종목 커버리지 확인
           </label>
           <p className="text-text-3 text-[11px]">
-            Checks {COVERAGE_START} → {COVERAGE_END}. Expected ~{calcExpected(COVERAGE_START, COVERAGE_END)} trading days.
+            {COVERAGE_START} → {COVERAGE_END} 확인. 예상 거래일 약 {calcExpected(COVERAGE_START, COVERAGE_END)}일.
           </p>
         </div>
         <div className="flex gap-2 items-end flex-wrap">
           <div className="space-y-1 flex-1 min-w-[260px]">
             <label className="text-text-3 text-[11px] uppercase tracking-wider">
-              Instrument IDs (comma-separated)
+              종목 ID (쉼표로 구분)
             </label>
             <input
               value={instrumentsInput}
@@ -254,14 +254,14 @@ export default function DataQualityPage() {
               placeholder="005930.XKRX, AAPL.NASDAQ"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-full"/>
           </div>
           <Button variant="primary" size="sm" onClick={check} disabled={loading}>
-            {loading ? "Checking…" : "Check Coverage"}
+            {loading ? "확인 중…" : "커버리지 확인"}
           </Button>
         </div>
       </div>
 
       {checked && results.length > 0 && (
         <Panel>
-          <PanelHeader>Coverage Results</PanelHeader>
+          <PanelHeader>커버리지 결과</PanelHeader>
           <div className="divide-y divide-border/50">
             {results.map(r => (
               <div key={r.instrumentId} className="px-4 py-3 space-y-2">
@@ -271,10 +271,10 @@ export default function DataQualityPage() {
                     <span className="text-neg text-xs">{r.error}</span>
                   ) : (
                     <div className="flex gap-4 text-xs font-data text-text-3 flex-wrap">
-                      <span><span className="text-text-2">{r.barCount}</span> bars</span>
-                      <span>Expected <span className="text-text-2">{r.expectedBars}</span></span>
+                      <span><span className="text-text-2">{r.barCount}</span>개 봉</span>
+                      <span>예상 <span className="text-text-2">{r.expectedBars}</span>개</span>
                       <span>
-                        Missing{" "}
+                        누락{" "}
                         <span className={`px-1 font-bold ${r.missingPct === 0 ? "bg-pos/20 text-pos" : r.missingPct < 10 ? "bg-warn/20 text-warn" : "bg-neg/20 text-neg"}`}>
                           {r.missingPct.toFixed(1)}%
                         </span>
@@ -301,7 +301,7 @@ export default function DataQualityPage() {
 
       {!checked && !loading && (
         <div className="text-center py-8 text-text-3 text-sm">
-          Enter instrument IDs and click Check Coverage to audit bar data completeness.
+          종목 ID를 입력하고 커버리지 확인을 눌러 바 데이터 완전성을 점검하세요.
         </div>
       )}
     </div>

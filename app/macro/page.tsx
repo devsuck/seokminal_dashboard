@@ -65,9 +65,9 @@ function regimeScore(metrics: MacroMetricState[]): number {
 }
 
 function regimeLabel(score: number): { label: string; cls: string; bg: string } {
-  if (score >= 65) return { label: "Risk-On", cls: "text-pos", bg: "bg-pos/20" };
-  if (score <= 35) return { label: "Risk-Off", cls: "text-neg", bg: "bg-neg/20" };
-  return { label: "Neutral", cls: "text-warn", bg: "bg-warn/20" };
+  if (score >= 65) return { label: "리스크온", cls: "text-pos", bg: "bg-pos/20" };
+  if (score <= 35) return { label: "리스크오프", cls: "text-neg", bg: "bg-neg/20" };
+  return { label: "중립", cls: "text-warn", bg: "bg-warn/20" };
 }
 
 function LiveMacroPanel({ market }: { market: Market }) {

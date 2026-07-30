@@ -90,7 +90,7 @@ export function SearchTab({ onGoToChart }: SearchTabProps) {
           type="text"value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKey}
-          placeholder={venue === "KR" ? "종목명 또는 코드 (삼성, 005930)" : "Symbol or name (AAPL, Apple)"}
+          placeholder={venue === "KR" ? "종목명 또는 코드 (삼성, 005930)" : "종목명 또는 심볼 (AAPL, Apple)"}
           className="flex-1 h-8 px-3 text-sm bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"autoFocus
         />
 

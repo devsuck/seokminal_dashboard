@@ -44,7 +44,7 @@ export function AlertPoller() {
           seenIds.current.add(key);
           if (!isInit) {
             toast.show(` ${a.rule_label}: ${a.detail}`, "warn", 8000);
-            sendPushNotification("NAUTILUS Alert", `${a.rule_label}: ${a.detail}`);
+            sendPushNotification("NAUTILUS 알림", `${a.rule_label}: ${a.detail}`);
           }
         }
       } catch {

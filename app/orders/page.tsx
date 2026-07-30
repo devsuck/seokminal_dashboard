@@ -8,6 +8,16 @@ import { Panel, PanelHeader } from "@/components/ui/Panel";
 const VENUES = ["ALL", "KR", "US", "US_OPTIONS"] as const;
 const STATUSES = ["ALL", "OPEN", "PARTIALLY_FILLED", "FILLED", "CANCELLED", "REJECTED"] as const;
 
+const VENUE_LABEL: Record<string, string> = { ALL: "전체" };
+const STATUS_LABEL: Record<string, string> = {
+  ALL: "전체",
+  OPEN: "미체결",
+  PARTIALLY_FILLED: "부분체결",
+  FILLED: "체결완료",
+  CANCELLED: "취소",
+  REJECTED: "거부",
+};
+
 const STATUS_STYLE: Record<string, string> = {
   OPEN: "text-info bg-info/10 border-info/30",
   PARTIALLY_FILLED: "text-warn bg-warn/10 border-warn/30",
@@ -61,14 +71,14 @@ export default function OrdersOmsPage() {
           value={venue}
           onChange={setVenue}
           size="sm"
-          options={VENUES.map(v => ({ value: v, label: v }))}
+          options={VENUES.map(v => ({ value: v, label: VENUE_LABEL[v] ?? v }))}
         />
         <div className="w-px bg-border" />
         <div className="flex gap-1">
           {STATUSES.map(s => (
             <button key={s} onClick={() => setStatus(s)}
               className={`px-2.5 py-1 rounded border ${status === s ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-1"}`}>
-              {s}
+              {STATUS_LABEL[s] ?? s}
             </button>
           ))}
         </div>
@@ -94,7 +104,7 @@ export default function OrdersOmsPage() {
                       <span className="text-text-3 w-24 shrink-0 font-data">{o.venue}</span>
                       <span className="text-text-1 w-28 shrink-0 font-data truncate">{o.order_id}</span>
                       <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
-                        {o.status}
+                        {STATUS_LABEL[o.status] ?? o.status}
                       </span>
                       <div className="flex-1 h-1.5 bg-panel-2 rounded-full overflow-hidden">
                         <div className="h-full bg-accent rounded-full" style={{ width: `${pct}%` }} />
@@ -111,7 +121,7 @@ export default function OrdersOmsPage() {
                           {o.history.map((h, i) => (
                             <div key={i} className="flex gap-3 font-data text-[11px] text-text-3">
                               <span className="w-40 shrink-0">{fmtTs(h.ts)}</span>
-                              <span className={`w-28 shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{h.status}</span>
+                              <span className={`w-28 shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
                               <span>{h.filled}/{h.filled + h.remaining}</span>
                             </div>
                           ))}

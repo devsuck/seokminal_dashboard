@@ -62,7 +62,7 @@ function VenueCard({ v }: { v: VenuePnl }) {
 
       {pnlCurve.length > 0 && (
         <div className="p-3 border-b border-border/50">
-          <ChartFrame title="누적 실현손익 추이" caption="체결 원장 running-sum (gross, 수수료 전)">
+          <ChartFrame title="누적 실현손익 추이" caption="체결 원장 누적합(총액, 수수료 전)">
             <TimeSeries series={pnlCurve} height={160} yFormat={(x) => x.toFixed(0)} />
           </ChartFrame>
         </div>

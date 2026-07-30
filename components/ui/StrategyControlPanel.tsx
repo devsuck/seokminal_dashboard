@@ -33,19 +33,19 @@ export function StrategyControlPanel({
       <div className="flex flex-wrap items-center gap-3">
         {/* Symbol */}
         <div className="flex items-center gap-2">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">Symbol</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider">종목</span>
           <InstrumentSelect value={instrumentId} onChange={onInstrumentChange} />
         </div>
 
         {/* Date range */}
         <div className="flex items-center gap-2">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">Date</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider">기간</span>
           <DateRangePicker start={start} end={end} onStartChange={onStartChange} onEndChange={onEndChange} />
         </div>
 
         {/* Timeframe */}
         <div className="flex items-center gap-2">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">TF</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider">주기</span>
           <div className="flex gap-0.5">
             {TIMEFRAMES.map(tf => (
               <button
@@ -65,7 +65,7 @@ export function StrategyControlPanel({
 
         {/* Benchmark */}
         <div className="flex items-center gap-2">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider">Bench</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider">벤치마크</span>
           <select value={benchmarkId} onChange={e => onBenchmarkChange(e.target.value)}>
             {BENCHMARKS.map(b => (
               <option key={b.value} value={b.value}>{b.label}</option>
@@ -78,7 +78,7 @@ export function StrategyControlPanel({
           onClick={onRun}
           disabled={loading}
           className="ml-auto px-5 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-0">
-          {loading ? "Running…" : "Run"}
+          {loading ? "실행 중…" : "실행"}
         </button>
       </div>
 

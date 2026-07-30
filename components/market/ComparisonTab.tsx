@@ -49,7 +49,7 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
       setData(newData);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed to load comparison data");
+      setError(e instanceof ApiError ? e.message : "비교 데이터를 불러오지 못했습니다");
     } finally { setLoading(false); }
   }
 
@@ -67,13 +67,13 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">Date</span>
+        <span className="text-text-3 text-[11px] uppercase tracking-wider">날짜</span>
         <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         <button
           onClick={loadData}
           disabled={loading || symbols.length === 0}
           className="px-4 h-9 bg-accent text-black text-sm font-semibold rounded-md cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-40 disabled:cursor-not-allowed">
-          {loading ? "Loading…" : "Compare"}
+          {loading ? "불러오는 중…" : "비교"}
         </button>
       </div>
 
@@ -100,11 +100,11 @@ export function ComparisonTab({ symbols }: ComparisonTabProps) {
 
       {symbols.length === 0 ? (
         <div className="bg-panel border border-border rounded-lg h-[480px] flex items-center justify-center">
-          <p className="text-text-3 text-sm">Add symbols to your watchlist to compare</p>
+          <p className="text-text-3 text-sm">비교하려면 워치리스트에 종목을 추가하세요</p>
         </div>
       ) : (
         <Panel>
-          <PanelHeader>Normalized Return (%)</PanelHeader>
+          <PanelHeader>정규화 수익률 (%)</PanelHeader>
           <ComparisonChart data={data} symbols={chartSymbols} />
         </Panel>
       )}

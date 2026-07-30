@@ -34,7 +34,7 @@ function NoteCell({
           if (e.key === "Enter") { onUpdate(value); setEditing(false); }
           if (e.key === "Escape") { setValue(experiment.notes); setEditing(false); }
         }}
-        className="w-full bg-panel-2 border border-border text-text-1 text-xs px-1.5 py-0.5 rounded outline-none focus:border-border"placeholder="Add note…"/>
+        className="w-full bg-panel-2 border border-border text-text-1 text-xs px-1.5 py-0.5 rounded outline-none focus:border-border"placeholder="메모 추가…"/>
     );
   }
 
@@ -42,7 +42,7 @@ function NoteCell({
     <span
       onClick={() => setEditing(true)}
       className="text-text-3 text-xs italic cursor-text hover:text-text-2 transition-colors block truncate max-w-[160px]">
-      {value || "Add note…"}
+      {value || "메모 추가…"}
     </span>
   );
 }
@@ -60,11 +60,11 @@ function fmtNum(v: number | null): string {
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return "방금 전";
+  if (m < 60) return `${m}분 전`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h}시간 전`;
+  return `${Math.floor(h / 24)}일 전`;
 }
 
 export function ExperimentTable({
@@ -118,7 +118,7 @@ export function ExperimentTable({
   if (experiments.length === 0) {
     return (
       <div className="text-center py-12 text-text-3 text-sm">
-        No experiments yet. Run a backtest to save your first experiment.
+        아직 실험이 없습니다. 백테스트를 실행하면 첫 실험이 저장됩니다.
       </div>
     );
   }
@@ -130,10 +130,10 @@ export function ExperimentTable({
         <input
           type="text"value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by label or symbol…"className="h-8 w-64 px-3 text-xs bg-panel-2 border border-border rounded-md text-text-1 placeholder:text-text-3 outline-none focus:border-border"/>
+          placeholder="라벨 또는 종목으로 검색…"className="h-8 w-64 px-3 text-xs bg-panel-2 border border-border rounded-md text-text-1 placeholder:text-text-3 outline-none focus:border-border"/>
         <span className="text-text-3 text-xs font-data">{filtered.length} / {experiments.length}</span>
         {selected.length > 0 && (
-          <span className="text-info text-xs">{selected.length} selected for compare</span>
+          <span className="text-info text-xs">비교용으로 {selected.length}개 선택됨</span>
         )}
       </div>
 
@@ -143,14 +143,14 @@ export function ExperimentTable({
           <thead>
             <tr className="bg-panel-2 border-b border-border">
               <th className="px-3 py-2 w-8" />
-              <th className="px-3 py-2 text-left"><SortBtn label="Label" k="timestamp" /></th>
-              <th className="px-3 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">Period</th>
-              <th className="px-3 py-2 text-right"><SortBtn label="Sharpe" k="sharpe" /></th>
-              <th className="px-3 py-2 text-right"><SortBtn label="Win%" k="winRate" /></th>
-              <th className="px-3 py-2 text-right"><SortBtn label="Return" k="totalPnlPct" /></th>
-              <th className="px-3 py-2 text-right"><SortBtn label="MaxDD" k="maxDrawdown" /></th>
-              <th className="px-3 py-2 text-right text-text-3 font-normal text-[10px] uppercase tracking-wider">Trades</th>
-              <th className="px-3 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">Notes</th>
+              <th className="px-3 py-2 text-left"><SortBtn label="라벨" k="timestamp" /></th>
+              <th className="px-3 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">기간</th>
+              <th className="px-3 py-2 text-right"><SortBtn label="샤프" k="sharpe" /></th>
+              <th className="px-3 py-2 text-right"><SortBtn label="승률" k="winRate" /></th>
+              <th className="px-3 py-2 text-right"><SortBtn label="수익률" k="totalPnlPct" /></th>
+              <th className="px-3 py-2 text-right"><SortBtn label="최대낙폭" k="maxDrawdown" /></th>
+              <th className="px-3 py-2 text-right text-text-3 font-normal text-[10px] uppercase tracking-wider">거래수</th>
+              <th className="px-3 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">메모</th>
               <th className="px-3 py-2 w-8" />
             </tr>
           </thead>
@@ -212,7 +212,7 @@ export function ExperimentTable({
                   <td className="px-3 py-2 text-center">
                     <button
                       onClick={() => onDelete(exp.id)}
-                      className="text-text-3 hover:text-neg text-xs bg-transparent border-0 cursor-pointer transition-colors p-0"title="Delete experiment">
+                      className="text-text-3 hover:text-neg text-xs bg-transparent border-0 cursor-pointer transition-colors p-0"title="실험 삭제">
                       ×
                     </button>
                   </td>

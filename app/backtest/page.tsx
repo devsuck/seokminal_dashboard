@@ -129,7 +129,7 @@ function BacktestPageInner() {
     abortRef.current = ctrl;
     setLoading(true); setError(null);
     try {
-      if (rules.length === 0) { setError("최소 1개 이상의 Rule 필요"); setLoading(false); return; }
+      if (rules.length === 0) { setError("최소 1개 이상의 규칙 필요"); setLoading(false); return; }
       const strategy = "gated";
       const strategyParams: Record<string, string> = { spawn_rules: JSON.stringify(buildSpawnRules(rules, instrumentId)) };
       const [barsRes, btRes] = await Promise.all([
@@ -138,7 +138,7 @@ function BacktestPageInner() {
       ]);
       setBars(barsRes.bars);
       setResult(btRes);
-      const sharpeStr = btRes.sharpe_ratio != null ? ` | Sharpe ${btRes.sharpe_ratio.toFixed(2)}` : "";
+      const sharpeStr = btRes.sharpe_ratio != null ? ` | 샤프 ${btRes.sharpe_ratio.toFixed(2)}` : "";
       const pnlStr = btRes.total_pnl_pct != null ? ` | PnL ${btRes.total_pnl_pct >= 0 ? "+" : ""}${btRes.total_pnl_pct.toFixed(1)}%` : "";
       toast.show(`백테스트 완료 ${sharpeStr}${pnlStr}`, "success");
       setSaveLabel(`${instrumentId} Gated(${rules.length}R) ${start}→${end}`);
@@ -178,7 +178,7 @@ function BacktestPageInner() {
 
     const ids = portfolioInstruments.split(",").map(s => s.trim()).filter(Boolean);
     if (ids.length === 0) {
-      setPortfolioError("Enter at least one instrument ID");
+      setPortfolioError("종목 ID를 최소 1개 입력하세요");
       if (!ctrl.signal.aborted) setPortfolioLoading(false);
       return;
     }
@@ -203,7 +203,7 @@ function BacktestPageInner() {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
       if (!ctrl.signal.aborted) {
-        setPortfolioError(err instanceof ApiError ? err.message : "Portfolio backtest failed");
+        setPortfolioError(err instanceof ApiError ? err.message : "포트폴리오 백테스트 실패");
       }
     } finally {
       if (!ctrl.signal.aborted) setPortfolioLoading(false);
@@ -264,15 +264,15 @@ function BacktestPageInner() {
       {/* Page title */}
       <div className="flex justify-end gap-4 text-xs">
         <Link href="/experiments" className="text-text-3 hover:text-accent no-underline transition-colors">
-          Experiments →
+          실험 →
         </Link>
         <Link href="/backtest/heatmap" className="text-text-3 hover:text-accent no-underline transition-colors">
-          Heatmap →
+          히트맵 →
         </Link>
         <button
           onClick={() => setShowSaveStrategy(v => !v)}
           className="text-text-3 hover:text-accent text-xs bg-transparent border-0 cursor-pointer transition-colors">
-          Save Strategy
+          전략 저장
         </button>
       </div>
 
@@ -297,7 +297,7 @@ function BacktestPageInner() {
             <div className="space-y-4">
               {/* Instruments */}
               <div className="flex flex-col gap-1">
-                <label className="text-text-3 text-xs">Instrument IDs (comma-separated)</label>
+                <label className="text-text-3 text-xs">종목 ID (쉼표로 구분)</label>
                 <input
                   value={portfolioInstruments}
                   onChange={e => setPortfolioInstruments(e.target.value)}
@@ -311,43 +311,43 @@ function BacktestPageInner() {
                 onChange={setStrategyType}
                 options={(["ema_cross", "macd", "rsi"] as const).map(s => ({
                   value: s,
-                  label: s === "ema_cross" ? "EMA Cross" : s.toUpperCase(),
+                  label: s === "ema_cross" ? "EMA 크로스" : s.toUpperCase(),
                 }))}
               />
 
               {/* Strategy params */}
               {strategyType === "macd" && (
                 <div className="flex gap-3 items-center flex-wrap">
-                  <label className="text-text-3 text-xs">Fast</label>
+                  <label className="text-text-3 text-xs">단기</label>
                   <input type="number" value={macdFast} onChange={e => setMacdFast(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
-                  <label className="text-text-3 text-xs">Slow</label>
+                  <label className="text-text-3 text-xs">장기</label>
                   <input type="number" value={macdSlow} onChange={e => setMacdSlow(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
-                  <label className="text-text-3 text-xs">Signal</label>
+                  <label className="text-text-3 text-xs">시그널</label>
                   <input type="number" value={macdSignal} onChange={e => setMacdSignal(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
                 </div>
               )}
               {strategyType === "rsi" && (
                 <div className="flex gap-3 items-center flex-wrap">
-                  <label className="text-text-3 text-xs">Period</label>
+                  <label className="text-text-3 text-xs">기간</label>
                   <input type="number" value={rsiPeriod} onChange={e => setRsiPeriod(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
-                  <label className="text-text-3 text-xs">Oversold</label>
+                  <label className="text-text-3 text-xs">과매도</label>
                   <input type="number" value={rsiOversold} onChange={e => setRsiOversold(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
-                  <label className="text-text-3 text-xs">Overbought</label>
+                  <label className="text-text-3 text-xs">과매수</label>
                   <input type="number" value={rsiOverbought} onChange={e => setRsiOverbought(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
                 </div>
               )}
               {strategyType === "ema_cross" && (
                 <div className="flex gap-3 items-center flex-wrap">
-                  <label className="text-text-3 text-xs">Fast</label>
+                  <label className="text-text-3 text-xs">단기</label>
                   <input type="number" value={fast} onChange={e => setFast(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
-                  <label className="text-text-3 text-xs">Slow</label>
+                  <label className="text-text-3 text-xs">장기</label>
                   <input type="number" value={slow} onChange={e => setSlow(Number(e.target.value))}
                     className="bg-panel border border-border rounded px-1 py-0.5 text-text-1 text-sm w-12" />
                 </div>
@@ -355,7 +355,7 @@ function BacktestPageInner() {
 
               {/* Run button */}
               <Button variant="primary" onClick={runPortfolio} disabled={portfolioLoading}>
-                {portfolioLoading ? "Running…" : "Run Portfolio Backtest"}
+                {portfolioLoading ? "실행 중…" : "포트폴리오 백테스트 실행"}
               </Button>
 
               {portfolioError && (
@@ -368,7 +368,7 @@ function BacktestPageInner() {
                   {/* Portfolio stats */}
                   <div className="flex gap-6 flex-wrap">
                     <div>
-                      <p className="text-text-3 text-xs">Total PnL</p>
+                      <p className="text-text-3 text-xs">총 PnL</p>
                       <p className={`text-sm font-medium ${portfolioResult.portfolio_total_pnl != null ? `inline-block px-1 font-bold ${portfolioResult.portfolio_total_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}` : "text-text-1"}`}>
                         {portfolioResult.portfolio_total_pnl != null
                           ? `$${portfolioResult.portfolio_total_pnl.toFixed(2)}`
@@ -376,7 +376,7 @@ function BacktestPageInner() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-text-3 text-xs">Max Drawdown</p>
+                      <p className="text-text-3 text-xs">최대 낙폭</p>
                       <p className="text-neg text-sm font-medium">
                         {portfolioResult.portfolio_max_drawdown != null
                           ? `${(portfolioResult.portfolio_max_drawdown * 100).toFixed(2)}%`
@@ -384,7 +384,7 @@ function BacktestPageInner() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-text-3 text-xs">Sharpe</p>
+                      <p className="text-text-3 text-xs">샤프</p>
                       <p className={`text-sm font-medium ${portfolioResult.portfolio_sharpe != null ? `inline-block px-1 font-bold ${portfolioResult.portfolio_sharpe >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}` : "text-text-1"}`}>
                         {portfolioResult.portfolio_sharpe != null
                           ? portfolioResult.portfolio_sharpe.toFixed(2)
@@ -395,12 +395,12 @@ function BacktestPageInner() {
 
                   {/* Equity curve */}
                   <Panel>
-                    <PanelHeader>Portfolio Equity Curve</PanelHeader>
+                    <PanelHeader>포트폴리오 자산 곡선</PanelHeader>
                     <div className="p-3">
                       <div style={{ height: "200px" }}>
                         <RollingChart
                           series={[{
-                            label: "Portfolio Equity",
+                            label: "포트폴리오 자산",
                             color: TOKEN.pos,
                             points: portfolioResult.portfolio_equity.map(ep => ({
                               ts_ns: ep.ts_ns,
@@ -419,14 +419,14 @@ function BacktestPageInner() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border text-text-3 text-xs">
-                          <th className="px-3 py-2 text-left">Instrument</th>
-                          <th className="px-3 py-2 text-right">Sharpe</th>
-                          <th className="px-3 py-2 text-right">Total PnL</th>
+                          <th className="px-3 py-2 text-left">종목</th>
+                          <th className="px-3 py-2 text-right">샤프</th>
+                          <th className="px-3 py-2 text-right">총 PnL</th>
                           <th className="px-3 py-2 text-right">PnL%</th>
-                          <th className="px-3 py-2 text-right">Max DD</th>
-                          <th className="px-3 py-2 text-right">Win Rate</th>
-                          <th className="px-3 py-2 text-right">Trades</th>
-                          <th className="px-3 py-2 text-right">Bars</th>
+                          <th className="px-3 py-2 text-right">최대낙폭</th>
+                          <th className="px-3 py-2 text-right">승률</th>
+                          <th className="px-3 py-2 text-right">거래수</th>
+                          <th className="px-3 py-2 text-right">봉수</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -492,14 +492,14 @@ function BacktestPageInner() {
         <div className="space-y-4">
           {/* KPI Metrics */}
           <Panel>
-            <PanelHeader>Performance</PanelHeader>
+            <PanelHeader>성과</PanelHeader>
             <MetricGrid result={result} />
             {result !== null && !showSaveResult && !resultSaved && (
               <div className="px-4 py-2 border-t border-border flex items-center justify-between">
                 <button
                   onClick={() => setShowSaveResult(true)}
                   className="text-text-3 hover:text-accent text-xs transition-colors bg-transparent border-0 cursor-pointer">
-                  Save Result
+                  결과 저장
                 </button>
                 <button
                   onClick={() => router.push(`/market?symbol=${encodeURIComponent(instrumentId)}`)}
@@ -510,7 +510,7 @@ function BacktestPageInner() {
             )}
             {result !== null && resultSaved && (
               <div className="px-4 py-2 border-t border-border">
-                <span className="text-pos text-xs">Saved ✓</span>
+                <span className="text-pos text-xs">저장됨 ✓</span>
               </div>
             )}
             {result !== null && showSaveResult && (
@@ -519,7 +519,7 @@ function BacktestPageInner() {
                   <input
                     value={saveLabel}
                     onChange={e => setSaveLabel(e.target.value)}
-                    className="flex-1 bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs min-w-0"placeholder="Label"/>
+                    className="flex-1 bg-bg border border-border rounded px-2 py-0.5 text-text-1 text-xs min-w-0"placeholder="라벨"/>
                   <button
                     onClick={() => {
                       const saved = saveBacktestResult({
@@ -534,7 +534,7 @@ function BacktestPageInner() {
                       if (saved !== null) setResultSaved(true);
                     }}
                     className="text-xs text-accent border border-accent/30 rounded px-2 py-0.5 hover:bg-accent/10 transition-colors whitespace-nowrap">
-                    Save
+                    저장
                   </button>
                   <button
                     onClick={() => setShowSaveResult(false)}
@@ -560,7 +560,7 @@ function BacktestPageInner() {
                     <select value={promoteRuleIdx} onChange={e => setPromoteRuleIdx(Number(e.target.value))}
                       className="w-full bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs">
                       {rules.map((r, i) => (
-                        <option key={r.id} value={i}>Rule {i + 1} ({r.combinator}, {r.comparisons.length}조건)</option>
+                        <option key={r.id} value={i}>규칙 {i + 1} ({r.combinator}, {r.comparisons.length}조건)</option>
                       ))}
                     </select>
                   )}
@@ -596,7 +596,7 @@ function BacktestPageInner() {
                               "px-2 py-1 text-xs border-0 cursor-pointer",
                               optRight === r ? "bg-accent/10 text-accent" : "bg-transparent text-text-3",
                             ].join(" ")}>
-                            {r === "C" ? "Call" : "Put"}
+                            {r === "C" ? "콜" : "풋"}
                           </button>
                         ))}
                       </div>
@@ -646,13 +646,13 @@ function BacktestPageInner() {
 
       {result !== null && (
         <Panel>
-          <PanelHeader>Workflow</PanelHeader>
+          <PanelHeader>다음 단계</PanelHeader>
           <div className="px-4 py-3 flex items-center justify-between gap-4">
-            <p className="text-text-1 text-sm font-medium">Backtest complete — optimise your portfolio weights next</p>
+            <p className="text-text-1 text-sm font-medium">백테스트 완료 — 이제 포트폴리오 비중을 최적화하세요</p>
             <button
               onClick={handleWorkflowNext}
               className="px-4 py-1.5 text-xs font-semibold bg-accent text-black rounded cursor-pointer hover:brightness-110 transition-all border-0 whitespace-nowrap flex-shrink-0">
-              → Optimise Portfolio
+              → 포트폴리오 최적화
             </button>
           </div>
         </Panel>
@@ -714,7 +714,7 @@ function ReplayContent() {
       setTrades(btRes.trades);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed to run backtest");
+      setError(e instanceof ApiError ? e.message : "백테스트 실행 실패");
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
@@ -753,8 +753,8 @@ function ReplayContent() {
   const tradeLabel = hasTrades
     ? currentIndex < 0
       ? `— / ${trades.length}`
-      : `Trade ${currentIndex + 1} / ${trades.length}`
-    : "No trades";
+      : `거래 ${currentIndex + 1} / ${trades.length}`
+    : "거래 없음";
 
   function fmtPnl(v: number): string {
     return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
@@ -770,38 +770,38 @@ function ReplayContent() {
       <div className="bg-panel border border-border rounded-lg p-4">
         <div className="flex gap-3 flex-wrap items-end">
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Instrument</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">종목</label>
             <input value={instrumentId} onChange={e => setInstrumentId(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-36" />
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Start</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">시작</label>
             <input type="date" value={start} onChange={e => setStart(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data" />
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">End</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">종료</label>
             <input type="date" value={end} onChange={e => setEnd(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data" />
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Strategy</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">전략</label>
             <input value={strategy} onChange={e => setStrategy(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-28" />
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Fast EMA</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">빠른 EMA</label>
             <input type="number" value={fastEma} onChange={e => setFastEma(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-16" />
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Slow EMA</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">느린 EMA</label>
             <input type="number" value={slowEma} onChange={e => setSlowEma(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-16" />
           </div>
           <button onClick={run} disabled={loading}
             className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? "Loading…" : "Run"}
+            {loading ? "불러오는 중…" : "실행"}
           </button>
         </div>
       </div>
@@ -815,10 +815,10 @@ function ReplayContent() {
           {/* Running stats */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Trades Shown", value: `${stats.totalTrades}/${trades.length}`, colored: false, val: 0 },
-              { label: "Completed", value: String(stats.completedTrades), colored: false, val: 0 },
-              { label: "Running P&L", value: fmtPnl(stats.runningPnl), colored: true, val: stats.runningPnl },
-              { label: "Win Rate", value: fmtPct(stats.winRate), colored: false, val: 0 },
+              { label: "표시된 거래", value: `${stats.totalTrades}/${trades.length}`, colored: false, val: 0 },
+              { label: "완료", value: String(stats.completedTrades), colored: false, val: 0 },
+              { label: "누적 P&L", value: fmtPnl(stats.runningPnl), colored: true, val: stats.runningPnl },
+              { label: "승률", value: fmtPct(stats.winRate), colored: false, val: 0 },
             ].map(s => (
               <div key={s.label} className="bg-panel border border-border rounded-lg px-4 py-3">
                 <div className="text-text-3 text-[10px] uppercase tracking-wider">{s.label}</div>
@@ -868,7 +868,7 @@ function ReplayContent() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-text-3 text-xs">Speed:</span>
+                  <span className="text-text-3 text-xs">속도:</span>
                   <SegmentedToggle
                     size="sm"
                     value={String(speed)}
@@ -884,7 +884,7 @@ function ReplayContent() {
             {/* Trade list panel */}
             <div className="w-56 shrink-0">
               <Panel className="h-full">
-                <PanelHeader>Trades</PanelHeader>
+                <PanelHeader>거래 내역</PanelHeader>
                 <div className="overflow-y-auto max-h-96">
                   {trades.map((t, i) => {
                     const isActive = i === currentIndex;
@@ -910,7 +910,7 @@ function ReplayContent() {
                               {fmtPnl(t.pnl!)}
                             </span>
                           ) : (
-                            <span className="text-text-3 text-[10px]">open</span>
+                            <span className="text-text-3 text-[10px]">진행중</span>
                           )}
                         </div>
                       </button>
@@ -925,7 +925,7 @@ function ReplayContent() {
 
       {!hasTrades && !loading && !error && (
         <div className="text-center py-16 text-text-3 text-sm">
-          Configure instrument and click Run to start trade replay.
+          종목을 설정하고 실행을 눌러 거래 리플레이를 시작하세요.
         </div>
       )}
     </div>

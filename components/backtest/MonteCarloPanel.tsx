@@ -95,7 +95,7 @@ export function MonteCarloPanel({ instrumentId, start, end }: Props) {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
       if (!ctrl.signal.aborted)
-        setError(err instanceof ApiError ? err.message : "Monte Carlo 실패");
+        setError(err instanceof ApiError ? err.message : "몬테카를로 실패");
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
@@ -105,7 +105,7 @@ export function MonteCarloPanel({ instrumentId, start, end }: Props) {
     <div className="bg-panel border border-border rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-text-1 text-sm font-medium">Monte Carlo 시뮬레이션</p>
+          <p className="text-text-1 text-sm font-medium">몬테카를로 시뮬레이션</p>
           <p className="text-text-3 text-xs mt-0.5">
             역사적 수익률 분포로 미래 N일간 수천 개의 경로를 시뮬레이션합니다.
           </p>

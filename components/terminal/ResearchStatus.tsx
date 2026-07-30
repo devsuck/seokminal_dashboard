@@ -33,7 +33,7 @@ export interface ResearchStatusProps {
   className?: string;
 }
 
-export function ResearchStatus({ title = "Agent Status", kicker = "OPS", items, className = "" }: ResearchStatusProps) {
+export function ResearchStatus({ title = "에이전트 상태", kicker = "OPS", items, className = "" }: ResearchStatusProps) {
   return (
     <Panel className={className}>
       <PanelHead kicker={kicker} title={title} />

@@ -147,6 +147,13 @@ const DECISION_STYLE: Record<string, string> = {
   HOLD: "bg-panel-2 text-text-3 border-border",
   SKIP: "bg-panel-2 text-text-3 border-border",
 };
+const DECISION_LABEL: Record<string, string> = {
+  BUY: "매수",
+  SELL: "매도",
+  WATCH: "관찰",
+  HOLD: "보유",
+  SKIP: "건너뜀",
+};
 
 function CycleCard({ c }: { c: AgentCycle }) {
   const pct = c.score != null && c.max_score ? Math.round((c.score / c.max_score) * 100) : null;
@@ -157,7 +164,7 @@ function CycleCard({ c }: { c: AgentCycle }) {
           <span className="text-text-3 text-[10px] font-data">#{c.cycle}</span>
           {c.symbol && <span className="text-text-1 text-xs font-data font-semibold">{c.symbol}</span>}
           <span className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${DECISION_STYLE[c.decision] ?? DECISION_STYLE.SKIP}`}>
-            {c.decision}
+            {DECISION_LABEL[c.decision] ?? c.decision}
           </span>
         </div>
         <span className="text-text-3 text-[9px] font-data">{new Date(c.ts).toLocaleTimeString("ko-KR")}</span>
@@ -757,7 +764,7 @@ export default function AgentsPage() {
                       </div>
                       {a.type === "kr_macro" && (
                         <div className="text-[9px] text-text-3 mt-0.5">
-                          Situation → Impact → Portfolio
+                          상황 → 영향 → 포트폴리오
                         </div>
                       )}
                     </div>

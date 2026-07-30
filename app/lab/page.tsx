@@ -138,17 +138,17 @@ export default function LabPage() {
         <Panel>
           <PanelHeader>Jarvis Quant OS</PanelHeader>
           <div className="flex items-center gap-3 flex-wrap text-xs px-3 py-2">
-            <span className="text-text-2">Level {jarvis.autonomy_level} <span className="text-text-3">{jarvis.autonomy_name}</span></span>
+            <span className="text-text-2">레벨 {jarvis.autonomy_level} <span className="text-text-3">{jarvis.autonomy_name}</span></span>
             <span className="text-text-3">·</span>
-            <span className="text-pos">research {jarvis.research_automation}</span>
-            <span className="text-pos">paper {jarvis.paper_monitoring}</span>
+            <span className="text-pos">리서치 {jarvis.research_automation}</span>
+            <span className="text-pos">페이퍼 {jarvis.paper_monitoring}</span>
             <span className={jarvis.live_execution === "disabled" ? "text-warn" : "text-neg"}>
-              live {jarvis.live_execution}
+              라이브 {jarvis.live_execution}
             </span>
             <span className="text-text-3">·</span>
-            <span className="text-text-2 font-data">registry {jarvis.registry_total}</span>
+            <span className="text-text-2 font-data">레지스트리 {jarvis.registry_total}</span>
             <span className="text-text-3">·</span>
-            <span className="text-info">risk governor {jarvis.risk_governor}</span>
+            <span className="text-info">리스크 거버너 {jarvis.risk_governor}</span>
           </div>
         </Panel>
       )}
@@ -333,7 +333,7 @@ function JarvisPanel({ detail }: { detail: JarvisDetail | null }) {
   for (const s of detail.strategies) counts[s.status] = (counts[s.status] ?? 0) + 1;
   return (
     <Panel>
-      <PanelHeader right={<span>think freely · test harshly · paper first · execute only approved</span>}>Jarvis 파이프라인 거버넌스</PanelHeader>
+      <PanelHeader right={<span>자유롭게 생각 · 냉정하게 검증 · 페이퍼가 먼저 · 승인된 것만 집행</span>}>Jarvis 파이프라인 거버넌스</PanelHeader>
       <div className="p-4 space-y-4">
       {/* 생애주기 퍼널 */}
       <div className="flex items-center gap-1 flex-wrap">
@@ -373,7 +373,7 @@ function JarvisPanel({ detail }: { detail: JarvisDetail | null }) {
 
         {/* 감사 로그 */}
         <div>
-          <div className="text-xs uppercase tracking-wider text-text-3 font-semibold mb-1.5">감사 로그 (append-only)</div>
+          <div className="text-xs uppercase tracking-wider text-text-3 font-semibold mb-1.5">감사 로그 (추가 전용)</div>
           <div className="space-y-0.5 max-h-[160px] overflow-y-auto font-data text-[11px]">
             {detail.audit.slice(-14).reverse().map((a, i) => (
               <div key={i} className="flex gap-2">
@@ -441,7 +441,7 @@ function CurrentCard({ st }: { st: LabState | null }) {
 function LiveLog({ log, endRef }: { log: LabLogLine[]; endRef: React.RefObject<HTMLDivElement | null> }) {
   return (
     <Panel>
-      <PanelHeader right={<span>{log.length} lines</span>}>라이브 로그</PanelHeader>
+      <PanelHeader right={<span>{log.length}줄</span>}>라이브 로그</PanelHeader>
       <div className="h-[340px] overflow-y-auto px-4 py-3 font-data text-xs leading-relaxed">
         {log.length === 0 && <div className="text-text-3">— 로그 없음 —</div>}
         {log.map((l, i) => (
@@ -530,12 +530,12 @@ function KnowledgePanel({ knowledge }: { knowledge: { status: string }[] }) {
   for (const k of knowledge) counts[k.status] = (counts[k.status] ?? 0) + 1;
   return (
     <Panel>
-      <PanelHeader>축적 지식 · 실제 검증 registry ({knowledge.length})</PanelHeader>
+      <PanelHeader>축적 지식 · 실제 검증 레지스트리 ({knowledge.length})</PanelHeader>
       <div className="px-4 py-3 flex flex-wrap gap-1.5">
         {Object.entries(counts).map(([s, n]) => (
           <span key={s} className={`text-[10px] px-1.5 py-0.5 rounded border ${verdictStyle(s)}`}>{s} {n}</span>
         ))}
-        {knowledge.length === 0 && <span className="text-xs text-text-3">registry 비어있음</span>}
+        {knowledge.length === 0 && <span className="text-xs text-text-3">레지스트리 비어있음</span>}
       </div>
     </Panel>
   );

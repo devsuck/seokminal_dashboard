@@ -6,13 +6,13 @@ interface TradeLogTableProps {
   trades: TradeRecord[];
 }
 
-const HEADERS = ["#", "Side", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Qty", "PnL"];
+const HEADERS = ["#", "방향", "진입일", "진입가", "청산일", "청산가", "수량", "PnL"];
 
 export function TradeLogTable({ trades }: TradeLogTableProps) {
   return (
     <div className="bg-panel border border-border rounded-lg overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center gap-2">
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">Trade Log</span>
+        <span className="text-text-3 text-[11px] uppercase tracking-wider">거래 내역</span>
         {trades.length > 0 && (
           <span className="text-text-3 text-[11px]">({trades.length})</span>
         )}
@@ -26,7 +26,7 @@ export function TradeLogTable({ trades }: TradeLogTableProps) {
                   key={h}
                   className={[
                     "px-4 py-2.5 text-text-3 text-[11px] font-medium uppercase tracking-wider border-b border-border whitespace-nowrap",
-                    ["Entry Price", "Exit Price", "Qty", "PnL"].includes(h)
+                    ["진입가", "청산가", "수량", "PnL"].includes(h)
                       ? "text-right": "text-left",
                   ].join(" ")}
                 >
@@ -39,7 +39,7 @@ export function TradeLogTable({ trades }: TradeLogTableProps) {
             {trades.length === 0 ? (
               <tr>
                 <td colSpan={8}>
-                  <EmptyState message="No trades" hint="Run backtest to see trade history" />
+                  <EmptyState message="거래 내역 없음" hint="백테스트를 실행하면 거래 내역이 표시됩니다" />
                 </td>
               </tr>
             ) : trades.map((t, i) => {

@@ -45,7 +45,7 @@ function IndParams({ op, onChange }: { op: IndicatorOp; onChange: (o: IndicatorO
             onChange={e => upd({ band: e.target.value as BBBand })}>
             {BB_BANDS.map(b => (
               <option key={b} value={b}>
-                {b === "upper" ? "↑ upper" : b === "middle" ? "─ mid" : "↓ lower"}
+                {b === "upper" ? "↑ 상단" : b === "middle" ? "─ 중간" : "↓ 하단"}
               </option>
             ))}
           </select>
@@ -88,8 +88,8 @@ export function ConditionRow({ row, onChange, onRemove, isOnly }: ConditionRowPr
       {/* Right type toggle */}
       <select className="compact" value={row.rightType}
         onChange={e => upd({ rightType: e.target.value as "literal" | "indicator" })}>
-        <option value="literal">Value</option>
-        <option value="indicator">Indicator</option>
+        <option value="literal">값</option>
+        <option value="indicator">지표</option>
       </select>
 
       {/* Right operand */}
@@ -106,7 +106,7 @@ export function ConditionRow({ row, onChange, onRemove, isOnly }: ConditionRowPr
       {!isOnly && (
         <button
           onClick={onRemove}
-          className="ml-auto opacity-0 group-hover:opacity-100 text-text-3 hover:text-neg text-base leading-none cursor-pointer bg-transparent border-0 px-1 transition-all"aria-label="Remove condition">
+          className="ml-auto opacity-0 group-hover:opacity-100 text-text-3 hover:text-neg text-base leading-none cursor-pointer bg-transparent border-0 px-1 transition-all"aria-label="조건 삭제">
           ×
         </button>
       )}

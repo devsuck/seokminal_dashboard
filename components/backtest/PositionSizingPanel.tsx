@@ -28,11 +28,11 @@ function terminalValue(capital: number, fraction: number, winRate: number, avgWi
 }
 
 const FRACTIONS = [
-  { label: "Kelly", color: "text-warn" },
-  { label: "Half-Kelly", color: "text-pos" },
-  { label: "1% Fixed", color: "text-text-2" },
-  { label: "2% Fixed", color: "text-text-2" },
-  { label: "5% Fixed", color: "text-text-2" },
+  { label: "켈리", color: "text-warn" },
+  { label: "하프켈리", color: "text-pos" },
+  { label: "고정 1%", color: "text-text-2" },
+  { label: "고정 2%", color: "text-text-2" },
+  { label: "고정 5%", color: "text-text-2" },
 ] as const;
 
 export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
@@ -46,11 +46,11 @@ export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
   const halfKelly = kelly != null ? kelly / 2 : null;
 
   const fractions: { label: string; frac: number; color: string }[] = [];
-  if (kelly != null) fractions.push({ label: "Kelly", frac: Math.max(0, Math.min(kelly, 1)), color: "text-warn" });
-  if (halfKelly != null) fractions.push({ label: "Half-Kelly", frac: Math.max(0, Math.min(halfKelly, 1)), color: "text-pos" });
-  fractions.push({ label: "1% Fixed", frac: 0.01, color: "text-text-2" });
-  fractions.push({ label: "2% Fixed", frac: 0.02, color: "text-text-2" });
-  fractions.push({ label: "5% Fixed", frac: 0.05, color: "text-text-2" });
+  if (kelly != null) fractions.push({ label: "켈리", frac: Math.max(0, Math.min(kelly, 1)), color: "text-warn" });
+  if (halfKelly != null) fractions.push({ label: "하프켈리", frac: Math.max(0, Math.min(halfKelly, 1)), color: "text-pos" });
+  fractions.push({ label: "고정 1%", frac: 0.01, color: "text-text-2" });
+  fractions.push({ label: "고정 2%", frac: 0.02, color: "text-text-2" });
+  fractions.push({ label: "고정 5%", frac: 0.05, color: "text-text-2" });
 
   const rows = fractions.map(f => ({
     ...f,
@@ -66,7 +66,7 @@ export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
       <div>
         <p className="text-text-1 text-sm font-medium">포지션 사이징 계산기</p>
         <p className="text-text-3 text-xs mt-0.5">
-          Kelly Criterion으로 최적 베팅 비율을 구하고, 각 전략의 기대 수익을 비교합니다.
+          켈리 공식으로 최적 베팅 비율을 구하고, 각 전략의 기대 수익을 비교합니다.
         </p>
       </div>
 
@@ -94,7 +94,7 @@ export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
       {/* Kelly badge */}
       {kelly != null && (
         <div className="flex items-center gap-2">
-          <span className="text-text-3 text-xs">Full Kelly:</span>
+          <span className="text-text-3 text-xs">풀 켈리:</span>
           <span className={`text-xs font-data font-medium ${kelly <= 0 ? "text-neg" : kelly > 0.5 ? "text-warn" : "text-pos"}`}>
             {(kelly * 100).toFixed(1)}%
           </span>
@@ -140,7 +140,7 @@ export function PositionSizingPanel({ winRate, avgWin, avgLoss }: Props) {
       </div>
 
       <p className="text-text-3 text-[10px]">
-        * 기하평균 근사값. 실제 결과는 다를 수 있습니다. Half-Kelly 사용이 일반적으로 권장됩니다.
+        * 기하평균 근사값. 실제 결과는 다를 수 있습니다. 하프켈리 사용이 일반적으로 권장됩니다.
       </p>
     </div>
   );

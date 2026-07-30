@@ -216,7 +216,7 @@ export default function SearchPage() {
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return;
-      if (barsAbortRef.current === ctrl) setSearchError(e instanceof Error ? e.message : "Failed to load bars");
+      if (barsAbortRef.current === ctrl) setSearchError(e instanceof Error ? e.message : "차트 데이터를 불러오지 못했습니다");
     } finally {
       if (barsAbortRef.current === ctrl) setLoadingBars(false);
     }
@@ -292,7 +292,7 @@ export default function SearchPage() {
                   onChange={e => setQuery(e.target.value)}
                   onFocus={() => results.length && setShowResults(true)}
                   onBlur={() => setTimeout(() => setShowResults(false), 150)}
-                  placeholder={market === "KR" ? "종목명 또는 코드 (예: 삼성전자, 005930)" : "Symbol or name (e.g. AAPL, Apple)"}
+                  placeholder={market === "KR" ? "종목명 또는 코드 (예: 삼성전자, 005930)" : "종목 심볼 또는 이름 (예: AAPL, Apple)"}
                   className="w-full px-3 py-2 text-sm rounded-lg bg-panel border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent"/>
                 {showResults && results.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-panel border border-border rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
@@ -332,7 +332,7 @@ export default function SearchPage() {
                       <span className={`text-sm font-data px-1 font-bold ${changeCls}`}>
                         {liveTick.change > 0 ? "+" : ""}{liveTick.change.toLocaleString()} ({liveTick.change_rate.toFixed(2)}%)
                       </span>
-                      <span className="text-text-3 text-xs">Vol {liveTick.trade_volume.toLocaleString()}</span>
+                      <span className="text-text-3 text-xs">거래량 {liveTick.trade_volume.toLocaleString()}</span>
                     </>
                   )}
                   <button
@@ -342,7 +342,7 @@ export default function SearchPage() {
                   </button>
                   {market === "KR" && (
                     <span className={`text-xs px-2 py-0.5 rounded border ${wsStatus === "live" ? "border-pos/40 text-pos bg-pos/5" : wsStatus === "connecting" ? "border-warn/40 text-warn bg-warn/5" : "border-border text-text-3"}`}>
-                      {wsStatus === "live" ? "LIVE" : wsStatus === "connecting" ? "CONNECTING" : "OFFLINE"}
+                      {wsStatus === "live" ? "실시간" : wsStatus === "connecting" ? "연결 중" : "오프라인"}
                     </span>
                   )}
                 </div>
@@ -353,7 +353,7 @@ export default function SearchPage() {
             <Panel>
               <PanelHeader>차트</PanelHeader>
               {loadingBars && (
-                <div className="flex items-center justify-center h-[320px] text-text-3 text-sm">Loading chart...</div>
+                <div className="flex items-center justify-center h-[320px] text-text-3 text-sm">차트 불러오는 중…</div>
               )}
               {searchError && !loadingBars && (
                 <div className="flex items-center justify-center h-[320px] text-neg text-sm">{searchError}</div>
@@ -363,7 +363,7 @@ export default function SearchPage() {
               )}
               {!loadingBars && !searchError && bars.length === 0 && !selected && (
                 <div className="flex items-center justify-center h-[320px] text-text-3 text-sm">
-                  Search a stock above to load the chart
+                  위에서 종목을 검색하면 차트가 표시됩니다
                 </div>
               )}
             </Panel>
@@ -435,7 +435,7 @@ export default function SearchPage() {
                 size="md"
                 onClick={handleRun}
                 disabled={screenerLoading || !instruments.trim()}>
-                {screenerLoading ? "스크리닝 중…" : "Run Screener"}
+                {screenerLoading ? "스크리닝 중…" : "스크리너 실행"}
               </Button>
             </div>
 

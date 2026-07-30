@@ -15,7 +15,7 @@ export function BalanceCard({ acc }: { acc: AccountRow }) {
     <div className="bg-panel border border-border rounded-lg p-3">
       <div className="flex items-center justify-between">
         <span className="text-text-2 text-xs font-semibold">{acc.label}</span>
-        {acc.mode && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${acc.mode === "live" ? "bg-neg/15 text-neg border-neg/40" : "bg-pos/10 text-pos border-pos/30"}`}>{acc.mode === "live" ? "● LIVE" : "PAPER"}</span>}
+        {acc.mode && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${acc.mode === "live" ? "bg-neg/15 text-neg border-neg/40" : "bg-pos/10 text-pos border-pos/30"}`}>{acc.mode === "live" ? "● 실거래" : "페이퍼"}</span>}
       </div>
       {acc.error ? (
         <div className="text-text-3 text-[10px] mt-1.5">연결 불가 ({acc.error.slice(0, 30)})</div>

@@ -57,7 +57,7 @@ export default function UniversePage() {
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed to load universe");
+      setError(e instanceof ApiError ? e.message : "유니버스를 불러오지 못했습니다");
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
@@ -93,9 +93,9 @@ export default function UniversePage() {
     <div className="p-6 space-y-4 max-w-[1200px]">
       {/* Header */}
       <div>
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">Universe Builder</h1>
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">유니버스 빌더</h1>
         <p className="text-text-3 text-sm mt-0.5">
-          Browse KRX-listed instruments. Filter by market cap. Add to Watchlist or open in Backtest.
+          KRX 상장 종목을 조회합니다. 시가총액으로 필터링하고, 관심종목에 추가하거나 백테스트에서 열어보세요.
         </p>
       </div>
 
@@ -104,7 +104,7 @@ export default function UniversePage() {
         {/* Market + Load */}
         <div className="flex items-end gap-3 flex-wrap">
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Market</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">시장</label>
             <SegmentedToggle
               value={market}
               onChange={setMarket}
@@ -119,11 +119,11 @@ export default function UniversePage() {
             onClick={load}
             disabled={loading}
             className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? "Loading…" : "Load"}
+            {loading ? "불러오는 중…" : "불러오기"}
           </button>
           {rows.length > 0 && (
             <span className="text-text-3 text-xs">
-              {rows.length} instruments loaded
+              종목 {rows.length}개 불러옴
             </span>
           )}
         </div>
@@ -132,15 +132,15 @@ export default function UniversePage() {
         {rows.length > 0 && (
           <>
             <div className="space-y-1">
-              <label className="text-text-3 text-[11px] uppercase tracking-wider">Search</label>
+              <label className="text-text-3 text-[11px] uppercase tracking-wider">검색</label>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Name or ticker..."className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent w-64"/>
+                placeholder="종목명 또는 코드..."className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent w-64"/>
             </div>
             <div className="flex items-center gap-3">
               <label className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">
-                Max Market Cap
+                최대 시가총액
               </label>
               <input
                 type="range"min={0}
@@ -169,14 +169,14 @@ export default function UniversePage() {
       {filtered.length > 0 && (
         <Panel>
           <PanelHeader>
-            {filtered.length} instruments
-            {search || maxCap < mktcapMax ? ` (filtered from ${rows.length})` : ""}
+            종목 {filtered.length}개
+            {search || maxCap < mktcapMax ? ` (전체 ${rows.length}개 중 필터링됨)` : ""}
           </PanelHeader>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border">
-                  {["Name", "Code", "Market", "Mkt Cap", "Actions"].map(h => (
+                  {["종목명", "코드", "시장", "시가총액", "작업"].map(h => (
                     <th key={h} className="px-4 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">
                       {h}
                     </th>
@@ -204,11 +204,11 @@ export default function UniversePage() {
                               inWl
                                 ? "border-border text-text-3 cursor-default": "border-border text-text-3 hover:border-accent hover:text-accent"}`}
                           >
-                            {inWl ? "✓ Watchlist" : "+ Watchlist"}
+                            {inWl ? "✓ 관심종목" : "+ 관심종목"}
                           </button>
                           <Link
                             href="/backtest"className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent transition-colors no-underline">
-                            → Backtest
+                            → 백테스트
                           </Link>
                         </div>
                       </td>
@@ -219,7 +219,7 @@ export default function UniversePage() {
             </table>
             {filtered.length > 200 && (
               <div className="px-4 py-2 text-text-3 text-xs border-t border-border">
-                Showing first 200 of {filtered.length} results. Narrow your search to see more.
+                상위 200개만 표시 중 (전체 {filtered.length}개). 검색 조건을 좁혀 더 보기.
               </div>
             )}
           </div>
@@ -227,12 +227,12 @@ export default function UniversePage() {
       )}
 
       {rows.length > 0 && filtered.length === 0 && (
-        <div className="text-center py-8 text-text-3 text-sm">No instruments match the current filters.</div>
+        <div className="text-center py-8 text-text-3 text-sm">현재 필터 조건에 맞는 종목이 없습니다.</div>
       )}
 
       {rows.length === 0 && !loading && !error && (
         <div className="text-center py-12 text-text-3 text-sm">
-          Select a market and click Load to browse the universe.
+          시장을 선택하고 불러오기를 눌러 유니버스를 확인하세요.
         </div>
       )}
 

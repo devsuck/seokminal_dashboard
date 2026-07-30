@@ -13,10 +13,10 @@ import { TOKEN } from "@/lib/chart-colors";
 type HeatmapMetric = "sharpe" | "sortino" | "maxDrawdown" | "winRate";
 
 const METRIC_LABELS: Record<HeatmapMetric, string> = {
-  sharpe: "Sharpe Ratio",
-  sortino: "Sortino Ratio",
-  maxDrawdown: "Max Drawdown",
-  winRate: "Win Rate",
+  sharpe: "샤프 지수",
+  sortino: "소르티노 지수",
+  maxDrawdown: "최대 낙폭",
+  winRate: "승률",
 };
 
 // Lower is better for these metrics — invert color scale
@@ -107,11 +107,11 @@ export default function HeatmapPage() {
     }
 
     if (pairs.length === 0) {
-      setError("No valid combinations: all fast values must be less than slow values.");
+      setError("유효한 조합이 없습니다: 빠른 EMA 값은 모두 느린 EMA 값보다 작아야 합니다.");
       return;
     }
     if (pairs.length > 100) {
-      setError(`${pairs.length} combinations exceeds limit of 100. Reduce range or increase step.`);
+      setError(`${pairs.length}개 조합은 최대 100개를 초과합니다. 범위를 줄이거나 스텝을 늘리세요.`);
       return;
     }
 
@@ -184,7 +184,7 @@ export default function HeatmapPage() {
       {/* Header */}
       <div className="flex justify-end mb-2">
         <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
-          ← Backtest
+          ← 백테스트
         </Link>
       </div>
 
@@ -192,29 +192,29 @@ export default function HeatmapPage() {
       <div className="bg-panel border border-border rounded-lg p-4 space-y-4">
         {/* Row 1: Instrument + Date */}
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">Symbol</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">종목</span>
           <InstrumentSelect value={instrumentId} onChange={setInstrumentId} />
-          <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">Date</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">날짜</span>
           <DateRangePicker start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         </div>
 
         {/* Row 2: Fast EMA range */}
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider w-24 shrink-0">Fast EMA</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider w-24 shrink-0">빠른 EMA</span>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
-            Min
+            최소
             <input type="number" value={fastMin} min={1} max={fastMax - 1}
               onChange={e => setFastMin(Math.max(1, parseInt(e.target.value) || 1))}
               className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
-            Max
+            최대
             <input type="number" value={fastMax} min={fastMin + 1}
               onChange={e => setFastMax(Math.max(fastMin + 1, parseInt(e.target.value) || fastMin + 1))}
               className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
-            Step
+            스텝
             <input type="number" value={fastStep} min={1}
               onChange={e => setFastStep(Math.max(1, parseInt(e.target.value) || 1))}
               className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
@@ -224,21 +224,21 @@ export default function HeatmapPage() {
 
         {/* Row 3: Slow EMA range */}
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider w-24 shrink-0">Slow EMA</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider w-24 shrink-0">느린 EMA</span>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
-            Min
+            최소
             <input type="number" value={slowMin} min={2}
               onChange={e => setSlowMin(Math.max(2, parseInt(e.target.value) || 2))}
               className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
-            Max
+            최대
             <input type="number" value={slowMax} min={slowMin + 1}
               onChange={e => setSlowMax(Math.max(slowMin + 1, parseInt(e.target.value) || slowMin + 1))}
               className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-text-3">
-            Step
+            스텝
             <input type="number" value={slowStep} min={1}
               onChange={e => setSlowStep(Math.max(1, parseInt(e.target.value) || 1))}
               className="w-16 h-8 px-2 bg-panel-2 border border-border rounded text-text-1 font-data text-xs outline-none focus:border-accent"/>
@@ -248,7 +248,7 @@ export default function HeatmapPage() {
 
         {/* Row 4: Metric + Run */}
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">Metric</span>
+          <span className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">지표</span>
           <SegmentedToggle
             value={metric}
             onChange={(m) => { setMetric(m); setResults({}); }}
@@ -256,11 +256,11 @@ export default function HeatmapPage() {
             options={(["sharpe", "sortino", "maxDrawdown", "winRate"] as HeatmapMetric[]).map(m => ({ value: m, label: METRIC_LABELS[m] }))}
           />
           <span className="text-text-3 text-[10px] font-data ml-auto">
-            {totalCombinations} combinations
-            {totalCombinations > 100 && <span className="text-warn ml-1">⚠ max 100</span>}
+            {totalCombinations}개 조합
+            {totalCombinations > 100 && <span className="text-warn ml-1">⚠ 최대 100</span>}
           </span>
           <Button variant="primary" size="md" onClick={running ? stopHeatmap : runHeatmap} disabled={totalCombinations === 0}>
-            {running ? `Stop (${progress}/${total})` : "Run Heatmap"}
+            {running ? `중지 (${progress}/${total})` : "히트맵 실행"}
           </Button>
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function HeatmapPage() {
               min {formatValue(minVal, metric)} · max {formatValue(maxVal, metric)}
             </span>
           ) : undefined}>
-            {METRIC_LABELS[metric]} — Fast EMA (rows) × Slow EMA (columns)
+            {METRIC_LABELS[metric]} — 빠른 EMA(행) × 느린 EMA(열)
           </PanelHeader>
           <div className="p-4 overflow-x-auto">
             {/* Column headers (Slow EMA values) */}
@@ -304,7 +304,7 @@ export default function HeatmapPage() {
                       return (
                         <div
                           key={s}
-                          className="w-10 h-8 bg-panel-2 rounded-sm opacity-20"title="Invalid: fast ≥ slow"/>
+                          className="w-10 h-8 bg-panel-2 rounded-sm opacity-20"title="유효하지 않음: 빠른 EMA ≥ 느린 EMA"/>
                       );
                     }
                     const value = results[key];
@@ -320,10 +320,10 @@ export default function HeatmapPage() {
                         style={t !== null ? { backgroundColor: interpolateColor(t) } : undefined}
                         title={
                           !hasResult
-                            ? `Fast=${f} Slow=${s}: not yet`
+                            ? `빠른=${f} 느린=${s}: 대기중`
                             : value === null
-                              ? `Fast=${f} Slow=${s}: error`
-                              : `Fast=${f} Slow=${s}: ${formatValue(value, metric)}`
+                              ? `빠른=${f} 느린=${s}: 오류`
+                              : `빠른=${f} 느린=${s}: ${formatValue(value, metric)}`
                         }
                       >
                         {!hasResult && running && (
@@ -346,7 +346,7 @@ export default function HeatmapPage() {
 
             {/* Color legend */}
             <div className="flex items-center gap-3 mt-4">
-              <span className="text-text-3 text-[9px]">{invert ? "Better ←" : "← Worse"}</span>
+              <span className="text-text-3 text-[9px]">{invert ? "좋음 ←" : "← 나쁨"}</span>
               <div className="flex h-3 w-40 rounded overflow-hidden">
                 {Array.from({ length: 20 }, (_, i) => i / 19).map((t, i) => (
                   <div
@@ -356,7 +356,7 @@ export default function HeatmapPage() {
                   />
                 ))}
               </div>
-              <span className="text-text-3 text-[9px]">{invert ? "→ Worse" : "Better →"}</span>
+              <span className="text-text-3 text-[9px]">{invert ? "→ 나쁨" : "좋음 →"}</span>
             </div>
           </div>
         </Panel>

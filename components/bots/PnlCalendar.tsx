@@ -82,7 +82,7 @@ export function PnlCalendar({ trades, weeks = 12 }: Props) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <span className="text-text-3 text-[11px] uppercase tracking-wider font-semibold">
-          P&amp;L Calendar ({weeks}w)
+          P&amp;L 캘린더 ({weeks}주)
         </span>
         <div className="flex items-center gap-3 text-[10px]">
           <span className="text-text-3">{tradeDays}일 거래</span>

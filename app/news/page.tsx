@@ -29,7 +29,7 @@ export default function NewsPage() {
         {/* Left: news */}
         <div className="flex-1 min-w-0 space-y-4">
           <div>
-            <h1 className="text-text-1 text-lg font-semibold">Market News</h1>
+            <h1 className="text-text-1 text-lg font-semibold">시장 뉴스</h1>
             <p className="text-text-3 text-xs mt-0.5">Finnhub · 15분 캐시 · 무료 티어 (60 req/min)</p>
           </div>
 

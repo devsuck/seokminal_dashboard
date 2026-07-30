@@ -312,7 +312,7 @@ export default function InfraGraphPage() {
       <div className="shrink-0 px-5 py-3 border-b border-border flex items-center justify-between">
         <div>
           <h1 className="text-text-1 font-semibold text-sm">
-            <span className="text-accent">Living</span> Knowledge Graph
+            <span className="text-accent">살아있는</span> 지식 그래프
             <span className="text-text-3 text-xs ml-2 font-normal">AI 인프라 공급망 · 자동 업데이트</span>
           </h1>
           {lastUpdate && <p className="text-text-3 text-[10px] mt-0.5">마지막 업데이트: {lastUpdate} · 업데이트 #{graph?.meta.update_count ?? 0}</p>}
@@ -595,7 +595,7 @@ export default function InfraGraphPage() {
       <div className="shrink-0 border-t border-border bg-panel-2">
         {/* 헤더 바 */}
         <div className="flex items-center gap-4 px-4 py-2 border-b border-border">
-          <span className="text-text-3 text-[10px] uppercase tracking-wider">Paper Trading</span>
+          <span className="text-text-3 text-[10px] uppercase tracking-wider">페이퍼 트레이딩</span>
           {paper && (
             <>
               <span className="text-text-1 text-xs font-mono">

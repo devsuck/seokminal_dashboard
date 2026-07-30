@@ -253,7 +253,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
           position: "belowBar",
           color: TOKEN.pos,
           shape: "arrowUp",
-          text: `BUY ${t.entry_price.toFixed(2)}`,
+          text: `매수 ${t.entry_price.toFixed(2)}`,
         });
       }
       if (t.exit_ts_ns && t.exit_price != null) {
@@ -262,7 +262,7 @@ export function CandlestickChart({ bars, trades = [], emaFast, emaSlow, sma, bol
           position: "aboveBar",
           color: TOKEN.neg,
           shape: "arrowDown",
-          text: `SELL ${t.exit_price.toFixed(2)}`,
+          text: `매도 ${t.exit_price.toFixed(2)}`,
         });
       }
     }

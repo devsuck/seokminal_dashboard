@@ -225,7 +225,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
           </button>
         )}
         {!loading && bars.length > 0 && (
-          <span className="text-text-3 text-xs font-data">{bars.length} bars</span>
+          <span className="text-text-3 text-xs font-data">캔들 {bars.length}개</span>
         )}
       </div>
 
@@ -239,7 +239,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
               {ind.label}
               <button
                 onClick={() => removeIndicator(ind.key)}
-                className="text-text-3 hover:text-neg cursor-pointer leading-none"aria-label={`Remove ${ind.label}`}
+                className="text-text-3 hover:text-neg cursor-pointer leading-none"aria-label={`${ind.label} 제거`}
               >
                 ✕
               </button>
@@ -293,7 +293,7 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
           </>
         ) : (
           <div className="h-[480px] flex items-center justify-center">
-            <EmptyState message="No chart data" hint={error ? "" : "Click Load to fetch bars"} />
+            <EmptyState message="차트 데이터 없음" hint={error ? "" : "불러오기를 클릭하면 봉 데이터를 가져옵니다"} />
           </div>
         )}
       </div>

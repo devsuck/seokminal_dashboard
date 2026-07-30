@@ -16,43 +16,43 @@ interface MetricRow {
 
 const METRIC_ROWS: MetricRow[] = [
   {
-    label: "Sharpe Ratio",
+    label: "샤프비율",
     key: "sharpe",
     format: v => v?.toFixed(2) ?? "—",
     higherBetter: true,
   },
   {
-    label: "Sortino Ratio",
+    label: "소르티노비율",
     key: "sortino",
     format: v => v?.toFixed(2) ?? "—",
     higherBetter: true,
   },
   {
-    label: "Max Drawdown",
+    label: "최대낙폭",
     key: "maxDrawdown",
     format: v => v != null ? `${(v * 100).toFixed(1)}%` : "—",
     higherBetter: false,
   },
   {
-    label: "Win Rate",
+    label: "승률",
     key: "winRate",
     format: v => v != null ? `${(v * 100).toFixed(1)}%` : "—",
     higherBetter: true,
   },
   {
-    label: "Total Return",
+    label: "총수익률",
     key: "totalPnlPct",
     format: v => v != null ? `${(v * 100).toFixed(1)}%` : "—",
     higherBetter: true,
   },
   {
-    label: "Total Trades",
+    label: "총거래수",
     key: "totalTrades",
     format: v => String(v ?? "—"),
     higherBetter: null,
   },
   {
-    label: "Volatility",
+    label: "변동성",
     key: "volatility",
     format: v => v != null ? `${(v * 100).toFixed(1)}%` : "—",
     higherBetter: false,
@@ -87,11 +87,11 @@ export function ExperimentCompare({ experiments, onClose }: ExperimentComparePro
     <div className="bg-panel border border-border rounded-lg overflow-hidden">
       {/* Header */}
       <div className="px-4 py-2.5 border-b border-border bg-panel-2 flex items-center justify-between">
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">Experiment Comparison</span>
+        <span className="text-text-3 text-[11px] uppercase tracking-wider">실험 비교</span>
         <button
           onClick={onClose}
           className="text-text-3 hover:text-text-1 text-xs bg-transparent border-0 cursor-pointer transition-colors">
-          Close ×
+          닫기 ×
         </button>
       </div>
 
@@ -99,7 +99,7 @@ export function ExperimentCompare({ experiments, onClose }: ExperimentComparePro
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border">
-              <th className="px-4 py-3 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider w-32">Metric</th>
+              <th className="px-4 py-3 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider w-32">지표</th>
               <th className="px-4 py-3 text-right">
                 <div className="text-text-1 font-medium truncate max-w-[220px] text-right">{a.label}</div>
                 <div className="text-text-3 text-[9px] font-data mt-0.5">{a.params.start} – {a.params.end}</div>
@@ -145,7 +145,7 @@ export function ExperimentCompare({ experiments, onClose }: ExperimentComparePro
               <p className="text-text-3 text-[10px] font-data">EMA {exp.params.fast}/{exp.params.slow}</p>
             )}
             {exp.params.strategy === "gated" && (
-              <p className="text-text-3 text-[10px] font-data">Gated · {exp.params.rulesCount} rules</p>
+              <p className="text-text-3 text-[10px] font-data">게이트형 · 규칙 {exp.params.rulesCount}개</p>
             )}
             {exp.notes && (
               <p className="text-text-3 text-[10px] italic">"{exp.notes}"</p>

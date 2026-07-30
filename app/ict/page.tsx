@@ -170,7 +170,7 @@ export default function IctPage() {
       <div className="bg-panel border border-border rounded-lg p-4 space-y-3">
         <div className="flex gap-3 flex-wrap items-end">
           <div className="space-y-1" ref={symbolBoxRef}>
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Symbol</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">종목</label>
             <div className="relative">
               <input
                 type="text"
@@ -195,7 +195,7 @@ export default function IctPage() {
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Timeframe</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">타임프레임</label>
             <select
               value={timeframe}
               onChange={e => setTimeframe(e.target.value)}
@@ -206,12 +206,12 @@ export default function IctPage() {
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Start (선택)</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">시작 (선택)</label>
             <input type="date" value={start} onChange={e => setStart(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data" />
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">End (선택)</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">종료 (선택)</label>
             <input type="date" value={end} onChange={e => setEnd(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data" />
           </div>
@@ -368,19 +368,19 @@ export default function IctPage() {
           </PanelHeader>
           <div className="p-4 flex gap-6 flex-wrap text-xs">
             <div className="text-text-3">진입수: <span className="text-text-2 font-data">{result.n_entries}</span></div>
-            <div className="text-text-3">eligible: <span className="text-text-2 font-data">{result.n_eligible ?? "—"}</span></div>
+            <div className="text-text-3">유효표본: <span className="text-text-2 font-data">{result.n_eligible ?? "—"}</span></div>
             <div className="text-text-3">
-              net: <span className={`font-data px-1 font-bold ${result.net !== null && result.net > 0 ? "bg-pos/20 text-pos" : result.net !== null && result.net < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+              순손익: <span className={`font-data px-1 font-bold ${result.net !== null && result.net > 0 ? "bg-pos/20 text-pos" : result.net !== null && result.net < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
                 {num(result.net)}
               </span>
             </div>
             <div className="text-text-3">
-              percentile(vs random): <span className={`font-data ${result.percentile !== null && result.percentile >= 90 ? "px-1 font-bold bg-pos/20 text-pos" : "text-text-2"}`}>
+              백분위(랜덤 대비): <span className={`font-data ${result.percentile !== null && result.percentile >= 90 ? "px-1 font-bold bg-pos/20 text-pos" : "text-text-2"}`}>
                 {result.percentile !== null && result.percentile !== undefined ? `${result.percentile}%` : "—"}
               </span>
             </div>
             <div className="text-text-3">p-value: <span className="text-text-2 font-data">{num(result.p)}</span></div>
-            <div className="text-text-3">random median: <span className="text-text-2 font-data">{num(result.rand_median)}</span></div>
+            <div className="text-text-3">랜덤 중앙값: <span className="text-text-2 font-data">{num(result.rand_median)}</span></div>
             <div className="text-text-3">
               WF1: <span className={`font-data px-1 font-bold ${result.wf_first !== null && result.wf_first > 0 ? "bg-pos/20 text-pos" : result.wf_first !== null && result.wf_first < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
                 {num(result.wf_first)}

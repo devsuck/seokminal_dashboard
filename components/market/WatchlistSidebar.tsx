@@ -81,11 +81,11 @@ export function WatchlistSidebar({
     <aside className="w-52 shrink-0 border-r border-border flex flex-col bg-panel h-full">
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-border flex items-center justify-between shrink-0">
-        <span className="text-text-3 text-[10px] uppercase tracking-wider font-semibold">Watchlist</span>
+        <span className="text-text-3 text-[10px] uppercase tracking-wider font-semibold">워치리스트</span>
         <button
           onClick={onCompare}
           className="text-[10px] text-text-3 hover:text-text-1 transition-colors px-1.5 py-0.5 border border-border rounded bg-transparent cursor-pointer">
-          Compare
+          비교
         </button>
       </div>
 
@@ -128,7 +128,7 @@ export function WatchlistSidebar({
                 <Link
                   href="/backtest"onClick={e => e.stopPropagation()}
                   className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors">
-                  Backtest
+                  백테스트
                 </Link>
               </div>
             </div>

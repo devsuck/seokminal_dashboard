@@ -580,8 +580,8 @@ export default function InsiderPage() {
           size="sm"
           options={(market === "kr" ? KR_TRADE_FILTER_OPTS : [
             { value: "all" as TradeFilter, label: "전체" },
-            { value: "BUY" as TradeFilter, label: "BUY" },
-            { value: "SELL" as TradeFilter, label: "SELL" },
+            { value: "BUY" as TradeFilter, label: "매수" },
+            { value: "SELL" as TradeFilter, label: "매도" },
           ]).map(f => ({
             ...f,
             activeClass:
@@ -615,7 +615,7 @@ export default function InsiderPage() {
         <input
           value={tickerSearch}
           onChange={e => setTickerSearch(e.target.value)}
-          placeholder={market === "us" ? "Ticker / Company 필터…" : "종목코드 / 회사명 필터…"}
+          placeholder={market === "us" ? "티커 / 회사명 필터…" : "종목코드 / 회사명 필터…"}
           className="bg-bg border border-border rounded px-2 py-1 text-text-1 text-xs w-44 focus:border-accent outline-none"/>
       </div>
 
@@ -629,7 +629,7 @@ export default function InsiderPage() {
               value={usTicker}
               onChange={e => setUsTicker(e.target.value.toUpperCase())}
               onKeyDown={e => { if (e.key === "Enter" && usTicker) fetchUS(usTicker, days); }}
-              placeholder="AAPL…  (비워두면 전체 Recent)"className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-52 focus:border-accent outline-none"/>
+              placeholder="AAPL…  (비워두면 전체 최근 내역)"className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-52 focus:border-accent outline-none"/>
             {usTicker && (
               <Button
                 variant="primary"

@@ -35,7 +35,7 @@ export function VolumeChart({ bars }: VolumeChartProps) {
   return (
     <div className="border-t border-border bg-panel">
       <div className="px-4 py-1 flex items-center gap-2">
-        <span className="text-[10px] text-text-3 uppercase tracking-wider">VOLUME</span>
+        <span className="text-[10px] text-text-3 uppercase tracking-wider">거래량</span>
       </div>
       <div ref={ref} style={{ height: "100px" }} className="w-full" />
     </div>

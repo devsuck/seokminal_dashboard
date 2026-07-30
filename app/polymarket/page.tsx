@@ -273,7 +273,7 @@ export default function PolymarketPage() {
         </PanelHeader>
         {lb && lb.entries.length > 0 && lbBars.length > 0 && (
           <div className="p-2 border-b border-border">
-            <ChartFrame title="상위 PnL (top 12)">
+            <ChartFrame title="상위 PnL (상위 12개)">
               <BarChart items={lbBars} valueFmt={(v) => `$${v.toLocaleString()}`} />
             </ChartFrame>
           </div>

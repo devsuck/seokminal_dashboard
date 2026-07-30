@@ -21,7 +21,7 @@ export function OptionsFlowPanel({ currency, gex }: OptionsFlowPanelProps) {
       <div className="flex items-center justify-between">
         <h3 className="text-text-1 text-sm font-medium">{currency} 옵션 GEX</h3>
         <span className="text-text-3 text-xs">
-          {gex ? `spot ${gex.spot.toLocaleString()}` : "로딩 중"}
+          {gex ? `현재가 ${gex.spot.toLocaleString()}` : "로딩 중"}
           {isStale && <span className="text-warn"> · 데이터 지연</span>}
         </span>
       </div>

@@ -114,7 +114,7 @@ export function NewsPanel({ ticker, maxItems = 15, onHeadlinesLoaded }: NewsPane
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-2">
         <span className="text-text-3 text-[11px] uppercase tracking-wider font-semibold">
-          {ticker ? `${ticker} News` : "Market News"}
+          {ticker ? `${ticker} 뉴스` : "시장 뉴스"}
         </span>
         <button
           onClick={() => fetch_(ticker)}

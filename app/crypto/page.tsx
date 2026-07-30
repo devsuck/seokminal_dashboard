@@ -80,7 +80,7 @@ function CryptoSidebar({
   return (
     <aside className="w-52 shrink-0 border-r border-border flex flex-col bg-panel h-full">
       <div className="px-3 py-2.5 border-b border-border shrink-0">
-        <span className="text-text-3 text-[10px] uppercase tracking-wider font-semibold">Watchlist</span>
+        <span className="text-text-3 text-[10px] uppercase tracking-wider font-semibold">워치리스트</span>
       </div>
       <div className="flex-1 overflow-y-auto">
         {coins.length === 0 && (
@@ -148,7 +148,7 @@ function CoinBookPanel({ coin }: { coin: string }) {
     setLoading(true); setError(null); setResult(null);
     getCryptoBook(coin, ctrl.signal)
       .then(r => { if (!ctrl.signal.aborted) setResult(r); })
-      .catch(e => { if (e instanceof DOMException && e.name === "AbortError") return; setError(e instanceof ApiError ? e.message : "Failed"); })
+      .catch(e => { if (e instanceof DOMException && e.name === "AbortError") return; setError(e instanceof ApiError ? e.message : "실패"); })
       .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
     return () => ctrl.abort();
   }, [coin]);
@@ -194,7 +194,7 @@ function CoinBookPanel({ coin }: { coin: string }) {
         <span className="text-text-3 text-[10px] uppercase tracking-wider">오더북 뎁스</span>
         {result && (
           <span className="text-text-3 text-[11px]">
-            Spread: <span className="text-text-1 font-data">{result.spread.toFixed(4)}</span>
+            스프레드: <span className="text-text-1 font-data">{result.spread.toFixed(4)}</span>
             {" "}(<span className="text-text-1 font-data">{result.spread_pct.toFixed(4)}%</span>)
           </span>
         )}

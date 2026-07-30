@@ -43,10 +43,10 @@ function StatusDot({ tone, label }: { tone: Tone; label?: string }) {
 }
 
 const WORLD_CITIES: { label: string; tz: string }[] = [
-  { label: "SEOUL", tz: "Asia/Seoul" },
-  { label: "NEW YORK", tz: "America/New_York" },
-  { label: "LONDON", tz: "Europe/London" },
-  { label: "TOKYO", tz: "Asia/Tokyo" },
+  { label: "서울", tz: "Asia/Seoul" },
+  { label: "뉴욕", tz: "America/New_York" },
+  { label: "런던", tz: "Europe/London" },
+  { label: "도쿄", tz: "Asia/Tokyo" },
 ];
 
 function WorldClock({ now }: { now: Date }) {
@@ -99,7 +99,7 @@ function UnitCard({ u, onRestart, restarting }: {
         u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
       <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${
         u.running ? "bg-pos/20 text-pos" : deadCollector ? "bg-neg/15 text-neg animate-blink" : "bg-neg/10 text-text-3"}`}>
-        {u.running ? "ON" : "OFF"}
+        {u.running ? "가동" : "정지"}
       </span>
       {deadCollector && (
         <button
@@ -209,8 +209,8 @@ export default function HudPage() {
   units.push({ kind: "BOT", name: "AI LAB 엔진", running: active, detail: `stage ${lab?.stage ?? "—"}`, href: "/lab" });
   units.push({ kind: "BOT", name: "Auto-Research", running: busy, detail: `검증 ${ar?.n_tested ?? 0} · 후보 ${ar?.n_candidates ?? 0}`, href: "/auto-research" });
   units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: `보유 ${bot?.open ?? 0}`, href: "/lab/tasks" });
-  if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "enabled" : "off", href: "/dart-auto" });
-  if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} tick`, href: "/lab" });
+  if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "사용" : "꺼짐", href: "/dart-auto" });
+  if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} 틱`, href: "/lab" });
   if (sys?.processes?.polymarket_tick) units.push({
     kind: "BOT", name: "폴리마켓 틱 수집기", running: sys.processes.polymarket_tick.running,
     detail: formatAge(sys.processes.polymarket_tick.age_sec), href: "/lab", collectorKey: "polymarket_tick",
@@ -268,7 +268,7 @@ export default function HudPage() {
       <Panel className="mb-1">
         <PanelHeader>시스템 상태</PanelHeader>
         <div className="flex items-center gap-3 px-2 py-1">
-          <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "PROCESSING" : active ? "ONLINE" : "STANDBY"} />
+          <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
             <Link href="/lab/execution"
               className={`no-underline text-[11px] px-2 py-0.5 border font-data font-bold tracking-wider ${

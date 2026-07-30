@@ -24,11 +24,11 @@ export function ChartPanel({ bars, trades = [], symbol, timeframe, specs }: Char
         <div className="flex items-center gap-3 ml-2 text-xs">
           <span className="flex items-center gap-1">
             <span className="text-pos text-sm leading-none">▲</span>
-            <span className="text-text-3">Buy</span>
+            <span className="text-text-3">매수</span>
           </span>
           <span className="flex items-center gap-1">
             <span className="text-neg text-sm leading-none">▼</span>
-            <span className="text-text-3">Sell</span>
+            <span className="text-text-3">매도</span>
           </span>
         </div>
         {specs && specs.length > 0 && (
@@ -47,7 +47,7 @@ export function ChartPanel({ bars, trades = [], symbol, timeframe, specs }: Char
         <CandlestickChart bars={bars} trades={trades} specs={specs} />
       ) : (
         <div className="h-[480px] bg-panel flex items-center justify-center">
-          <EmptyState message="Run backtest to see chart" hint="Select symbol, date range, and strategy parameters above" />
+          <EmptyState message="백테스트를 실행하면 차트가 표시됩니다" hint="위에서 종목, 기간, 전략 파라미터를 선택하세요" />
         </div>
       )}
     </div>

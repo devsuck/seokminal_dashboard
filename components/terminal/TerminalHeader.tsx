@@ -64,25 +64,25 @@ export function TerminalHeader({
       className={`flex items-center justify-between gap-4 h-9 px-4 border-b border-[var(--c-border)] bg-[var(--c-panel)] text-[11px] ${className}`}
     >
       <div className="flex items-center h-full min-w-0 overflow-x-auto">
-        <Segment label="Market">
+        <Segment label="시장">
           <Pip tone={marketStatus.tone ?? "pos"}>{marketStatus.label}</Pip>
         </Segment>
-        <Segment label="Regime">
+        <Segment label="국면">
           <Pip tone={regime.tone ?? "info"}>{regime.label}</Pip>
         </Segment>
-        <Segment label="Exposure">
+        <Segment label="익스포저">
           <span className="c-num text-[var(--c-text-1)] font-semibold">
             {exposure.value >= 0 ? "+" : ""}
             {exposure.value.toFixed(1)}
             {exposure.unit ?? "%"}
           </span>
         </Segment>
-        <Segment label="Risk">
+        <Segment label="리스크">
           <Pip tone={riskState.tone ?? "pos"}>{riskState.label}</Pip>
         </Segment>
-        <Segment label="System">
+        <Segment label="시스템">
           {healthDown.length === 0 ? (
-            <Pip tone="pos">ALL ONLINE</Pip>
+            <Pip tone="pos">전체 정상</Pip>
           ) : (
             <div className="flex items-center gap-2">
               {healthDown.map((h) => (

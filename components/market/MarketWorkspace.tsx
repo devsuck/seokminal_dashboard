@@ -22,8 +22,8 @@ type Side = "trade" | "alert" | "indicators";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "search",  label: "검색" },
-  { id: "chart",   label: "Chart" },
-  { id: "compare", label: "Compare" },
+  { id: "chart",   label: "차트" },
+  { id: "compare", label: "비교" },
 ];
 
 export function MarketWorkspace({ initialSymbol }: { initialSymbol?: string }) {

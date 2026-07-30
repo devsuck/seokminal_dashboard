@@ -39,15 +39,15 @@ export default function SmartSignalPage() {
   return (
     <div className="min-h-full">
       <PageHeader
-        kicker="RESEARCH OUTPUT · 참고용, 보장 아님"
-        title="Smart Signal"
+        kicker="리서치 결과 · 참고용, 보장 아님"
+        title="스마트 시그널"
         right={data && <SignalBadge signal={VERDICT_KIND[data.verdict]} timestamp={Date.now()} />}
       />
 
       <div className="p-5 grid grid-cols-1 lg:grid-cols-[240px_1fr_280px] gap-4 items-start">
         {/* LEFT — instrument lookup */}
         <Panel>
-          <PanelHead kicker="Lookup" title="Instrument" />
+          <PanelHead kicker="조회" title="종목" />
           <div className="p-3 space-y-2.5">
             <input
               value={instrument}
@@ -58,7 +58,7 @@ export default function SmartSignalPage() {
             />
             <Button variant="primary" size="md" onClick={() => run(instrument)} className="w-full">분석</Button>
             <div className="pt-1 space-y-1">
-              <div className="text-[9px] tracking-[0.18em] text-[var(--c-text-3)] uppercase">Presets</div>
+              <div className="text-[9px] tracking-[0.18em] text-[var(--c-text-3)] uppercase">프리셋</div>
               {PRESETS.map((p) => (
                 <button
                   key={p}
@@ -82,7 +82,7 @@ export default function SmartSignalPage() {
           {data && (
             <>
               <AIInsightPanel
-                agent="Smart Signal Engine"
+                agent="스마트 시그널 엔진"
                 summary={`${VERDICT_LABEL[data.verdict]} — 레짐(HMM) 게이트 + 모멘텀 팩터 + Kelly 사이징 결합 판단${
                   data.verdict === "BUY" ? `. 제안 비중 ${data.suggested_position_pct}%` : ""
                 }`}
@@ -116,7 +116,7 @@ export default function SmartSignalPage() {
 
         {/* RIGHT — tail risk */}
         <Panel>
-          <PanelHead kicker="P&R" title="Tail Risk" />
+          <PanelHead kicker="P&R" title="꼬리 위험" />
           <div className="p-3 space-y-3">
             <FinancialMetric label="CVaR 95 (일간)" value={data?.cvar_95_pct ?? 0} format="percent" precision={1} tone="neg" size="sm" />
             <p className="text-[10px] text-[var(--c-text-3)] leading-relaxed pt-1 border-t border-[var(--c-border)]">

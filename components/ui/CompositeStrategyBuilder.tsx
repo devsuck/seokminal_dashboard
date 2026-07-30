@@ -42,7 +42,7 @@ export function CompositeStrategyBuilder({ rules, instrumentId, onChange }: Comp
   return (
     <div className="pt-2 border-t border-border">
       <div className="text-text-3 text-xs mb-4">
-        Each rule = condition group (AND/OR) + strategy. Strategy fires when conditions are met. Empty conditions = always active.
+        규칙 하나 = 조건 그룹(AND/OR) + 전략. 조건이 충족되면 전략이 실행됩니다. 조건이 비어 있으면 항상 활성 상태입니다.
       </div>
 
       <div className="mb-4 p-3 rounded-md border border-border bg-panel-2">
@@ -78,11 +78,11 @@ export function CompositeStrategyBuilder({ rules, instrumentId, onChange }: Comp
       <button
         onClick={() => onChange([...rules, newRule()])}
         className="text-sm text-text-2 hover:text-text-1 border border-border hover:border-text-3 px-4 py-2 rounded-md cursor-pointer bg-transparent transition-colors">
-        + Add Rule
+        + 규칙 추가
       </button>
 
       {rules.length > 0 && (
-        <JsonPreview label="spawn_rules JSON preview" data={buildSpawnRules(rules, instrumentId)} />
+        <JsonPreview label="spawn_rules JSON 미리보기" data={buildSpawnRules(rules, instrumentId)} />
       )}
     </div>
   );

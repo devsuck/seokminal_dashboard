@@ -8,8 +8,8 @@ interface StrategyModeTabsProps {
 }
 
 const TABS: { value: Mode; label: string }[] = [
-  { value: "composite", label: "Composite / Gated" },
-  { value: "portfolio", label: "Portfolio" },
+  { value: "composite", label: "복합 / 조건부" },
+  { value: "portfolio", label: "포트폴리오" },
 ];
 
 export function StrategyModeTabs({ mode, onChange }: StrategyModeTabsProps) {

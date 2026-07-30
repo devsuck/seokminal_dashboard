@@ -10,9 +10,9 @@ type Week = "this" | "next";
 type ImpactFilter = "all" | "High" | "Medium" | "Low";
 
 const IMPACT_CONFIG = {
-  High:   { dot: "bg-neg",  badge: "bg-neg/15 text-neg border-neg/25",   label: "High" },
-  Medium: { dot: "bg-warn", badge: "bg-warn/15 text-warn border-warn/25", label: "Medium" },
-  Low:    { dot: "bg-text-3 opacity-50", badge: "bg-panel-2 text-text-3 border-border", label: "Low" },
+  High:   { dot: "bg-neg",  badge: "bg-neg/15 text-neg border-neg/25",   label: "높음" },
+  Medium: { dot: "bg-warn", badge: "bg-warn/15 text-warn border-warn/25", label: "보통" },
+  Low:    { dot: "bg-text-3 opacity-50", badge: "bg-panel-2 text-text-3 border-border", label: "낮음" },
 } as const;
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -159,7 +159,7 @@ export default function CalendarPage() {
 
         {/* Impact filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-text-3 text-xs">Impact:</span>
+          <span className="text-text-3 text-xs">중요도:</span>
           {(["all", "High", "Medium", "Low"] as ImpactFilter[]).map(f => (
             <button
               key={f}
@@ -168,7 +168,7 @@ export default function CalendarPage() {
                 impactFilter === f
                   ? f === "High"? "bg-neg/20 text-neg border-neg/30": f === "Medium" ? "bg-warn/20 text-warn border-warn/30": f === "Low"? "bg-panel-2 text-text-2 border-border": "border-accent text-accent bg-accent/10": "text-text-3 hover:text-text-1 border-transparent"}`}
             >
-              {f === "all" ? "전체" : f}
+              {f === "all" ? "전체" : IMPACT_CONFIG[f].label}
             </button>
           ))}
         </div>
@@ -194,8 +194,8 @@ export default function CalendarPage() {
         {!loading && filtered.length > 0 && (
           <>
             <div className="h-4 w-px bg-border mx-1" />
-            <span className="text-neg text-[11px]">High {highCount}</span>
-            <span className="text-warn text-[11px]">Medium {mediumCount}</span>
+            <span className="text-neg text-[11px]">높음 {highCount}</span>
+            <span className="text-warn text-[11px]">보통 {mediumCount}</span>
             <span className="text-text-3 text-[11px]">총 {filtered.length}건</span>
           </>
         )}
@@ -224,7 +224,7 @@ export default function CalendarPage() {
             <PanelHeader right={hasHigh && (
               <span className="flex items-center gap-1 text-neg">
                 <span className="w-1.5 h-1.5 rounded-full bg-neg" />
-                High Impact
+                고중요도 일정
               </span>
             )}>
               {day} · {weekday}
@@ -236,7 +236,7 @@ export default function CalendarPage() {
                 <tr className="text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
                   <th className="px-4 py-1.5 text-left w-14">시간</th>
                   <th className="px-3 py-1.5 text-left w-14">통화</th>
-                  <th className="px-3 py-1.5 text-center w-20">Impact</th>
+                  <th className="px-3 py-1.5 text-center w-20">중요도</th>
                   <th className="px-3 py-1.5 text-left">이벤트</th>
                   <th className="px-3 py-1.5 text-right w-20">이전</th>
                   <th className="px-3 py-1.5 text-right w-20">예측</th>

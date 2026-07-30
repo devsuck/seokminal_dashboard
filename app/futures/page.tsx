@@ -30,7 +30,7 @@ function rollCostCls(v: number): string {
 }
 
 function Err({ msg }: { msg: string | null }) {
-  return msg ? <p className="text-neg text-sm mt-0 mb-3">ERR: {msg}</p> : null;
+  return msg ? <p className="text-neg text-sm mt-0 mb-3">오류: {msg}</p> : null;
 }
 
 // ── Shared input row ──────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ function InputRow({
           onClick={onCompute}
           disabled={loading}
           className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
-          {loading ? "Computing…" : "Compute"}
+          {loading ? "계산 중…" : "계산"}
         </button>
       </div>
     </Panel>
@@ -70,10 +70,10 @@ function InputRow({
 // ── Pricer Tab ────────────────────────────────────────────────────────────────
 
 const PRICER_ROWS: { label: string; key: keyof FuturesPriceResponse; fmt: (v: number) => string; desc: string }[] = [
-  { label: "Futures Price",      key: "price",            fmt: fmt4, desc: "F = S · e^((r-q)·T)" },
-  { label: "Basis",              key: "basis",            fmt: fmt4, desc: "F − S" },
-  { label: "Basis %",            key: "basis_pct",        fmt: fmt2, desc: "(F − S) / S × 100" },
-  { label: "Annualized Carry %", key: "annualized_carry", fmt: fmt2, desc: "(r − q) × 100" },
+  { label: "선물 가격",         key: "price",            fmt: fmt4, desc: "F = S · e^((r-q)·T)" },
+  { label: "베이시스",          key: "basis",            fmt: fmt4, desc: "F − S" },
+  { label: "베이시스 %",        key: "basis_pct",        fmt: fmt2, desc: "(F − S) / S × 100" },
+  { label: "연환산 캐리 %",     key: "annualized_carry", fmt: fmt2, desc: "(r − q) × 100" },
 ];
 
 function PricerTab() {
@@ -98,7 +98,7 @@ function PricerTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -109,10 +109,10 @@ function PricerTab() {
     <div className="space-y-4">
       <InputRow
         fields={[
-          { label: "Spot (S)", value: spot, set: setSpot },
-          { label: "Rate (r)", value: rate, set: setRate },
-          { label: "Conv. Yield (q)", value: convYield, set: setConvYield },
-          { label: "Expiry (days)", value: expiryDays, set: setExpiryDays },
+          { label: "현물가 (S)", value: spot, set: setSpot },
+          { label: "금리 (r)", value: rate, set: setRate },
+          { label: "편의수익률 (q)", value: convYield, set: setConvYield },
+          { label: "만기 (일)", value: expiryDays, set: setExpiryDays },
         ]}
         onCompute={run}
         loading={loading}
@@ -124,7 +124,7 @@ function PricerTab() {
             {result.market_structure}
           </span>
         )}>
-          Futures Pricer
+          선물 가격계산기
         </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
@@ -171,7 +171,7 @@ function RollTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -182,10 +182,10 @@ function RollTab() {
     <div className="space-y-4">
       <InputRow
         fields={[
-          { label: "Spot (S)", value: spot, set: setSpot },
-          { label: "Rate (r)", value: rate, set: setRate },
-          { label: "Conv. Yield (q)", value: convYield, set: setConvYield },
-          { label: "Front (days)", value: frontDays, set: setFrontDays },
+          { label: "현물가 (S)", value: spot, set: setSpot },
+          { label: "금리 (r)", value: rate, set: setRate },
+          { label: "편의수익률 (q)", value: convYield, set: setConvYield },
+          { label: "근월물 (일)", value: frontDays, set: setFrontDays },
         ]}
         onCompute={run}
         loading={loading}
@@ -196,13 +196,13 @@ function RollTab() {
           <table className="border-collapse w-full text-xs font-data">
             <thead>
               <tr className="border-b border-border text-text-3">
-                <th className="px-3 py-2 text-left font-medium">Roll</th>
-                <th className="px-3 py-2 text-right font-medium">Front F</th>
-                <th className="px-3 py-2 text-right font-medium">Back F</th>
-                <th className="px-3 py-2 text-right font-medium">Roll Cost</th>
-                <th className="px-3 py-2 text-right font-medium">Cost %</th>
-                <th className="px-3 py-2 text-right font-medium">Ann. Yield %</th>
-                <th className="px-3 py-2 text-right font-medium">Days to Roll</th>
+                <th className="px-3 py-2 text-left font-medium">롤오버</th>
+                <th className="px-3 py-2 text-right font-medium">근월물 F</th>
+                <th className="px-3 py-2 text-right font-medium">원월물 F</th>
+                <th className="px-3 py-2 text-right font-medium">롤 비용</th>
+                <th className="px-3 py-2 text-right font-medium">비용 %</th>
+                <th className="px-3 py-2 text-right font-medium">연환산 수익률 %</th>
+                <th className="px-3 py-2 text-right font-medium">롤까지 일수</th>
               </tr>
             </thead>
             <tbody>
@@ -231,7 +231,7 @@ function RollTab() {
       )}
       {!result && !loading && !error && (
         <div className="text-center py-12 text-text-3 text-sm">
-          Configure parameters and click Compute to view rollover costs.
+          파라미터를 입력하고 계산을 클릭하면 롤오버 비용을 확인할 수 있습니다.
         </div>
       )}
     </div>
@@ -261,7 +261,7 @@ function CurveTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -372,13 +372,13 @@ function CurveTab() {
     g.append("text")
       .attr("x", innerW / 2).attr("y", innerH + 38)
       .attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 11)
-      .text("Expiry (days)");
+      .text("만기 (일)");
 
     g.append("text")
       .attr("transform", "rotate(-90)")
       .attr("x", -innerH / 2).attr("y", -50)
       .attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 11)
-      .text("Futures Price");
+      .text("선물 가격");
 
   }, [result]);
 
@@ -388,9 +388,9 @@ function CurveTab() {
     <div className="space-y-4">
       <InputRow
         fields={[
-          { label: "Spot (S)", value: spot, set: setSpot },
-          { label: "Rate (r)", value: rate, set: setRate },
-          { label: "Conv. Yield (q)", value: convYield, set: setConvYield },
+          { label: "현물가 (S)", value: spot, set: setSpot },
+          { label: "금리 (r)", value: rate, set: setRate },
+          { label: "편의수익률 (q)", value: convYield, set: setConvYield },
         ]}
         onCompute={run}
         loading={loading}
@@ -403,7 +403,7 @@ function CurveTab() {
               {structure}
             </span>
           )}>
-            Term Structure — Spot {result.spot}
+            기간구조 — 현물 {result.spot}
           </PanelHeader>
           <div className="p-4">
             <svg ref={svgRef} width={560} height={280} className="block" />
@@ -412,7 +412,7 @@ function CurveTab() {
       )}
       {!result && !loading && !error && (
         <div className="text-center py-16 text-text-3 text-sm">
-          Configure parameters and click Compute to view the term structure curve.
+          파라미터를 입력하고 계산을 클릭하면 기간구조 커브를 확인할 수 있습니다.
         </div>
       )}
     </div>
@@ -422,9 +422,9 @@ function CurveTab() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "pricer", label: "Pricer" },
-  { id: "curve",  label: "Curve" },
-  { id: "roll",   label: "Roll" },
+  { id: "pricer", label: "가격계산기" },
+  { id: "curve",  label: "커브" },
+  { id: "roll",   label: "롤오버" },
 ];
 
 export default function FuturesPage() {

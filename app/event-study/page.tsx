@@ -70,14 +70,14 @@ export default function EventStudyPage() {
         const res = await getKSDDividend(ticker, start, end, ctrl.signal);
         events = res.rows
           .filter(r => r.dvdn_bas_dt)
-          .map(r => ({ date: r.dvdn_bas_dt!, label: `Div ${r.stck_genr_cash_dvdn_rt ?? ""}` }));
+          .map(r => ({ date: r.dvdn_bas_dt!, label: `배당 ${r.stck_genr_cash_dvdn_rt ?? ""}` }));
       } else if (source === "ksd_rights") {
         const res = await getKSDRightsSchedule(undefined, start, end, undefined, ctrl.signal);
         events = res.rows
           .filter(r => r.rgt_exert_sttg_dt)
-          .map(r => ({ date: r.rgt_exert_sttg_dt!, label: r.stck_issu_rcd_nm ?? "Rights" }));
+          .map(r => ({ date: r.rgt_exert_sttg_dt!, label: r.stck_issu_rcd_nm ?? "권리" }));
       } else if (source === "fred") {
-        if (!fredSeriesId) throw new Error("Select a FRED series");
+        if (!fredSeriesId) throw new Error("FRED 시리즈를 선택하세요");
         const res = await getFREDSeries(fredSeriesId, start, end, ctrl.signal);
         events = res.observations
           .filter(o => o.value !== null)
@@ -89,27 +89,27 @@ export default function EventStudyPage() {
           .map(l => l.trim())
           .filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l))
           .map(date => ({ date, label: date }));
-        if (events.length === 0) throw new Error("Enter at least one valid date (YYYY-MM-DD)");
+        if (events.length === 0) throw new Error("유효한 날짜를 최소 하나 입력하세요 (YYYY-MM-DD)");
       }
 
       if (events.length === 0) {
-        setError("No events found in the selected date range");
+        setError("선택한 기간에 이벤트가 없습니다");
         return;
       }
       setResult(computeEventStudy(barsRes.bars, events, windowDays));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "실패");
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
   }, [instrumentId, start, end, source, windowDays, fredSeriesId, customDates]);
 
   const sourceOptions: { value: EventSource; label: string }[] = [
-    { value: "ksd_dividend", label: "KSD Dividend" },
-    { value: "ksd_rights", label: "KSD Rights" },
-    { value: "fred", label: "FRED Series" },
-    { value: "custom", label: "Custom Dates" },
+    { value: "ksd_dividend", label: "KSD 배당" },
+    { value: "ksd_rights", label: "KSD 권리" },
+    { value: "fred", label: "FRED 시리즈" },
+    { value: "custom", label: "직접 입력" },
   ];
 
   return (
@@ -117,9 +117,9 @@ export default function EventStudyPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-text-1 text-lg font-semibold tracking-tight">Event Study</h1>
+          <h1 className="text-text-1 text-lg font-semibold tracking-tight">이벤트 스터디</h1>
           <p className="text-text-3 text-sm mt-0.5">
-            Windowed return analysis around market events. Measures performance −N to +N days from each event.
+            시장 이벤트 전후 구간 수익률 분석. 이벤트 기준 −N일부터 +N일까지의 성과를 측정합니다.
           </p>
         </div>
       </div>
@@ -129,21 +129,21 @@ export default function EventStudyPage() {
         {/* Instrument + dates */}
         <div className="flex gap-3 flex-wrap items-end">
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Instrument</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">종목</label>
             <input
               value={instrumentId}
               onChange={e => setInstrumentId(e.target.value)}
               placeholder="005930.XKRX"className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent font-data w-40"/>
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Start</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">시작</label>
             <input
               type="date"value={start}
               onChange={e => setStart(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data"/>
           </div>
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">End</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">종료</label>
             <input
               type="date"value={end}
               onChange={e => setEnd(e.target.value)}
@@ -153,7 +153,7 @@ export default function EventStudyPage() {
 
         {/* Event source tabs */}
         <div className="space-y-1">
-          <label className="text-text-3 text-[11px] uppercase tracking-wider">Event Source</label>
+          <label className="text-text-3 text-[11px] uppercase tracking-wider">이벤트 소스</label>
           <SegmentedToggle
             size="sm"
             value={source}
@@ -165,12 +165,12 @@ export default function EventStudyPage() {
         {/* Conditional source sub-controls */}
         {source === "fred" && (
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">FRED Series</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">FRED 시리즈</label>
             <select
               value={fredSeriesId}
               onChange={e => setFredSeriesId(e.target.value)}
               className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent">
-              {fredCatalog.length === 0 && <option value="">Loading...</option>}
+              {fredCatalog.length === 0 && <option value="">불러오는 중…</option>}
               {fredCatalog.map(item => (
                 <option key={item.series_id} value={item.series_id}>
                   {item.label} ({item.series_id})
@@ -181,7 +181,7 @@ export default function EventStudyPage() {
         )}
         {source === "custom" && (
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Custom Dates (one YYYY-MM-DD per line)</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">직접 입력 (줄당 YYYY-MM-DD 하나씩)</label>
             <textarea
               rows={4}
               value={customDates}
@@ -193,7 +193,7 @@ export default function EventStudyPage() {
         {/* Window + Run */}
         <div className="flex items-end gap-4 flex-wrap">
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Window</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">구간</label>
             <SegmentedToggle
               size="sm"
               value={String(windowDays)}
@@ -205,7 +205,7 @@ export default function EventStudyPage() {
             onClick={run}
             disabled={loading}
             className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? "Running…" : "Run"}
+            {loading ? "실행중…" : "실행"}
           </button>
         </div>
       </div>
@@ -223,25 +223,25 @@ export default function EventStudyPage() {
           {/* Stats */}
           <div className="flex gap-6 flex-wrap text-xs">
             <div className="text-text-3">
-              Events: <span className="text-text-2 font-data">{result.stats.eventCount}</span>
+              이벤트: <span className="text-text-2 font-data">{result.stats.eventCount}</span>
             </div>
             <div className="text-text-3">
-              Hit Rate:{" "}
+              적중률:{" "}
               <span className={`px-1 font-bold font-data ${result.stats.hitRate === null ? "text-text-2" : result.stats.hitRate >= 0.5 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 {result.stats.hitRate !== null ? `${(result.stats.hitRate * 100).toFixed(1)}%` : "—"}
               </span>
             </div>
             <div className="text-text-3">
-              Avg Return (+{result.stats.windowDays}d):{" "}
+              평균 수익률 (+{result.stats.windowDays}일):{" "}
               <span className={`px-1 font-bold font-data ${result.stats.avgReturns[result.stats.windowDays * 2] === null ? "text-text-2" : (result.stats.avgReturns[result.stats.windowDays * 2] ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 {pct(result.stats.avgReturns[result.stats.windowDays * 2])}
               </span>
             </div>
             <div className="text-text-3">
-              Max: <span className="text-pos font-data">{pct(result.stats.maxReturn)}</span>
+              최대: <span className="text-pos font-data">{pct(result.stats.maxReturn)}</span>
             </div>
             <div className="text-text-3">
-              Min: <span className="text-neg font-data">{pct(result.stats.minReturn)}</span>
+              최소: <span className="text-neg font-data">{pct(result.stats.minReturn)}</span>
             </div>
           </div>
 
@@ -249,19 +249,19 @@ export default function EventStudyPage() {
           <div className="flex gap-4 text-[10px] text-text-3 flex-wrap">
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-0.5 opacity-50 shrink-0" style={{ backgroundColor: TOKEN.text3 }} />
-              Individual events
+              개별 이벤트
             </div>
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-0.5 bg-accent shrink-0" />
-              Average
+              평균
             </div>
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-0.5 bg-info shrink-0 opacity-80" style={{backgroundImage: "repeating-linear-gradient(to right, var(--color-info) 0px, var(--color-info) 5px, transparent 5px, transparent 8px)"}} />
-              Median
+              중앙값
             </div>
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-0.5 h-3 bg-accent opacity-70 shrink-0" />
-              Event day (0)
+              이벤트 당일(0)
             </div>
           </div>
 
@@ -272,13 +272,13 @@ export default function EventStudyPage() {
 
           {/* Events table */}
           <Panel>
-            <PanelHeader>Individual Events ({result.windows.length})</PanelHeader>
+            <PanelHeader>개별 이벤트 ({result.windows.length})</PanelHeader>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="px-4 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">Label</th>
+                    <th className="px-4 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">날짜</th>
+                    <th className="px-4 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">설명</th>
                     {result.dayLabels.map(dl => (
                       <th key={dl} className="px-2 py-2 text-right text-text-3 font-normal text-[10px] font-data">
                         {dl}
@@ -311,7 +311,7 @@ export default function EventStudyPage() {
 
       {!result && !loading && !error && (
         <div className="text-center py-12 text-text-3 text-sm">
-          Configure event source and click Run to analyze windowed returns.
+          이벤트 소스를 설정하고 실행 버튼을 클릭하면 구간별 수익률을 분석합니다.
         </div>
       )}
     </div>

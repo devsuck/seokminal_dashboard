@@ -25,10 +25,10 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
       {/* Card header */}
       <div className="flex items-center gap-3 px-4 py-2.5 bg-panel-2 border-b border-border">
         <span className="text-xs font-semibold text-text-3 uppercase tracking-wider">
-          Rule {index + 1}
+          규칙 {index + 1}
         </span>
         <div className="flex items-center gap-1.5">
-          <span className="text-text-3 text-[11px]">Logic</span>
+          <span className="text-text-3 text-[11px]">결합</span>
           <select
             className="compact"value={rule.combinator}
             onChange={e => upd({ combinator: e.target.value as Combinator })}
@@ -40,13 +40,13 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
         <button
           onClick={onRemove}
           className="ml-auto text-xs text-text-3 hover:text-neg border border-border hover:border-neg/40 px-2.5 py-1 rounded cursor-pointer bg-transparent transition-colors">
-          Remove
+          삭제
         </button>
       </div>
 
       {/* Conditions */}
       <div className="px-4 pt-2 pb-0">
-        <div className="text-text-3 text-[11px] uppercase tracking-wider mb-2">Conditions</div>
+        <div className="text-text-3 text-[11px] uppercase tracking-wider mb-2">조건</div>
         {rule.comparisons.map((c, i) => (
           <div key={c.id} className="flex items-start gap-2">
             {/* AND/OR pill connector */}
@@ -70,22 +70,22 @@ export function RuleCard({ rule, index, onChange, onRemove }: RuleCardProps) {
         <button
           onClick={() => upd({ comparisons: [...rule.comparisons, newComp()] })}
           className="text-xs text-text-3 hover:text-text-2 border border-border hover:border-border px-3 py-1.5 rounded cursor-pointer bg-transparent transition-colors my-3">
-          + Add Condition
+          + 조건 추가
         </button>
       </div>
 
       {/* Trigger footer */}
       <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 bg-panel-2 border-t border-border">
-        <span className="text-text-3 text-[11px] uppercase tracking-wider">Trigger</span>
+        <span className="text-text-3 text-[11px] uppercase tracking-wider">트리거</span>
         <span className="text-text-2 text-xs bg-panel border border-border px-2.5 py-1 rounded">
-          EMA Cross
+          EMA 크로스
         </span>
         <div className="flex items-center gap-1.5">
-          <span className="text-text-3 text-[10px]">Fast</span>
+          <span className="text-text-3 text-[10px]">단기</span>
           <input type="number" value={rule.fast} min={1} className="compact w-14"onChange={e => upd({ fast: Number(e.target.value) })} />
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-text-3 text-[10px]">Slow</span>
+          <span className="text-text-3 text-[10px]">장기</span>
           <input type="number" value={rule.slow} min={1} className="compact w-14"onChange={e => upd({ slow: Number(e.target.value) })} />
         </div>
       </div>

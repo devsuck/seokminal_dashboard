@@ -41,7 +41,7 @@ function signCls(v: number): string {
 }
 
 function Err({ msg }: { msg: string | null }) {
-  return msg ? <p className="text-neg text-sm mt-0 mb-3">ERR: {msg}</p> : null;
+  return msg ? <p className="text-neg text-sm mt-0 mb-3">오류: {msg}</p> : null;
 }
 
 // ── Shared input row ───────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ function InputRow({
           onClick={onCompute}
           disabled={loading}
           className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
-          {loading ? "Computing…" : "Compute"}
+          {loading ? "계산 중…" : "계산"}
         </button>
       </div>
     </Panel>
@@ -86,10 +86,10 @@ const FORWARD_ROWS: {
   fmt: (v: number) => string;
   desc: string;
 }[] = [
-  { label: "Forward Rate",         key: "forward",                fmt: fmt6, desc: "F = S · e^((r_d−r_f)·T)" },
-  { label: "Forward Points",       key: "forward_points",         fmt: fmt6, desc: "F − S" },
-  { label: "Fwd Points %",         key: "forward_points_pct",     fmt: fmt4, desc: "(F − S) / S × 100" },
-  { label: "Ann. Differential %",  key: "annualized_differential",fmt: fmt4, desc: "(r_d − r_f) × 100" },
+  { label: "선도환율",         key: "forward",                fmt: fmt6, desc: "F = S · e^((r_d−r_f)·T)" },
+  { label: "선도포인트",       key: "forward_points",         fmt: fmt6, desc: "F − S" },
+  { label: "선도포인트 %",         key: "forward_points_pct",     fmt: fmt4, desc: "(F − S) / S × 100" },
+  { label: "연환산 금리차 %",  key: "annualized_differential",fmt: fmt4, desc: "(r_d − r_f) × 100" },
 ];
 
 function ForwardTab() {
@@ -114,7 +114,7 @@ function ForwardTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -125,10 +125,10 @@ function ForwardTab() {
     <div className="space-y-4">
       <InputRow
         fields={[
-          { label: "Spot (S)",        value: spot, set: setSpot },
-          { label: "Rate Dom. (r_d)", value: rDom, set: setRDom },
-          { label: "Rate For. (r_f)", value: rFor, set: setRFor },
-          { label: "Days (T)",        value: days, set: setDays },
+          { label: "현물가 (S)",        value: spot, set: setSpot },
+          { label: "자국금리 (r_d)", value: rDom, set: setRDom },
+          { label: "외국금리 (r_f)", value: rFor, set: setRFor },
+          { label: "일수 (T)",        value: days, set: setDays },
         ]}
         onCompute={run}
         loading={loading}
@@ -140,7 +140,7 @@ function ForwardTab() {
             {result.market_structure}
           </span>
         )}>
-          FX Forward Pricer
+          FX 선도환율 계산기
         </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
@@ -173,11 +173,11 @@ const CARRY_ROWS: {
   cls: (v: number) => string;
   desc: string;
 }[] = [
-  { label: "Forward Rate",         key: "forward",               fmt: fmt6, cls: () => "text-text-1", desc: "F = S · e^((r_d−r_f)·T)" },
-  { label: "Carry Rate (Ann.) %",  key: "carry_rate",            fmt: fmt4, cls: signCls,              desc: "(r_d − r_f) × 100" },
-  { label: "Net Carry %",          key: "net_carry_pct",         fmt: fmt4, cls: signCls,              desc: "carry_rate × T" },
-  { label: "Breakeven Move %",     key: "breakeven_move_pct",    fmt: fmt4, cls: () => "text-text-2",  desc: "spot move that wipes carry" },
-  { label: "UIP Expected Move %",  key: "uip_expected_move_pct", fmt: fmt4, cls: (v) => v > 0 ? "bg-neg/20 text-neg" : v < 0 ? "bg-pos/20 text-pos" : "text-text-3", desc: "(F − S) / S × 100" },
+  { label: "선도환율",         key: "forward",               fmt: fmt6, cls: () => "text-text-1", desc: "F = S · e^((r_d−r_f)·T)" },
+  { label: "캐리금리(연환산) %",  key: "carry_rate",            fmt: fmt4, cls: signCls,              desc: "(r_d − r_f) × 100" },
+  { label: "순캐리 %",          key: "net_carry_pct",         fmt: fmt4, cls: signCls,              desc: "carry_rate × T" },
+  { label: "손익분기 변동률 %",     key: "breakeven_move_pct",    fmt: fmt4, cls: () => "text-text-2",  desc: "캐리를 상쇄하는 스팟 변동폭" },
+  { label: "UIP 기대 변동률 %",  key: "uip_expected_move_pct", fmt: fmt4, cls: (v) => v > 0 ? "bg-neg/20 text-neg" : v < 0 ? "bg-pos/20 text-pos" : "text-text-3", desc: "(F − S) / S × 100" },
 ];
 
 function CarryTab() {
@@ -202,7 +202,7 @@ function CarryTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -213,10 +213,10 @@ function CarryTab() {
     <div className="space-y-4">
       <InputRow
         fields={[
-          { label: "Spot (S)",        value: spot, set: setSpot },
-          { label: "Rate Dom. (r_d)", value: rDom, set: setRDom },
-          { label: "Rate For. (r_f)", value: rFor, set: setRFor },
-          { label: "Days (T)",        value: days, set: setDays },
+          { label: "현물가 (S)",        value: spot, set: setSpot },
+          { label: "자국금리 (r_d)", value: rDom, set: setRDom },
+          { label: "외국금리 (r_f)", value: rFor, set: setRFor },
+          { label: "일수 (T)",        value: days, set: setDays },
         ]}
         onCompute={run}
         loading={loading}
@@ -225,10 +225,10 @@ function CarryTab() {
       <Panel>
         <PanelHeader right={result && (
           <span className={result.favorable ? "text-pos" : "text-neg"}>
-            {result.favorable ? "FAVORABLE" : "UNFAVORABLE"}
+            {result.favorable ? "유리" : "불리"}
           </span>
         )}>
-          Carry Analysis
+          캐리 분석
         </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
@@ -275,7 +275,7 @@ function CurveTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -387,13 +387,13 @@ function CurveTab() {
     g.append("text")
       .attr("x", innerW / 2).attr("y", innerH + 38)
       .attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 11)
-      .text("Tenor (days)");
+      .text("만기 (일)");
 
     g.append("text")
       .attr("transform", "rotate(-90)")
       .attr("x", -innerH / 2).attr("y", -58)
       .attr("text-anchor", "middle").attr("fill", TOKEN.text2).attr("font-size", 11)
-      .text("Forward Rate");
+      .text("선도환율");
 
   }, [result]);
 
@@ -403,9 +403,9 @@ function CurveTab() {
     <div className="space-y-4">
       <InputRow
         fields={[
-          { label: "Spot (S)",        value: spot, set: setSpot },
-          { label: "Rate Dom. (r_d)", value: rDom, set: setRDom },
-          { label: "Rate For. (r_f)", value: rFor, set: setRFor },
+          { label: "현물가 (S)",        value: spot, set: setSpot },
+          { label: "자국금리 (r_d)", value: rDom, set: setRDom },
+          { label: "외국금리 (r_f)", value: rFor, set: setRFor },
         ]}
         onCompute={run}
         loading={loading}
@@ -418,7 +418,7 @@ function CurveTab() {
               {structure}
             </span>
           )}>
-            Forward Curve — Spot {result.spot}
+            선도환율 커브 — 현물가 {result.spot}
           </PanelHeader>
           <div className="p-4">
             <svg ref={svgRef} width={560} height={280} className="block" />
@@ -427,7 +427,7 @@ function CurveTab() {
       )}
       {!result && !loading && !error && (
         <div className="text-center py-16 text-text-3 text-sm">
-          Configure parameters and click Compute to view the forward curve.
+          파라미터를 설정하고 계산을 눌러 선도환율 커브를 확인하세요.
         </div>
       )}
     </div>
@@ -439,8 +439,8 @@ function CurveTab() {
 // ── Live Rates Heatmap ────────────────────────────────────────────────────────
 
 const PAIR_GROUPS = [
-  { label: "Majors",  pairs: ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD"] },
-  { label: "Asian",   pairs: ["USD/KRW", "USD/CNY", "EUR/JPY", "GBP/JPY"] },
+  { label: "주요국",  pairs: ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "NZD/USD", "USD/CAD"] },
+  { label: "아시아",   pairs: ["USD/KRW", "USD/CNY", "EUR/JPY", "GBP/JPY"] },
 ];
 
 function heatColor(pct: number | null): string {
@@ -591,10 +591,10 @@ function LiveRatesTab() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "live",    label: "Live Rates" },
-  { id: "forward", label: "Forward" },
-  { id: "curve",   label: "Curve" },
-  { id: "carry",   label: "Carry" },
+  { id: "live",    label: "실시간 환율" },
+  { id: "forward", label: "선도환율" },
+  { id: "curve",   label: "커브" },
+  { id: "carry",   label: "캐리" },
 ];
 
 export default function ForexPage() {

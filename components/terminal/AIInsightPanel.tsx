@@ -25,7 +25,7 @@ export function AIInsightPanel({ agent, summary, reasoning, confidence, timestam
       <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)]" />
       <div className="flex items-center justify-between gap-3">
         <span className="text-[9px] font-semibold tracking-[0.22em] text-[var(--c-hud)] uppercase">
-          {agent ?? "AI Insight"}
+          {agent ?? "AI 인사이트"}
         </span>
         <span className="text-[9.5px] c-num text-[var(--c-text-3)]">{formatRelativeTime(timestamp)}</span>
       </div>
@@ -45,7 +45,7 @@ export function AIInsightPanel({ agent, summary, reasoning, confidence, timestam
 
       {confPct !== null && (
         <div className="mt-3 flex items-center gap-2">
-          <span className="text-[9px] tracking-[0.16em] text-[var(--c-text-3)] uppercase">Confidence</span>
+          <span className="text-[9px] tracking-[0.16em] text-[var(--c-text-3)] uppercase">신뢰도</span>
           <div className="h-1 flex-1 bg-[var(--c-panel-3)] overflow-hidden">
             <div
               className="h-full"

@@ -27,16 +27,16 @@ export function RiskMonitor({
     <Panel className={className}>
       <PanelHead
         kicker="P&R"
-        title="Risk Monitor"
+        title="리스크 모니터"
         right={status && <Badge tone={status.tone}>{status.label}</Badge>}
       />
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4">
-        <FinancialMetric label="Exposure" value={exposure} format="percent" size="sm" signColor unit="net" />
-        <FinancialMetric label="Volatility" value={volatility} format="percent" size="sm" tone="warn" />
-        <FinancialMetric label="VaR (1D, 95%)" value={var95} format="percent" size="sm" tone="neg" />
-        <FinancialMetric label="Drawdown" value={drawdown} format="percent" size="sm" tone="neg" />
+        <FinancialMetric label="익스포저" value={exposure} format="percent" size="sm" signColor unit="순" />
+        <FinancialMetric label="변동성" value={volatility} format="percent" size="sm" tone="warn" />
+        <FinancialMetric label="VaR (1일, 95%)" value={var95} format="percent" size="sm" tone="neg" />
+        <FinancialMetric label="드로다운" value={drawdown} format="percent" size="sm" tone="neg" />
         {correlation !== undefined && (
-          <FinancialMetric label="Correlation" value={correlation} format="ratio" precision={2} size="sm" tone="info" />
+          <FinancialMetric label="상관계수" value={correlation} format="ratio" precision={2} size="sm" tone="info" />
         )}
       </div>
     </Panel>

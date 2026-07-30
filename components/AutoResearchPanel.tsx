@@ -14,10 +14,10 @@ import { Button } from "@/components/ui";
    embedded=true → AI LAB 페이지 내 섹션(컴팩트 헤더). false → 독립 페이지. */
 
 const VERDICT: Record<string, { label: string; cls: string }> = {
-  CANDIDATE:       { label: "CANDIDATE", cls: "text-pos border-pos/50 bg-pos/10" },
-  WATCHLIST:       { label: "WATCHLIST", cls: "text-warn border-warn/50 bg-warn/10" },
-  REJECT_REDTEAM:  { label: "REJECT · 레드팀", cls: "text-neg border-neg/40 bg-neg/5" },
-  REJECT_BH:       { label: "REJECT · BH-FDR", cls: "text-warn border-warn/40 bg-warn/5" },
+  CANDIDATE:       { label: "후보", cls: "text-pos border-pos/50 bg-pos/10" },
+  WATCHLIST:       { label: "관찰", cls: "text-warn border-warn/50 bg-warn/10" },
+  REJECT_REDTEAM:  { label: "기각 · 레드팀", cls: "text-neg border-neg/40 bg-neg/5" },
+  REJECT_BH:       { label: "기각 · BH-FDR", cls: "text-warn border-warn/40 bg-warn/5" },
 };
 
 function fnum(n: number | null | undefined, d = 4, sign = false): string {
@@ -75,7 +75,7 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold text-text-1 uppercase tracking-[0.12em]">배치 리더보드 · 최종 확정</h2>
             <LivePulse tone={busy ? "accent" : nCand > 0 ? "pos" : "text-3"}
-              label={busy ? "RUNNING" : "BH-FDR"} />
+              label={busy ? "실행중" : "BH-FDR"} />
             <span className="text-[11px] text-text-3 font-data">
               라이브 pending의 하류 — 배치 다중검정 통과분만 확정
             </span>
@@ -91,12 +91,12 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-5">
               <ArcReactor size={132} active={busy}
-                label={busy ? "RUN" : nCand > 0 ? "HIT" : "IDLE"} sub="batch" />
+                label={busy ? "실행" : nCand > 0 ? "적중" : "대기"} sub="배치" />
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-semibold text-text-1 tracking-[0.12em]">Auto-Research</h1>
                   <LivePulse tone={busy ? "accent" : nCand > 0 ? "pos" : "text-3"}
-                    label={busy ? "RUNNING" : st?.finished ? "IDLE" : "READY"} />
+                    label={busy ? "실행중" : st?.finished ? "대기" : "준비"} />
                 </div>
                 <div className="mt-1 h-4 font-data text-[11px] text-hud/80">
                   {busy ? <ThinkingLine text="후보 생성 · 검증 · 배치 BH-FDR · 레드팀" />
@@ -126,7 +126,7 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Stat label="검증됨" num={st.n_tested} />
           <Stat label="저파워(데이터부족)" num={st.n_underpowered ?? 0} />
-          <Stat label="CANDIDATE" num={nCand} tone={nCand > 0 ? "pos" : undefined} />
+          <Stat label="후보" num={nCand} tone={nCand > 0 ? "pos" : undefined} />
           <Stat label="BH 임계 p" str={st.bh_threshold != null ? st.bh_threshold.toFixed(4) : "—"} />
         </div>
       )}

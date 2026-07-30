@@ -51,9 +51,9 @@ export default function BuybackDoctorPage() {
       {/* Header HUD */}
       <div className="hud-frame hud-bg tech-grid scanline-host flex items-center justify-between gap-4 flex-wrap rounded-lg border border-accent/20 p-4">
         <div className="flex items-center gap-5">
-          <ArcReactor size={100} active={!pending} label={pending ? "…" : "DX"} sub="loss dx" />
+          <ArcReactor size={100} active={!pending} label={pending ? "…" : "DX"} sub="손실 진단" />
           <div>
-            <h1 className="text-2xl font-semibold text-text-1 tracking-[0.1em]">Buyback 손실 진단</h1>
+            <h1 className="text-2xl font-semibold text-text-1 tracking-[0.1em]">자사주 매입 손실 진단</h1>
             <div className="mt-1 font-data text-[11px] text-accent/80">
               왜 깨졌나(결정적 진단) + 정교한 청산룰이 기대치를 올리나(시뮬) · v1 동결→섀도 평가
             </div>
@@ -71,7 +71,7 @@ export default function BuybackDoctorPage() {
       {pending && (
         <Panel className="p-4 flex items-center gap-3">
           <LivePulse tone="accent" />
-          <span className="text-sm text-text-2">{a?.note ?? "가격 시리즈 빌드 중(~80s)…"} 자동 새로고침.</span>
+          <span className="text-sm text-text-2">{a?.note ?? "가격 시리즈 빌드 중(~80초)…"} 자동 새로고침.</span>
         </Panel>
       )}
 
@@ -82,7 +82,7 @@ export default function BuybackDoctorPage() {
             결론: {a.improves ? `더 정교한 청산(${RULE_LABEL[a.best_rule]})이 기대치 개선` : "정교한 손절이 오히려 엣지를 깎음 → v1(20일 보유) 유지"}
           </div>
           <p className="text-[12px] text-text-2 leading-relaxed">
-            buyback 엣지는 <b className="text-text-1">우측꼬리 의존</b>(옐로). 손절·트레일링이 그 소수 대박을 잘라 mean을 낮춤.
+            자사주 매입 엣지는 <b className="text-text-1">우측꼬리 의존</b>(옐로). 손절·트레일링이 그 소수 대박을 잘라 평균을 낮춤.
             개별 손실은 아파 보여도 전체에 손절 걸면 기대치 <b className="text-neg">하락</b>. {a.shadow_note}
           </p>
         </div>

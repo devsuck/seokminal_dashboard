@@ -44,8 +44,8 @@ export default function RiskGuardPage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader kicker="RISK GUARD" title="Kill Switch & Drawdown Control"
-        right={<Badge tone={killed ? "neg" : "pos"}>{killed ? "KILL ENGAGED" : "NOMINAL"}</Badge>} />
+      <PageHeader kicker="리스크 가드" title="킬스위치 및 낙폭(드로다운) 제어"
+        right={<Badge tone={killed ? "neg" : "pos"}>{killed ? "킬 작동중" : "정상"}</Badge>} />
       <div className="p-5 space-y-5 max-w-[900px]">
         <StateBlock loading={loading} err={error} empty={!loading && !error && !data}>
           {data && (
@@ -75,7 +75,7 @@ export default function RiskGuardPage() {
 
               {/* MDD 게이지 */}
               <Panel className="overflow-hidden">
-                <PanelHead kicker="DRAWDOWN" title="Max Drawdown (peak 대비)"
+                <PanelHead kicker="낙폭" title="최대 낙폭 (고점 대비)"
                   right={<span className={`c-num text-[11px] ${data.drawdown_breached ? "text-[var(--c-neg)]" : dd != null && dd < 0 ? "text-[var(--c-warn)]" : "text-[var(--c-text-2)]"}`}>
                     {dd != null ? `${dd}%` : "—"} / 한도 -{limit}%</span>} />
                 <div className="p-4">
@@ -90,7 +90,7 @@ export default function RiskGuardPage() {
 
               {/* 주문 한도 */}
               <Panel className="overflow-hidden">
-                <PanelHead kicker="LIMITS" title="주문 한도 (서버 강제)" />
+                <PanelHead kicker="한도" title="주문 한도 (서버 강제)" />
                 <div className="p-4">
                   <KV k="1회 주문 최대 수량" v={data.limits.max_order_qty.toLocaleString()} />
                   <KV k="1회 주문 최대 금액" v={won(data.limits.max_order_notional)} />

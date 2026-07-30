@@ -132,7 +132,7 @@ export function EventReturnChart({ result, width = 800, height = 320 }: EventRet
       .attr("text-anchor", "middle")
       .attr("fill", TOKEN.text3)
       .attr("font-size", "10px")
-      .text("Days from event");
+      .text("이벤트 기준 경과일");
 
   }, [result, width, height]);
 

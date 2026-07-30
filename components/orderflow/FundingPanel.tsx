@@ -24,7 +24,7 @@ export function FundingPanel({ coin, funding }: FundingPanelProps) {
       <div className="flex items-center justify-between">
         <h3 className="text-text-1 text-sm font-medium">{coin} 펀딩비 · OI</h3>
         <span className="text-text-3 text-xs">
-          {funding ? `mark ${funding.mark_px.toLocaleString()}` : "로딩 중"}
+          {funding ? `마크가 ${funding.mark_px.toLocaleString()}` : "로딩 중"}
           {isStale && <span className="text-warn"> · 데이터 지연</span>}
         </span>
       </div>

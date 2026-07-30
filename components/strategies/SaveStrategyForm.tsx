@@ -30,7 +30,7 @@ export function SaveStrategyForm({ params, onSaved, onCancel }: SaveStrategyForm
 
   return (
     <div className="bg-panel-2 border border-border rounded-lg p-4 space-y-3">
-      <div className="text-text-3 text-[11px] uppercase tracking-wider">Save as Strategy</div>
+      <div className="text-text-3 text-[11px] uppercase tracking-wider">전략으로 저장</div>
 
       <div className="space-y-2">
         <input
@@ -38,25 +38,25 @@ export function SaveStrategyForm({ params, onSaved, onCancel }: SaveStrategyForm
           type="text"value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onCancel(); }}
-          placeholder="Strategy name (required)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
+          placeholder="전략 이름 (필수)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
         <input
           type="text"value={description}
           onChange={e => setDescription(e.target.value)}
-          placeholder="Description (optional)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
+          placeholder="설명 (선택)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
         <input
           type="text"value={tags}
           onChange={e => setTags(e.target.value)}
-          placeholder="Tags (comma-separated)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
+          placeholder="태그 (쉼표로 구분)"className="w-full h-8 px-3 text-xs bg-panel border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent"/>
       </div>
 
       <div className="flex gap-2">
         <Button variant="primary" size="md" onClick={handleSave} disabled={!name.trim()}>
-          Save
+          저장
         </Button>
         <button
           onClick={onCancel}
           className="px-4 h-8 bg-panel border border-border text-text-2 text-xs rounded cursor-pointer hover:text-text-1 transition-colors">
-          Cancel
+          취소
         </button>
       </div>
     </div>

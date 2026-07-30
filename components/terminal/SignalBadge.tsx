@@ -38,7 +38,7 @@ export function SignalBadge({ signal, confidence, severity, timestamp, className
         <span className="text-[9.5px] text-[var(--c-text-2)]">{Math.round(confidence * 100)}%</span>
       )}
       {severity && (
-        <span className="flex items-center gap-[2px]" title={`severity: ${severity}`}>
+        <span className="flex items-center gap-[2px]" title={`심각도: ${severity}`}>
           {Array.from({ length: 4 }, (_, i) => (
             <span
               key={i}

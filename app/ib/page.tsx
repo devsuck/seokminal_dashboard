@@ -10,11 +10,11 @@ import { TOKEN } from "@/lib/chart-colors";
 type AssetTab = "stock" | "forex" | "future" | "option" | "crypto";
 
 const TABS: { id: AssetTab; label: string }[] = [
-  { id: "stock",  label: "Stock"},
-  { id: "forex",  label: "Forex"},
-  { id: "future", label: "Future" },
-  { id: "option", label: "Option" },
-  { id: "crypto", label: "Crypto" },
+  { id: "stock",  label: "주식"},
+  { id: "forex",  label: "외환"},
+  { id: "future", label: "선물" },
+  { id: "option", label: "옵션" },
+  { id: "crypto", label: "크립토" },
 ];
 
 const DURATIONS = ["1 W", "1 M", "3 M", "6 M", "1 Y", "2 Y", "5 Y"] as const;
@@ -33,7 +33,7 @@ const BAR_SIZE_DEFAULT_DURATION: Record<IBBarSize, string> = {
 };
 
 function Err({ msg }: { msg: string | null }) {
-  return msg ? <p className="text-neg text-sm mb-3">ERR: {msg}</p> : null;
+  return msg ? <p className="text-neg text-sm mb-3">오류: {msg}</p> : null;
 }
 
 function fmtPrice(v: number): string {
@@ -85,10 +85,10 @@ function CandleChart({ result }: { result: IBBarsResponse }) {
     <Panel>
       <PanelHeader right={last && (
         <span className="font-data">
-          Last: {fmtPrice(last.close)}
+          최근가: {fmtPrice(last.close)}
         </span>
       )}>
-        {result.symbol} · {result.count} bars
+        {result.symbol} · {result.count}개 봉
       </PanelHeader>
       <div className="p-3">
         <div ref={chartRef} style={{ height: "320px" }} />
@@ -114,7 +114,7 @@ function FormShell({ children, onLoad, loading }: FormShellProps) {
           onClick={onLoad}
           disabled={loading}
           className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
-          {loading ? "Loading…" : "Load"}
+          {loading ? "불러오는 중…" : "조회"}
         </button>
       </div>
     </Panel>
@@ -134,11 +134,11 @@ const inputCls = "h-8 px-3 text-xs bg-panel-2 border border-border rounded text-
 
 function BarSizeButtons({ value, onChange }: { value: IBBarSize; onChange: (v: IBBarSize) => void }) {
   const groups = [
-    { label: "Intraday", sizes: ["1 min", "5 mins", "15 mins", "30 mins"] as IBBarSize[] },
-    { label: "Daily+",   sizes: ["1 hour", "4 hours", "1 day", "1 week", "1 month"] as IBBarSize[] },
+    { label: "인트라데이", sizes: ["1 min", "5 mins", "15 mins", "30 mins"] as IBBarSize[] },
+    { label: "일봉 이상",   sizes: ["1 hour", "4 hours", "1 day", "1 week", "1 month"] as IBBarSize[] },
   ];
   return (
-    <Field label="Bar Size">
+    <Field label="봉 크기">
       <div className="flex gap-1 flex-wrap">
         {groups.map(g => (
           <div key={g.label} className="flex rounded overflow-hidden border border-border">
@@ -160,7 +160,7 @@ function BarSizeButtons({ value, onChange }: { value: IBBarSize; onChange: (v: I
 
 function DurationSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <Field label="Duration">
+    <Field label="기간">
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -174,7 +174,7 @@ function DurationSelect({ value, onChange }: { value: string; onChange: (v: stri
 
 function EndDateInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <Field label="End Date (optional)">
+    <Field label="종료일 (선택)">
       <input
         type="text"value={value}
         onChange={e => onChange(e.target.value)}
@@ -201,7 +201,7 @@ function useIBBars() {
       setResult(await getIBBars(params, ctrl.signal));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -230,7 +230,7 @@ function StockTab() {
   return (
     <div className="space-y-4">
       <FormShell onLoad={() => { if (!symbol.trim()) return; load({ symbol, asset_type: "stock", end_date: endDate, duration, bar_size: barSize }); }} loading={loading}>
-        <Field label="Symbol">
+        <Field label="종목">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-20 uppercase`} />
         </Field>
         <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
@@ -258,7 +258,7 @@ function ForexTab() {
   return (
     <div className="space-y-4">
       <FormShell onLoad={() => { if (!pair.trim()) return; load({ symbol: pair, asset_type: "forex", end_date: endDate, duration, bar_size: barSize }); }} loading={loading}>
-        <Field label="Pair (e.g. EURUSD)">
+        <Field label="통화쌍 (예: EURUSD)">
           <input type="text" value={pair} onChange={e => setPair(e.target.value.toUpperCase())} className={`${inputCls} w-24 uppercase`} />
         </Field>
         <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
@@ -291,13 +291,13 @@ function FutureTab() {
         onLoad={() => { if (!symbol.trim() || !exchange.trim() || !expiry.trim()) return; load({ symbol, asset_type: "future", exchange, expiry, end_date: endDate, duration, bar_size: barSize }); }}
         loading={loading}
       >
-        <Field label="Symbol">
+        <Field label="종목">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-16 uppercase`} />
         </Field>
-        <Field label="Exchange">
+        <Field label="거래소">
           <input type="text" value={exchange} onChange={e => setExchange(e.target.value.toUpperCase())} className={`${inputCls} w-16 uppercase`} />
         </Field>
-        <Field label="Expiry (YYYYMM)">
+        <Field label="만기 (YYYYMM)">
           <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} className={`${inputCls} w-24`} />
         </Field>
         <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
@@ -334,19 +334,19 @@ function OptionTab() {
         }}
         loading={loading}
       >
-        <Field label="Symbol">
+        <Field label="종목">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-16 uppercase`} />
         </Field>
-        <Field label="Expiry (YYYYMMDD)">
+        <Field label="만기 (YYYYMMDD)">
           <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} className={`${inputCls} w-24`} />
         </Field>
-        <Field label="Strike">
+        <Field label="행사가">
           <input type="number" value={strike} onChange={e => setStrike(e.target.value)} className={`${inputCls} w-20`} />
         </Field>
-        <Field label="Right">
+        <Field label="콜/풋">
           <select value={right} onChange={e => setRight(e.target.value as "C" | "P")} className={`${inputCls} cursor-pointer`}>
-            <option value="C">Call</option>
-            <option value="P">Put</option>
+            <option value="C">콜</option>
+            <option value="P">풋</option>
           </select>
         </Field>
         <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
@@ -377,7 +377,7 @@ function CryptoTab() {
         onLoad={() => { if (!symbol.trim()) return; load({ symbol, asset_type: "crypto", end_date: endDate, duration, bar_size: barSize }); }}
         loading={loading}
       >
-        <Field label="Symbol (BTC/ETH/SOL…)">
+        <Field label="종목 (BTC/ETH/SOL…)">
           <input type="text" value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} className={`${inputCls} w-16 uppercase`} />
         </Field>
         <BarSizeButtons value={barSize} onChange={handleBarSizeChange} />
@@ -385,7 +385,7 @@ function CryptoTab() {
         <EndDateInput value={endDate} onChange={setEndDate} />
       </FormShell>
       <p className="text-text-3 text-[11px]">
-        Supported via PAXOS: BTC · ETH · LTC · BCH · XRP · SOL
+        PAXOS를 통해 지원: BTC · ETH · LTC · BCH · XRP · SOL
       </p>
       <Err msg={error} />
       {result && <CandleChart result={result} />}

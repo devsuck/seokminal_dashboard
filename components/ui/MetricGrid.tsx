@@ -13,64 +13,64 @@ function fmt(v: number | null | undefined, fn: (n: number) => string): string {
 export function MetricGrid({ result }: MetricGridProps) {
   const metrics = [
     {
-      label: "Total PnL",
+      label: "총 PnL",
       value: fmt(result?.total_pnl, n => (n >= 0 ? "+" : "") + n.toFixed(2)),
       delta: fmt(result?.total_pnl_pct, n => (n >= 0 ? "+" : "") + (n * 100).toFixed(2) + "%"),
       colorClass: pnlClass(result?.total_pnl),
     },
     {
-      label: "Sharpe",
+      label: "샤프비율",
       value: fmt(result?.sharpe_ratio, n => n.toFixed(3)),
       colorClass: pnlClass(result?.sharpe_ratio),
     },
     {
-      label: "Sortino",
+      label: "소르티노비율",
       value: fmt(result?.sortino_ratio, n => n.toFixed(3)),
       colorClass: pnlClass(result?.sortino_ratio),
     },
     {
-      label: "Volatility",
+      label: "변동성",
       value: fmt(result?.volatility, n => (n * 100).toFixed(2) + "%"),
       colorClass: "text-text-1",
     },
     {
-      label: "Max DD",
+      label: "최대낙폭",
       value: result?.max_drawdown != null
         ? (result.max_drawdown * 100).toFixed(2) + "%": "—",
       colorClass: result?.max_drawdown != null ? "text-neg" : "text-text-3",
     },
     {
-      label: "Beta",
+      label: "베타",
       value: fmt(result?.beta, n => n.toFixed(3)),
       colorClass: result?.beta != null ? "text-text-1" : "text-text-3",
     },
     {
-      label: "Win Rate",
+      label: "승률",
       value: fmt(result?.win_rate, n => (n * 100).toFixed(1) + "%"),
       colorClass: pnlClass(result?.win_rate ? result.win_rate - 0.5 : null),
     },
     {
-      label: "P/L Ratio",
+      label: "손익비",
       value: fmt(result?.profit_loss_ratio, n => n.toFixed(2)),
       colorClass: pnlClass(result?.profit_loss_ratio ? result.profit_loss_ratio - 1 : null),
     },
     {
-      label: "Avg Win",
+      label: "평균 수익",
       value: fmt(result?.avg_win, n => n.toFixed(2)),
       colorClass: "text-pos",
     },
     {
-      label: "Avg Loss",
+      label: "평균 손실",
       value: fmt(result?.avg_loss, n => n.toFixed(2)),
       colorClass: "text-neg",
     },
     {
-      label: "Trades",
+      label: "거래 수",
       value: result ? String(result.trades.length) : "—",
       colorClass: "text-text-1",
     },
     {
-      label: "Bars",
+      label: "봉 수",
       value: result ? String(result.bar_count) : "—",
       colorClass: "text-text-3",
     },

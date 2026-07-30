@@ -25,20 +25,20 @@ function signCls(v: number): string {
 }
 
 function Err({ msg }: { msg: string | null }) {
-  return msg ? <p className="text-neg text-sm mt-0 mb-3">ERR: {msg}</p> : null;
+  return msg ? <p className="text-neg text-sm mt-0 mb-3">오류: {msg}</p> : null;
 }
 
 // ── Greeks Tab ───────────────────────────────────────────────────────────────
 
 const GREEK_ROWS: { label: string; key: keyof OptionsGreeksResponse; fmt: (v: number) => string; desc: string }[] = [
-  { label: "Price",           key: "price",           fmt: fmt4, desc: "Theoretical option price" },
-  { label: "Intrinsic Value", key: "intrinsic_value", fmt: fmt4, desc: "max(S-K, 0) for call, max(K-S, 0) for put" },
-  { label: "Time Value",      key: "time_value",      fmt: fmt4, desc: "Price minus intrinsic value" },
-  { label: "Delta (Δ)",       key: "delta",           fmt: fmt4, desc: "Price change per $1 move in spot" },
-  { label: "Gamma (Γ)",       key: "gamma",           fmt: fmt6, desc: "Delta change per $1 move in spot" },
-  { label: "Theta (Θ)",       key: "theta",           fmt: fmt4, desc: "Price change per calendar day" },
-  { label: "Vega (ν)",        key: "vega",            fmt: fmt4, desc: "Price change per 1% vol change" },
-  { label: "Rho (ρ)",         key: "rho",             fmt: fmt4, desc: "Price change per 1% rate change" },
+  { label: "가격",     key: "price",           fmt: fmt4, desc: "옵션의 이론가" },
+  { label: "내재가치", key: "intrinsic_value", fmt: fmt4, desc: "콜은 max(S-K, 0), 풋은 max(K-S, 0)" },
+  { label: "시간가치", key: "time_value",      fmt: fmt4, desc: "가격에서 내재가치를 뺀 값" },
+  { label: "Delta (Δ)",       key: "delta",           fmt: fmt4, desc: "현물가격이 $1 움직일 때 가격 변화" },
+  { label: "Gamma (Γ)",       key: "gamma",           fmt: fmt6, desc: "현물가격이 $1 움직일 때 델타 변화" },
+  { label: "Theta (Θ)",       key: "theta",           fmt: fmt4, desc: "하루 경과에 따른 가격 변화" },
+  { label: "Vega (ν)",        key: "vega",            fmt: fmt4, desc: "변동성이 1% 변할 때 가격 변화" },
+  { label: "Rho (ρ)",         key: "rho",             fmt: fmt4, desc: "금리가 1% 변할 때 가격 변화" },
 ];
 
 function GreeksTab() {
@@ -67,7 +67,7 @@ function GreeksTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -81,23 +81,23 @@ function GreeksTab() {
         <div className="flex gap-3 flex-wrap items-end">
           {/* Option type */}
           <div className="space-y-1">
-            <label className="text-text-3 text-[11px] uppercase tracking-wider">Type</label>
+            <label className="text-text-3 text-[11px] uppercase tracking-wider">유형</label>
             <SegmentedToggle
               value={optionType}
               onChange={setOptionType}
               size="sm"
               options={[
-                { value: "call", label: "CALL" },
-                { value: "put", label: "PUT" },
+                { value: "call", label: "콜" },
+                { value: "put", label: "풋" },
               ]}
             />
           </div>
           {[
-            { label: "Spot (S)", value: spot, set: setSpot },
-            { label: "Strike (K)", value: strike, set: setStrike },
-            { label: "Expiry (days)", value: expiryDays, set: setExpiryDays },
-            { label: "Rate (r)", value: rate, set: setRate },
-            { label: "Vol (σ)", value: vol, set: setVol },
+            { label: "현물가 (S)", value: spot, set: setSpot },
+            { label: "행사가 (K)", value: strike, set: setStrike },
+            { label: "만기 (일)", value: expiryDays, set: setExpiryDays },
+            { label: "금리 (r)", value: rate, set: setRate },
+            { label: "변동성 (σ)", value: vol, set: setVol },
           ].map(({ label, value, set }) => (
             <div key={label} className="space-y-1">
               <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
@@ -111,7 +111,7 @@ function GreeksTab() {
             onClick={run}
             disabled={loading}
             className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
-            {loading ? "Computing…" : "Compute"}
+            {loading ? "계산 중…" : "계산"}
           </button>
         </div>
       </Panel>
@@ -121,7 +121,7 @@ function GreeksTab() {
       {/* Results table */}
       <Panel>
         <PanelHeader>
-          {optionType.toUpperCase()} Option Results
+          {optionType === "call" ? "콜" : "풋"} 옵션 결과
         </PanelHeader>
         <table className="border-collapse w-full">
           <tbody>
@@ -168,7 +168,7 @@ function ChainTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -187,10 +187,10 @@ function ChainTab() {
       <Panel className="p-4">
         <div className="flex gap-3 flex-wrap items-end">
           {[
-            { label: "Spot (S)", value: spot, set: setSpot },
-            { label: "Expiry (days)", value: expiryDays, set: setExpiryDays },
-            { label: "Rate (r)", value: rate, set: setRate },
-            { label: "Vol (σ)", value: vol, set: setVol },
+            { label: "현물가 (S)", value: spot, set: setSpot },
+            { label: "만기 (일)", value: expiryDays, set: setExpiryDays },
+            { label: "금리 (r)", value: rate, set: setRate },
+            { label: "변동성 (σ)", value: vol, set: setVol },
           ].map(({ label, value, set }) => (
             <div key={label} className="space-y-1">
               <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
@@ -204,7 +204,7 @@ function ChainTab() {
             onClick={run}
             disabled={loading}
             className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
-            {loading ? "Computing…" : "Compute"}
+            {loading ? "계산 중…" : "계산"}
           </button>
         </div>
       </Panel>
@@ -216,16 +216,16 @@ function ChainTab() {
           <table className="border-collapse w-full text-xs font-data">
             <thead>
               <tr className="border-b border-border">
-                <th colSpan={5} className="px-3 py-2 text-pos text-center border-r border-border">CALL</th>
-                <th className="px-3 py-2 text-text-3 text-center font-medium">STRIKE</th>
-                <th colSpan={5} className="px-3 py-2 text-neg text-center border-l border-border">PUT</th>
+                <th colSpan={5} className="px-3 py-2 text-pos text-center border-r border-border">콜</th>
+                <th className="px-3 py-2 text-text-3 text-center font-medium">행사가</th>
+                <th colSpan={5} className="px-3 py-2 text-neg text-center border-l border-border">풋</th>
               </tr>
               <tr className="border-b border-border text-text-3">
-                {["Price", "Δ", "Γ", "Θ", "ν"].map(h => (
+                {["가격", "Δ", "Γ", "Θ", "ν"].map(h => (
                   <th key={`c-${h}`} className="px-3 py-1.5 text-right font-medium">{h}</th>
                 ))}
                 <th className="px-3 py-1.5 text-center font-semibold text-text-2 border-x border-border">K</th>
-                {["Price", "Δ", "Γ", "Θ", "ν"].map(h => (
+                {["가격", "Δ", "Γ", "Θ", "ν"].map(h => (
                   <th key={`p-${h}`} className="px-3 py-1.5 text-right font-medium">{h}</th>
                 ))}
               </tr>
@@ -255,7 +255,7 @@ function ChainTab() {
 
       {!result && !loading && !error && (
         <div className="text-center py-12 text-text-3 text-sm">
-          Configure parameters and click Compute to view the options chain.
+          파라미터를 설정하고 계산 버튼을 눌러 옵션체인을 확인하세요.
         </div>
       )}
     </div>
@@ -286,7 +286,7 @@ function IvSurfaceTab() {
       ));
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setError(e instanceof ApiError ? e.message : "Failed");
+      setError(e instanceof ApiError ? e.message : "실패");
       setResult(null);
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
@@ -387,7 +387,7 @@ function IvSurfaceTab() {
       .attr("text-anchor", "middle")
       .attr("fill", TOKEN.text2)
       .attr("font-size", 11)
-      .text("Expiry (days)");
+      .text("만기(일)");
 
     g.append("text")
       .attr("transform", "rotate(-90)")
@@ -396,7 +396,7 @@ function IvSurfaceTab() {
       .attr("text-anchor", "middle")
       .attr("fill", TOKEN.text2)
       .attr("font-size", 11)
-      .text("Strike");
+      .text("행사가");
 
     // Color legend (right side)
     const legendH = innerH;
@@ -424,9 +424,9 @@ function IvSurfaceTab() {
       <Panel className="p-4">
         <div className="flex gap-3 flex-wrap items-end">
           {[
-            { label: "Spot (S)", value: spot, set: setSpot },
-            { label: "Rate (r)", value: rate, set: setRate },
-            { label: "ATM Vol (σ)", value: atmVol, set: setAtmVol },
+            { label: "현물가 (S)", value: spot, set: setSpot },
+            { label: "금리 (r)", value: rate, set: setRate },
+            { label: "ATM 변동성 (σ)", value: atmVol, set: setAtmVol },
           ].map(({ label, value, set }) => (
             <div key={label} className="space-y-1">
               <label className="text-text-3 text-[11px] uppercase tracking-wider">{label}</label>
@@ -440,7 +440,7 @@ function IvSurfaceTab() {
             onClick={run}
             disabled={loading}
             className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed self-end">
-            {loading ? "Computing…" : "Compute"}
+            {loading ? "계산 중…" : "계산"}
           </button>
         </div>
       </Panel>
@@ -450,7 +450,7 @@ function IvSurfaceTab() {
       {result && (
         <Panel>
           <PanelHeader>
-            Implied Volatility Surface — Spot {result.spot} · ATM Vol {(result.atm_vol * 100).toFixed(0)}%
+            내재변동성 표면 — 현물 {result.spot} · ATM 변동성 {(result.atm_vol * 100).toFixed(0)}%
           </PanelHeader>
           <div className="p-4">
             <svg ref={svgRef} width={560} height={300} className="block" />
@@ -460,7 +460,7 @@ function IvSurfaceTab() {
 
       {!result && !loading && !error && (
         <div className="text-center py-16 text-text-3 text-sm">
-          Configure parameters and click Compute to view the IV surface.
+          파라미터를 설정하고 계산 버튼을 눌러 IV 표면을 확인하세요.
         </div>
       )}
     </div>
@@ -470,9 +470,9 @@ function IvSurfaceTab() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "greeks",  label: "Greeks" },
-  { id: "chain",   label: "Chain" },
-  { id: "surface", label: "IV Surface" },
+  { id: "greeks",  label: "그릭스" },
+  { id: "chain",   label: "체인" },
+  { id: "surface", label: "IV 표면" },
 ];
 
 export default function OptionsPage() {
