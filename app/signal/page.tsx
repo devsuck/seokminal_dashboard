@@ -3,27 +3,23 @@
 import { useState } from "react";
 import { ApiError, getSmartSignal, type SmartSignal } from "@/lib/api";
 import { Button, LoadingState } from "@/components/ui";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Panel, PanelHead } from "@/components/console/primitives";
+import { PageHeader } from "@/components/console/widgets";
+import { AIInsightPanel, FinancialMetric, SignalBadge, type SignalKind, type Tone } from "@/components/terminal";
 
 const PRESETS = ["AAPL.NASDAQ", "MSFT.NASDAQ", "SPY.ARCA", "005930.XKRX", "000660.XKRX"];
 
-const VERDICT_STYLE: Record<string, string> = {
-  BUY: "text-pos border-pos/50 bg-pos/10",
-  HOLD: "text-warn border-warn/40 bg-warn/10",
-  AVOID: "text-neg border-neg/50 bg-neg/10",
-};
+// SmartSignal.verdict(BUY/HOLD/AVOID) → SignalBadge의 4종 signal로 매핑.
+// AVOID는 "매도"가 아니라 "회피"지만, SignalBadge엔 그 뉘앙스가 없어 위험 신호로서 SELL(적색)에 배정.
+// 실제 라벨은 별도로 한국어 텍스트를 병기해 의미 손실 없음.
+const VERDICT_KIND: Record<string, SignalKind> = { BUY: "BUY", HOLD: "WATCH", AVOID: "SELL" };
+const VERDICT_LABEL: Record<string, string> = { BUY: "매수", HOLD: "관망", AVOID: "회피" };
 
 function regimeLabel(r: string): string {
   return { bull_low_vol: "강세·저변동", bull_high_vol: "강세·고변동", bear_low_vol: "약세·저변동", bear_high_vol: "약세·고변동" }[r] ?? r;
 }
-function regimeCls(r: string): string {
-  return r.startsWith("bull") ? "text-pos" : r === "bear_high_vol" ? "text-neg" : "text-warn";
-}
-function retTintCls(v: number | null | undefined) {
-  if (v == null) return "text-text-2";
-  if (v > 0) return "px-1 font-bold bg-pos/20 text-pos";
-  if (v < 0) return "px-1 font-bold bg-neg/20 text-neg";
-  return "text-text-2";
+function regimeTone(r: string): Tone {
+  return r.startsWith("bull") ? "pos" : r === "bear_high_vol" ? "neg" : "warn";
 }
 
 export default function SmartSignalPage() {
@@ -41,93 +37,94 @@ export default function SmartSignalPage() {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div>
-        <h1 className="text-text-1 text-lg font-semibold">스마트 시그널</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          <span className="text-text-2">레짐(HMM)</span> 게이트 + <span className="text-text-2">모멘텀</span> 팩터 + <span className="text-text-2">Kelly</span> 사이징 결합 판단. 약세·고변동엔 회피, 강세+모멘텀에만 매수하고 Kelly½(상한 25%)로 비중 제안. <span className="text-text-3">(참고용 — 보장 아님)</span>
-        </p>
-      </div>
+    <div className="min-h-full">
+      <PageHeader
+        kicker="RESEARCH OUTPUT · 참고용, 보장 아님"
+        title="Smart Signal"
+        right={data && <SignalBadge signal={VERDICT_KIND[data.verdict]} timestamp={Date.now()} />}
+      />
 
-      <div className="flex items-center gap-2 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
-        <input value={instrument} onChange={e => setInstrument(e.target.value.toUpperCase())}
-          onKeyDown={e => e.key === "Enter" && run(instrument)}
-          placeholder="AAPL.NASDAQ"className="w-48 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
-        <Button variant="primary" size="md" onClick={() => run(instrument)}>분석</Button>
-        <div className="flex gap-1.5 ml-2 flex-wrap">
-          {PRESETS.map(p => (
-            <button key={p} onClick={() => run(p)}
-              className="text-[11px] px-2 py-1 rounded border border-border text-text-3 hover:text-accent hover:border-accent font-data">
-              {p.split(".")[0]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {error ? <div className="text-neg text-sm bg-neg/10 border border-neg/30 rounded px-3 py-2">{error}</div>
-        : loading ? <LoadingState message="레짐·모멘텀·Kelly 계산 중…" />
-        : data && (
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
-            {/* 판정 카드 */}
-            <div className={`border rounded-lg p-5 flex flex-col items-center justify-center ${VERDICT_STYLE[data.verdict]}`}>
-              <div className="text-3xl font-bold">
-                {data.verdict === "BUY" ? "매수" : data.verdict === "AVOID" ? "회피" : "관망"}
-              </div>
-              <div className="text-text-3 text-xs mt-1 font-data">{data.instrument_id}</div>
-              {data.verdict === "BUY" && (
-                <div className="mt-3 text-center">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">제안 비중</div>
-                  <div className="text-2xl font-data font-bold text-text-1">{data.suggested_position_pct}%</div>
-                  {data.sizing_constraint && (
-                    <div className="text-text-3 text-[10px] mt-0.5">
-                      {data.sizing_constraint === "cvar" ? "CVaR(꼬리손실)" : data.sizing_constraint === "cap" ? "상한(25%)" : "Kelly·변동성"} 제약
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 근거 */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <div className="bg-panel border border-border rounded-lg p-3">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">레짐</div>
-                  <div className={`text-sm font-semibold mt-1 ${regimeCls(data.current_regime)}`}>{regimeLabel(data.current_regime)}</div>
-                </div>
-                <div className="bg-panel border border-border rounded-lg p-3">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">연 변동성</div>
-                  <div className="text-sm font-data font-semibold mt-1 text-text-1">{data.vol_annual_pct != null ? `${data.vol_annual_pct}%` : "—"}</div>
-                </div>
-                <div className="bg-panel border border-border rounded-lg p-3">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">CVaR 95 (일간)</div>
-                  <div className="text-sm font-data font-semibold mt-1 text-neg">{data.cvar_95_pct != null ? `${data.cvar_95_pct}%` : "—"}</div>
-                </div>
-                <div className="bg-panel border border-border rounded-lg p-3">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">모멘텀 60일</div>
-                  <div className={`text-sm font-data font-semibold mt-1 inline-block ${retTintCls(data.momentum_60d_pct)}`}>
-                    {data.momentum_60d_pct != null ? `${data.momentum_60d_pct > 0 ? "+" : ""}${data.momentum_60d_pct}%` : "—"}
-                  </div>
-                </div>
-                <div className="bg-panel border border-border rounded-lg p-3">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">SMA50 대비</div>
-                  <div className={`text-sm font-data font-semibold mt-1 inline-block ${retTintCls(data.price_vs_sma50_pct)}`}>
-                    {data.price_vs_sma50_pct != null ? `${data.price_vs_sma50_pct > 0 ? "+" : ""}${data.price_vs_sma50_pct}%` : "—"}
-                  </div>
-                </div>
-                <div className="bg-panel border border-border rounded-lg p-3">
-                  <div className="text-text-3 text-[11px] uppercase tracking-wider">Kelly½</div>
-                  <div className="text-sm font-data font-semibold mt-1 text-text-1">{data.kelly_half ?? "—"}</div>
-                </div>
-              </div>
-              <Panel>
-                <PanelHeader>판단 근거</PanelHeader>
-                <ul className="space-y-1 p-4">
-                  {data.notes.map((n, i) => <li key={i} className="text-text-2 text-sm">· {n}</li>)}
-                </ul>
-              </Panel>
+      <div className="p-5 grid grid-cols-1 lg:grid-cols-[240px_1fr_280px] gap-4 items-start">
+        {/* LEFT — instrument lookup */}
+        <Panel>
+          <PanelHead kicker="Lookup" title="Instrument" />
+          <div className="p-3 space-y-2.5">
+            <input
+              value={instrument}
+              onChange={(e) => setInstrument(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && run(instrument)}
+              placeholder="AAPL.NASDAQ"
+              className="w-full bg-[var(--c-panel-2)] border border-[var(--c-border)] rounded px-2.5 py-1.5 text-[var(--c-text-1)] text-sm c-num outline-none focus:border-[var(--c-hud)]"
+            />
+            <Button variant="primary" size="md" onClick={() => run(instrument)} className="w-full">분석</Button>
+            <div className="pt-1 space-y-1">
+              <div className="text-[9px] tracking-[0.18em] text-[var(--c-text-3)] uppercase">Presets</div>
+              {PRESETS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => run(p)}
+                  className="w-full text-left text-[11px] px-2 py-1.5 rounded border border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-hud)] hover:border-[var(--c-hud)] c-num transition-colors"
+                >
+                  {p.split(".")[0]}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+        </Panel>
+
+        {/* CENTER — research output */}
+        <div className="space-y-4 min-w-0">
+          {error && <div className="text-[var(--c-neg)] text-sm bg-[color-mix(in_srgb,var(--c-neg)_10%,transparent)] border border-[color-mix(in_srgb,var(--c-neg)_30%,transparent)] rounded px-3 py-2">{error}</div>}
+          {loading && <LoadingState message="레짐·모멘텀·Kelly 계산 중…" />}
+          {!loading && !error && !data && (
+            <div className="text-[11px] text-[var(--c-text-3)] py-16 text-center">종목을 선택하면 리서치 노트가 표시됩니다.</div>
+          )}
+          {data && (
+            <>
+              <AIInsightPanel
+                agent="Smart Signal Engine"
+                summary={`${VERDICT_LABEL[data.verdict]} — 레짐(HMM) 게이트 + 모멘텀 팩터 + Kelly 사이징 결합 판단${
+                  data.verdict === "BUY" ? `. 제안 비중 ${data.suggested_position_pct}%` : ""
+                }`}
+                reasoning={data.notes}
+                timestamp={Date.now()}
+              />
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <FinancialMetric label="레짐" value={regimeLabel(data.current_regime)} format="raw" tone={regimeTone(data.current_regime)} size="sm" />
+                <FinancialMetric label="연 변동성" value={data.vol_annual_pct ?? 0} format="percent" precision={1} tone="warn" size="sm" />
+                <FinancialMetric label="모멘텀 60일" value={data.momentum_60d_pct ?? 0} format="percent" precision={1} signColor size="sm" />
+                <FinancialMetric label="SMA50 대비" value={data.price_vs_sma50_pct ?? 0} format="percent" precision={1} signColor size="sm" />
+                <FinancialMetric label="Kelly½" value={data.kelly_half ?? "—"} format="raw" size="sm" />
+                {data.verdict === "BUY" && (
+                  <FinancialMetric
+                    label="제안 비중"
+                    value={data.suggested_position_pct}
+                    format="percent"
+                    precision={0}
+                    tone="pos"
+                    size="sm"
+                    unit={
+                      data.sizing_constraint === "cvar" ? "CVaR 제약" : data.sizing_constraint === "cap" ? "상한 25%" : "Kelly·변동성"
+                    }
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* RIGHT — tail risk */}
+        <Panel>
+          <PanelHead kicker="P&R" title="Tail Risk" />
+          <div className="p-3 space-y-3">
+            <FinancialMetric label="CVaR 95 (일간)" value={data?.cvar_95_pct ?? 0} format="percent" precision={1} tone="neg" size="sm" />
+            <p className="text-[10px] text-[var(--c-text-3)] leading-relaxed pt-1 border-t border-[var(--c-border)]">
+              레짐이 약세·고변동으로 전환되면 회피 판정. 강세+모멘텀에서만 매수, Kelly½(상한 25%)로 비중 제안.
+            </p>
+          </div>
+        </Panel>
+      </div>
     </div>
   );
 }

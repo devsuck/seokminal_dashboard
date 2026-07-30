@@ -3,11 +3,12 @@
 // Market State → Opportunities → Experiments → Validation → Risk → Portfolio → Decision Queue → Knowledge.
 // /console/market-cockpit. READ ONLY · 관찰·발견·평가·설명·사람 의사결정 지원. 절대 거래·배분·승인 없음.
 import { getMarketCockpit, type MarketCockpitResp } from "@/lib/console-api";
-import { PageHeader, useConsole, StateBlock, KV } from "@/components/console/widgets";
+import { PageHeader, useConsole, StateBlock } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge, Meter } from "@/components/console/primitives";
+import { FinancialMetric } from "@/components/terminal";
 
 const CONF: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
-const num = (n: number | undefined | null, d = 0) => (n == null ? "—" : n.toLocaleString(undefined, { maximumFractionDigits: d }));
+const num = (n: number | undefined | null, d = 0) => (n == null ? "—" : n.toLocaleString("en-US", { maximumFractionDigits: d }));
 
 export default function MarketIntelligence() {
   const { data, err, loading } = useConsole<MarketCockpitResp>((s) => getMarketCockpit(s), [], 60000);
@@ -18,36 +19,7 @@ export default function MarketIntelligence() {
       <StateBlock loading={loading} err={err}>
         {data && (
           <div className="p-5 space-y-5">
-            {/* 흐름 순서: Market State */}
-            <Panel hud>
-              <PanelHead kicker="P87 · Market State" title="Current Regime"
-                right={data.market_state?.confidence != null && <Badge tone="hud">conf {num(data.market_state.confidence, 2)}</Badge>} />
-              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1.5">Regime labels</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(data.market_state?.labels ?? []).map((l) => <Badge key={l} tone="hud">{l}</Badge>)}
-                    {(data.market_state?.labels ?? []).length === 0 && <span className="text-[11px] text-[var(--c-text-3)]">시장 지표 미제공 — UNKNOWN(정직)</span>}
-                  </div>
-                  <div className="mt-3 text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1.5">Historical matches</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(data.market_state?.historical_similar_periods ?? []).map((p) => <Badge key={p.period} tone="blue">{p.period}</Badge>)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-pos)] uppercase mb-1.5">Recommended research</div>
-                  {(data.market_state?.recommended_research ?? []).map((r, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· {r}</div>)}
-                  {(data.market_state?.recommended_research ?? []).length === 0 && <div className="text-[10px] text-[var(--c-text-3)]">—</div>}
-                </div>
-                <div>
-                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1.5">Avoid</div>
-                  {(data.market_state?.avoid ?? []).map((r, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {r}</div>)}
-                  {(data.market_state?.avoid ?? []).length === 0 && <div className="text-[10px] text-[var(--c-text-3)]">—</div>}
-                </div>
-              </div>
-            </Panel>
-
-            {/* KPI 흐름 */}
+            {/* KPI band — what's happening, at a glance */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <StatTile label="Opportunities" value={(data.research_opportunities?.length ?? 0) + (data.top_opportunities?.length ?? 0)} accent="pos" />
               <StatTile label="Validation Health" value={num(data.validation_status?.health, 1)} accent="hud" sub={`${num(data.validation_status?.incomplete)} incomplete`} />
@@ -55,8 +27,41 @@ export default function MarketIntelligence() {
               <StatTile label="Decision Queue" value={data.decision_queue?.length ?? 0} accent="info" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Opportunities (P88) */}
+            {/* LEFT regime context / CENTER opportunities workspace / RIGHT validation+risk+queue */}
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_320px] gap-4 items-start">
+              {/* LEFT — current regime, what condition the market is in */}
+              <Panel hud>
+                <PanelHead kicker="P87" title="Current Regime"
+                  right={data.market_state?.confidence != null && <Badge tone="hud">conf {num(data.market_state.confidence, 2)}</Badge>} />
+                <div className="p-3 space-y-4">
+                  <div>
+                    <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1.5">Regime labels</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(data.market_state?.labels ?? []).map((l) => <Badge key={l} tone="hud">{l}</Badge>)}
+                      {(data.market_state?.labels ?? []).length === 0 && <span className="text-[11px] text-[var(--c-text-3)]">시장 지표 미제공 — UNKNOWN(정직)</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1.5">Historical matches</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(data.market_state?.historical_similar_periods ?? []).map((p) => <Badge key={p.period} tone="blue">{p.period}</Badge>)}
+                      {(data.market_state?.historical_similar_periods ?? []).length === 0 && <span className="text-[11px] text-[var(--c-text-3)]">—</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] tracking-[0.2em] text-[var(--c-pos)] uppercase mb-1.5">Recommended research</div>
+                    {(data.market_state?.recommended_research ?? []).map((r, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)] leading-snug mb-0.5">· {r}</div>)}
+                    {(data.market_state?.recommended_research ?? []).length === 0 && <div className="text-[10px] text-[var(--c-text-3)]">—</div>}
+                  </div>
+                  <div>
+                    <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1.5">Avoid</div>
+                    {(data.market_state?.avoid ?? []).map((r, i) => <div key={i} className="text-[11px] text-[var(--c-warn)] leading-snug mb-0.5">· {r}</div>)}
+                    {(data.market_state?.avoid ?? []).length === 0 && <div className="text-[10px] text-[var(--c-text-3)]">—</div>}
+                  </div>
+                </div>
+              </Panel>
+
+              {/* CENTER — research opportunities, the main workspace */}
               <Panel>
                 <PanelHead kicker="P88" title="Research Opportunities" right={<Badge tone="pos">{data.research_opportunities?.length ?? 0}</Badge>} />
                 <div className="p-4 space-y-2">
@@ -76,7 +81,7 @@ export default function MarketIntelligence() {
                 </div>
               </Panel>
 
-              {/* Validation + Risk + Portfolio */}
+              {/* RIGHT — validation health, risk, portfolio context, decision queue: what to watch / act on */}
               <div className="space-y-4">
                 <Panel>
                   <PanelHead kicker="Validation" title="Coverage" right={<Badge tone="hud">{num(data.validation_status?.health, 1)}</Badge>} />
@@ -86,10 +91,10 @@ export default function MarketIntelligence() {
                     ))}
                   </div>
                 </Panel>
-                <div className="grid grid-cols-3 gap-3">
-                  <StatTile label="Paper Cap" value={`$${num(data.portfolio_context?.capital)}`} />
-                  <StatTile label="Exposure" value={`$${num(data.portfolio_context?.gross_exposure)}`} />
-                  <StatTile label="Knowledge" value={num(data.knowledge_growth?.total)} sub={`${num(data.knowledge_growth?.graph_nodes)} nodes`} />
+                <div className="grid grid-cols-2 gap-3">
+                  <FinancialMetric label="Paper Cap" value={data.portfolio_context?.capital ?? 0} format="currency" precision={0} size="sm" />
+                  <FinancialMetric label="Exposure" value={data.portfolio_context?.gross_exposure ?? 0} format="currency" precision={0} size="sm" tone="info" />
+                  <FinancialMetric label="Knowledge" value={data.knowledge_growth?.total ?? 0} format="number" size="sm" unit={`${num(data.knowledge_growth?.graph_nodes)} nodes`} className="col-span-2" />
                 </div>
                 <Panel>
                   <PanelHead kicker="Decision" title="Decision Queue" right={<Badge tone="warn">{data.decision_queue?.length ?? 0}</Badge>} />

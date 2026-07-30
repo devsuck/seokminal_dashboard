@@ -5,8 +5,11 @@ import {
   getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings,
   type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
 } from "@/lib/api";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Panel as UiPanel, PanelHeader } from "@/components/ui/Panel";
 import { SegmentedToggle } from "@/components/ui";
+import { PageHeader } from "@/components/console/widgets";
+import { Panel, PanelHead } from "@/components/console/primitives";
+import { FinancialMetric, TerminalTable } from "@/components/terminal";
 
 type Tab = "accounts" | "optimizer";
 
@@ -253,6 +256,10 @@ function CcySection({ ccy, total, children }: { ccy: string; total: number | nul
   );
 }
 
+// ── Composition row (venue → currency 배분표, 표시만 · 실제 잔고 재사용) ──────
+
+interface CompositionRow { venue: string; ccy: string; balance: number; share: number }
+
 // ── 메인 페이지 ─────────────────────────────────────────────────────────────
 
 export default function PortfolioPage() {
@@ -311,49 +318,62 @@ export default function PortfolioPage() {
   const krwTotal = krwAccounts.every(a => a.balance == null) ? null
     : krwAccounts.reduce((s, a) => s + (a.balance ?? 0), 0);
 
-  return (
-    <div className="flex flex-col h-full bg-bg overflow-hidden">
-      {/* 헤더 */}
-      <div className="shrink-0 px-5 py-3 border-b border-border flex items-center justify-between">
-        <h1 className="text-text-1 font-semibold text-sm">
-          <span className="text-accent">포트폴리오</span>
-          <span className="text-text-3 text-xs ml-2 font-normal">연동 계좌 · 통화별 현황</span>
-        </h1>
-        <SegmentedToggle
-          value={tab}
-          onChange={setTab}
-          size="sm"
-          options={[
-            { value: "accounts", label: "계좌 현황" },
-            { value: "optimizer", label: "최적화 도구" },
-          ]}
-        />
-      </div>
+  const eurTotal = eurAccounts.length > 0 ? eurAccounts.reduce((s, a) => s + (a.balance ?? 0), 0) : null;
+  const usdcTotal = usdcAccounts.every(a => a.balance == null) ? null
+    : usdcAccounts.reduce((s, a) => s + (a.balance ?? 0), 0);
 
-      {/* 바디 */}
-      <div className="flex-1 overflow-y-auto p-5">
-        {tab === "accounts" && (
-          <div className="max-w-2xl mx-auto space-y-8">
-            {loading ? (
-              <p className="text-text-3 text-sm text-center py-12">로딩 중…</p>
-            ) : (
-              <>
-                {/* USD */}
+  // 계좌현황 탭에 이미 표시되는 잔고를 재사용해 venue별 구성비(=배분) 표를 구성. 새 계산 없음.
+  const compositionRows: CompositionRow[] = [
+    ...(alpacaAcct ? [{ venue: "Alpaca · 미국주식", ccy: "USD", balance: alpacaAcct.portfolio_value, share: usdTotal > 0 ? alpacaAcct.portfolio_value / usdTotal : 0 }] : []),
+    ...(paper ? [{ venue: "LKG 페이퍼", ccy: "USD", balance: lkgBalance ?? 0, share: usdTotal > 0 ? (lkgBalance ?? 0) / usdTotal : 0 }] : []),
+    ...usdAccounts.filter(a => a.venue !== "alpaca" && a.balance != null).map(a => ({ venue: a.label, ccy: "USD", balance: a.balance as number, share: usdTotal > 0 ? (a.balance as number) / usdTotal : 0 })),
+    ...krwAccounts.filter(a => a.balance != null).map(a => ({ venue: a.label, ccy: "KRW", balance: a.balance as number, share: krwTotal ? (a.balance as number) / krwTotal : 0 })),
+    ...eurAccounts.filter(a => a.balance != null).map(a => ({ venue: a.label, ccy: "EUR", balance: a.balance as number, share: eurTotal ? (a.balance as number) / eurTotal : 0 })),
+    ...usdcAccounts.filter(a => a.balance != null).map(a => ({ venue: a.label, ccy: "USDC", balance: a.balance as number, share: usdcTotal ? (a.balance as number) / usdcTotal : 0 })),
+  ];
+
+  return (
+    <div className="min-h-full">
+      <PageHeader kicker="ACCOUNTS · 연동 계좌" title="Portfolio"
+        right={
+          <SegmentedToggle
+            value={tab}
+            onChange={setTab}
+            size="sm"
+            options={[
+              { value: "accounts", label: "계좌 현황" },
+              { value: "optimizer", label: "최적화 도구" },
+            ]}
+          />
+        } />
+
+      {tab === "accounts" && (
+        <div className="p-5">
+          {loading ? (
+            <p className="text-[var(--c-text-3)] text-sm text-center py-12">로딩 중…</p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4 items-start">
+              {/* LEFT — currency totals, quick nav */}
+              <div className="space-y-3">
+                <FinancialMetric label="USD Total" value={usdTotal} format="currency" precision={0} size="md" />
+                {krwTotal != null && <FinancialMetric label="KRW Total" value={krwTotal} format="currency" precision={0} size="md" />}
+                {eurTotal != null && <FinancialMetric label="EUR Total" value={eurTotal} format="currency" precision={0} size="md" />}
+                {usdcTotal != null && <FinancialMetric label="USDC Total" value={usdcTotal} format="currency" precision={0} size="md" />}
+              </div>
+
+              {/* CENTER — account cards by currency, main workspace */}
+              <div className="space-y-8 min-w-0">
                 <CcySection ccy="USD" total={usdTotal > 0 ? usdTotal : null}>
-                  {/* Alpaca: 빠른 직접 로드 */}
                   {alpacaAcct && (
                     <AccountCard label="Alpaca · 미국주식" ccy="USD"
                       balance={alpacaAcct.portfolio_value} paper={alpacaAcct.paper}>
                       <AlpacaPositions positions={alpacaPositions} />
                     </AccountCard>
                   )}
-                  {/* 느린 accounts에서 non-alpaca USD만 */}
                   {usdAccounts.filter(a => a.venue !== "alpaca").map(a => (
                     <AccountCard key={a.venue} label={a.label} ccy="USD"
                       balance={a.balance} mode={a.mode} error={a.error} />
                   ))}
-
-                  {/* LKG Paper Trading 별도 카드 */}
                   {paper && (
                     <AccountCard label="LKG 페이퍼 트레이딩" ccy="USD"
                       balance={lkgBalance} paper={true}>
@@ -362,7 +382,6 @@ export default function PortfolioPage() {
                   )}
                 </CcySection>
 
-                {/* KRW */}
                 <CcySection ccy="KRW" total={krwTotal}>
                   {krwAccounts.map(a => (
                     <AccountCard key={a.venue} label={a.label} ccy="KRW"
@@ -375,9 +394,8 @@ export default function PortfolioPage() {
                   )}
                 </CcySection>
 
-                {/* EUR */}
                 {eurAccounts.length > 0 && (
-                  <CcySection ccy="EUR" total={eurAccounts.reduce((s, a) => s + (a.balance ?? 0), 0)}>
+                  <CcySection ccy="EUR" total={eurTotal}>
                     {eurAccounts.map(a => (
                       <AccountCard key={a.venue} label={a.label} ccy="EUR"
                         balance={a.balance} mode={a.mode} error={a.error} />
@@ -385,9 +403,7 @@ export default function PortfolioPage() {
                   </CcySection>
                 )}
 
-                {/* USDC — Hyperliquid */}
-                <CcySection ccy="USDC" total={usdcAccounts.every(a => a.balance == null) ? null
-                  : usdcAccounts.reduce((s, a) => s + (a.balance ?? 0), 0)}>
+                <CcySection ccy="USDC" total={usdcTotal}>
                   {usdcAccounts.map(a => (
                     <AccountCard key={a.venue} label={a.label} ccy="USDC"
                       balance={a.balance} mode={a.mode} error={a.error}>
@@ -398,29 +414,55 @@ export default function PortfolioPage() {
                     <p className="text-text-3 text-xs">Hyperliquid 계좌 없음</p>
                   )}
                 </CcySection>
-              </>
-            )}
-          </div>
-        )}
-
-        {tab === "optimizer" && (
-          <div className="max-w-2xl mx-auto">
-            <Panel className="mb-4">
-              <PanelHeader>교육용 · 실전 배분 아님</PanelHeader>
-              <div className="p-4">
-                <p className="text-text-2 text-xs leading-relaxed">
-                  마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
-                  실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
-                </p>
               </div>
-            </Panel>
-            <a href="/portfolio/optimizer"
-              className="block text-center py-3 border border-border rounded-xl text-text-3 text-sm hover:text-text-2 hover:border-text-3 transition-colors">
-              최적화 도구 열기 →
-            </a>
-          </div>
-        )}
-      </div>
+
+              {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
+              <Panel>
+                <PanelHead kicker="Composition" title="Venue Breakdown" />
+                <div className="p-2">
+                  {compositionRows.length === 0 ? (
+                    <p className="text-[var(--c-text-3)] text-xs p-2">연동 계좌 없음</p>
+                  ) : (
+                    <TerminalTable
+                      dense
+                      rows={compositionRows}
+                      keyFn={(r) => `${r.venue}-${r.ccy}`}
+                      defaultSort={{ key: "balance", dir: "desc" }}
+                      columns={[
+                        { key: "venue", label: "Venue" },
+                        { key: "ccy", label: "CCY" },
+                        { key: "balance", label: "Balance", align: "r", sortable: true, render: (r) => fmt(r.balance, r.ccy, true) },
+                        { key: "share", label: "Share", align: "r", sortable: true, render: (r) => `${(r.share * 100).toFixed(1)}%` },
+                      ]}
+                    />
+                  )}
+                </div>
+                <p className="px-3 pb-3 text-[10px] text-[var(--c-text-3)] leading-relaxed">
+                  통화 내 venue 잔고 구성비 · 손익 귀속(attribution)이 아닌 배분 현황 표시.
+                </p>
+              </Panel>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "optimizer" && (
+        <div className="p-5 max-w-2xl mx-auto">
+          <UiPanel className="mb-4">
+            <PanelHeader>교육용 · 실전 배분 아님</PanelHeader>
+            <div className="p-4">
+              <p className="text-text-2 text-xs leading-relaxed">
+                마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
+                실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
+              </p>
+            </div>
+          </UiPanel>
+          <a href="/portfolio/optimizer"
+            className="block text-center py-3 border border-border rounded-xl text-text-3 text-sm hover:text-text-2 hover:border-text-3 transition-colors">
+            최적화 도구 열기 →
+          </a>
+        </div>
+      )}
     </div>
   );
 }

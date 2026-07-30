@@ -66,6 +66,7 @@ export default function WorkflowPage() {
       {err && <div className="m-5 c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
       {data && (
         <div className="p-5 space-y-5">
+          {/* KPI band — what's happening, at a glance */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatTile label="Workflow Runs" value={data.counts.runs} accent="hud" />
             <StatTile label="Awaiting Human" value={data.counts.awaiting_human} accent="warn" tone="warn" sub="human decision gate" />
@@ -73,42 +74,17 @@ export default function WorkflowPage() {
             <StatTile label="Queue Proposals" value={data.counts.proposals} accent="info" />
           </div>
 
-          {/* 워크플로 런 */}
-          <Panel>
-            <PanelHead kicker="Orchestration" title="Active Research Workflows" />
-            <div className="p-4 space-y-3">
-              {data.runs.length === 0 && (
-                <div className="text-[11px] text-[var(--c-text-3)]">
-                  진행 중 워크플로 없음. 백엔드 CLI <span className="c-num text-[var(--c-text-2)]">python -m jarvis.research_workflow run --request &quot;…&quot; --commit</span> 로 시작할 수 있습니다.
-                </div>
-              )}
-              {data.runs.map((r) => (
-                <div key={r.run_id} className="c-panel-2 p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-medium text-[var(--c-text-1)] truncate">{r.request}</span>
-                    <div className="flex gap-1.5 shrink-0">
-                      {r.cancelled && <Badge tone="neg">CANCELLED</Badge>}
-                      {r.blocked_stage && <Badge tone="warn">BLOCKED · {r.blocked_stage}</Badge>}
-                      {r.requires_human_decision && <Badge tone="hud">HUMAN DECISION</Badge>}
-                    </div>
-                  </div>
-                  <StagePipeline stages={data.stages} log={r.execution_log} />
-                  <div className="text-[10px] c-num text-[var(--c-text-3)]">{r.completed_stages.length}/{data.stages.length} stages · {r.run_id}</div>
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* 세션 관리 */}
+          {/* LEFT session control / CENTER pipeline workspace / RIGHT queue + action */}
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-4 items-start">
+            {/* LEFT — session control */}
             <Panel>
-              <PanelHead kicker="P66" title="Research Sessions" right={<Badge tone="info">{data.sessions.length}</Badge>} />
-              <div className="p-4 space-y-3">
+              <PanelHead kicker="P66" title="Sessions" right={<Badge tone="info">{data.sessions.length}</Badge>} />
+              <div className="p-3 space-y-3">
                 <div className="flex gap-2">
                   <input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="새 세션 목표…"
-                    className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-2.5 h-8 text-[11.5px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+                    className="flex-1 min-w-0 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-2.5 h-8 text-[11.5px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
                   <button onClick={() => goal.trim() && act("create", "", goal)} disabled={!goal.trim() || busy === "create"}
-                    className="px-3 h-8 text-[10.5px] font-semibold tracking-wide uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-hud)_16%,transparent)] disabled:opacity-40 cursor-pointer transition-colors">
+                    className="shrink-0 px-3 h-8 text-[10.5px] font-semibold tracking-wide uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-hud)_16%,transparent)] disabled:opacity-40 cursor-pointer transition-colors">
                     Create
                   </button>
                 </div>
@@ -138,22 +114,61 @@ export default function WorkflowPage() {
               </div>
             </Panel>
 
-            {/* 큐 */}
+            {/* CENTER — pipeline workspace: what's happening */}
             <Panel>
-              <PanelHead kicker="P58" title="Research Queue" right={<Badge tone="pos">{data.queue.proposal_count}</Badge>} />
-              <div className="p-4 space-y-2">
-                {(data.queue.proposals ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">메모리가 채워지면 후보가 제안됩니다.</div>}
-                {(data.queue.proposals ?? []).map((p) => (
-                  <div key={p.proposal_id} className="c-panel-2 p-3">
+              <PanelHead kicker="Orchestration" title="Active Research Workflows" />
+              <div className="p-4 space-y-3">
+                {data.runs.length === 0 && (
+                  <div className="text-[11px] text-[var(--c-text-3)]">
+                    진행 중 워크플로 없음. 백엔드 CLI <span className="c-num text-[var(--c-text-2)]">python -m jarvis.research_workflow run --request &quot;…&quot; --commit</span> 로 시작할 수 있습니다.
+                  </div>
+                )}
+                {data.runs.map((r) => (
+                  <div key={r.run_id} className="c-panel-2 p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11.5px] font-medium text-[var(--c-text-1)]">{p.name}</span>
-                      <Badge tone="info">{p.kind}</Badge>
+                      <span className="text-[12px] font-medium text-[var(--c-text-1)] truncate">{r.request}</span>
+                      <div className="flex gap-1.5 shrink-0">
+                        {r.cancelled && <Badge tone="neg">CANCELLED</Badge>}
+                        {r.blocked_stage && <Badge tone="warn">BLOCKED · {r.blocked_stage}</Badge>}
+                        {r.requires_human_decision && <Badge tone="hud">HUMAN DECISION</Badge>}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-[var(--c-text-3)] mt-1">{p.reason}</div>
+                    <StagePipeline stages={data.stages} log={r.execution_log} />
+                    <div className="text-[10px] c-num text-[var(--c-text-3)]">{r.completed_stages.length}/{data.stages.length} stages · {r.run_id}</div>
                   </div>
                 ))}
               </div>
             </Panel>
+
+            {/* RIGHT — action + forward-looking queue */}
+            <div className="space-y-4">
+              {data.counts.awaiting_human > 0 && (
+                <Panel className="relative overflow-hidden">
+                  <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-warn)]" />
+                  <div className="p-3">
+                    <div className="text-[9px] font-semibold tracking-[0.2em] text-[var(--c-warn)] uppercase">Action required</div>
+                    <div className="mt-1.5 text-[12px] text-[var(--c-text-1)] leading-snug">
+                      {data.counts.awaiting_human}건이 사람 결정 대기 중입니다. 위 파이프라인에서 <span className="text-[var(--c-hud)]">HUMAN DECISION</span> 배지를 확인하세요.
+                    </div>
+                  </div>
+                </Panel>
+              )}
+              <Panel>
+                <PanelHead kicker="P58" title="Research Queue" right={<Badge tone="pos">{data.queue.proposal_count}</Badge>} />
+                <div className="p-4 space-y-2">
+                  {(data.queue.proposals ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">메모리가 채워지면 후보가 제안됩니다.</div>}
+                  {(data.queue.proposals ?? []).map((p) => (
+                    <div key={p.proposal_id} className="c-panel-2 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11.5px] font-medium text-[var(--c-text-1)]">{p.name}</span>
+                        <Badge tone="info">{p.kind}</Badge>
+                      </div>
+                      <div className="text-[10px] text-[var(--c-text-3)] mt-1">{p.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            </div>
           </div>
 
           <div className="text-[10px] text-[var(--c-text-3)]">{data.disclaimer}</div>

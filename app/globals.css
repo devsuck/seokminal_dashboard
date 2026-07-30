@@ -14,10 +14,14 @@
   --color-text-3:   #566472;
   --color-accent:   #FF9F0A;
   --color-hud:      #22D3EE;   /* Jarvis HUD 시안 글로우 (아크리액터/게이지 전용) */
-  --color-pos:      #00D964;
-  --color-neg:      #FF3B30;
-  --color-warn:     #FFD60A;
-  --color-info:     #3B9CFF;
+  /* pos/neg/warn/info: .console-shell 의 --c-pos/neg/warn/info(검증된 팔레트)와 값을 통일.
+     기존엔 두 토큰셋이 서로 다른 hex를 써서 라우트에 따라 "손실 빨강"의 실제 색이 달라지는
+     결함이 있었음(UX 감사 §2.4) — 여기 하나만 고치면 레거시 페이지(text-pos/bg-neg/20 등
+     Tailwind 유틸리티 클래스 경로)도 콘솔과 동일한 색으로 렌더링됨. */
+  --color-pos:      #10B981;
+  --color-neg:      #FF4D4D;
+  --color-warn:     #F5B301;
+  --color-info:     #3B82F6;
 
   /* data-viz 램프 — 상태색과 분리. categorical은 #000 서피스에서 dataviz
      validate_palette.js 전항목 PASS(명도밴드·CVD·대비). 고정 순서, 순환 금지. */
