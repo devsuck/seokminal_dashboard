@@ -6,6 +6,7 @@ import {
   applyBookSnapshot,
   applySpoofAlert,
   applyOrderflowMessage,
+  applyOrderflowMessageBatch,
   emptyOrderflowState,
   diffFootprintCells,
   diffHeatmapCells,
@@ -90,6 +91,38 @@ describe("applyHeatmapDelta", () => {
     state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: 0, price: 99, size: 5 });
     state = applyHeatmapDelta(state, { type: "heatmap_delta", ts: 0, price: 99, size: 8 });
     expect(state.heatmap.get("0:99")).toEqual({ ts: 0, price: 99, size: 8 });
+  });
+});
+
+describe("applyOrderflowMessageBatch", () => {
+  it("produces the same result as applying each message sequentially via applyOrderflowMessage", () => {
+    const msgs: Parameters<typeof applyOrderflowMessage>[1][] = [
+      { type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 2 },
+      { type: "heatmap_delta", ts: 0, price: 99, size: 5 },
+      { type: "footprint_delta", bucket_ts: 0, price: 100, side: "sell", delta_vol: 1 },
+      { type: "heatmap_delta", ts: 0, price: 99, size: 8 },
+      { type: "book_snapshot", bids: [{ price: 99, size: 8 }], asks: [{ price: 101, size: 3 }], venues: ["HL"] },
+    ];
+
+    let sequential = emptyOrderflowState();
+    for (const msg of msgs) sequential = applyOrderflowMessage(sequential, msg);
+
+    const batched = applyOrderflowMessageBatch(emptyOrderflowState(), msgs);
+
+    expect(Array.from(batched.footprint.entries())).toEqual(Array.from(sequential.footprint.entries()));
+    expect(Array.from(batched.heatmap.entries())).toEqual(Array.from(sequential.heatmap.entries()));
+    expect(batched.book).toEqual(sequential.book);
+  });
+
+  it("only touches footprint/heatmap Map references for message types present in the batch (avoids invalidating downstream useMemo for untouched slices)", () => {
+    const state = applyFootprintDelta(emptyOrderflowState(), {
+      type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 2,
+    });
+    const next = applyOrderflowMessageBatch(state, [
+      { type: "heatmap_delta", ts: 0, price: 99, size: 5 },
+    ]);
+    expect(next.footprint).toBe(state.footprint); // footprint untouched by this batch -> same reference
+    expect(next.heatmap).not.toBe(state.heatmap);
   });
 });
 
@@ -303,6 +336,15 @@ describe("applyBookSnapshot", () => {
     });
     state = applyBookSnapshot(state, { type: "book_snapshot", bids: [], asks: [], venues: [] });
     expect(state.footprint.get("0:100")).toEqual({ bucketTs: 0, price: 100, buyVol: 2, sellVol: 0 });
+  });
+
+  it("keeps the same footprint/heatmap Map reference (not just equal content) — book_snapshot fires every 150ms and downstream useMemo relies on reference stability to avoid recomputing on every tick", () => {
+    const before = applyFootprintDelta(emptyOrderflowState(), {
+      type: "footprint_delta", bucket_ts: 0, price: 100, side: "buy", delta_vol: 2,
+    });
+    const after = applyBookSnapshot(before, { type: "book_snapshot", bids: [], asks: [], venues: [] });
+    expect(after.footprint).toBe(before.footprint);
+    expect(after.heatmap).toBe(before.heatmap);
   });
 });
 

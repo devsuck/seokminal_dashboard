@@ -295,6 +295,88 @@ export function applyOrderflowMessage(state: OrderflowState, msg: OrderflowDelta
   return state;
 }
 
+// heatmap_delta/footprint_delta가 초당 수십 건씩 오는데 applyFootprintDelta/applyHeatmapDelta는
+// 메시지 1건마다 전체 Map을 new Map()으로 통째 복사 + evictOldest*Buckets(전체 스캔+sort)까지
+// 돌린다. useOrderflowSocket의 rAF 스로틀은 setState(리렌더) 빈도만 60fps로 묶을 뿐 이 ws.onmessage
+// 안에서 동기로 도는 O(n) 복사/스캔 자체는 원시 메시지 속도 그대로 실행돼 발열 원인이 됨(실측
+// 백엔드단 초당 48~60건). 한 프레임에 쌓인 메시지 묶음을 여기서 한 번에 처리해 Map 복사/eviction을
+// 메시지당 1회가 아니라 rAF 프레임당 최대 1회로 줄인다.
+export function applyOrderflowMessageBatch(state: OrderflowState, msgs: OrderflowDeltaMsg[]): OrderflowState {
+  let footprint: Map<string, FootprintCell> | null = null;
+  let heatmap: Map<string, HeatmapCell> | null = null;
+  let book = state.book;
+  let tapeSpeed = state.tapeSpeed;
+  let recentTrades = state.recentTrades;
+  let liquidations = state.liquidations;
+  let spoofAlerts = state.spoofAlerts;
+
+  for (const msg of msgs) {
+    if (msg.type === "footprint_delta") {
+      if (footprint === null) footprint = new Map(state.footprint);
+      const key = footprintKey(msg.bucket_ts, msg.price);
+      const existing = footprint.get(key);
+      footprint.set(
+        key,
+        existing
+          ? {
+              ...existing,
+              buyVol: existing.buyVol + (msg.side === "buy" ? msg.delta_vol : 0),
+              sellVol: existing.sellVol + (msg.side === "sell" ? msg.delta_vol : 0),
+            }
+          : {
+              bucketTs: msg.bucket_ts,
+              price: msg.price,
+              buyVol: msg.side === "buy" ? msg.delta_vol : 0,
+              sellVol: msg.side === "sell" ? msg.delta_vol : 0,
+            }
+      );
+      if (msg.ts !== undefined) {
+        recentTrades = [
+          { ts: msg.ts, price: msg.price, side: msg.side, size: msg.delta_vol },
+          ...recentTrades,
+        ].slice(0, TRADE_TAPE_MAX);
+      }
+      tapeSpeed = msg.tape_trades_per_sec ?? tapeSpeed;
+    } else if (msg.type === "heatmap_delta") {
+      if (heatmap === null) heatmap = new Map(state.heatmap);
+      heatmap.set(heatmapKey(msg.ts, msg.price), { ts: msg.ts, price: msg.price, size: msg.size });
+    } else if (msg.type === "book_snapshot") {
+      book = { bids: msg.bids, asks: msg.asks, venues: msg.venues, byVenue: msg.by_venue ?? {} };
+    } else if (msg.type === "spoof_alert") {
+      spoofAlerts = [
+        {
+          ts: msg.ts,
+          side: msg.side,
+          price: msg.price,
+          peakSize: msg.peak_size,
+          lifetimeSec: msg.lifetime_sec,
+          note: msg.note,
+        },
+        ...spoofAlerts,
+      ].slice(0, SPOOF_ALERT_FEED_MAX);
+    } else if (msg.type === "liquidation") {
+      liquidations = [
+        { ts: msg.ts, price: msg.price, size: msg.size, side: msg.side, source: msg.source },
+        ...liquidations,
+      ].slice(0, LIQUIDATION_FEED_MAX);
+    }
+  }
+
+  if (footprint !== null) footprint = evictOldestFootprintBuckets(footprint);
+  if (heatmap !== null) heatmap = evictOldestHeatmapBuckets(heatmap);
+
+  return {
+    ...state,
+    footprint: footprint ?? state.footprint,
+    heatmap: heatmap ?? state.heatmap,
+    book,
+    tapeSpeed,
+    recentTrades,
+    liquidations,
+    spoofAlerts,
+  };
+}
+
 export function diffFootprintCells(prev: FootprintCell[], next: FootprintCell[]): FootprintCell[] {
   const prevByKey = new Map(prev.map((c) => [footprintKey(c.bucketTs, c.price), c]));
   return next.filter((c) => {

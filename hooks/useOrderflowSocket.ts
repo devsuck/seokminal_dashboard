@@ -1,10 +1,10 @@
 // hooks/useOrderflowSocket.ts
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { WS_URL } from "@/lib/api";
 import {
-  applyOrderflowMessage,
+  applyOrderflowMessageBatch,
   applySnapshot,
   emptyOrderflowState,
   type FootprintCell,
@@ -46,6 +46,9 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
   // 메시지는 ref에 즉시 반영하고, 화면 반영은 rAF 1프레임당 1회로 묶어서 흘려보낸다.
   const pendingRef = useRef<OrderflowState>(emptyOrderflowState());
   const rafIdRef = useRef<number | null>(null);
+  // applyOrderflowMessageBatch로 메시지 1건당이 아니라 flush(rAF) 1회당 Map 복사가 1번만 돌게
+  // 묶어서 처리한다 — onmessage에서는 배열 push(O(1))만 하고 무거운 reduce는 flush에서.
+  const rawQueueRef = useRef<OrderflowDeltaMsg[]>([]);
 
   useEffect(() => {
     let closedByEffect = false;
@@ -54,11 +57,16 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
     let delay = RECONNECT_BASE_DELAY_MS;
 
     pendingRef.current = emptyOrderflowState();
+    rawQueueRef.current = [];
     setState(emptyOrderflowState());
     setConnectionState("connecting");
 
     function flush() {
       rafIdRef.current = null;
+      if (rawQueueRef.current.length > 0) {
+        pendingRef.current = applyOrderflowMessageBatch(pendingRef.current, rawQueueRef.current);
+        rawQueueRef.current = [];
+      }
       setState(pendingRef.current);
     }
 
@@ -84,6 +92,7 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
         }
         if (isSnapshotMsg(msg)) {
           pendingRef.current = applySnapshot(msg);
+          rawQueueRef.current = []; // snapshot 이전에 쌓인 delta는 이미 snapshot에 반영돼있음
           scheduleFlush();
           setConnectionState("live");
           return;
@@ -93,7 +102,7 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
           setConnectionState(parsed.state === "live" ? "live" : "reconnecting");
           return;
         }
-        pendingRef.current = applyOrderflowMessage(pendingRef.current, parsed);
+        rawQueueRef.current.push(parsed);
         scheduleFlush();
       };
 
@@ -122,9 +131,17 @@ export function useOrderflowSocket(symbol: string): UseOrderflowSocketResult {
     };
   }, [symbol]);
 
+  // book_snapshot은 150ms마다, 체결 많을 땐 rAF캡 60fps로 setState가 계속 돈다.
+  // footprint/heatmap을 매 렌더 Array.from()으로 새로 만들면 실제론 안 바뀐 틱에도
+  // 배열 참조가 매번 바뀌어서 OrderflowChart의 useMemo([footprint]) 캐시가 전부 무효화됨
+  // → 무거운 파생계산(volume profile, iceberg 등) 초당 최대 60회 재실행 = 발열 원인.
+  // Map 레퍼런스가 실제로 바뀔 때만(=footprint/heatmap 실제 변경 시만) 재변환.
+  const footprint = useMemo(() => Array.from(state.footprint.values()), [state.footprint]);
+  const heatmap = useMemo(() => Array.from(state.heatmap.values()), [state.heatmap]);
+
   return {
-    footprint: Array.from(state.footprint.values()),
-    heatmap: Array.from(state.heatmap.values()),
+    footprint,
+    heatmap,
     book: state.book,
     tapeSpeed: state.tapeSpeed,
     spoofAlerts: state.spoofAlerts,
