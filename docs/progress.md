@@ -1,3 +1,128 @@
+## Phase 191 — 폴리마켓 콜렉터 헬스체크 + ICT 페이퍼엔진 0건 근본원인 조사 + 전체 수정 (2026-07-30) ✅ SHIPPED
+
+유저: "오더플로우 발열 말고 다른 작업할 거 없음?" → tmux 세션 훑다가 ICT 페이퍼엔진 10일째 0건 발견, 유저에게 보고 → "응 둘 다 해보자. 근데 폴리마켓 잘 모으고 있는거야? 확인해줘"로 두 가지 확정: (1) 폴리마켓 6개 콜렉터 헬스체크 (2) ICT 페이퍼엔진 0건 근본원인. 조사 완료 후 유저가 "전부 최종 목표를 위해 수정해줘"로 제안된 수정 전부 승인 → 이번 세션에서 전부 구현.
+
+### 폴리마켓 콜렉터 (6개 tmux 세션)
+- 정상(방금까지 기록 중): `polymarket-arb`, `polymarket-sharp-wallet-tick`, `polymarket-tick`, `polymarket-updown-arb`.
+- **`polymarket-event-divergence` — 완전 hang 발견**: 01:01에 기동(전날 세션에서 이미 한번 9.7h 방치로 재기동했던 그 세션, [[project_fleet_health_monitoring_upgrade]] 참고)했는데 12:43 이후 9.5시간째 파일 안 씀. `ps`로 CPU 시간 두 번 측정(8초 간격)해서 완전히 0 증가 확인 = 진짜 hang(재시도 루프 아님). 코드(`run_polymarket_event_divergence_scan.py`) 자체는 try/except로 감싸져 있어 구조상 왜 hang이 나는지는 못 찾음 — 재발이라 다음에 또 걸리면 더 깊게 봐야 함.
+- **`polymarket-whale-tick` — 구조적 버그 발견**: `run_polymarket_whale_collect.py`의 `run_forever()`가 5분마다 하는 마켓리스트 `refresh_fn()`과 5초마다 하는 실체결 `fetch_fn()`을 같은 try 블록에 묶어놔서, `refresh_fn()`이 DNS 등으로 한번 실패하면 `last_market_refresh`가 안 갱신되어 매 사이클(5초)마다 refresh부터 다시 실패 → `fetch_fn()`(진짜 체결 폴링)까지 아예 못 감. 오늘 이걸로 2.8시간 데이터 공백. 코드는 안 고치고 재기동만 함(재발 가능 — 다음 fix는 refresh/fetch try 블록 분리).
+- 둘 다 kill 후 재기동, 재기록 확인은 Monitor로 백그라운드 진행 중.
+- **부가 발견**: `scripts/deploy/ensure_collectors.sh`의 `ENSURE` 배열에 `polymarket-event-divergence`가 아예 없음 — 세션이 완전히 죽어도 launchd가 못 살림(다른 6개는 등록돼있는데 이것만 빠짐). 이 스크립트는 "세션 존재 여부"만 보고 되살리는 구조라 hang(세션은 살아있는데 멈춤)은 원천적으로 감지 불가 — `/lab/fleet`의 stuck 판정 쪽에서 이번 hang을 잡았는지도 확인 필요.
+
+### ICT 페이퍼엔진(`ict-orderflow-paper`, BTC.HL) 10일 0건 조사
+- HTF(15분) 폴링 DNS 실패는 10일간 단 2회뿐(tmux 스크롤백 전체가 221줄인데 그게 로그 전부, 나머지 ~958사이클은 조용히 성공한 걸로 추정) → 네트워크 문제가 주범 아님, 기각.
+- LTF 반전트리거(`reversal_triggers.py`)는 대시보드 `/orderflow`의 흡수/스탑런/다이버전스 감지랑 완전 동일 로직 재사용 — 그게 Phase 189 발열 원인이 될 만큼 자주 튀는 걸 이미 확인했으므로, 트리거 자체가 안 튀는 게 문제는 아닐 가능성 높음.
+- `_check_entry`(`state_machine.py`)가 요구하는 조건: HTF존(OB/iFVG) 안에 종가 있음 + 같은 방향 CISD + 같은 방향 반전트리거가 전부 5분(5봉) 이내에 동시에 겹침 + 다음 반대편 유동성 레벨(목표가)까지 확정. 코드 버그는 못 찾았고, 이 정도 좁은 4중 컨플루언스면 BTC 단일심볼 기준 10일 0건도 구조적으로 말이 되는 수준 — "진짜 안 나온 것"에 무게. 100% 확신하려면 단계별 카운터 계측 필요(수정 영역이라 이번엔 안 함).
+
+### 수정 구현 (조사 다음 단계, 같은 날)
+- **`research/net_utils.py`(신규) — DNS/connect 하드 타임아웃 유틸**: `requests`의 `timeout=`은 소켓 생성 *이후* 단계만 커버 — `getaddrinfo()`는 그 전 단계라 못 막음. 데몬 스레드에서 호출 돌리고 `queue.Queue.get(timeout=...)`로 기다려서 "OS 레벨 무응답"을 `TimeoutError`로 전환. 타임아웃 나면 스레드 1개 누수(못 죽임, python 한계)되지만 발생빈도 낮아 허용.
+- **`polymarket/client.py`**: `_get()`의 `requests.get` 호출을 위 유틸로 감쌈(`_HARD_TIMEOUT = _TIMEOUT + 5.0`).
+- **`research/run_polymarket_whale_collect.py`**: `fetch_trades()` 하드타임아웃 적용 + `run_forever()`의 refresh/fetch try블록 분리(refresh 계속 실패해도 fetch는 매 사이클 정상 실행) + 최초 `refresh_fn()` 호출도 try로 감쌈(예전엔 unguarded라 실패시 프로세스 자체가 죽음).
+- **`research/ict/paper/htf_zones.py`**: `fetch_htf_bars()`의 `requests.post` 하드타임아웃 적용 — event_divergence와 같은 hang 클래스가 ICT HTF 폴링에서도 날 수 있어 선제 방어.
+- **`scripts/deploy/ensure_collectors.sh`**: `ENSURE` 배열에 `polymarket-event-divergence` 추가 + **부가 발견**: `polymarket-mlb-specialist-tick`도 `lab_api.py`의 `COLLECTOR_SESSIONS`엔 있는데 이 스크립트엔 없었음(같은 클래스 누락) — 같이 추가. 이제 9개 전부 등록.
+- **`research/ict/paper/state_machine.py`**: `_check_entry()`의 4단계 필터(zone_none/cisd_miss/trigger_miss/risk_invalid/target_none/entered)마다 `self._entry_stage_counts` 누적, 500봉마다 `logging.info`로 퍼널 로그 — "4중 컨플루언스 구조적 희소성" 가설을 데이터로 반증/확증 가능하게 계측만 추가(로직 변경 없음).
+- 테스트: `test_net_utils.py`(신규), `test_ict_paper_htf_zones.py`/`test_run_polymarket_whale_collect.py`/`test_ict_paper_state_machine.py` 각각 회귀 테스트 추가. 전체 `pytest tests/ -q` **2031 passed**.
+- 수정 반영된 콜렉터 3개(`polymarket-event-divergence`, `polymarket-whale-tick`, `ict-orderflow-paper`) kill 후 재기동 확인 — 크래시 없이 기동.
+
+### 변경된 파일
+- `research/net_utils.py`(신규), `tests/test_net_utils.py`(신규)
+- `polymarket/client.py`
+- `research/run_polymarket_whale_collect.py`, `tests/test_run_polymarket_whale_collect.py`
+- `research/ict/paper/htf_zones.py`, `tests/test_ict_paper_htf_zones.py`
+- `research/ict/paper/state_machine.py`, `tests/test_ict_paper_state_machine.py`
+- `scripts/deploy/ensure_collectors.sh`
+
+### 다음 할 일
+- state_machine.py 계측 로그가 며칠 쌓이면 어느 필터가 병목인지 실측 확인(현재는 카운터만 추가, 아직 데이터 없음).
+- event_divergence hang 재발 여부 계속 관찰 — 하드타임아웃으로 무한행은 막혔지만 왜 DNS가 멈추는지 근본원인은 여전히 미상(macOS 리졸버 이슈로 추정만).
+- Phase 189 오더플로우 발열 유저 재확인 여전히 대기 중(별건).
+
+### 추가 세션 (같은 날, "그러면 다음 할 일은?" → "1,2 해보자" → "지금 온도 오른다" → "그거 파보자")
+- **funnel-log/hang 관찰 체크**: ICT 퍼널로그는 재기동 후 ~7분이라 아직 미출현(정상, 500봉=~8.3시간 필요). event_divergence는 CPU delta 측정(40초 창, 0.46s→0.51s)으로 hang 아님 확인됐으나 데이터 10시간+ 안 쌓임 발견 → 아래 Gamma API 버그로 근본원인 규명됨.
+- **"온도 오른다" 조사**: systematic-debugging으로 root cause 추적. uvicorn/node/Chrome 전부 CPU 0~0.1%로 idle 확인, 유일한 스파이크는 `cross_venue_skew_collect`(정상 폴링 범위). 결론: 콜렉터 3개 재기동+수동 디버그스크립트 직후의 일시적 버스트(팬 관성)였고 이미 가라앉음 — 코드 문제 아님, 조치 불필요.
+- **Gamma API 100개 캡 버그 발견+수정 (진짜 소득)**: `polymarket.client.get_markets(limit=300)`이 실제 300개가 아니라 100개만 반환하는 걸 발견 — Gamma API가 `limit`>100 요청을 에러 없이(status 200) 100개로 조용히 잘라버림(실측: 150/300/500 전부 100개). 영향받은 호출부 6곳: `run_polymarket_tick_collect.py`(300), `run_polymarket_whale_collect.py`(500), `polymarket_event_divergence/collector.py`(300), `polymarket_arb/collector.py`(300), `api_server/polymarket_bot.py`(500) — 전부 top-100 마켓 풀에서만 동작하고 있었음.
+  - **fix**: `get_markets()`를 `offset` 페이지네이션(`_PAGE_SIZE=100`)으로 재작성 — limit까지 여러 페이지 자동 수집, 데이터 고갈시 조기 중단.
+  - **파급 확인**: fix 전 `event_divergence.run_once()` 0건 → fix 후 즉시 6건 검출. [[project_fleet_health_monitoring_upgrade]]의 "필터 임계값상 정상 무신호" 결론이 틀렸던 것으로 정정 — 실은 다중마켓 이벤트 후보군 자체가 top-100 캡에 걸려 좁았던 것.
+  - `polymarket-tick`/`polymarket-arb`/`polymarket-whale-tick`/`polymarket-event-divergence` 4개 세션 kill+재기동해서 fix 반영 확인.
+  - 테스트: `tests/test_polymarket_client.py`에 페이지네이션 테스트 2개 추가. 전체 `pytest tests/ -q` **2033 passed**.
+  - `research/data/polymarket_whale/`는 7/13 콜렉터 가동 이후 계속 이 캡에 걸려있었을 가능성 있음 — [[project_polymarket_whale_first_verdict]] 재검증 시 fix 이전/이후 표본 섞지 말 것.
+
+### 변경된 파일 (추가)
+- `polymarket/client.py`(`get_markets` 페이지네이션), `tests/test_polymarket_client.py`
+
+### 다음 할 일 (갱신)
+- event_divergence는 이제 정상적으로 divergence 검출 중 — 며칠 관찰해서 실제 시그널 품질(진짜 알파인지) 판단 필요.
+- whale 재검증 트리거(표본 30건)는 유효하나, fix 시점(2026-07-30 23:05~) 이전 표본과 섞지 않기.
+
+---
+
+## Phase 190 — CommandRail(왼쪽 사이드바) IA 정리 (2026-07-30) ✅ SHIPPED
+
+유저 리포트: "왼쪽 사이드바 보면 아주 빼곡하게 뭐가 뭔지도 모르는 페이지들이 나열되어있잖음." Phase 187에서 "유저 판단 필요한 IA 결정이라 임의로 안 건드림"으로 남겨뒀던 `CONSOLE_GROUPS`(신규 OS 레이어) vs `TERMINAL_GROUPS`(레거시 45p) 중복 이슈 재확인 → 유저가 "우리의 최종 목표를 위해 수정 방향을 선택해줘"로 방향 결정을 위임.
+
+### 방향 결정
+Phase 113(Jarvis Quant OS 안전골격)·Phase 132(집행 전환) 메모리 근거로 OS 레이어(`CONSOLE_GROUPS`)를 최종 목표(라이브 집행)의 메인 IA로 승격, Terminal은 하위 실행/데이터 도구로 유지(병합 아님, 위계만 명확화). 기존 코드도 이미 OS를 먼저 렌더 + Terminal에 "레거시" 딱지를 달아놨어서 순서는 그대로 두고 그룹 구조/라벨만 정리.
+
+### 완료된 작업
+- Research OS 21개 flat 리스트(스캔 불가 수준) → 성격별 4그룹 분리: `Research · 모니터링`(현황판 7개), `Research · 파이프라인`(에이전트/워크플로우 7개), `Research · 거버넌스`(위원회/설명가능성 5개), `Research · Lab`(Strategy Lab/Chat + 헷갈리던 단독 "Intelligence" 그룹(라벨도 "Research OS"였음)을 "Jarvis Live View"로 흡수).
+- Markets 9→5: `/market`이 crypto/futures/forex/options를 탭으로 그대로 재렌더하는 아그리게이터라 4개를 최상위 nav에서 제거(진입은 `/market` 탭 안에서).
+- `/auto-research` nav 제거(코드 자체 주석이 "사이드바 은퇴, AI LAB에 흡수됨"이라 명시했는데 계속 남아있던 죽은 링크).
+- `/edges`(콜렉터 플릿/엣지 검증 모니터, 272줄 실기능인데 nav 어디에도 없던 orphan) → Research Lab 그룹에 추가.
+- 동명이인 라벨 3쌍 구분: `/quant/validation` "Validation"→"Quant Validation Gates"(`/validation`="Validation Terminal", `/research-os/validation`="Validation Loop"와 이름충돌 해소), `/exec/orders` "Orders"→"Execution Gates", `/portfolio-os/risk` "Risk"→"Risk Limits".
+- **실사용처 검증**(브라우저로 직접 열어봄): `/orders`(실제 체결 블로터, KR/US/옵션 상태필터) vs `/exec/orders`(4중 안전게이트 요청/응답/라이프사이클 카운터) — 완전 다른 관점 확인, 병합 대상 아님. `/risk-guard`(킬스위치+env기반 하드리밋 조작화면) vs `/portfolio-os/risk`(RiskGovernor 상태/autonomy 레벨 표시) — 이것도 서로 다른 시스템 감싸는 뷰라 병합 대상 아님. 둘 다 라벨 구분으로 충분하다고 결론.
+- 검증: `npx tsc --noEmit` clean, `npm test` 313/313 통과, 브라우저로 `/hud` 열어 그룹 펼침/글리프/콘솔 에러 확인(하이드레이션 경고 1건 있었으나 `WorldClock` 서버/클라 시간차로 CommandRail과 무관, 기존 이슈).
+
+### 변경된 파일
+- `seokminal-dashboard/components/console/CommandRail.tsx`
+
+### 다음 할 일
+- 없음. Phase B로 분류했던 항목(OS/Terminal 위계, orders/risk 라벨 구분) 이번에 다 처리됨.
+
+---
+
+## Phase 189 — 오더플로우(/orderflow) 발열 근본원인 수정 (2026-07-30) ✅ SHIPPED
+
+유저 리포트: "오더플로우 키면 발열 심해지는데." systematic-debugging 스킬로 진행. 1차 픽스(useMemo로 footprint/heatmap Array.from 참조 안정화, `hooks/useOrderflowSocket.ts`)는 유저가 "응 발열 난다"로 명시 반려 — Phase 1로 되돌아가 재조사.
+
+### 완료된 작업
+- **근거 수집**: 브라우저 계측(PerformanceObserver longtask)은 자동화 탭이 backgrounded라 `document.visibilityState==="hidden"`이라 전부 0으로 나와 폐기. 대신 `websockets` 클라이언트로 백엔드 WS에 직접 붙어 메시지 타입별 실측 → `heatmap_delta` 61.5/sec(체결 19.1건/초의 3배+), book_snapshot은 1.5/sec(스로틀 정상 작동 중)로 확인 — heatmap_delta만 스로틀이 안 걸려있었음.
+- **원인 1(백엔드)**: `seokminal-multi-venue/orderflow/manager.py` — book_snapshot은 `BOOK_SNAPSHOT_THROTTLE_SEC=0.15`로 스로틀되는데 `aggregator.on_book_snapshot()`이 반환하는 heatmap_delta는 스로틀 없이 매 틱(원장 뎁스 변화마다) 그대로 브로드캐스트되고 있었음. `_SymbolWorker`에 `pending_heatmap` dict 추가, 같은 150ms 창 안에서는 키(ts,price)별 최신값만 모았다가 flush — `on_book_snapshot()` 자체는 매 틱 그대로 호출해 내부 상태(스푸핑 감시 등)는 안 건드림. 신규 테스트 2건 작성 중 tick_size=10 라운딩으로 bid(100)/ask(101)가 같은 heatmap 버킷에 충돌해 pending 값이 서로 덮어쓰는 테스트 픽스처 버그를 발견해 별도 수정.
+- **원인 2(프론트, 더 지배적)**: 백엔드 픽스 후 재측정해도 heatmap_delta가 61.5→48.1/sec로만 줄어듦(같은 150ms 창 안에서도 여러 개별 가격 레벨이 실제로 바뀌는 게 정상이라 메시지 수 자체는 크게 안 줆). `lib/orderflow-data.ts`의 `applyHeatmapDelta`/`applyFootprintDelta`가 메시지 1건마다 `new Map(state.heatmap)` 전체 복사 + `evictOldest*Buckets`(전체 스캔+sort)까지 동기로 수행 — `useOrderflowSocket.ts`의 rAF 배칭은 setState(리렌더) 빈도만 60fps로 묶을 뿐 이 `ws.onmessage` 안의 O(n) 작업 자체는 원시 메시지 속도(초당 48~60건) 그대로 실행되고 있었음. `applyOrderflowMessageBatch()` 신규 추가 — onmessage에서는 배열 push(O(1))만, 무거운 Map 복사/eviction은 rAF flush 시점에 프레임당 최대 1회로 묶어서 처리하도록 `useOrderflowSocket.ts` 재작성.
+- 검증: 백엔드 pytest 2024 passed, 프론트 vitest 313 passed, `npx tsc --noEmit` clean. uvicorn 재기동 완료(PID 42613). 브라우저 실측(CPU/발열 자체)은 여기서 확인 불가 — 유저 재확인 필요.
+
+### 변경된 파일
+- `seokminal-multi-venue/orderflow/manager.py`, `tests/test_orderflow_manager.py`
+- `seokminal-dashboard/hooks/useOrderflowSocket.ts`, `lib/orderflow-data.ts`, `tests/lib/orderflow-data.test.ts`
+
+### 다음 할 일
+- 유저가 실제 발열 해소됐는지 재확인 필요 — 여전하면 3번째 픽스 시도 전에 아키텍처 자체(예: heatmap 보존 윈도우 90분치를 매번 통째로 들고 있는 구조) 재검토 권장(systematic-debugging Phase 4.5, 이미 픽스 2회 시도함).
+
+---
+
+## Phase 188 — 오더북 히스토리 저장 + Bookmap식 DOM 리플레이 (2026-07-30) ✅ SHIPPED
+
+유저 지시: "너무 많은 용량 잡아먹지않게. 만들어줘. 그리고 이걸 플랫폼화할 수 있을지 여부도 알려줘." 중 구현 파트(1) 완료. 플랫폼화 평가(2)는 별도 채팅 응답으로 전달, 문서화는 안 함(일회성 질문 답변 성격).
+
+### 완료된 작업
+- **백엔드**(`seokminal-multi-venue`): 기존 상시가동 tmux 수집기 `research/run_hl_orderflow_tick_collect.py`를 확장 — 신규 수집기 안 만들고 기존 WS 연결에 `snapshot_append_fn` 주입만 추가(연결 오버헤드 최소화, `ensure_collectors.sh`/`lab_api.py` 변경 불필요). 3초 스로틀(이벤트 자체 ts 기준, wall-clock 아님) + 상위 15레벨만 `[price,size]` 압축 배열로 저장 → `research/data/hl_orderbook_snapshot/{coin}_{date}.jsonl`. 예상 용량 ~10MB/일(3코인 합계, gzip 후) — "용량 안 잡아먹게" 제약 직접 반영. 기존 `compress_old_data.py`가 파일명 패턴 기반이라 코드 변경 없이 자동으로 오래된 파일 gzip 압축.
+- REST 엔드포인트 2개 신규(`api_server/router_orderflow.py`): `GET /orderflow/history/{symbol}/dates`(저장된 날짜 목록), `GET /orderflow/history/{symbol}?date=&start=&end=&limit=`(스냅샷 조회, plain/gzip 듀얼 포맷 리더, `_HISTORY_SNAPSHOT_MAX_LIMIT=20000`으로 응답 크기 캡).
+- 백엔드 테스트: 수집기 14 passed, 라우터 14 passed(신규분 포함).
+- **프론트엔드**(`seokminal-dashboard`): `lib/api.ts`에 `getOrderflowHistoryDates`/`getOrderflowHistory` 추가(raw fetch 금지 규칙 준수) → `hooks/useOrderbookReplay.ts`(날짜선택→스냅샷로드→재생, AbortController 컨벤션 그대로) → `components/orderflow/ReplayLadder.tsx`(신규 단일 컬럼 래더, 기존 `OrderBookLadder.tsx`는 `byVenue` 3분할 전용이라 재사용 불가 — 리플레이 스냅샷은 용량 절약을 위해 `by_venue` 자체를 저장 안 하므로 새 컴포넌트 필요) + `components/orderflow/OrderbookReplay.tsx`(날짜 select+재생/일시정지+슬라이더 컨테이너) → `app/orderflow/page.tsx`에 라이브/리플레이 토글 버튼 추가(active탭 `border-accent text-accent bg-accent/10` 컨벤션대로).
+- 검증: `npx tsc --noEmit` clean, `npm test` 27 files/310 tests 전부 통과, 백엔드 pytest 2022 passed(pre-existing 실패 없음). `hl-orderflow-tick` tmux 세션 재기동(신규 코드 반영 위해 kill 후 `ensure_collectors.sh`로 재생성) → 재기동 15초 만에 BTC/ETH/PAXG 3개 jsonl 파일에 실제 스냅샷 기록 확인.
+
+### 변경된 파일
+- `seokminal-multi-venue/research/run_hl_orderflow_tick_collect.py`, `tests/test_run_hl_orderflow_tick_collect.py`
+- `seokminal-multi-venue/api_server/router_orderflow.py`, `tests/test_router_orderflow.py`
+- `seokminal-dashboard/lib/api.ts`, `tests/lib/api-orderflow.test.ts`
+- `seokminal-dashboard/hooks/useOrderbookReplay.ts`(신규), `components/orderflow/ReplayLadder.tsx`(신규), `components/orderflow/OrderbookReplay.tsx`(신규), `app/orderflow/page.tsx`
+
+### 다음 할 일
+- `ReplayLadder`/`OrderbookReplay` 컴포넌트 자체 단위테스트는 아직 없음(훅/API 레이어만 테스트됨) — 필요시 추가.
+- 브라우저 라이브 검증(리플레이 탭 실제 클릭+재생) 아직 안 함 — 다음 세션에서 `/orderflow` 페이지 열어 확인 권장.
+- 플랫폼화 가능성은 채팅으로 답변 예정(이 문서엔 기록 안 함, 세션 내 대화 참조).
+
+---
+
 ## Phase 187 — CommandRail 아코디언 접기 + Cmd+K 검색 팔레트 (2026-07-30) ✅ SHIPPED
 
 이전 세션에서 넘어온 "사이드바 UX 재설계 + pre-existing 테스트 수정" 3파트 지시 중 나머지 두 파트 완료: (1) `seokminal-multi-venue` pytest 실패 6건 수정 커밋, (2) 사이드바 재설계.
