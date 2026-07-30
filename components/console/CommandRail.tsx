@@ -39,16 +39,9 @@ const CONSOLE_GROUPS: RailGroup[] = [
     { href: "/investment-os", label: "Investment OS" },
   ] },
   { label: "Intelligence", items: [
-    { href: "/intel/assistant", label: "Assistant" },
     { href: "/intel/research-os", label: "Research OS" },
-    { href: "/intel/research", label: "AI Research" },
-    { href: "/intel/market", label: "Market Intelligence" },
-    { href: "/intel/knowledge", label: "Knowledge Graph" },
   ] },
   { label: "Quant Lab", items: [
-    { href: "/quant/hypothesis", label: "Hypothesis" },
-    { href: "/quant/experiments", label: "Strategy DNA" },
-    { href: "/quant/backtests", label: "Backtests" },
     { href: "/quant/validation", label: "Validation" },
   ] },
   { label: "Portfolio OS", items: [
@@ -58,7 +51,6 @@ const CONSOLE_GROUPS: RailGroup[] = [
   ] },
   { label: "Execution", items: [
     { href: "/exec/orders", label: "Orders" },
-    { href: "/exec/broker", label: "Broker" },
     { href: "/exec/monitor", label: "Monitoring" },
   ] },
   { label: "AI Council", items: [

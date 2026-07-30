@@ -23,16 +23,16 @@ export const RESEARCH_OS_SECTIONS: NavSectionView[] = [
     items: [
       { item: "Alpha", moduleCount: 32, href: "/lab", note: "AI Lab · 가설 사냥/파킹" },
       { item: "Simulation", moduleCount: 2, href: "/backtest", note: "백테스트 · 페이퍼" },
-      { item: "Experiments", moduleCount: 3, href: "/quant/experiments", note: "Strategy DNA · 실험" },
+      { item: "Experiments", moduleCount: 3, href: "/research-os/strategy-lab", note: "Strategy Lab · 실험" },
     ],
   },
   {
     section: "Knowledge",
     moduleCount: 14,
     items: [
-      { item: "Graph", moduleCount: 1, href: "/intel/knowledge", note: "지식 그래프" },
-      { item: "Memory", moduleCount: 6, href: "/intel/knowledge", note: "연구 기억·교훈" },
-      { item: "Insights", moduleCount: 7, href: "/intel/research", note: "인사이트·문헌" },
+      { item: "Graph", moduleCount: 1, href: "/research-os/graph", note: "지식 그래프" },
+      { item: "Memory", moduleCount: 6, href: "/research-os/graph", note: "연구 기억·교훈" },
+      { item: "Insights", moduleCount: 7, href: "/research-os/intelligence-plus", note: "인사이트·문헌" },
     ],
   },
   {
@@ -79,7 +79,7 @@ export const RESEARCH_OS_CAPABILITIES: Capability[] = [
     summary: "로컬 단일 진입점 — 시작·모듈 발견·헬스 체크(클라우드 없음)." },
   { phase: "P43", name: "Unified Navigation", live: true, href: "/intel/research-os",
     summary: "기존 페이지를 Research/Knowledge/Agents/System 로 재배치(이 페이지)." },
-  { phase: "P44", name: "Research Assistant", live: true, href: "/intel/research",
+  { phase: "P44", name: "Research Assistant", live: true, href: "/research-os/chat",
     summary: "일일·실험·실패·지식 요약(분석만 · 결정/승인/집행 없음)." },
   { phase: "P45", name: "Local Automation", live: true, href: "/auto-research",
     summary: "반복 연구 작업 워크플로 보조(자동 거래·배포·배분 없음)." },
@@ -111,8 +111,8 @@ export const SECTION_ORDER = ["Research", "Knowledge", "Agents", "System"] as co
 export const WORKSPACE_HREF: Record<string, string> = {
   Home: "/command",
   Research: "/lab",
-  Experiments: "/quant/experiments",
-  Knowledge: "/intel/knowledge",
-  Assistant: "/intel/assistant",
+  Experiments: "/research-os/strategy-lab",
+  Knowledge: "/research-os/graph",
+  Assistant: "/research-os/chat",
   System: "/exec/monitor",
 };
