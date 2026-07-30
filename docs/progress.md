@@ -1,3 +1,22 @@
+## Phase 186 — CPU 발열 원인(vitest 좀비 프로세스) 진단·제거 (2026-07-30) ✅ 완료
+
+세션 중 유저가 "컴퓨터 왜 이렇게 뜨거워?" 질문 → `ps -Ao pcpu` 스캔으로 원인 특정: `--reload` 상시가동(기존 known 발열원)은 이번엔 안 켜져 있었음, 실제 범인은 `seokminal-dashboard`의 vitest fork worker(`node .../vitest/dist/workers/forks.js`, pid 78025) — 오래된 `npm test` watch 세션이 안 닫힌 채 CPU 100% 고정으로 9시간12분째 방치.
+
+### 완료된 작업
+- vitest 좀비 프로세스(pid 78025) `kill`로 종료, 소멸 확인.
+- (참고) `seokminal-multi-venue` 쪽 `research.run_cross_venue_skew_collect` 파이썬 프로세스가 24.9% CPU로 5일+ 상시 실행 중인 것도 발견 — 정체/의도 불명, 안 건드림(다음 세션 확인 필요, `seokminal-multi-venue/docs/progress.md` 2026-07-30 항목에 기록).
+- 같은 세션에서 jarvis 관련 테스트 스윕도 재확인(276 + 전체 15036 passed, 0 failed) — 상세는 `seokminal-multi-venue/docs/progress.md` 참조(백엔드 위주라 그쪽에 기록).
+
+### 변경된 파일
+- 없음 (프로세스 kill만, 코드 변경 없음)
+
+### 다음 할 일
+- `npm test` watch 모드 습관적으로 안 닫고 세션 종료하는 패턴 있는듯 — 다음에 또 CPU 뜨거우면 vitest fork worker부터 의심.
+- `run_cross_venue_skew_collect` 정체 확인.
+- `docs/progress.md`(이 파일) 3800줄/326KB로 비대 — 당장 문제 아니지만 오래된 Phase 아카이빙 고려.
+
+---
+
 ## Phase 185 — `router_autopilot.py` 도메인별 분리 + 수집기 워치독 가동 (2026-07-26) ✅ SHIPPED
 
 `seokminal-multi-venue` 백엔드 세션. 사용자 요청 3건: ① `api_server/router_autopilot.py`(1700줄+ 모놀리스) 도메인별 라우터로 분리 ② 9개 tmux 수집기 헬스체크/자동재시작 워치독 구축 ③ 이번 세션 정리(progress.md). (④ 업데이트 버튼에 Claude-핸드오프 플로우 추가는 "필요없다"고 명시 거부 — 손 안 댐.)
