@@ -13,14 +13,11 @@ interface RailGroup { label: string; items: RailItem[] }
 
 // 콘솔(거버넌스 OS) 그룹 — 신규 라우트. Phase 132 집행전환 최종목표의 메인 레이어라
 // TERMINAL_GROUPS(레거시)보다 위계상 상위 — 항상 먼저 렌더.
-// Research OS 21개는 flat 1그룹이라 스캔 불가능했음 → 성격별 4그룹으로 분리.
+// STEP4-D(docs/step4/dashboard_migration_map.md): "병합"/"숨김" 분류 페이지는 investment-os
+// 5-tab 셸에 흡수되어 top-level nav에서 제거됨(route/파일은 무변경, 직링크로 계속 접근 가능).
+// 남은 항목은 write action·drill-down이 있는 "유지" 페이지뿐.
 const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Research · 모니터링", items: [
-    { href: "/research-os/organization", label: "Research Org" },
-    { href: "/research-os/intelligence", label: "Intelligence" },
-    { href: "/research-os/market", label: "Market Intelligence" },
-    { href: "/research-os/live-intelligence", label: "Live Intelligence" },
-    { href: "/research-os/intel-feed", label: "Market Intel Feed" },
     { href: "/research-os/cockpit", label: "Executive Cockpit" },
     { href: "/research-os/console", label: "Operating Console" },
   ] },
@@ -28,14 +25,10 @@ const CONSOLE_GROUPS: RailGroup[] = [
     { href: "/research-os/agents", label: "Research Agents" },
     { href: "/research-os/brain", label: "Research Brain" },
     { href: "/research-os/workflow", label: "Workflow" },
-    { href: "/research-os/validation", label: "Validation Loop" },
-    { href: "/research-os/autonomous", label: "Autonomous Runtime" },
     { href: "/research-os/discovery", label: "Autonomous Discovery v3.0" },
-    { href: "/research-os/intelligence-plus", label: "Research Intelligence+" },
   ] },
   { label: "Research · 거버넌스", items: [
     { href: "/research-os/committee", label: "Investment Committee" },
-    { href: "/research-os/production", label: "Committee & Production" },
     { href: "/research-os/explain", label: "Explainability" },
     { href: "/research-os/graph", label: "Knowledge Graph" },
     { href: "/research-os/timeline", label: "Timeline" },
@@ -47,23 +40,6 @@ const CONSOLE_GROUPS: RailGroup[] = [
   ] },
   { label: "Investment OS", items: [
     { href: "/investment-os", label: "Investment OS" },
-  ] },
-  { label: "Quant Lab", items: [
-    { href: "/quant/validation", label: "Quant Validation Gates" },
-  ] },
-  { label: "Portfolio OS", items: [
-    { href: "/portfolio-os/allocation", label: "Allocation" },
-    { href: "/portfolio-os/risk", label: "Risk Limits" },
-    { href: "/portfolio-os/positions", label: "Positions" },
-  ] },
-  { label: "Execution", items: [
-    { href: "/exec/orders", label: "Execution Gates" },
-    { href: "/exec/monitor", label: "Monitoring" },
-  ] },
-  { label: "AI Council", items: [
-    { href: "/council/agents", label: "Agents" },
-    { href: "/council/decisions", label: "Decisions" },
-    { href: "/council/logs", label: "Logs" },
   ] },
 ];
 
