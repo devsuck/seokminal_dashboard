@@ -1,3 +1,33 @@
+## Phase 192 — Investment OS Phase 5 : 아키텍처 분리 회귀 수정 + Prediction Registry Integrity 정리 (2026-07-29~31) ✅ SHIPPED
+
+유저: Phase 5 운영검증 중 `separated: false` 회귀 발견 → 근본원인 수정. 이어서 P5(committee-source prediction 5건) capture 오염 상태 정리 지시(Phase 5-F, 전문 스펙 제공) — "신규 기능 개발 아님, 과거 기록 보존하며 registry 상태만 명확히". 절대원칙: 기존 prediction row 삭제/수정 금지, 상태 변경만 append-only.
+
+### Phase 5(5-A~E) 아키텍처 분리 회귀 수정
+- `jarvis/investment_os/monthly_review.py`가 `jarvis.execution_risk.ledger`를 import해서 `separation.py`의 `_BROKER_PREFIX` 체크에 걸림(`separated: false`) — import 제거로 해결(`risk_changes`에서 `recent_execution_risk_events` 필드도 같이 제거).
+- 전체 회귀 재검증 후 4커밋(멀티벤뉴 2 + 대시보드 2)로 마감, P6로 문서화.
+
+### Phase 5-F — Prediction Registry Integrity Resolution
+- **Step1 감사**: P5 committee-source prediction 5건 전부 동일 근본원인(Phase5 P1-P3 capture 버그 — 이미 수정됨) — `thesis`가 committee 라우팅 라벨 그대로 저장, `invalidation_condition`은 문자열 리터럴 `"return"`, `evidence_used`는 dict key 이름 그대로. `evaluation_framework`/`success_rule`/`snapshot_hash`는 `derive_framework()`가 thesis와 무관하게 결정적으로 동작해서 오염 안 됨 — "해시 유효 ≠ 내용 신뢰 가능" 구분.
+- **Step2 결정**: 전부 `INVALIDATED`(`capture_integrity_failure`). RECAPTURED는 검토 후 기각 — `committee_packet()`이 저장된 스냅샷이 아니라 라이브 계산이라, 지금 재실행해서 만든 thesis는 사후 조작이 됨(사전등록 무결성 원칙 스스로 위반). INVALIDATED ≠ WRONG(예측 실패 아님, 기록 품질 문제).
+- **Step3 게이트**: `prediction_registry.py`에 3번째 직교 축 `INTEGRITY_STATUSES`(LEGACY_CAPTURE/INVALIDATED/RECAPTURED) 신규 — `set_integrity_status()`(append-only, 원본 스냅샷 불변), `graded_predictions()`가 기본적으로 score-ineligible 제외, `registry_status()`에 `by_integrity`/`excluded_from_score_capture_integrity` 추가. 기존 `rmi_lessons.jsonl` 원장 재사용(신규 원장 없음).
+- **Step4 대시보드**: `monthly_review.py`에 `_prediction_integrity()` 추가(read-only, `registry_status()` 재사용) → `/console/monthly-review`에 `prediction_integrity` 필드. 프론트 `lib/console-api.ts` 타입 추가 + `investment-os/page.tsx` Monthly Decision Loop 패널에 Valid/Legacy/Invalidated/Recapture Required 카운트 표시. 브라우저 확인: Valid 0 / Legacy 0 / Invalidated 5 / Recapture 0, 기존 5전략 상태 그대로.
+- **Step5 Freeze**: registry 흐름 확정 — `CAPTURE→ACTIVE→EVALUATED→LEARNED` 또는 `CAPTURE→INVALIDATED`. Integrity 축은 직교/append-only.
+- 검증: 5건 `snapshot_hash` byte-identical 전/후, 원본 row 필드 무수정, `pytest tests/ -q` 2033 passed, `governance.validate_all()` COMPLIANT, `validate_separation()` True, `npx tsc --noEmit` clean.
+- 신규 생성 안 함(명시적 금지): prediction engine·scoring engine·auto generator·AI researcher·새 ledger/DB·새 dashboard architecture.
+
+### 변경된 파일
+- `jarvis/investment_os/monthly_review.py`(separation 회귀 수정 + `_prediction_integrity()`)
+- `jarvis/research_workflow/prediction_registry.py`(`INTEGRITY_STATUSES`, `set_integrity_status()`, `_latest_integrity()`, `graded_predictions()`/`registry_status()` 게이트 배선)
+- `seokminal-dashboard/docs/step5/phase5f_prediction_integrity_audit.md`(신규, 감사 리포트)
+- `seokminal-dashboard/lib/console-api.ts`(`MonthlyReviewResp.prediction_integrity` 타입)
+- `seokminal-dashboard/app/(console)/investment-os/page.tsx`(Prediction Integrity 카운트 UI)
+
+### 다음 할 일
+- 이 5건은 `state=PENDING`이라 오늘 시점 `scorable_right_wrong`엔 영향 없음 — 향후 `evaluate()` 호출 시 게이트가 실제로 채점 제외하는지 재확인 필요.
+- Investment OS Phase 5 시리즈(5-A~F) 이걸로 종료. 다음은 별건(오더플로우 저널 30건 채우기, event_divergence 시그널 품질 관찰 등 — 기존 메모리 트랙 계속).
+
+---
+
 ## Phase 191 — 폴리마켓 콜렉터 헬스체크 + ICT 페이퍼엔진 0건 근본원인 조사 + 전체 수정 (2026-07-30) ✅ SHIPPED
 
 유저: "오더플로우 발열 말고 다른 작업할 거 없음?" → tmux 세션 훑다가 ICT 페이퍼엔진 10일째 0건 발견, 유저에게 보고 → "응 둘 다 해보자. 근데 폴리마켓 잘 모으고 있는거야? 확인해줘"로 두 가지 확정: (1) 폴리마켓 6개 콜렉터 헬스체크 (2) ICT 페이퍼엔진 0건 근본원인. 조사 완료 후 유저가 "전부 최종 목표를 위해 수정해줘"로 제안된 수정 전부 승인 → 이번 세션에서 전부 구현.
