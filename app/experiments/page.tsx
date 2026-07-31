@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  getExperiments,
+  getSavedRuns,
   deleteExperiment,
   updateExperimentNotes,
   clearExperiments,
@@ -17,7 +17,7 @@ export default function ExperimentsPage() {
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    setExperiments(getExperiments());
+    setExperiments(getSavedRuns());
   }, []);
 
   function handleSelect(id: string) {

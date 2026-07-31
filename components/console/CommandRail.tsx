@@ -45,16 +45,14 @@ const CONSOLE_GROUPS: RailGroup[] = [
 // 레거시 트레이딩 터미널 그룹 — 기존 45페이지(기능 유지, 셸만 통합)
 const TERMINAL_GROUPS: RailGroup[] = [
   { label: "마켓", items: [
-    // crypto/futures/forex/options는 /market이 탭으로 그대로 렌더하는 하위기능이라
-    // 최상위 nav에서 중복 노출하지 않음(진입은 /market 탭에서).
+    // crypto/futures/forex/options/news/calendar는 /market이 탭으로 그대로 렌더하는
+    // 하위기능이라 최상위 nav에서 중복 노출하지 않음(진입은 /market 탭에서).
     { href: "/market", label: "마켓" },
     { href: "/orderflow", label: "오더플로우" },
-    { href: "/news", label: "뉴스" },
-    { href: "/calendar", label: "캘린더" },
   ] },
   { label: "트레이딩 데스크", items: [
     { href: "/hud", label: "HUD" },
-    { href: "/overview", label: "개요" },
+    { href: "/overview", label: "AI 자본 개요" },
     { href: "/portfolio", label: "포트폴리오" },
     { href: "/lab/execution", label: "체결 콘솔" },
     { href: "/lab/tasks", label: "페이퍼 모니터" },
@@ -77,7 +75,7 @@ const TERMINAL_GROUPS: RailGroup[] = [
     { href: "/edges", label: "엣지 포트폴리오" },
   ] },
   { label: "검증 · 백테스트", items: [
-    { href: "/validation", label: "검증 터미널" },
+    { href: "/validation", label: "리서치 실험 로그" },
     { href: "/backtest", label: "백테스트" },
     { href: "/ict", label: "ICT 콤보" },
     { href: "/event-study", label: "이벤트 분석" },

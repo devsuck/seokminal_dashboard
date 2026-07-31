@@ -85,7 +85,7 @@ export function saveExperiment(
     timestamp: Date.now(),
     notes: "",
   };
-  const existing = getExperiments();
+  const existing = getSavedRuns();
   const updated = [experiment, ...existing].slice(0, MAX_EXPERIMENTS);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -101,7 +101,7 @@ export function saveExperiment(
   return experiment;
 }
 
-export function getExperiments(): Experiment[] {
+export function getSavedRuns(): Experiment[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -113,12 +113,12 @@ export function getExperiments(): Experiment[] {
 }
 
 export function updateExperimentNotes(id: string, notes: string): void {
-  const updated = getExperiments().map(e => e.id === id ? { ...e, notes } : e);
+  const updated = getSavedRuns().map(e => e.id === id ? { ...e, notes } : e);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 }
 
 export function deleteExperiment(id: string): void {
-  const updated = getExperiments().filter(e => e.id !== id);
+  const updated = getSavedRuns().filter(e => e.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 }
 

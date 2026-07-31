@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  saveExperiment, getExperiments, updateExperimentNotes,
+  saveExperiment, getSavedRuns, updateExperimentNotes,
   deleteExperiment, clearExperiments, makeExperimentLabel, extractMetrics,
   type ExperimentParams, type ExperimentMetrics,
 } from "../../lib/experiment-storage";
@@ -30,13 +30,13 @@ const BASE_METRICS: ExperimentMetrics = {
 describe("experiment-storage", () => {
   beforeEach(() => { localStorage.clear(); });
 
-  it("getExperiments returns [] when storage empty", () => {
-    expect(getExperiments()).toEqual([]);
+  it("getSavedRuns returns [] when storage empty", () => {
+    expect(getSavedRuns()).toEqual([]);
   });
 
-  it("getExperiments returns [] on corrupt JSON", () => {
+  it("getSavedRuns returns [] on corrupt JSON", () => {
     localStorage.setItem("nautilus:experiments", "NOT{JSON");
-    expect(getExperiments()).toEqual([]);
+    expect(getSavedRuns()).toEqual([]);
   });
 
   it("saveExperiment persists and returns experiment with id/timestamp/notes", () => {
@@ -44,13 +44,13 @@ describe("experiment-storage", () => {
     expect(exp.id).toMatch(/^exp_\d+_[a-z0-9]{5}$/);
     expect(exp.timestamp).toBeGreaterThan(0);
     expect(exp.notes).toBe("");
-    expect(getExperiments()).toHaveLength(1);
+    expect(getSavedRuns()).toHaveLength(1);
   });
 
   it("saveExperiment prepends (newest first)", () => {
     saveExperiment({ label: "A", params: BASE_PARAMS, metrics: BASE_METRICS });
     saveExperiment({ label: "B", params: BASE_PARAMS, metrics: BASE_METRICS });
-    const exps = getExperiments();
+    const exps = getSavedRuns();
     expect(exps[0].label).toBe("B");
     expect(exps[1].label).toBe("A");
   });
@@ -58,7 +58,7 @@ describe("experiment-storage", () => {
   it("updateExperimentNotes changes notes without affecting other fields", () => {
     const exp = saveExperiment({ label: "X", params: BASE_PARAMS, metrics: BASE_METRICS });
     updateExperimentNotes(exp.id, "my note");
-    const updated = getExperiments().find(e => e.id === exp.id)!;
+    const updated = getSavedRuns().find(e => e.id === exp.id)!;
     expect(updated.notes).toBe("my note");
     expect(updated.label).toBe("X");
   });
@@ -66,13 +66,13 @@ describe("experiment-storage", () => {
   it("deleteExperiment removes by id", () => {
     const exp = saveExperiment({ label: "del", params: BASE_PARAMS, metrics: BASE_METRICS });
     deleteExperiment(exp.id);
-    expect(getExperiments()).toHaveLength(0);
+    expect(getSavedRuns()).toHaveLength(0);
   });
 
   it("clearExperiments empties storage", () => {
     saveExperiment({ label: "A", params: BASE_PARAMS, metrics: BASE_METRICS });
     clearExperiments();
-    expect(getExperiments()).toHaveLength(0);
+    expect(getSavedRuns()).toHaveLength(0);
   });
 
   it("makeExperimentLabel: ema_cross", () => {

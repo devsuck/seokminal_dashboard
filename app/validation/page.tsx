@@ -93,7 +93,7 @@ export default function ValidationPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-text-1">전략 검증 터미널</h1>
+        <h1 className="text-xl font-semibold text-text-1">리서치 실험 로그</h1>
         <p className="text-text-3 text-sm mt-1">
           당신의 전략이 진짜 엣지인지, 랜덤인지, 비용 후 죽는지 검증한다. — 알파 주장 아님, 검증 결과.
         </p>

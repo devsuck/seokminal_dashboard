@@ -156,7 +156,7 @@ export default function IctPage() {
           </p>
         </div>
         <Link href="/validation" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">
-          ← 검증 터미널
+          ← 리서치 실험 로그
         </Link>
       </div>
 
