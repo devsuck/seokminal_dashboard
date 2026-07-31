@@ -3,7 +3,11 @@
 // 모두 추천/시뮬레이션 · AUTO_EXECUTION 영구 비활성 · 사람 승인 필수 · Risk/Compliance/Portfolio/Kill 우회 불가 · 실행 없음.
 // /console/investment-os. READ ONLY.
 import { useCallback, useEffect, useState } from "react";
-import { getInvestmentOs, advanceLadder, type InvestmentOsResp, type LadderAdvanceResp } from "@/lib/console-api";
+import {
+  getInvestmentOs, advanceLadder, getForwardLearning, getDataConnection, getResearchAccountability,
+  type InvestmentOsResp, type LadderAdvanceResp, type ForwardLearningResp, type ForwardLearningRecord,
+  type DataConnectionResp, type ResearchAccountabilityResp,
+} from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
 
@@ -14,6 +18,35 @@ const RUNG_LABEL: Record<string, string> = {
 const RUNGS = ["PAPER", "SHADOW", "SMALL_CAPITAL", "PRODUCTION_CANDIDATE", "AUTO_EXECUTION"];
 interface ApprovalEntry { from: string; to: string; approved: boolean; advanced: boolean; reason: string | null; ts: string }
 
+const STATUS_LABEL: Record<string, string> = {
+  paper_active: "Paper Active", paper_candidate: "Paper Candidate",
+  paper_candidate_forward_test_required: "Paper Candidate · Fwd Test Req'd", watchlist: "Watchlist",
+};
+
+// STEP4-B 원칙: 단순 ranking/숫자 스코어 금지 — Evidence Quality + Validation Status + Forward Progress + Risk State
+function evidenceQuality(r: ForwardLearningRecord): { label: string; tone: "pos" | "warn" | "neg" | "mute" } {
+  const ev = r.evidence_used ?? [];
+  if (ev.length === 0) return { label: "증거 없음", tone: "neg" };
+  const latest = ev[ev.length - 1];
+  if (latest.cost_robust && latest.wf_second_sharpe !== undefined && latest.wf_second_sharpe !== null) {
+    return { label: "Robust · WF+cost-검증", tone: "pos" };
+  }
+  if (latest.wf_first_sharpe !== undefined || latest.wf_second_sharpe !== undefined) {
+    return { label: "Partial · WF만", tone: "warn" };
+  }
+  return { label: "Weak · 백테스트만", tone: "warn" };
+}
+function forwardProgress(r: ForwardLearningRecord): { label: string; tone: "pos" | "warn" | "neg" | "mute" } {
+  if (!r.expected_behavior) return { label: "Forward 데이터 없음", tone: "mute" };
+  const dev = r.current_behavior?.envelope_deviation;
+  if (dev === undefined || dev === null) return { label: "Envelope 내 진행 중", tone: "pos" };
+  return { label: "편차 감지 — 확인 필요", tone: "warn" };
+}
+function riskState(r: ForwardLearningRecord): { label: string; tone: "pos" | "warn" | "neg" | "mute" } {
+  if (!r.invalidation_condition) return { label: "Invalidation 조건 미등록", tone: "warn" };
+  return { label: "모니터링됨", tone: "pos" };
+}
+
 export default function InvestmentOs() {
   const [data, setData] = useState<InvestmentOsResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -23,12 +56,21 @@ export default function InvestmentOs() {
   const [advResult, setAdvResult] = useState<LadderAdvanceResp | null>(null);
   const [history, setHistory] = useState<ApprovalEntry[]>([]);
   const [busy, setBusy] = useState(false);
+  // STEP4 — Forward Learning + Validation Score (전부 읽기전용 projection)
+  const [fwd, setFwd] = useState<ForwardLearningResp | null>(null);
+  const [conn, setConn] = useState<DataConnectionResp | null>(null);
+  const [acct, setAcct] = useState<ResearchAccountabilityResp | null>(null);
 
   const run = useCallback(async () => {
     setErr(null);
     try { setData(await getInvestmentOs()); } catch (e) { setErr((e as Error).message); }
   }, []);
   useEffect(() => { run(); }, [run]);
+  useEffect(() => {
+    getForwardLearning().then(setFwd).catch(() => {});
+    getDataConnection().then(setConn).catch(() => {});
+    getResearchAccountability().then(setAcct).catch(() => {});
+  }, []);
 
   const nextRung = RUNGS[Math.min(RUNGS.indexOf(currentRung) + 1, RUNGS.length - 1)];
   const nextIsAuto = nextRung === "AUTO_EXECUTION";
@@ -81,6 +123,60 @@ export default function InvestmentOs() {
               <StatTile label="Compliance" value={data.compliance.compliant ? "PASS" : "FAIL"} sub={`override 불가: ${!data.compliance.human_can_override}`} tone={data.compliance.compliant ? "pos" : "neg"} />
               <StatTile label="Mandatory Gates" value={data.gates.passed ? "PASS" : "BLOCK"} sub={`bypass: ${data.gates.bypass_possible}`} tone={data.gates.passed ? "pos" : "warn"} />
             </div>
+
+            {/* Forward Learning + Validation — STEP4. "왜 믿는가 · 어디까지 검증됐는가 · 실제가 thesis와 맞는가 · 다음 판단·승인자" */}
+            <Panel>
+              <PanelHead kicker="Forward Learning · STEP4 (READ ONLY projection)" title="전략별 검증 상태"
+                right={<Badge tone="mute">registry+experiment_registry+prediction_registry+paper.deploy 조인 · 새 원장 없음</Badge>} />
+              <div className="p-4 space-y-3">
+                {acct && (
+                  <div className="flex flex-wrap items-center gap-2 text-[10.5px]">
+                    <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">Edge Score</span>
+                    {acct.edge_score.status === "PROVISIONAL"
+                      ? <Badge tone="mute">PROVISIONAL — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} graded (표본 부족, 랭킹 아님)</Badge>
+                      : <Badge tone="pos">계산됨 — {acct.edge_score.graded_scorable ?? 0} graded</Badge>}
+                    {conn && (
+                      <Badge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"}>
+                        Validation Score: {conn.validation_score.status === "PROVISIONAL" ? "PROVISIONAL" : "계산됨"}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                {fwd && fwd.count === 0 && <div className="text-[11px] text-[var(--c-text-3)]">추적 대상(paper_active/watchlist/paper_candidate) 전략 없음.</div>}
+                {(fwd?.records ?? []).map((r) => {
+                  const eq = evidenceQuality(r); const fp = forwardProgress(r); const rs = riskState(r);
+                  return (
+                    <div key={r.strategy_id} className="c-panel-2 p-3 space-y-1.5">
+                      <div className="flex items-center justify-between flex-wrap gap-1.5">
+                        <span className="text-[11px] text-[var(--c-text-1)] font-semibold">{r.strategy_id}</span>
+                        <Badge tone="hud">{STATUS_LABEL[r.validation_status ?? ""] ?? r.validation_status ?? "—"}</Badge>
+                      </div>
+                      {r.thesis && <div className="text-[10.5px] text-[var(--c-text-2)]">{r.thesis}</div>}
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge tone={eq.tone}>Evidence: {eq.label}</Badge>
+                        <Badge tone={fp.tone}>Forward: {fp.label}</Badge>
+                        <Badge tone={rs.tone}>Risk: {rs.label}</Badge>
+                        {!r.prediction_captured && <Badge tone="warn">Thesis 사전등록 안 됨(P201 미기록)</Badge>}
+                      </div>
+                      {(r.next_possible?.length ?? 0) > 0 && (
+                        <div className="text-[9.5px] text-[var(--c-text-3)]">
+                          다음 가능 상태: {r.next_possible!.join(", ")}
+                          {(r.human_approval_required_next?.length ?? 0) > 0 &&
+                            <span className="text-[var(--c-warn)]"> · 사람 승인 필요: {r.human_approval_required_next!.join(", ")}</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {fwd && (
+                  <div className="text-[9.5px] text-[var(--c-text-3)] pt-1">
+                    커버리지 갭(STEP4-C, 숨기지 않음): thesis 없음 {fwd.coverage_gaps.missing_thesis} ·
+                    thesis 사전등록 안 됨 {fwd.coverage_gaps.missing_prediction_capture} ·
+                    forward 데이터 없음 {fwd.coverage_gaps.missing_forward_data} / {fwd.count}
+                  </div>
+                )}
+              </div>
+            </Panel>
 
             {/* Execution ladder — 인터랙티브 승인 워크플로 */}
             <Panel>

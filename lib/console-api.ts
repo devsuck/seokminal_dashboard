@@ -759,3 +759,65 @@ export interface LadderAdvanceResp {
 export const advanceLadder = (currentRung: string, approve: boolean, s?: AbortSignal) =>
   post<LadderAdvanceResp>(
     `/console/investment-os/advance?current_rung=${encodeURIComponent(currentRung)}&approve=${approve}`, s);
+
+// Forward Learning — thesis vs 실제 결과 (READ ONLY, STEP4-A)
+export interface ForwardLearningRecord {
+  strategy_id: string;
+  found: boolean;
+  validation_status?: string;
+  thesis?: string;
+  evidence_used?: { sharpe?: number; p?: number; random_percentile?: number;
+    wf_first_sharpe?: number; wf_second_sharpe?: number; cost_robust?: boolean; verdict?: string }[];
+  paper_start_date?: string | null;
+  forward_period_months?: number;
+  expected_behavior?: { sharpe?: number; max_dd?: number; monthly_p10?: number; monthly_p90?: number } | null;
+  current_behavior?: { forward_months?: unknown; envelope_deviation?: unknown } | null;
+  invalidation_condition?: string | null;
+  prediction_captured?: boolean;
+  decision_history?: { from?: string; to?: string; reason?: string; approver?: string; timestamp?: string }[];
+  next_possible?: string[];
+  human_approval_required_next?: string[];
+}
+export interface ForwardLearningResp {
+  records: ForwardLearningRecord[];
+  count: number;
+  tracked_statuses: string[];
+  coverage_gaps: { missing_thesis: number; missing_prediction_capture: number; missing_forward_data: number };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getForwardLearning = (s?: AbortSignal) =>
+  get<ForwardLearningResp>(`/console/forward-learning`, s);
+
+// Data Connection — 소스 연결 + 예측 커버리지 + validation score (READ ONLY)
+export interface DataConnectionResp {
+  data_sources: { priority: string[]; sources: unknown[]; dimensions_known?: number;
+    dimensions_unknown?: number; known_pct?: number; objectives: string[] };
+  prediction_coverage: { total?: number; by_source: Record<string, number>; by_confidence: Record<string, number>;
+    missing_invalidation_pct?: number; missing_horizon_pct?: number; pending?: number; evaluated?: number };
+  validation_score: { status?: string; score?: number | null; graded_scorable?: number; needed?: number };
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getDataConnection = (s?: AbortSignal) =>
+  get<DataConnectionResp>(`/console/data-connection`, s);
+
+// Research Accountability — batting average · calibration · edge score · lifecycle (READ ONLY)
+export interface ResearchAccountabilityResp {
+  lifecycle: Record<string, number>;
+  batting_average: { right?: number; wrong?: number; invalidated?: number; inconclusive?: number; pending?: number; rate_pct?: number };
+  edge_score: { status?: string; score?: number | null; graded_scorable?: number; needed?: number };
+  calibration: unknown;
+  confidence_decay: Record<string, unknown>;
+  evaluation_rule?: string;
+  no_posthoc_evaluation?: boolean;
+  no_goalpost_movement?: boolean;
+  hides_pending?: boolean;
+  is_advisory: boolean;
+  is_decision: boolean;
+  disclaimer: string;
+}
+export const getResearchAccountability = (s?: AbortSignal) =>
+  get<ResearchAccountabilityResp>(`/console/research-accountability`, s);
