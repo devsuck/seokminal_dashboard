@@ -806,6 +806,8 @@ export interface MonthlyReviewResp {
   current_positions: { positions: unknown[]; count: number };
   strategies: MonthlyReviewStrategy[];
   count: number;
+  risk_limits?: { max_notional?: number | null; kill_switch?: boolean | null };
+  prediction_integrity?: { valid: number; legacy_capture: number; invalidated: number; recapture_required: number };
   labels: string[];
   is_advisory: boolean;
   is_decision: boolean;

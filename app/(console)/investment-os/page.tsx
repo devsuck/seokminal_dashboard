@@ -235,6 +235,19 @@ export default function InvestmentOs() {
                         </div>
                       );
                     })}
+                    {monthly.data?.prediction_integrity && (
+                      <div className="pt-2">
+                        <div className="text-[9.5px] font-semibold tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1.5">
+                          Prediction Integrity
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <StatTile label="Valid" value={String(monthly.data.prediction_integrity.valid)} tone="pos" />
+                          <StatTile label="Legacy" value={String(monthly.data.prediction_integrity.legacy_capture)} tone="text-1" />
+                          <StatTile label="Invalidated" value={String(monthly.data.prediction_integrity.invalidated)} tone="neg" />
+                          <StatTile label="Recapture Required" value={String(monthly.data.prediction_integrity.recapture_required)} tone="warn" />
+                        </div>
+                      </div>
+                    )}
                     {monthly.data && (
                       <div className="text-[9px] text-[var(--c-text-3)] pt-1">
                         Current Positions({monthly.data.current_positions.count}) → Strategy Status →
