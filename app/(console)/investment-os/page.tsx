@@ -15,8 +15,9 @@ import {
   getValidationLoop, getValidation,
   getMarketCockpit, getInstitutionalIntelligence,
   getRisk, getProductionReadiness, getAgents, getConsoleCouncil, getLogs,
-  getMonitor, getOrders, getLiveIntelligence,
+  getMonitor, getOrders, getLiveIntelligence, getMonthlyReview,
   type InvestmentOsResp, type LadderAdvanceResp, type ForwardLearningResp, type ForwardLearningRecord,
+  type MonthlyReviewResp,
   type DataConnectionResp, type ResearchAccountabilityResp,
   type ResearchOrganizationResp, type AllocationResp, type PositionsResp,
   type ValidationLoopResp, type ValidationResp,
@@ -62,6 +63,10 @@ function riskState(r: ForwardLearningRecord): { label: string; tone: "pos" | "wa
   if (!r.invalidation_condition) return { label: "Invalidation 조건 미등록", tone: "warn" };
   return { label: "모니터링됨", tone: "pos" };
 }
+
+const DECISION_TONE: Record<string, "pos" | "warn" | "neg" | "mute"> = {
+  KEEP: "pos", WATCH: "mute", PAUSE: "warn", REJECT: "neg",
+};
 
 // ── 탭 최초 활성화 시 1회만 fetch, 이후 캐시(동시 다건 로드 방지) ──────
 function useTabFetch<T>(active: boolean, fetcher: () => Promise<T>) {
@@ -123,6 +128,7 @@ export default function InvestmentOs() {
   }, []);
 
   // STEP4-D 병합 섹션 — 탭 활성화 시 lazy fetch, 기존 API 그대로 재사용
+  const monthly = useTabFetch<MonthlyReviewResp>(tab === "overview", () => getMonthlyReview());
   const org = useTabFetch<ResearchOrganizationResp>(tab === "overview", () => getResearchOrganization());
   const alloc = useTabFetch<AllocationResp>(tab === "overview", () => getAllocation());
   const positions = useTabFetch<PositionsResp>(tab === "overview", () => getPositions());
@@ -207,6 +213,38 @@ export default function InvestmentOs() {
             {tab === "overview" && (
               <div className="space-y-4">
                 <div className="flex justify-end"><TabLink href="/research-os/cockpit" label="Research Home" /></div>
+
+                <Panel>
+                  <PanelHead kicker="monthly-review · Phase 5-C (READ ONLY, 새 원장 없음)" title="Monthly Decision Loop"
+                    right={<Badge tone="mute">제안 라벨 — 자동 결정 아님, 사람이 최종 선택</Badge>} />
+                  <div className="p-4 space-y-2">
+                    {monthly.loading && <div className="text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                    {monthly.data && monthly.data.strategies.length === 0 && (
+                      <div className="text-[11px] text-[var(--c-text-3)]">추적 대상 전략 없음.</div>
+                    )}
+                    {(monthly.data?.strategies ?? []).map((s) => {
+                      const dr = s.decision_required ?? {};
+                      const tone = DECISION_TONE[dr.suggested_label ?? ""] ?? "mute";
+                      return (
+                        <div key={s.strategy_id} className="c-panel-2 p-2.5 flex items-center justify-between gap-3 flex-wrap">
+                          <div className="min-w-0">
+                            <div className="text-[10.5px] text-[var(--c-text-1)] font-semibold">{s.strategy_id}</div>
+                            <div className="text-[9.5px] text-[var(--c-text-3)] truncate">{dr.reason}</div>
+                          </div>
+                          <Badge tone={tone}>{dr.suggested_label ?? "—"}</Badge>
+                        </div>
+                      );
+                    })}
+                    {monthly.data && (
+                      <div className="text-[9px] text-[var(--c-text-3)] pt-1">
+                        Current Positions({monthly.data.current_positions.count}) → Strategy Status →
+                        Forward Progress → Validation Changes → Risk Changes → Decision Required 순서로 확인.
+                        {monthly.data.note}
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+
                 <Panel>
                   <PanelHead kicker="research-organization (기존 API)" title="System Health" />
                   {org.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}

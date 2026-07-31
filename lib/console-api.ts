@@ -790,6 +790,30 @@ export interface ForwardLearningResp {
 export const getForwardLearning = (s?: AbortSignal) =>
   get<ForwardLearningResp>(`/console/forward-learning`, s);
 
+// Monthly Decision Loop — 월간 검토 절차 (READ ONLY, Phase 5-C)
+export interface MonthlyReviewStrategy {
+  strategy_id: string;
+  strategy_status?: string;
+  forward_progress?: { expected_behavior?: unknown; current_behavior?: unknown;
+    paper_start_date?: string | null; forward_period_months?: number };
+  validation_changes?: { from?: string; to?: string; reason?: string; approver?: string; timestamp?: string }[];
+  risk_changes?: { invalidation_condition?: string | null };
+  decision_required?: { suggested_label?: string; reason?: string; next_possible?: string[];
+    human_approval_required_next?: string[]; is_suggestion?: boolean };
+}
+export interface MonthlyReviewResp {
+  step_order: string[];
+  current_positions: { positions: unknown[]; count: number };
+  strategies: MonthlyReviewStrategy[];
+  count: number;
+  labels: string[];
+  is_advisory: boolean;
+  is_decision: boolean;
+  note: string;
+}
+export const getMonthlyReview = (s?: AbortSignal) =>
+  get<MonthlyReviewResp>(`/console/monthly-review`, s);
+
 // Data Connection — 소스 연결 + 예측 커버리지 + validation score (READ ONLY)
 export interface DataConnectionResp {
   data_sources: { priority: string[]; sources: unknown[]; dimensions_known?: number;
