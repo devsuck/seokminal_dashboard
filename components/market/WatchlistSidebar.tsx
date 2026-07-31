@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { getBars } from "@/lib/api";
+import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import { getSymbolName } from "@/lib/symbol-names";
 
 interface SymbolPrice {
@@ -20,62 +20,53 @@ interface WatchlistSidebarProps {
   onRemove: (symbol: string) => void;
 }
 
-function getRecentWindow(): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date(end);
-  start.setDate(end.getDate() - 14);
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  return { start: fmt(start), end: fmt(end) };
-}
+const REFRESH_MS = 60_000;
 
 export function WatchlistSidebar({
   symbols, activeSymbol, onSymbolSelect, onCompare, onAdd, onRemove,
 }: WatchlistSidebarProps) {
   const [prices, setPrices] = useState<Record<string, SymbolPrice>>({});
+  const ctrlRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    if (symbols.length === 0) return;
-    let alive = true;
-    const { start, end } = getRecentWindow();
-
-    let toFetch: string[] = [];
+  // venue별(HL/XKRX/IB) 라이브 엔드포인트로 라우팅하는 fetchBarsForSymbol 재사용 —
+  // 예전엔 getBars(/bars, parquet 카탈로그)를 직접 썼는데 이 카탈로그는 최초 적재 이후
+  // 갱신 로직이 없어 KR종목 등이 몇달째 고정가로 표시되는 버그가 있었음.
+  const refresh = useCallback((syms: string[]) => {
+    if (syms.length === 0) return;
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
 
     setPrices(prev => {
       const next: Record<string, SymbolPrice> = {};
-      toFetch = [];
-      for (const s of symbols) {
-        if (prev[s] && !prev[s].loading) {
-          next[s] = prev[s]; // already resolved — keep existing price
-        } else {
-          next[s] = { close: null, changePct: null, loading: true }; // new or pending — mark loading
-          toFetch.push(s);
-        }
-      }
+      for (const s of syms) next[s] = prev[s] ?? { close: null, changePct: null, loading: true };
       return next;
     });
 
-    queueMicrotask(() => {
-      if (!alive) return;
-      toFetch.forEach(async symbol => {
-        try {
-          const { bars } = await getBars(symbol, start, end);
-          if (!alive) return;
-          const last = bars[bars.length - 1] ?? null;
-          const prevBar = bars[bars.length - 2] ?? null;
-          const changePct = last && prevBar
-            ? ((last.close - prevBar.close) / prevBar.close) * 100
-            : null;
-          setPrices(p => ({ ...p, [symbol]: { close: last?.close ?? null, changePct, loading: false } }));
-        } catch {
-          if (!alive) return;
-          setPrices(p => ({ ...p, [symbol]: { close: null, changePct: null, loading: false } }));
-        }
-      });
+    syms.forEach(async symbol => {
+      try {
+        const bars = await fetchBarsForSymbol(symbol, "1d", ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        const last = bars[bars.length - 1] ?? null;
+        const prevBar = bars[bars.length - 2] ?? null;
+        const changePct = last && prevBar
+          ? ((last.close - prevBar.close) / prevBar.close) * 100
+          : null;
+        setPrices(p => ({ ...p, [symbol]: { close: last?.close ?? null, changePct, loading: false } }));
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (ctrl.signal.aborted) return;
+        setPrices(p => ({ ...p, [symbol]: { close: null, changePct: null, loading: false } }));
+      }
     });
+  }, []);
 
-    return () => { alive = false; };
+  useEffect(() => {
+    refresh(symbols);
+    const iv = setInterval(() => refresh(symbols), REFRESH_MS);
+    return () => { clearInterval(iv); ctrlRef.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbols]);
+  }, [symbols, refresh]);
 
   return (
     <aside className="w-52 shrink-0 border-r border-border flex flex-col bg-panel h-full">

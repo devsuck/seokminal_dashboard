@@ -299,7 +299,10 @@ export default function InfraGraphPage() {
     ? paper.closed.reduce((s, c) => s + c.pnl, 0)
     : 0;
   const paperPositionsValue = paper
-    ? paper.positions.reduce((s, p) => s + p.value, 0)
+    ? paper.positions.reduce((s, p) => s + (p.market_value ?? p.value), 0)
+    : 0;
+  const paperUnrealizedPnl = paper
+    ? paper.positions.reduce((s, p) => s + (p.unrealized_pnl ?? 0), 0)
     : 0;
 
   const bottleneckNodes = graph?.nodes
@@ -610,6 +613,9 @@ export default function InfraGraphPage() {
               <span className={`text-xs font-mono px-1 font-bold ${paperPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                 실현P&L {paperPnl >= 0 ? "+" : ""}${paperPnl.toFixed(2)}
               </span>
+              <span className={`text-xs font-mono px-1 font-bold ${paperUnrealizedPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                미실현P&L {paperUnrealizedPnl >= 0 ? "+" : ""}${paperUnrealizedPnl.toFixed(2)}
+              </span>
             </>
           )}
           <div className="ml-auto">
@@ -649,7 +655,14 @@ export default function InfraGraphPage() {
                     </td>
                     <td className="px-3 py-1.5 font-mono text-text-2">${pos.entry_price.toFixed(2)}</td>
                     <td className="px-3 py-1.5 font-mono text-text-2">{pos.qty}</td>
-                    <td className="px-3 py-1.5 font-mono text-text-1">${pos.value.toLocaleString()}</td>
+                    <td className="px-3 py-1.5 font-mono text-text-1">
+                      ${(pos.market_value ?? pos.value).toLocaleString()}
+                      {pos.unrealized_pnl !== undefined && (
+                        <span className={`ml-1 text-[9px] ${pos.unrealized_pnl >= 0 ? "text-pos" : "text-neg"}`}>
+                          ({pos.unrealized_pnl >= 0 ? "+" : ""}{pos.unrealized_pnl.toFixed(2)})
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-1.5 font-mono">
                       <span className={`px-1 font-bold ${pos.score_delta > 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                         {pos.score_delta > 0 ? "+" : ""}{pos.score_delta.toFixed(3)}

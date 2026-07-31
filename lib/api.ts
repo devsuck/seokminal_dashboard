@@ -3301,6 +3301,7 @@ export interface PaperPosition {
   node_id: string; symbol: string; name: string; side: "BUY" | "SELL";
   qty: number; entry_price: number; entry_score: number; current_score: number;
   score_delta: number; entry_time: string; value: number;
+  current_price?: number; market_value?: number; unrealized_pnl?: number;
 }
 export interface PaperClosed extends PaperPosition {
   exit_price: number; exit_time: string; pnl: number;

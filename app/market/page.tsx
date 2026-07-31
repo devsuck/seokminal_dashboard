@@ -9,9 +9,11 @@ import ForexPage from "../forex/page";
 import FuturesPage from "../futures/page";
 import OptionsPage from "../options/page";
 import SearchPage from "../search/page";
+import NewsPage from "../news/page";
+import CalendarPage from "../calendar/page";
 
-type Venue = "주식" | "암호화폐" | "외환" | "선물" | "옵션" | "탐색";
-const VENUES: Venue[] = ["주식", "암호화폐", "외환", "선물", "옵션", "탐색"];
+type Venue = "주식" | "암호화폐" | "외환" | "선물" | "옵션" | "탐색" | "뉴스" | "캘린더";
+const VENUES: Venue[] = ["주식", "암호화폐", "외환", "선물", "옵션", "탐색", "뉴스", "캘린더"];
 
 export default function MarketPage() {
   return <Suspense><MarketPageInner /></Suspense>;
@@ -46,6 +48,8 @@ function MarketPageInner() {
       {venue === "선물"&& <FuturesPage />}
       {venue === "옵션"&& <OptionsPage />}
       {venue === "탐색"&& <SearchPage />}
+      {venue === "뉴스" && <NewsPage />}
+      {venue === "캘린더" && <CalendarPage />}
     </div>
   );
 }
