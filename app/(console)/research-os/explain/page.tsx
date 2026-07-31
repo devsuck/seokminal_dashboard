@@ -26,15 +26,15 @@ export default function ExplainViz() {
   const node: EvidenceNode | undefined = data?.chain[sel];
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P71" title="Explainability"
-        right={data?.confidence && <Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"}>confidence {data.confidence}</Badge>} />
+      <PageHeader kicker="P71" title="설명 가능성"
+        right={data?.confidence && <Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"}>신뢰도 {data.confidence}</Badge>} />
       <div className="p-5">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2 mb-4">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
             className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-10 text-[12.5px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
           <button type="submit" disabled={loading || !q.trim()}
             className="px-4 h-10 text-[11px] font-semibold tracking-wide uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-hud)_18%,transparent)] disabled:opacity-40 cursor-pointer transition-colors">
-            {loading ? "…" : "Explain"}
+            {loading ? "…" : "설명"}
           </button>
         </form>
         {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
@@ -44,7 +44,7 @@ export default function ExplainViz() {
             {/* 증거 사슬 그래프 */}
             <div className="lg:col-span-2">
               <Panel>
-                <PanelHead kicker="Evidence Chain" title="Question → Recommendation" />
+                <PanelHead kicker="증거 사슬" title="질문 → 권고" />
                 <div className="p-4">
                   {data.chain.map((n, i) => {
                     const active = i === sel;
@@ -73,12 +73,12 @@ export default function ExplainViz() {
             <div className="lg:col-span-3 space-y-4">
               {node && (
                 <Panel>
-                  <PanelHead kicker={`Node ${sel + 1}/${data.chain.length}`} title={node.stage} />
+                  <PanelHead kicker={`노드 ${sel + 1}/${data.chain.length}`} title={node.stage} />
                   <div className="p-4 space-y-2">
                     <div className="text-[12px] text-[var(--c-text-1)]">{node.label}</div>
                     {(node.refs ?? []).length > 0 && (
                       <div className="pt-1">
-                        <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1">references</div>
+                        <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1">참조</div>
                         {node.refs!.map((r, i) => <span key={i} className="inline-block mr-1.5 mb-1 text-[10px] c-num text-[var(--c-hud)]">{r}</span>)}
                       </div>
                     )}
@@ -88,7 +88,7 @@ export default function ExplainViz() {
 
               {/* 신뢰도 분해 */}
               <Panel>
-                <PanelHead kicker="Confidence" title="Breakdown"
+                <PanelHead kicker="신뢰도" title="분해"
                   right={<Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"}>{data.confidence}</Badge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(data.confidence_breakdown ?? {}).map(([k, v]) => (
@@ -103,23 +103,23 @@ export default function ExplainViz() {
               {/* 왜 이 결론 / 왜 틀릴 수 있나 / 대안 / 누락 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Panel>
-                  <PanelHead kicker="Why" title="This Conclusion" />
+                  <PanelHead kicker="이유" title="이 결론인 이유" />
                   <div className="p-4 text-[10.5px] text-[var(--c-text-2)] leading-relaxed">{data.why_this_conclusion}</div>
                 </Panel>
                 <Panel>
-                  <PanelHead kicker="Why" title="It May Be Wrong" />
+                  <PanelHead kicker="이유" title="틀릴 수 있는 이유" />
                   <div className="p-4 space-y-1">
                     {(data.why_it_may_be_wrong ?? []).map((w, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {w}</div>)}
                   </div>
                 </Panel>
                 <Panel>
-                  <PanelHead kicker="Alt" title="Alternative Views" />
+                  <PanelHead kicker="대안" title="대안적 관점" />
                   <div className="p-4 space-y-1">
                     {(data.alternative_interpretations ?? []).map((a, i) => <div key={i} className="text-[10.5px] text-[var(--c-text-2)]">· {a}</div>)}
                   </div>
                 </Panel>
                 <Panel>
-                  <PanelHead kicker="Gaps" title="Missing Evidence" />
+                  <PanelHead kicker="공백" title="누락된 증거" />
                   <div className="p-4 space-y-1">
                     {(data.missing_evidence ?? []).length === 0 && <div className="text-[10.5px] text-[var(--c-text-3)]">—</div>}
                     {(data.missing_evidence ?? []).map((m, i) => <div key={i} className="text-[10.5px] text-[var(--c-neg)]">· {m}</div>)}

@@ -1,3 +1,30 @@
+## Phase 193 — research-os "리서치 실행" 목표 무시 버그 수정 + 5페이지 UX 개편 (2026-07-31) ✅ SHIPPED
+
+유저: research-os `agents` 페이지 목표 입력→"리서치 실행" 흐름 검증 요청. 입력 전달은 되는데 백엔드 가설생성 로직이 타이핑한 목표를 무시하는 버그 발견, 보고. `agents`/`workflow` 페이지 먼저 디자인 개편 제안 → 유저 "응 바로 작업 진행해줘 너가 말한 두개 전부"(백엔드 수정 + `committee`/`discovery`/`chat` 나머지 페이지도 같은 개편) 승인.
+
+### 백엔드 — HypothesisGenerator topic 무시 버그
+- `jarvis/research_workflow/hypothesis_generator.py`의 `HypothesisGenerator.generate(topic, ...)`가 `topic` 인자를 아예 안 씀 — 뭘 입력하든 `ResearchQueueEngine`(목표무관 전역 백로그, [[project_gamma_api_100cap_bug]] 관련 콜렉터들과 별개 트랙)이 낸 후보만 그대로 반환.
+- **fix**: `research_queue.py`(목표무관 전역 엔진, 안 건드림)는 그대로 두고 `HypothesisGenerator` 안에서만 결정적 토큰겹침 재정렬 추가 — `_topic_tokens()`(정규식 `[^a-z0-9가-힣]+`, 한글/영문 둘 다), `_relevance()`로 큐 후보 재정렬. topic 토큰이 백로그 후보와 하나도 안 겹치면 topic 자체를 `_from_topic()`으로 1순위 가설 합성(LOW confidence, 사람검토 필수) — "결정적, LLM/랜덤 없음" 원칙 유지하면서 목표 반영 항상 보장.
+- 검증: 3개 토픽(한글/무의미한글/영문겹침) 단위 스모크테스트, `pytest tests/ -q -k "hypothesis or research_workflow or research_director or research_queue or console_api"` 36 passed, `scripts/restart_api.sh` 재기동 후 curl로 실제 `/console/agent-workspace` 파이프라인 전체(한글 목표 입력→토픽 반영 가설) 라이브 확인.
+
+### 프론트 — research-os 5페이지 UX 통일 개편
+- `agents`/`workflow`/`committee`/`discovery`/`chat` 5개 페이지 전부: hero 입력박스(`Panel hud`) + 예시 칩(EXAMPLES) + 로딩 스피너·상태문구 + 설명 캡션 패턴으로 통일. `chat`만 대화형 UX 보존 위해 hero박스 없이 기존 인라인폼 확대+예시칩만 추가하는 경량 처리.
+- 콘솔 CSS-var 디자인시스템(`var(--c-hud)` 등, `components/console/primitives.tsx`+`widgets.tsx`) 안에서만 작업 — Tailwind 토큰 레거시 시스템은 안 건드림.
+- 검증: `tsc --noEmit` clean(전체), 브라우저로 5페이지 전부 라이브 확인(`committee`/`chat`은 예시칩 클릭→백엔드 실데이터 렌더까지 end-to-end, `discovery`는 최초 로딩스피너를 결과렌더로 착각했었으나 재확인 결과 정상 렌더+콘솔에러 없음 확정).
+
+### 변경된 파일
+- `seokminal-multi-venue/jarvis/research_workflow/hypothesis_generator.py`
+- `seokminal-dashboard/app/(console)/research-os/agents/page.tsx`
+- `seokminal-dashboard/app/(console)/research-os/workflow/page.tsx`
+- `seokminal-dashboard/app/(console)/research-os/committee/page.tsx`
+- `seokminal-dashboard/app/(console)/research-os/discovery/page.tsx`
+- `seokminal-dashboard/app/(console)/research-os/chat/page.tsx`
+
+### 다음 할 일
+- 없음, 이번 트랙 종료. 다음은 별건(오더플로우 저널 30건 채우기 등 기존 트랙 계속).
+
+---
+
 ## Phase 192 — Investment OS Phase 5 : 아키텍처 분리 회귀 수정 + Prediction Registry Integrity 정리 (2026-07-29~31) ✅ SHIPPED
 
 유저: Phase 5 운영검증 중 `separated: false` 회귀 발견 → 근본원인 수정. 이어서 P5(committee-source prediction 5건) capture 오염 상태 정리 지시(Phase 5-F, 전문 스펙 제공) — "신규 기능 개발 아님, 과거 기록 보존하며 registry 상태만 명확히". 절대원칙: 기존 prediction row 삭제/수정 금지, 상태 변경만 append-only.

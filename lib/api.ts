@@ -2579,6 +2579,7 @@ export async function getDartPositions(signal?: AbortSignal): Promise<DartPositi
 export interface DartBotLog {
   ts: string; kind: string; corp?: string; code?: string;
   action?: string; qty?: number; price?: number; msg?: string;
+  entry_price?: number; exit_price?: number; pnl_pct?: number; reason?: string;
 }
 export interface DartBotPosition {
   code: string; corp: string; qty: number; entry_price: number; entry_ts: string;

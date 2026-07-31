@@ -168,7 +168,7 @@ function CouncilCard({ council }: { council: ConsoleCouncil | null }) {
   const has = council && council.count > 0;
   return (
     <Panel className="flex flex-col">
-      <PanelHead kicker="AI COUNCIL" title="Latest Decision" right={<Badge tone="hud">{council?.source ?? "—"}</Badge>} />
+      <PanelHead kicker="AI COUNCIL" title="최근 결정" right={<Badge tone="hud">{council?.source ?? "—"}</Badge>} />
       <div className="p-4 flex-1">
         {!has ? (
           <div className="h-full flex flex-col items-center justify-center text-center py-10">
@@ -209,7 +209,7 @@ function PipelineCard({ pipeline }: { pipeline: ConsolePipeline | null }) {
   return (
     <Panel className="flex flex-col">
       <PanelHead
-        kicker="EXECUTION" title="P8 Pipeline"
+        kicker="EXECUTION" title="P8 파이프라인"
         right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{pipeline?.proposals ?? 0} prop · {pipeline?.approvals ?? 0} appr</span>}
       />
       <div className="p-3">

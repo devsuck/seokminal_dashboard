@@ -8,11 +8,11 @@ export default function CouncilLogs() {
   const rows = data?.logs ?? [];
   return (
     <div className="min-h-full">
-      <PageHeader kicker="AI COUNCIL" title="Governance Audit Log" />
+      <PageHeader kicker="AI 협의회" title="거버넌스 감사 로그" />
       <div className="p-5 max-w-[1100px]">
         <StateBlock loading={loading} err={err} empty={!rows.length}>
           <Panel className="overflow-hidden">
-            <PanelHead kicker="AUDIT" title="Append-only Log" right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{data?.count ?? 0}</span>} />
+            <PanelHead kicker="감사" title="추가 전용 로그" right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{data?.count ?? 0}</span>} />
             <div className="p-3 font-data text-[11px] leading-relaxed max-h-[70vh] overflow-y-auto">
               {[...rows].reverse().map((r, i) => (
                 <div key={i} className="flex gap-3 py-1 border-b border-[var(--c-border)] last:border-0">

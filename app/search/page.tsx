@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createChart, CandlestickSeries, UTCTimestamp } from "lightweight-charts";
 import {
   searchKR, searchUS, getKRBars, getIBBars,
   KRSearchResult, USSearchResult, KRBar, KISTick,
   ApiError, runScreener, type ScreenerResult,
+  getKRXStockBase, type KRXStockBaseRow,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
-import { Button } from "@/components/ui";
+import { Button, SegmentedToggle } from "@/components/ui";
 import { TOKEN } from "@/lib/chart-colors";
+import { addToWatchlist, getWatchlist } from "@/lib/watchlist-storage";
 
 // ── Search constants ──────────────────────────────────────────────────────────
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -90,9 +92,17 @@ const PRESET_UNIVERSES = [
   { label: "ETF", value: "SPY,QQQ,IWM,GLD,TLT,VNQ" },
 ];
 
+function formatMktcap(v: number | null): string {
+  if (v === null) return "—";
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}T`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}B`;
+  return `${v.toFixed(0)}M`;
+}
+
 // ── Tab types ─────────────────────────────────────────────────────────────────
-type Tab = "탐색" | "스크리너";
-const TABS: Tab[] = ["탐색", "스크리너"];
+type Tab = "탐색" | "전체목록" | "스크리너";
+const TABS: Tab[] = ["탐색", "전체목록", "스크리너"];
+type KrxMarket = "KOSPI" | "KOSDAQ";
 
 // ── Combined page ─────────────────────────────────────────────────────────────
 export default function SearchPage() {
@@ -115,6 +125,72 @@ export default function SearchPage() {
   const searchAbortRef = useRef<AbortController | null>(null);
   const barsAbortRef = useRef<AbortController | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // ── 전체목록(구 유니버스빌더) state ─────────────────────────────────────────
+  const [uMarket, setUMarket] = useState<KrxMarket>("KOSPI");
+  const [uRows, setURows] = useState<KRXStockBaseRow[]>([]);
+  const [uLoading, setULoading] = useState(false);
+  const [uError, setUError] = useState<string | null>(null);
+  const [uSearch, setUSearch] = useState("");
+  const [uMaxCap, setUMaxCap] = useState<number>(0);
+  const [uMktcapMax, setUMktcapMax] = useState<number>(10_000_000);
+  const [uWatchlist, setUWatchlist] = useState<string[]>([]);
+  const [uAddedSet, setUAddedSet] = useState<Set<string>>(new Set());
+  const uAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => { setUWatchlist(getWatchlist()); }, []);
+  useEffect(() => () => { uAbortRef.current?.abort(); }, []);
+
+  const loadUniverse = useCallback(async () => {
+    uAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    uAbortRef.current = ctrl;
+    setULoading(true);
+    setUError(null);
+    setURows([]);
+    setUMaxCap(0);
+    try {
+      const res = await getKRXStockBase(uMarket, ctrl.signal);
+      const validRows = res.rows.filter(r => r.isu_cd && r.isu_nm);
+      setURows(validRows);
+      const caps = validRows.map(r => r.mktcap ?? 0).filter(v => v > 0);
+      if (caps.length > 0) {
+        const ceiling = Math.max(...caps);
+        setUMktcapMax(ceiling);
+        setUMaxCap(ceiling);
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setUError(e instanceof ApiError ? e.message : "유니버스를 불러오지 못했습니다");
+    } finally {
+      if (!ctrl.signal.aborted) setULoading(false);
+    }
+  }, [uMarket]);
+
+  const uFiltered = useMemo(() => {
+    let out = uRows;
+    if (uSearch.trim()) {
+      const q = uSearch.trim().toLowerCase();
+      out = out.filter(r =>
+        (r.isu_nm ?? "").toLowerCase().includes(q) ||
+        (r.isu_cd ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (uMaxCap > 0 && uMaxCap < uMktcapMax) {
+      out = out.filter(r => (r.mktcap ?? 0) <= uMaxCap);
+    }
+    return out;
+  }, [uRows, uSearch, uMaxCap, uMktcapMax]);
+
+  const uInWatchlist = useMemo(() => {
+    const wSet = new Set(uWatchlist);
+    return (isu_cd: string) => wSet.has(`${isu_cd}.XKRX`) || uAddedSet.has(isu_cd);
+  }, [uWatchlist, uAddedSet]);
+
+  function uHandleAddWatchlist(isu_cd: string) {
+    addToWatchlist(`${isu_cd}.XKRX`);
+    setUAddedSet(prev => new Set(prev).add(isu_cd));
+  }
 
   // ── 스크리너 state ──────────────────────────────────────────────────────────
   const [instruments, setInstruments] = useState("");
@@ -367,6 +443,128 @@ export default function SearchPage() {
                 </div>
               )}
             </Panel>
+          </div>
+        )}
+
+        {activeTab === "전체목록" && (
+          <div className="p-6 space-y-4 max-w-[1200px]">
+            <p className="text-text-3 text-xs">KRX 상장 전체 종목을 시가총액으로 필터링 · 관심종목 추가/백테스트 연결</p>
+
+            <div className="bg-panel border border-border rounded-lg p-4 space-y-3">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div className="space-y-1">
+                  <label className="text-text-3 text-[11px] uppercase tracking-wider">시장</label>
+                  <SegmentedToggle
+                    value={uMarket}
+                    onChange={setUMarket}
+                    size="md"
+                    options={[
+                      { value: "KOSPI", label: "KOSPI" },
+                      { value: "KOSDAQ", label: "KOSDAQ" },
+                    ]}
+                  />
+                </div>
+                <button
+                  onClick={loadUniverse}
+                  disabled={uLoading}
+                  className="h-8 px-5 bg-accent text-black text-xs font-semibold rounded cursor-pointer hover:brightness-110 transition-all border-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {uLoading ? "불러오는 중…" : "불러오기"}
+                </button>
+                {uRows.length > 0 && (
+                  <span className="text-text-3 text-xs">종목 {uRows.length}개 불러옴</span>
+                )}
+              </div>
+
+              {uRows.length > 0 && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-text-3 text-[11px] uppercase tracking-wider">검색</label>
+                    <input
+                      value={uSearch}
+                      onChange={e => setUSearch(e.target.value)}
+                      placeholder="종목명 또는 코드..."
+                      className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 placeholder:text-text-3 outline-none focus:border-accent w-64"/>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-text-3 text-[11px] uppercase tracking-wider shrink-0">최대 시가총액</label>
+                    <input
+                      type="range" min={0} max={uMktcapMax} step={uMktcapMax / 100}
+                      value={uMaxCap}
+                      onChange={e => setUMaxCap(parseFloat(e.target.value))}
+                      className="flex-1"
+                      style={{ accentColor: TOKEN.accent }}/>
+                    <span className="text-text-2 text-xs font-data w-16 text-right">{formatMktcap(uMaxCap || null)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {uError && (
+              <div className="text-neg text-sm bg-neg/10 border border-neg/20 rounded-md px-4 py-2.5">{uError}</div>
+            )}
+
+            {uFiltered.length > 0 && (
+              <Panel>
+                <PanelHeader>
+                  종목 {uFiltered.length}개
+                  {uSearch || uMaxCap < uMktcapMax ? ` (전체 ${uRows.length}개 중 필터링됨)` : ""}
+                </PanelHeader>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["종목명", "코드", "시장", "시가총액", "작업"].map(h => (
+                          <th key={h} className="px-4 py-2 text-left text-text-3 font-normal text-[10px] uppercase tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uFiltered.slice(0, 200).map((row, i) => {
+                        const isu_cd = row.isu_cd ?? "";
+                        const inWl = uInWatchlist(isu_cd);
+                        return (
+                          <tr key={i} className="border-b border-border/40 hover:bg-panel-2 transition-colors">
+                            <td className="px-4 py-1.5 text-text-1">{row.isu_nm ?? "—"}</td>
+                            <td className="px-4 py-1.5 text-text-3 font-data">{isu_cd}</td>
+                            <td className="px-4 py-1.5 text-text-3">{row.mkt_nm ?? "—"}</td>
+                            <td className="px-4 py-1.5 text-text-2 font-data text-right">{formatMktcap(row.mktcap)}</td>
+                            <td className="px-4 py-1.5">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => uHandleAddWatchlist(isu_cd)}
+                                  disabled={inWl}
+                                  className={`px-2 py-0.5 text-[10px] rounded border cursor-pointer transition-colors ${
+                                    inWl ? "border-border text-text-3 cursor-default" : "border-border text-text-3 hover:border-accent hover:text-accent"}`}>
+                                  {inWl ? "✓ 관심종목" : "+ 관심종목"}
+                                </button>
+                                <button
+                                  onClick={() => router.push("/backtest")}
+                                  className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent transition-colors cursor-pointer">
+                                  → 백테스트
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {uFiltered.length > 200 && (
+                    <div className="px-4 py-2 text-text-3 text-xs border-t border-border">
+                      상위 200개만 표시 중 (전체 {uFiltered.length}개). 검색 조건을 좁혀 더 보기.
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            )}
+
+            {uRows.length > 0 && uFiltered.length === 0 && (
+              <div className="text-center py-8 text-text-3 text-sm">현재 필터 조건에 맞는 종목이 없습니다.</div>
+            )}
+
+            {uRows.length === 0 && !uLoading && !uError && (
+              <div className="text-center py-12 text-text-3 text-sm">시장을 선택하고 불러오기를 눌러 전체 종목을 확인하세요.</div>
+            )}
           </div>
         )}
 

@@ -6,7 +6,7 @@ import {
   getPolymarketLeaderboard,
   type PolymarketBotStatus, type PolymarketLeaderboard,
 } from "@/lib/api";
-import { EmptyState, LoadingState, SegmentedToggle } from "@/components/ui";
+import { EmptyState, LoadingState } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { BarChart, type BarItem } from "@/components/charts/BarChart";
@@ -18,8 +18,6 @@ function fmtTime(iso: string | null): string {
   try { return new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }); }
   catch { return "—"; }
 }
-
-const SIDE_LABEL: Record<string, string> = { favorite: "페이버릿(우세)", underdog: "언더독(열세)", random: "랜덤" };
 
 export default function PolymarketPage() {
   const [bot, setBot] = useState<PolymarketBotStatus | null>(null);
@@ -69,10 +67,6 @@ export default function PolymarketPage() {
   async function resetSpent() {
     try { await setPolymarketBotConfig({ reset_spent: true }); flash("누적 지출 리셋"); loadBot(); }
     catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
-  }
-
-  function setSide(side: string) {
-    setPolymarketBotConfig({ side }).then(loadBot).catch(e => flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`));
   }
 
   function saveField(field: string, value: number) {
@@ -136,16 +130,6 @@ export default function PolymarketPage() {
               className="w-24 bg-panel-2 border border-border rounded pl-5 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
           </div>
         </div>
-        <SegmentedToggle
-          value={(bot?.side ?? "") as "favorite" | "underdog" | "random"}
-          onChange={setSide}
-          size="sm"
-          options={[
-            { value: "favorite", label: SIDE_LABEL.favorite },
-            { value: "underdog", label: SIDE_LABEL.underdog },
-            { value: "random", label: SIDE_LABEL.random },
-          ]}
-        />
         <button onClick={runNow} disabled={busy}
           className="text-xs px-3 py-1.5 rounded border border-border text-text-3 hover:text-accent disabled:opacity-40">
           {busy ? "실행중…" : "지금 실행"}

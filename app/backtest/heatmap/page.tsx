@@ -5,7 +5,6 @@ import Link from "next/link";
 import { getBacktest, type BacktestResponse } from "@/lib/api";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { Button, SegmentedToggle } from "@/components/ui";
 import { TOKEN } from "@/lib/chart-colors";
@@ -180,7 +179,10 @@ export default function HeatmapPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1400px]">
-      <PageBanner pageKey="heatmap" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">히트맵</h1>
+        <p className="text-text-3 text-sm mt-0.5">전략별 수익률을 파라미터 조합 히트맵으로 시각화합니다.</p>
+      </div>
       {/* Header */}
       <div className="flex justify-end mb-2">
         <Link href="/backtest" className="text-text-3 hover:text-accent text-xs no-underline transition-colors">

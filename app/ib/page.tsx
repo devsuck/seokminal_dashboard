@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, ColorType, type UTCTimestamp } from "lightweight-charts";
 import { ApiError, getIBBars, IB_BAR_SIZES, type IBBarsResponse, type IBBarSize } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { TOKEN } from "@/lib/chart-colors";
 
@@ -400,7 +399,10 @@ export default function IBPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
-      <PageBanner pageKey="ib" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">IB 시장 데이터</h1>
+        <p className="text-text-3 text-sm mt-0.5">Interactive Brokers TWS를 통해 주식·선물·옵션의 히스토리컬 바 데이터를 조회합니다.</p>
+      </div>
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

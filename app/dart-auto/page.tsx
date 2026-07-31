@@ -229,10 +229,10 @@ export default function DartAutoPage() {
             }>
               모의 보유 (KIS)
             </PanelHeader>
-            {positions.length > 0 && (
-              <div className="px-4 py-2 bg-warn/5 border-b border-warn/20 text-[11px] text-text-2 leading-relaxed">
-                <span className="text-warn font-semibold">매도 정책:</span> 현재 자동 매도 <b className="text-text-1">없음</b> — 공시 이벤트 매수만 하고 보유(mark-to-market).
-                손절/익절/보유기간 규칙 미설정. 종목 누르면 차트에서 매수 위치 확인.
+            {positions.length > 0 && bot && (
+              <div className="px-4 py-2 bg-panel-2 border-b border-border text-[11px] text-text-2 leading-relaxed">
+                <span className="text-text-1 font-semibold">매도 정책:</span> 익절 {Math.round((bot.tp_pct ?? 0.15) * 100)}% / 손절 {Math.round((bot.sl_pct ?? 0.07) * 100)}% / 최대보유 {bot.max_hold_days ?? 20}일 충족 시 자동 매도.
+                종목 누르면 차트에서 매수 위치 확인.
               </div>
             )}
             {positions.length === 0 ? (
@@ -273,6 +273,12 @@ export default function DartAutoPage() {
                     <span className="text-text-3 font-data text-[10px] shrink-0 w-16">{fmtTime(l.ts)}</span>
                     <span className="min-w-0">
                       {l.kind === "buy" ? <span className="text-pos">매수 {l.corp} {l.code} {l.qty}주 @₩{l.price?.toLocaleString()}</span>
+                        : l.kind === "sell" ? (
+                          <span className={(l.pnl_pct ?? 0) >= 0 ? "text-pos" : "text-neg"}>
+                            매도 {l.corp} {l.code} {l.qty}주 @₩{l.exit_price?.toLocaleString()}
+                            {" "}({l.reason ?? `${(l.pnl_pct ?? 0) >= 0 ? "+" : ""}${l.pnl_pct?.toFixed(2)}%`})
+                          </span>
+                        )
                         : l.kind === "fail" ? <span className="text-neg">실패 {l.corp} {l.code} — {l.msg}</span>
                         : l.kind === "config" ? <span className="text-text-3">설정 변경</span>
                         : <span className="text-text-3">{l.msg ?? l.kind}</span>}

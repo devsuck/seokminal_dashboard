@@ -7,17 +7,17 @@ export default function CouncilAgents() {
   const { data, err, loading } = useConsole(getAgents);
   return (
     <div className="min-h-full">
-      <PageHeader kicker="AI COUNCIL" title="Agent Command Structure"
-        right={<Badge tone={data?.live_execution_enabled ? "pos" : "warn"}>{data?.live_execution_enabled ? "LIVE" : "PROPOSAL-ONLY"}</Badge>} />
+      <PageHeader kicker="AI 협의회" title="에이전트 지휘 구조"
+        right={<Badge tone={data?.live_execution_enabled ? "pos" : "warn"}>{data?.live_execution_enabled ? "실전" : "제안 전용"}</Badge>} />
       <div className="p-5 max-w-[1100px]">
         <StateBlock loading={loading} err={err}>
           <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-5">
             <Panel grid className="overflow-hidden">
-              <PanelHead kicker="ORG" title="Council Hierarchy" />
+              <PanelHead kicker="조직" title="협의회 계층구조" />
               <div className="p-5">{data && <AgentTree node={data.council} />}</div>
             </Panel>
             <Panel>
-              <PanelHead kicker="TRADERS" title="Agent Archetypes" right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{data?.archetypes.length ?? 0}</span>} />
+              <PanelHead kicker="트레이더" title="에이전트 유형" right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{data?.archetypes.length ?? 0}</span>} />
               <div className="p-4 flex flex-wrap gap-2">
                 {(data?.archetypes ?? []).map((a) => (
                   <span key={a} className="c-num text-[11px] px-2 py-1 border border-[var(--c-border)] text-[var(--c-text-2)]">{a}</span>

@@ -7,13 +7,13 @@ export default function Orders() {
   const { data, err, loading } = useConsole(getOrders);
   return (
     <div className="min-h-full">
-      <PageHeader kicker="EXECUTION" title="Orders (OMS)" right={<Badge tone="warn">LIVE CAPITAL CLOSED</Badge>} />
+      <PageHeader kicker="집행" title="주문 (OMS)" right={<Badge tone="warn">실전 자본 휴장</Badge>} />
       <div className="p-5 space-y-5 max-w-[1100px]">
         <StateBlock loading={loading} err={err}>
           <div className="grid grid-cols-3 gap-4">
-            <StatTile label="Requests" value={data?.requests.length ?? 0} tone="hud" accent="hud" />
-            <StatTile label="Responses" value={data?.responses.length ?? 0} accent="info" />
-            <StatTile label="Lifecycle Events" value={data?.lifecycle_events ?? 0} accent="warn" />
+            <StatTile label="요청" value={data?.requests.length ?? 0} tone="hud" accent="hud" />
+            <StatTile label="응답" value={data?.responses.length ?? 0} accent="info" />
+            <StatTile label="라이프사이클 이벤트" value={data?.lifecycle_events ?? 0} accent="warn" />
           </div>
           <Panel className="p-10 text-center">
             <div className="text-[12px] text-[var(--c-text-2)]">라이브 주문 없음</div>

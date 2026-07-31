@@ -8,7 +8,6 @@ import {
   type ForexForwardResponse, type ForexCarryResponse, type ForexCurveResponse, type FxRate,
   type IBBar, type BarOut, type IBBarSize,
 } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState, LoadingState } from "@/components/ui";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
@@ -602,7 +601,10 @@ export default function ForexPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
-      <PageBanner pageKey="forex" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">외환</h1>
+        <p className="text-text-3 text-sm mt-0.5">주요 통화쌍의 현물·선물환율, 이자율 차이를 분석합니다.</p>
+      </div>
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

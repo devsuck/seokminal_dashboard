@@ -30,13 +30,13 @@ export default function Timeline() {
 
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P78" title="Research Timeline"
-        right={data && <Badge tone="mute">{data.count} events</Badge>} />
+      <PageHeader kicker="P78" title="리서치 타임라인"
+        right={data && <Badge tone="mute">이벤트 {data.count}건</Badge>} />
       <div className="p-5 space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
             className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[12px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-9 text-[10.5px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">Filter</button>
+          <button type="submit" className="px-4 h-9 text-[10.5px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
         </form>
         {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
@@ -49,7 +49,7 @@ export default function Timeline() {
               ))}
             </div>
             <Panel>
-              <PanelHead kicker="Reconstructed" title="Idea → … → Archive" />
+              <PanelHead kicker="재구성됨" title="아이디어 → … → 아카이브" />
               <div className="p-4">
                 {data.count === 0 && !loading && <div className="text-[11px] text-[var(--c-text-3)] py-8 text-center">원장에서 재구성할 이벤트 없음 — 연구가 기록되면 타임라인이 채워집니다.</div>}
                 <div className="relative pl-4">

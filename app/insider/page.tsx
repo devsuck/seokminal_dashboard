@@ -16,7 +16,6 @@ import {
   type CongressTrade,
   type GovContract,
 } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
 import { Panel } from "@/components/ui/Panel";
 import { Button, SegmentedToggle } from "@/components/ui";
 
@@ -551,7 +550,10 @@ export default function InsiderPage() {
 
   return (
     <div className="p-4 space-y-4 max-w-full">
-      <PageBanner pageKey="insider" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">내부자 거래 모니터</h1>
+        <p className="text-text-3 text-sm mt-0.5">미국(SEC EDGAR Form 4)과 한국(OpenDART) 임원·주요주주의 공개시장 매수/매도 내역을 조회합니다. 내부자 거래는 합법적이며, 공시 의무가 있는 정보입니다.</p>
+      </div>
 
       {/* ── Filter bar ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 items-center bg-panel border border-border rounded-lg px-4 py-3">

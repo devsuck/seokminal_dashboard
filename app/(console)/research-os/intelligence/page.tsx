@@ -28,8 +28,8 @@ export default function InstitutionalIntelligence() {
   const q = data?.quality_scores;
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P151-160" title="Institutional Intelligence"
-        right={data && <Badge tone={data.validation.validated ? "pos" : "warn"}>{data.validation.validated ? "VALIDATED" : "—"}</Badge>} />
+      <PageHeader kicker="P151-160" title="기관 인텔리전스"
+        right={data && <Badge tone={data.validation.validated ? "pos" : "warn"}>{data.validation.validated ? "검증됨" : "—"}</Badge>} />
       <div className="p-5 space-y-5">
         {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
         {data && <div className="flex flex-wrap gap-1.5">{data.validation.capabilities.map((c) => <Badge key={c} tone="hud">{c}</Badge>)}</div>}
@@ -37,15 +37,15 @@ export default function InstitutionalIntelligence() {
         {data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatTile label="Data Health" value={dp?.overall_status ?? "—"} sub={`${dp?.available_count ?? 0}/${dp?.count ?? 0} providers`} tone={HEALTH_TONE[dp?.overall_status ?? ""] === "neg" ? "neg" : HEALTH_TONE[dp?.overall_status ?? ""] === "warn" ? "warn" : "pos"} />
-              <StatTile label="Regime" value={data.market_intelligence.regime} sub="market" tone="hud" />
-              <StatTile label="Macro State" value={mac?.macro_state ?? "—"} sub={`uncertainty ${mac?.uncertainty ?? "—"}`} tone="hud" />
-              <StatTile label="Info Confidence" value={q?.confidence ?? "—"} sub={`reliability ${q?.reliability ?? 0}`} tone={CONF_TONE[q?.confidence ?? ""] === "warn" ? "warn" : "pos"} />
+              <StatTile label="데이터 헬스" value={dp?.overall_status ?? "—"} sub={`${dp?.available_count ?? 0}/${dp?.count ?? 0} 프로바이더`} tone={HEALTH_TONE[dp?.overall_status ?? ""] === "neg" ? "neg" : HEALTH_TONE[dp?.overall_status ?? ""] === "warn" ? "warn" : "pos"} />
+              <StatTile label="국면" value={data.market_intelligence.regime} sub="시장" tone="hud" />
+              <StatTile label="매크로 상태" value={mac?.macro_state ?? "—"} sub={`불확실성 ${mac?.uncertainty ?? "—"}`} tone="hud" />
+              <StatTile label="정보 확신도" value={q?.confidence ?? "—"} sub={`신뢰도 ${q?.reliability ?? 0}`} tone={CONF_TONE[q?.confidence ?? ""] === "warn" ? "warn" : "pos"} />
             </div>
 
             {/* 1. Data Production Health */}
             <Panel>
-              <PanelHead kicker="1 · Data Production" title="Provider Health"
+              <PanelHead kicker="1 · 데이터 프로덕션" title="프로바이더 헬스"
                 right={<Badge tone={HEALTH_TONE[dp?.overall_status ?? ""] ?? "mute"}>{dp?.overall_status}</Badge>} />
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-1.5">
                 {(dp?.reports ?? []).map((r) => (
@@ -63,24 +63,24 @@ export default function InstitutionalIntelligence() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* 3. Sector Intelligence */}
               <Panel>
-                <PanelHead kicker="3 · Sector" title={sec?.sector || "—"} right={<Badge tone="hud">{sec?.key_entities.length ?? 0}</Badge>} />
+                <PanelHead kicker="3 · 섹터" title={sec?.sector || "—"} right={<Badge tone="hud">{sec?.key_entities.length ?? 0}</Badge>} />
                 <div className="p-4 space-y-2">
                   <div className="flex flex-wrap gap-1">{(sec?.key_entities ?? []).map((e) => <span key={e} className="text-[9px] c-num text-[var(--c-text-2)] px-1.5 py-0.5 border border-[var(--c-border)]">{e}</span>)}</div>
-                  {(sec?.risk_factors ?? []).length > 0 && <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">Risk Factors</div>{sec?.risk_factors.map((r, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {r}</div>)}</div>}
-                  {(sec?.research_questions ?? []).length > 0 && <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">Research Questions</div>{sec?.research_questions.map((r, i) => <div key={i} className="text-[10.5px] text-[var(--c-text-2)]">· {r}</div>)}</div>}
+                  {(sec?.risk_factors ?? []).length > 0 && <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">리스크 요인</div>{sec?.risk_factors.map((r, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {r}</div>)}</div>}
+                  {(sec?.research_questions ?? []).length > 0 && <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">리서치 질문</div>{sec?.research_questions.map((r, i) => <div key={i} className="text-[10.5px] text-[var(--c-text-2)]">· {r}</div>)}</div>}
                 </div>
               </Panel>
 
               {/* 4. Macro Context */}
               <Panel>
-                <PanelHead kicker="4 · Macro" title={mac?.macro_state || "—"} right={<Badge tone={mac?.uncertainty === "LOW" ? "pos" : mac?.uncertainty === "MEDIUM" ? "hud" : "warn"}>{mac?.uncertainty} uncertainty</Badge>} />
+                <PanelHead kicker="4 · 매크로" title={mac?.macro_state || "—"} right={<Badge tone={mac?.uncertainty === "LOW" ? "pos" : mac?.uncertainty === "MEDIUM" ? "hud" : "warn"}>{mac?.uncertainty} 불확실성</Badge>} />
                 <div className="p-4 space-y-2">
                   <div className="grid grid-cols-2 gap-1.5">
                     {Object.entries(mac?.indicators ?? {}).map(([k, v]) => (
                       <div key={k} className="flex items-center justify-between text-[10.5px]"><span className="text-[var(--c-text-2)]">{k}</span><span className="c-num" style={{ color: v.state === "UNKNOWN" ? "var(--c-text-3)" : "var(--c-text-1)" }}>{v.value ?? "—"} <span className="text-[9px] text-[var(--c-text-3)]">{v.state}</span></span></div>
                     ))}
                   </div>
-                  {(mac?.affected_assets ?? []).length > 0 && <div className="pt-1"><div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1">Affected Assets</div>{mac?.affected_assets.map((a, i) => <div key={i} className="text-[10px] text-[var(--c-text-2)]">· {a.asset_class} <span className="text-[var(--c-text-3)]">({a.sensitivity}, {a.direction})</span></div>)}</div>}
+                  {(mac?.affected_assets ?? []).length > 0 && <div className="pt-1"><div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1">영향받는 자산</div>{mac?.affected_assets.map((a, i) => <div key={i} className="text-[10px] text-[var(--c-text-2)]">· {a.asset_class} <span className="text-[var(--c-text-3)]">({a.sensitivity}, {a.direction})</span></div>)}</div>}
                 </div>
               </Panel>
             </div>
@@ -88,18 +88,18 @@ export default function InstitutionalIntelligence() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* 5. Company Intelligence */}
               <Panel>
-                <PanelHead kicker="5 · Company" title={co?.entity || "—"} right={<Badge tone="blue">graph</Badge>} />
+                <PanelHead kicker="5 · 기업" title={co?.entity || "—"} right={<Badge tone="blue">그래프</Badge>} />
                 <div className="p-4 space-y-2">
                   {(["suppliers", "customers", "competitors", "related_sectors"] as const).map((k) => (
                     <div key={k} className="flex items-start gap-2"><span className="text-[9px] uppercase c-num text-[var(--c-text-3)] w-24 shrink-0 pt-0.5">{k}</span><span className="text-[10.5px] text-[var(--c-text-2)] flex-1">{(co?.relationships?.[k] ?? []).join(", ") || "—"}</span></div>
                   ))}
-                  {(co?.risks ?? []).length > 0 && <div className="pt-1"><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">Risks</div>{co?.risks.map((r, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {r}</div>)}</div>}
+                  {(co?.risks ?? []).length > 0 && <div className="pt-1"><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">리스크</div>{co?.risks.map((r, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {r}</div>)}</div>}
                 </div>
               </Panel>
 
               {/* 7. Quality Scores + Knowledge */}
               <Panel>
-                <PanelHead kicker="7 · Quality" title="Information Quality" right={q && <Badge tone={CONF_TONE[q.confidence] ?? "mute"}>{q.confidence}</Badge>} />
+                <PanelHead kicker="7 · 품질" title="정보 품질" right={q && <Badge tone={CONF_TONE[q.confidence] ?? "mute"}>{q.confidence}</Badge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(q?.dimensions ?? {}).map(([k, v]) => (
                     <div key={k} className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export default function InstitutionalIntelligence() {
                       <span className="text-[10px] c-num text-[var(--c-text-3)] w-8 text-right">{(v as number).toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between pt-1 text-[10.5px]"><span className="text-[var(--c-text-3)]">Knowledge Health</span><Badge tone={HEALTH_TONE[data.knowledge_context.grade] ?? "mute"}>{data.knowledge_context.grade} {data.knowledge_context.health_score ?? ""}</Badge></div>
+                  <div className="flex items-center justify-between pt-1 text-[10.5px]"><span className="text-[var(--c-text-3)]">지식 헬스</span><Badge tone={HEALTH_TONE[data.knowledge_context.grade] ?? "mute"}>{data.knowledge_context.grade} {data.knowledge_context.health_score ?? ""}</Badge></div>
                 </div>
               </Panel>
             </div>

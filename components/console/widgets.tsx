@@ -85,7 +85,7 @@ export function StateBlock({ loading, err, empty, emptyNote, children }:
   if (loading) return (
     <div className="flex items-center justify-center py-16 gap-2 text-[var(--c-text-3)]">
       <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-hud)] animate-pulse" />
-      <span className="text-[11px] tracking-wider">LOADING…</span>
+      <span className="text-[11px] tracking-wider">로딩 중…</span>
     </div>
   );
   if (err) return (

@@ -261,14 +261,14 @@ export default function IctPage() {
           </div>
           {selected.includes("sweep") && (
             <div className="space-y-1">
-              <label className="text-text-3 text-[11px] uppercase tracking-wider">Sweep lookback</label>
+              <label className="text-text-3 text-[11px] uppercase tracking-wider">Sweep 룩백</label>
               <input type="number" value={lookback} onChange={e => setLookback(Number(e.target.value))}
                 className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-16" />
             </div>
           )}
           {(selected.includes("market_structure") || selected.includes("ote") || selected.includes("turtle_soup")) && (
             <div className="space-y-1">
-              <label className="text-text-3 text-[11px] uppercase tracking-wider">Swing k</label>
+              <label className="text-text-3 text-[11px] uppercase tracking-wider">스윙 k</label>
               <input type="number" value={swingK} onChange={e => setSwingK(Number(e.target.value))}
                 className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-16" />
             </div>
@@ -282,14 +282,14 @@ export default function IctPage() {
           )}
           {selected.includes("unicorn") && (
             <div className="space-y-1">
-              <label className="text-text-3 text-[11px] uppercase tracking-wider">Unicorn near</label>
+              <label className="text-text-3 text-[11px] uppercase tracking-wider">Unicorn 근접</label>
               <input type="number" value={near} onChange={e => setNear(Number(e.target.value))}
                 className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-16" />
             </div>
           )}
           {selected.includes("cisd") && (
             <div className="space-y-1">
-              <label className="text-text-3 text-[11px] uppercase tracking-wider">CISD min_run</label>
+              <label className="text-text-3 text-[11px] uppercase tracking-wider">CISD 최소구간</label>
               <input type="number" value={minRun} onChange={e => setMinRun(Number(e.target.value))}
                 className="h-8 px-3 text-xs bg-panel-2 border border-border rounded text-text-1 outline-none focus:border-accent font-data w-16" />
             </div>

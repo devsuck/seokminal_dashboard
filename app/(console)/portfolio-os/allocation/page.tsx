@@ -3,7 +3,7 @@ import { getAllocation, getFusion, getOverlay } from "@/lib/console-api";
 import { useConsole, PageHeader, StateBlock, StatusPill } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge, Meter } from "@/components/console/primitives";
 
-function dirLabel(d: number): string { return d > 0 ? "BUY" : d < 0 ? "SELL" : "FLAT"; }
+function dirLabel(d: number): string { return d > 0 ? "매수" : d < 0 ? "매도" : "중립"; }
 function dirTone(d: number): "pos" | "neg" | "mute" { return d > 0 ? "pos" : d < 0 ? "neg" : "mute"; }
 
 export default function Allocation() {
@@ -16,17 +16,17 @@ export default function Allocation() {
   const overlayRows = overlay.data?.overlay ?? [];
   return (
     <div className="min-h-full">
-      <PageHeader kicker="PORTFOLIO OS" title="Allocation"
-        right={<Badge tone={hasLedger?"pos":"hud"}>{hasLedger?"ORCHESTRATOR":"DERIVED PROPOSAL"}</Badge>} />
+      <PageHeader kicker="포트폴리오 OS" title="배분"
+        right={<Badge tone={hasLedger?"pos":"hud"}>{hasLedger?"오케스트레이터":"제안값(파생)"}</Badge>} />
       <div className="p-5 space-y-5 max-w-[1150px]">
         <StateBlock loading={loading} err={err}>
           <div className="grid grid-cols-3 gap-4">
-            <StatTile label="Active Strategies" value={derived.length} tone="hud" accent="hud" />
-            <StatTile label="Ledger Proposals" value={data?.allocations.length ?? 0} accent="info" />
-            <StatTile label="Decisions" value={data?.decisions.length ?? 0} accent="warn" />
+            <StatTile label="활성 전략" value={derived.length} tone="hud" accent="hud" />
+            <StatTile label="장부 제안" value={data?.allocations.length ?? 0} accent="info" />
+            <StatTile label="의사결정" value={data?.decisions.length ?? 0} accent="warn" />
           </div>
           <Panel className="overflow-hidden">
-            <PanelHead kicker="PROPOSAL" title="Equal-Weight Allocation (제안 전용 · 미집행)"
+            <PanelHead kicker="제안" title="동일가중 배분 (제안 전용 · 미집행)"
               right={<span className="text-[10px] c-num text-[var(--c-text-3)]">{data?.derived_note}</span>} />
             <div className="p-4 space-y-2">
               {derived.length===0 && <div className="text-[11px] text-[var(--c-text-3)] p-3">활성 전략 없음</div>}
@@ -46,7 +46,7 @@ export default function Allocation() {
         </StateBlock>
         <StateBlock loading={fusion.loading} err={fusion.err}>
           <Panel className="overflow-hidden">
-            <PanelHead kicker="P1 · 자문" title="Signal Fusion (계기별 합성신호 · 참고용)"
+            <PanelHead kicker="P1 · 자문" title="신호 퓨전 (계기별 합성신호 · 참고용)"
               right={<Badge tone={signals.length?"hud":"mute"}>{signals.length}</Badge>} />
             <div className="p-4 space-y-2">
               {signals.length===0 && (
@@ -68,7 +68,7 @@ export default function Allocation() {
         </StateBlock>
         <StateBlock loading={overlay.loading} err={overlay.err}>
           <Panel className="overflow-hidden">
-            <PanelHead kicker="P2.5 · 참고용" title="Signal Overlay (전략비중×종목신호 합성)"
+            <PanelHead kicker="P2.5 · 참고용" title="신호 오버레이 (전략비중×종목신호 합성)"
               right={<Badge tone={overlayRows.length?"hud":"mute"}>{overlayRows.length}</Badge>} />
             <div className="p-4 space-y-2">
               {overlayRows.length===0 && (

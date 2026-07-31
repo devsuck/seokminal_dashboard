@@ -23,7 +23,6 @@ import {
   type AccountBalances,
   type GodModeEligibility,
 } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
 import { ArcReactor, type HudTone } from "@/components/Hud";
 import { displayLevel } from "@/lib/agent-level";
 import { Balances } from "@/components/AccountBalances";
@@ -589,9 +588,13 @@ export default function AgentsPage() {
     }
   }
 
+  function isLive(a: TradingAgent) {
+    return a.session_live ?? (a.status === "running");
+  }
+
   async function toggle(a: TradingAgent) {
     try {
-      if (a.status === "running") await stopAgent(a.id);
+      if (isLive(a)) await stopAgent(a.id);
       else await startAgent(a.id);
       await refresh();
     } catch (e) {
@@ -610,7 +613,10 @@ export default function AgentsPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <PageBanner pageKey="agents" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">자율형 AI 에이전트</h1>
+        <p className="text-text-3 text-sm mt-0.5">여러 AI 트레이딩 에이전트를 봇처럼 생성·관리합니다. 스윙(중장기)/데이트레이딩 타입, 각 사이클은 구조화 카드로 표시됩니다.</p>
+      </div>
       {error && <div className="text-neg text-xs bg-neg/10 border border-neg/30 rounded px-3 py-2">{error}</div>}
 
       {overview && overview.agents.length > 0 && (
@@ -749,6 +755,7 @@ export default function AgentsPage() {
               const cfg = lvCfg(lv);
               const tone = lvToTone(lv);
               const isHighLv = lv >= 3; // Lv3(자가학습) shows orb
+              const live = isLive(a);
               return (
               <div key={a.id}
                 onClick={() => setSelected(a.id)}
@@ -756,7 +763,7 @@ export default function AgentsPage() {
                 style={selected === a.id ? { borderColor: cfg.color + "80" } : undefined}>
                 {isHighLv && (
                   <div className="flex items-center gap-3 mb-2">
-                    <ArcReactor size={84} active={a.status === "running"} tone={tone} label={cfg.label} />
+                    <ArcReactor size={84} active={live} tone={tone} label={cfg.label} />
                     <div className="min-w-0 flex-1">
                       <div className="text-text-1 text-sm font-medium truncate">{a.name}</div>
                       <div className="text-[10px] mt-0.5 font-semibold" style={{ color: cfg.color }}>
@@ -768,18 +775,18 @@ export default function AgentsPage() {
                         </div>
                       )}
                     </div>
-                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${a.status === "running" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
-                      {a.status === "running" ? "가동" : "정지"}
+                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${live ? "text-pos" : "text-text-3"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${live ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                      {live ? "가동" : "정지"}
                     </span>
                   </div>
                 )}
                 {!isHighLv && (
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-text-1 text-sm font-medium truncate min-w-0">{a.name}</span>
-                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${a.status === "running" ? "text-pos" : "text-text-3"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${a.status === "running" ? "bg-pos animate-pulse" : "bg-text-3"}`} />
-                      {a.status === "running" ? "가동" : "정지"}
+                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${live ? "text-pos" : "text-text-3"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${live ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                      {live ? "가동" : "정지"}
                     </span>
                   </div>
                 )}
@@ -812,8 +819,8 @@ export default function AgentsPage() {
                   <span className="text-text-3 text-[10px] font-data">배정 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
                   <div className="flex gap-1.5">
                     <button onClick={e => { e.stopPropagation(); toggle(a); }}
-                      className={`text-[10px] px-2 py-0.5 rounded border ${a.status === "running" ? "border-warn/40 text-warn bg-warn/10" : "border-pos/40 text-pos bg-pos/10"}`}>
-                      {a.status === "running" ? "정지" : "시작"}
+                      className={`text-[10px] px-2 py-0.5 rounded border ${live ? "border-warn/40 text-warn bg-warn/10" : "border-pos/40 text-pos bg-pos/10"}`}>
+                      {live ? "정지" : "시작"}
                     </button>
                     <button onClick={e => { e.stopPropagation(); onDelete(a); }}
                       className={`text-[10px] px-2 py-0.5 rounded border ${a.protected ? "border-border text-text-3/60 hover:text-neg" : "border-border text-text-3 hover:text-neg hover:border-neg/40"}`}>

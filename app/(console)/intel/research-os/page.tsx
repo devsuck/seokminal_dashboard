@@ -25,7 +25,7 @@ function Ring({ value, label, sub }: { value: number; label: string; sub: string
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="c-num text-[26px] font-semibold text-[var(--c-hud)] leading-none">{Math.round(pct * 100)}<span className="text-[13px]">%</span></span>
-          <span className="text-[8.5px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mt-1">coverage</span>
+          <span className="text-[8.5px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mt-1">커버리지</span>
         </div>
       </div>
       <div className="min-w-0">
@@ -78,7 +78,7 @@ function ModuleGraph({ section, modules, moduleEdges, onBack }:
       </button>
       <div className="absolute top-1 right-2 z-10 text-right">
         <div className="flex items-center gap-1.5 justify-end"><span className="h-2 w-2 rounded-[2px]" style={{ background: col }} /><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{section}</span></div>
-        <div className="c-num text-[9.5px] text-[var(--c-text-3)]">{modules.length} modules · {intra.length} intra · {outbound + inbound} cross</div>
+        <div className="c-num text-[9.5px] text-[var(--c-text-3)]">모듈 {modules.length}개 · 내부 {intra.length}개 · 교차 {outbound + inbound}개</div>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 340 }}>
         {intra.map((e, i) => {
@@ -177,9 +177,9 @@ function DepGraph({ graph, modulesBySection }:
               <span className="h-2 w-2 rounded-[2px]" style={{ background: SECTION_COLOR[hn.id] }} />
               <span className="text-[11px] font-semibold text-[var(--c-text-1)]">{hn.id}</span>
             </div>
-            <div className="c-num text-[10px] text-[var(--c-text-2)]">{hn.moduleCount} modules · {hn.internal} internal deps</div>
+            <div className="c-num text-[10px] text-[var(--c-text-2)]">모듈 {hn.moduleCount}개 · 내부 의존 {hn.internal}개</div>
             <div className="c-num text-[9.5px] text-[var(--c-text-3)] mt-0.5">
-              {graph.edges.filter((e) => e.source === hn.id).map((e) => `→${e.target}(${e.weight})`).join(" ") || "no outbound"}
+              {graph.edges.filter((e) => e.source === hn.id).map((e) => `→${e.target}(${e.weight})`).join(" ") || "발신 연결 없음"}
             </div>
           </div>
         )}
@@ -202,7 +202,7 @@ export default function ResearchOS() {
     items: s.items.map((i) => ({ item: i.item, moduleCount: i.moduleCount, modules: [] as string[] })),
   }))).slice().sort((a, b) => SECTION_ORDER.indexOf(a.section as never) - SECTION_ORDER.indexOf(b.section as never));
   const caps = data?.capabilities ?? RESEARCH_OS_CAPABILITIES.map((c) => ({
-    phase: c.phase, name: c.name, summary: c.summary, metric: c.live ? "LINKED" : "BACKEND",
+    phase: c.phase, name: c.name, summary: c.summary, metric: c.live ? "연동됨" : "백엔드",
   }));
   const rt = data?.runtime, asst = data?.assistant, auto = data?.automation, graph = data?.graph;
   const totalModules = sections.reduce((n, s) => n + s.moduleCount, 0) || 1;
@@ -211,23 +211,23 @@ export default function ResearchOS() {
 
   return (
     <div className="min-h-full">
-      <PageHeader kicker="INTELLIGENCE" title="Research OS · Local Research Environment"
+      <PageHeader kicker="인텔리전스" title="Research OS · 로컬 연구 환경"
         right={<>
-          <Badge tone={live ? "pos" : "mute"}>{live ? "● LIVE" : loading ? "…" : "CACHED"}</Badge>
-          <Badge tone="hud">READ ONLY · NO EXECUTION</Badge>
+          <Badge tone={live ? "pos" : "mute"}>{live ? "● 라이브" : loading ? "…" : "캐시됨"}</Badge>
+          <Badge tone="hud">읽기 전용 · 실행 없음</Badge>
         </>} />
 
       <div className="p-5 space-y-4 max-w-[1180px]">
         {/* HERO */}
         <div className="panel-hud rounded-sm p-5 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-center">
-          <Ring value={meta.coverage} label={`${meta.module_count} modules mapped`}
-            sub={`${meta.section_count} sections · ${meta.item_count} nav items · ${meta.duplicate_families} consolidation candidates`} />
+          <Ring value={meta.coverage} label={`매핑된 모듈 ${meta.module_count}개`}
+            sub={`${meta.section_count}개 섹션 · ${meta.item_count}개 내비게이션 항목 · ${meta.duplicate_families}개 통합 후보`} />
           <div className="min-w-0">
-            <div className="text-[9.5px] font-semibold tracking-[0.24em] text-[var(--c-text-3)] uppercase mb-2">Module Distribution</div>
+            <div className="text-[9.5px] font-semibold tracking-[0.24em] text-[var(--c-text-3)] uppercase mb-2">모듈 분포</div>
             <div className="flex w-full h-9 rounded-sm overflow-hidden bg-[var(--c-panel-3)]">
               {sections.map((s, i) => (
                 <Link key={s.section} href={itemHref(s.section, s.items[0]?.item ?? "")}
-                  title={`${s.section} · ${s.moduleCount} modules (${Math.round((s.moduleCount / totalModules) * 100)}%)`}
+                  title={`${s.section} · 모듈 ${s.moduleCount}개 (${Math.round((s.moduleCount / totalModules) * 100)}%)`}
                   className="relative h-full flex items-center justify-center no-underline transition-opacity hover:opacity-80"
                   style={{ width: `${(s.moduleCount / totalModules) * 100}%`, background: `color-mix(in srgb, ${SECTION_COLOR[s.section]} 82%, transparent)`, marginLeft: i ? 2 : 0 }}>
                   {s.moduleCount / totalModules > 0.06 && <span className="c-num text-[11px] font-semibold text-[var(--c-bg)]">{s.moduleCount}</span>}
@@ -249,7 +249,7 @@ export default function ResearchOS() {
         {/* 헌장 6워크스페이스 (C4) */}
         {data?.workspaces && data.workspaces.length > 0 && (
           <Panel className="overflow-hidden">
-            <PanelHead kicker="C4 · CONSTITUTION IA" title="Six Workspaces"
+            <PanelHead kicker="C4 · 헌장 IA" title="6개 워크스페이스"
               right={<span className="text-[9px] text-[var(--c-text-3)]">Home · Research · Experiments · Knowledge · Assistant · System</span>} />
             <div className="p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {data.workspaces.map((w) => (
@@ -268,13 +268,13 @@ export default function ResearchOS() {
         {live && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="panel rounded-sm px-4 py-3 flex items-center justify-between">
-              <span className="text-[9.5px] tracking-[0.2em] text-[var(--c-text-3)] uppercase">Runtime Health</span>
+              <span className="text-[9.5px] tracking-[0.2em] text-[var(--c-text-3)] uppercase">런타임 헬스</span>
               <Health status={rt?.health_status} />
             </div>
             {[
-              { k: "Assistant Records", v: asst?.total_records ?? 0, s: `${asst?.active_sources ?? 0} sources` },
-              { k: "Failures Tracked", v: asst?.failure_count ?? 0, s: "analysis only" },
-              { k: "Automation Jobs", v: auto?.job_count ?? 0, s: `${auto?.run_count ?? 0} runs` },
+              { k: "어시스턴트 레코드", v: asst?.total_records ?? 0, s: `${asst?.active_sources ?? 0}개 소스` },
+              { k: "추적된 실패", v: asst?.failure_count ?? 0, s: "분석 전용" },
+              { k: "자동화 작업", v: auto?.job_count ?? 0, s: `${auto?.run_count ?? 0}회 실행` },
             ].map((x) => (
               <div key={x.k} className="panel rounded-sm px-4 py-3">
                 <div className="text-[9.5px] tracking-[0.2em] text-[var(--c-text-3)] uppercase">{x.k}</div>
@@ -290,7 +290,7 @@ export default function ResearchOS() {
         {/* 아키텍처 맵(드릴다운) + 카테고리 분포 */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-4">
           <Panel className="overflow-hidden">
-            <PanelHead kicker="P43 · UNIFIED NAVIGATION" title="Home → Research / Knowledge / Agents / System"
+            <PanelHead kicker="P43 · 통합 내비게이션" title="홈 → 리서치 / 지식 / 에이전트 / 시스템"
               right={<span className="text-[9px] text-[var(--c-text-3)] tracking-wider">클릭 → 모듈 펼치기</span>} />
             <div className="p-3.5 space-y-3">
               {sections.map((s) => {
@@ -345,11 +345,11 @@ export default function ResearchOS() {
           </Panel>
 
           <Panel className="overflow-hidden">
-            <PanelHead kicker="P41 · AUDIT" title="Module Category Distribution" />
+            <PanelHead kicker="P41 · 감사" title="모듈 카테고리 분포" />
             <div className="p-4 space-y-2">
               {cats.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">감사 데이터 없음(정적 폴백)</div>}
               {cats.map(([c, n]) => (
-                <div key={c} title={`${c}: ${n} modules`} className="grid grid-cols-[104px_1fr_28px] items-center gap-2.5">
+                <div key={c} title={`${c}: 모듈 ${n}개`} className="grid grid-cols-[104px_1fr_28px] items-center gap-2.5">
                   <span className="text-[11px] text-[var(--c-text-2)] truncate">{c}</span>
                   <span className="h-2.5 bg-[var(--c-panel-3)] rounded-[2px] overflow-hidden">
                     <span className="block h-full rounded-[2px]" style={{ width: `${(n / catMax) * 100}%`, background: "var(--c-hud)" }} />
@@ -358,7 +358,7 @@ export default function ResearchOS() {
                 </div>
               ))}
               <div className="pt-2 text-[10px] text-[var(--c-text-3)]">
-                {live ? "라이브" : "캐시"} · dup families <span className="c-num text-[var(--c-warn)]">{meta.duplicate_families}</span> · digest <span className="c-num">{meta.digest}</span>
+                {live ? "라이브" : "캐시"} · 중복 계열 <span className="c-num text-[var(--c-warn)]">{meta.duplicate_families}</span> · 다이제스트 <span className="c-num">{meta.digest}</span>
               </div>
             </div>
           </Panel>
@@ -367,8 +367,8 @@ export default function ResearchOS() {
         {/* 의존성 그래프 (라이브) */}
         {live && graph && graph.nodes && graph.nodes.length > 0 && (
           <Panel className="overflow-hidden">
-            <PanelHead kicker="P41 · DEPENDENCY GRAPH" title="Cross-Section Import Dependencies"
-              right={<span className="c-num text-[9px] text-[var(--c-text-3)]">{graph.edge_total} edges · 호버·클릭</span>} />
+            <PanelHead kicker="P41 · 의존성 그래프" title="섹션 간 임포트 의존성"
+              right={<span className="c-num text-[9px] text-[var(--c-text-3)]">엣지 {graph.edge_total}개 · 호버·클릭</span>} />
             <div className="p-3">
               <DepGraph graph={graph}
                 modulesBySection={Object.fromEntries(sections.map((s) => [s.section, s.items.flatMap((i) => i.modules ?? [])]))} />
@@ -382,7 +382,7 @@ export default function ResearchOS() {
 
         {/* 파이프라인 */}
         <Panel className="overflow-hidden">
-          <PanelHead kicker="P41 → P45" title="Local Research Environment Pipeline" />
+          <PanelHead kicker="P41 → P45" title="로컬 연구 환경 파이프라인" />
           <div className="p-4 pt-5">
             <div className="relative grid grid-cols-1 md:grid-cols-5 gap-3">
               <div className="hidden md:block absolute top-[14px] left-[10%] right-[10%] h-px bg-[var(--c-border-2)]" />
@@ -404,7 +404,7 @@ export default function ResearchOS() {
         {/* 잠재 영역(P44) */}
         {live && asst?.potential_areas && asst.potential_areas.length > 0 && (
           <Panel className="overflow-hidden">
-            <PanelHead kicker="P44 · POSSIBLE NEXT REVIEW" title="Potential Research Areas (advisory)" />
+            <PanelHead kicker="P44 · 다음 검토 후보" title="잠재적 리서치 영역 (참고용)" />
             <div className="p-3 space-y-2">
               {asst.potential_areas.map((a, i) => (
                 <div key={i} className="flex items-center gap-3 border-l-2 border-[var(--c-hud)] pl-3 py-1.5">
@@ -424,7 +424,7 @@ export default function ResearchOS() {
         )}
         <div className="text-[10px] text-[var(--c-text-3)] leading-relaxed px-1 pb-2">
           {data?.disclaimer ??
-            "Research OS — READ ONLY. 분석·추천·요약만 하며 자동 거래·자동 배포·자동 자본 배분·전략 승인을 하지 않는다. P44 assistant analyzes · P45 automation = workflow assistance."}
+            "Research OS — 읽기 전용. 분석·추천·요약만 하며 자동 거래·자동 배포·자동 자본 배분·전략 승인을 하지 않는다. P44는 분석만 수행 · P45 자동화는 워크플로 보조 역할."}
         </div>
       </div>
     </div>

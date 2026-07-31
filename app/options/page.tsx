@@ -8,7 +8,6 @@ import {
   type OptionsGreeksResponse, type OptionsChainResponse, type OptionsChainRow,
   type OptionsIvSurfaceResponse,
 } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { SegmentedToggle } from "@/components/ui";
 import { TOKEN } from "@/lib/chart-colors";
@@ -480,7 +479,10 @@ export default function OptionsPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1200px]">
-      <PageBanner pageKey="options" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">옵션 체인</h1>
+        <p className="text-text-3 text-sm mt-0.5">옵션 체인, 내재변동성 서피스, 그릭스(델타·감마·세타·베가)를 분석합니다.</p>
+      </div>
 
       {/* Tab bar */}
       <div className="flex border-b border-border">

@@ -46,13 +46,13 @@ export default function KnowledgeGraph() {
 
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P79" title="Knowledge Graph"
+      <PageHeader kicker="P79" title="지식 그래프"
         right={data && <Badge tone="hud">{data.node_count} · {data.edge_count}</Badge>} />
       <div className="p-5 space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
             className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[12px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-9 text-[10.5px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">Filter</button>
+          <button type="submit" className="px-4 h-9 text-[10.5px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
         </form>
         {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
@@ -64,10 +64,10 @@ export default function KnowledgeGraph() {
                   <span className="h-2 w-2 rounded-full" style={{ background: TYPE_TONE[t] ?? "var(--c-text-3)" }} />{t} {n}
                 </span>
               ))}
-              <span className="text-[10px] text-[var(--c-text-3)] ml-2">edges: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
+              <span className="text-[10px] text-[var(--c-text-3)] ml-2">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
             </div>
             <Panel>
-              <PanelHead kicker="Read-only" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
+              <PanelHead kicker="읽기 전용" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
               <div className="p-2 overflow-x-auto">
                 <svg width={PAD * 2 + W * COLW} height={height} className="min-w-full">
                   {data.edges.map((e, i) => {

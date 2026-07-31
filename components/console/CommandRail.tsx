@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useLanguage, type Lang } from "@/lib/i18n";
 import { ShutdownButton } from "@/components/ShutdownButton";
 import { CommandPalette } from "@/components/console/CommandPalette";
 
@@ -18,25 +17,25 @@ interface RailGroup { label: string; items: RailItem[] }
 // 남은 항목은 write action·drill-down이 있는 "유지" 페이지뿐.
 const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Research · 모니터링", items: [
-    { href: "/research-os/cockpit", label: "Executive Cockpit" },
-    { href: "/research-os/console", label: "Operating Console" },
+    { href: "/research-os/cockpit", label: "경영진 콕핏" },
+    { href: "/research-os/console", label: "운영 콘솔" },
   ] },
   { label: "Research · 파이프라인", items: [
-    { href: "/research-os/agents", label: "Research Agents" },
-    { href: "/research-os/brain", label: "Research Brain" },
-    { href: "/research-os/workflow", label: "Workflow" },
-    { href: "/research-os/discovery", label: "Autonomous Discovery v3.0" },
+    { href: "/research-os/agents", label: "리서치 에이전트" },
+    { href: "/research-os/brain", label: "리서치 브레인" },
+    { href: "/research-os/workflow", label: "워크플로우" },
+    { href: "/research-os/discovery", label: "자율 발굴 v3.0" },
   ] },
   { label: "Research · 거버넌스", items: [
-    { href: "/research-os/committee", label: "Investment Committee" },
-    { href: "/research-os/explain", label: "Explainability" },
-    { href: "/research-os/graph", label: "Knowledge Graph" },
-    { href: "/research-os/timeline", label: "Timeline" },
+    { href: "/research-os/committee", label: "투자위원회" },
+    { href: "/research-os/explain", label: "설명가능성" },
+    { href: "/research-os/graph", label: "지식 그래프" },
+    { href: "/research-os/timeline", label: "타임라인" },
   ] },
-  { label: "Research · Lab", items: [
-    { href: "/research-os/strategy-lab", label: "Strategy Lab" },
-    { href: "/research-os/chat", label: "Research Chat" },
-    { href: "/intel/research-os", label: "Jarvis Live View" },
+  { label: "Research · 랩", items: [
+    { href: "/research-os/strategy-lab", label: "전략 랩" },
+    { href: "/research-os/chat", label: "리서치 챗" },
+    { href: "/intel/research-os", label: "Jarvis 라이브뷰" },
   ] },
   { label: "Investment OS", items: [
     { href: "/investment-os", label: "Investment OS" },
@@ -45,61 +44,51 @@ const CONSOLE_GROUPS: RailGroup[] = [
 
 // 레거시 트레이딩 터미널 그룹 — 기존 45페이지(기능 유지, 셸만 통합)
 const TERMINAL_GROUPS: RailGroup[] = [
-  { label: "Markets", items: [
+  { label: "마켓", items: [
     // crypto/futures/forex/options는 /market이 탭으로 그대로 렌더하는 하위기능이라
     // 최상위 nav에서 중복 노출하지 않음(진입은 /market 탭에서).
-    { href: "/market", label: "Market" },
-    { href: "/orderflow", label: "Orderflow" },
-    { href: "/news", label: "News" },
-    { href: "/calendar", label: "Calendar" },
-    { href: "/ib", label: "IB Data" },
+    { href: "/market", label: "마켓" },
+    { href: "/orderflow", label: "오더플로우" },
+    { href: "/news", label: "뉴스" },
+    { href: "/calendar", label: "캘린더" },
   ] },
-  { label: "Trading Desk", items: [
+  { label: "트레이딩 데스크", items: [
     { href: "/hud", label: "HUD" },
-    { href: "/overview", label: "Overview" },
-    { href: "/portfolio", label: "Portfolio" },
-    { href: "/orders", label: "Orders (OMS)" },
-    { href: "/pnl", label: "PnL" },
-    { href: "/lab/execution", label: "Execution Console" },
-    { href: "/lab/tasks", label: "Paper Monitor" },
+    { href: "/overview", label: "개요" },
+    { href: "/portfolio", label: "포트폴리오" },
+    { href: "/lab/execution", label: "체결 콘솔" },
+    { href: "/lab/tasks", label: "페이퍼 모니터" },
   ] },
-  { label: "Bots & Agents", items: [
-    { href: "/agents", label: "Agents" },
-    { href: "/performance", label: "Performance" },
-    { href: "/risk-guard", label: "Risk Guard" },
-    { href: "/dart-auto", label: "DART Auto" },
-    { href: "/copytrade", label: "Copytrade" },
-    { href: "/vrp", label: "VRP Options" },
+  { label: "봇 · 에이전트", items: [
+    { href: "/agents", label: "에이전트" },
+    { href: "/performance", label: "성과" },
+    { href: "/risk-guard", label: "리스크 가드" },
+    { href: "/dart-auto", label: "DART 오토파일럿" },
+    { href: "/copytrade", label: "카피트레이딩" },
     { href: "/polymarket", label: "Polymarket" },
   ] },
-  { label: "Research Lab", items: [
-    { href: "/lab", label: "AI Lab" },
+  { label: "리서치 랩", items: [
+    { href: "/lab", label: "AI 랩" },
     // /auto-research 삭제: 코드 자체 주석이 "사이드바 은퇴, AI LAB에 흡수됨"이라 명시.
-    { href: "/macro", label: "Macro Lab" },
-    { href: "/infra", label: "Supply Graph" },
-    { href: "/buyback-doctor", label: "Buyback Doctor" },
-    { href: "/insider", label: "Insider" },
-    { href: "/edges", label: "Edge Portfolio" },
+    { href: "/macro", label: "매크로 랩" },
+    { href: "/infra", label: "공급망 그래프" },
+    { href: "/buyback-doctor", label: "자사주매입 분석" },
+    { href: "/insider", label: "내부자거래" },
+    { href: "/edges", label: "엣지 포트폴리오" },
   ] },
-  { label: "Validation & Backtest", items: [
-    { href: "/validation", label: "Validation Terminal" },
-    { href: "/backtest", label: "Backtest" },
-    { href: "/ict", label: "ICT Combos" },
-    { href: "/event-study", label: "Event Study" },
-    { href: "/signal", label: "Smart Signal" },
-    { href: "/experiments", label: "Experiments" },
-    { href: "/data-quality", label: "Data Quality" },
-    { href: "/universe", label: "Universe" },
-    { href: "/pairs", label: "Pairs" },
+  { label: "검증 · 백테스트", items: [
+    { href: "/validation", label: "검증 터미널" },
+    { href: "/backtest", label: "백테스트" },
+    { href: "/ict", label: "ICT 콤보" },
+    { href: "/event-study", label: "이벤트 분석" },
+    { href: "/signal", label: "스마트 시그널" },
+    { href: "/experiments", label: "실험" },
+    { href: "/data-quality", label: "데이터 품질" },
   ] },
 ];
 
 const ALL_GROUPS: RailGroup[] = [...CONSOLE_GROUPS, ...TERMINAL_GROUPS];
 const OPEN_GROUPS_KEY = "commandRailOpenGroups";
-
-const LANGS: { code: Lang; label: string }[] = [
-  { code: "ko", label: "한" }, { code: "en", label: "EN" }, { code: "de", label: "DE" },
-];
 
 function Diamond() {
   return (
@@ -116,16 +105,12 @@ function GroupGlyph({ label }: { label: string }) {
     "Research · 모니터링": <><circle cx="8" cy="8" r="6.5" /><path d="M8 4.5v3.5l2.5 1.5" /><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" /></>,
     "Research · 파이프라인": <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
     "Research · 거버넌스": <><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M5 8h6M8 5v6" /></>,
-    "Research · Lab": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,
-    "Quant Lab": <><path d="M6 1.5v4L2.5 12A1.5 1.5 0 0 0 4 14.5h8A1.5 1.5 0 0 0 13.5 12L10 5.5v-4" /><path d="M5 1.5h6M4.5 9h7" /></>,
-    "Portfolio OS": <><rect x="1.5" y="8" width="3" height="6" rx="0.5" /><rect x="6.5" y="4" width="3" height="10" rx="0.5" /><rect x="11.5" y="1.5" width="3" height="12.5" rx="0.5" /></>,
-    Execution: <><path d="M2 8h3l1.5-4 3 8L13 8h1" /></>,
-    "AI Council": <><rect x="4" y="5" width="8" height="6.5" rx="1.5" /><circle cx="6.5" cy="8.2" r="0.9" fill="currentColor" stroke="none" /><circle cx="9.5" cy="8.2" r="0.9" fill="currentColor" stroke="none" /><path d="M8 1.5v3.5M6 1.5h4" /></>,
-    Markets: <><polyline points="1,11 4.5,6 7,8.5 10,4 14.5,8" /><line x1="1" y1="14" x2="15" y2="14" /></>,
-    "Trading Desk": <><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></>,
-    "Bots & Agents": <><rect x="3" y="5" width="10" height="7" rx="2" /><circle cx="6" cy="8.5" r="1" fill="currentColor" stroke="none" /><circle cx="10" cy="8.5" r="1" fill="currentColor" stroke="none" /><path d="M8 2v3M6 2h4" /></>,
-    "Research Lab": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,
-    "Validation & Backtest": <><circle cx="8" cy="8" r="6.5" /><polyline points="8,4.5 8,8 11,10" /></>,
+    "Research · 랩": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,
+    "마켓": <><polyline points="1,11 4.5,6 7,8.5 10,4 14.5,8" /><line x1="1" y1="14" x2="15" y2="14" /></>,
+    "트레이딩 데스크": <><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></>,
+    "봇 · 에이전트": <><rect x="3" y="5" width="10" height="7" rx="2" /><circle cx="6" cy="8.5" r="1" fill="currentColor" stroke="none" /><circle cx="10" cy="8.5" r="1" fill="currentColor" stroke="none" /><path d="M8 2v3M6 2h4" /></>,
+    "리서치 랩": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,
+    "검증 · 백테스트": <><circle cx="8" cy="8" r="6.5" /><polyline points="8,4.5 8,8 11,10" /></>,
   };
   return (
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -136,7 +121,6 @@ function GroupGlyph({ label }: { label: string }) {
 
 export function CommandRail() {
   const pathname = usePathname();
-  const { lang, setLang } = useLanguage();
   const [open, setOpen] = useState(true);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -225,7 +209,7 @@ export function CommandRail() {
         {open && (
           <div className="min-w-0">
             <div className="text-[13px] font-semibold tracking-[0.18em] text-[var(--c-text-1)] leading-none">SEOKMIN·AI</div>
-            <div className="text-[9px] tracking-[0.28em] text-[var(--c-hud)] mt-1 leading-none uppercase">Hedge Fund OS</div>
+            <div className="text-[9px] tracking-[0.28em] text-[var(--c-hud)] mt-1 leading-none uppercase">헤지펀드 OS</div>
           </div>
         )}
       </Link>
@@ -238,7 +222,7 @@ export function CommandRail() {
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
         </svg>
-        {open && <span className="text-[12.5px] font-medium tracking-wide">Command Center</span>}
+        {open && <span className="text-[12.5px] font-medium tracking-wide">커맨드 센터</span>}
       </Link>
 
       {/* Search */}
@@ -251,30 +235,22 @@ export function CommandRail() {
         {renderGroups(CONSOLE_GROUPS)}
         {/* divider → 레거시 트레이딩 터미널 */}
         <div className="mt-3 mb-1 mx-3.5 border-t border-[var(--c-border)]" />
-        {open && <div className="px-3.5 pt-1 pb-1 text-[8.5px] font-semibold tracking-[0.28em] text-[var(--c-text-3)] uppercase opacity-70">Terminal · Legacy</div>}
+        {open && <div className="px-3.5 pt-1 pb-1 text-[8.5px] font-semibold tracking-[0.28em] text-[var(--c-text-3)] uppercase opacity-70">터미널 · 레거시</div>}
         {renderGroups(TERMINAL_GROUPS)}
       </div>
 
-      {/* Footer: status + lang + shutdown + collapse */}
+      {/* Footer: status + shutdown + collapse */}
       <div className="shrink-0 border-t border-[var(--c-border)]">
         {open && (
           <div className="flex items-center gap-2 px-3.5 h-9">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-warn)] animate-pulse shadow-[0_0_8px_var(--c-warn)]" />
-            <span className="text-[10px] tracking-wider text-[var(--c-text-2)]">LIVE CAPITAL</span>
-            <span className="text-[10px] font-semibold tracking-widest text-[var(--c-warn)] ml-auto">CLOSED</span>
+            <span className="text-[10px] tracking-wider text-[var(--c-text-2)]">실전 자본</span>
+            <span className="text-[10px] font-semibold tracking-widest text-[var(--c-warn)] ml-auto">휴장</span>
           </div>
         )}
         {open && (
           <div className="flex items-center gap-2 px-3.5 h-9 border-t border-[var(--c-border)]">
-            <div className="flex items-center gap-0.5">
-              {LANGS.map(({ code, label }) => (
-                <button key={code} onClick={() => setLang(code)}
-                  className={`px-1.5 py-0.5 text-[10px] font-semibold rounded transition-colors bg-transparent cursor-pointer border-0 ${lang === code ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)] hover:text-[var(--c-text-1)]"}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <span className="text-[9px] c-num text-[var(--c-text-3)] ml-auto">{new Date().toISOString().slice(0, 10)}</span>
+            <span className="text-[9px] c-num text-[var(--c-text-3)]">{new Date().toISOString().slice(0, 10)}</span>
             <ShutdownButton collapsed />
           </div>
         )}
@@ -288,7 +264,3 @@ export function CommandRail() {
     </nav>
   );
 }
-
-// 하위호환: 이전에 AppChrome이 쓰던 export(현재는 전 페이지 레일 통일이라 미사용).
-export const CONSOLE_PREFIXES = ["/command", "/research-os", "/intel", "/quant", "/portfolio-os", "/exec", "/council"];
-export const isConsoleRoute = (p: string) => CONSOLE_PREFIXES.some((x) => p === x || p.startsWith(x + "/"));

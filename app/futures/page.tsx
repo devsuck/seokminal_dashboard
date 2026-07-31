@@ -8,7 +8,6 @@ import {
   type FuturesPriceResponse, type FuturesRollResponse, type FuturesRollRow,
   type FuturesCalendarResponse,
 } from "@/lib/api";
-import { PageBanner } from "@/components/PageBanner";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { TOKEN } from "@/lib/chart-colors";
 
@@ -432,7 +431,10 @@ export default function FuturesPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-[1100px]">
-      <PageBanner pageKey="futures" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">선물</h1>
+        <p className="text-text-3 text-sm mt-0.5">선물 만기 캘린더, 롤 전략, 일별 정산가를 조회합니다.</p>
+      </div>
 
       <div className="flex border-b border-border">
         {TABS.map(t => (

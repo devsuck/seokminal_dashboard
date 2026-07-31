@@ -34,7 +34,6 @@ import { PositionSizingPanel } from "@/components/backtest/PositionSizingPanel";
 import { MonteCarloPanel } from "@/components/backtest/MonteCarloPanel";
 import { TradeAnalyticsPanel } from "@/components/backtest/TradeAnalyticsPanel";
 import { RollingChart, type RollingSeries } from "@/components/rolling/RollingChart";
-import { PageBanner } from "@/components/PageBanner";
 import { computeRunningStats } from "@/lib/replay-utils";
 import { TOKEN } from "@/lib/chart-colors";
 import { ReplayChart } from "@/components/replay/ReplayChart";
@@ -260,7 +259,10 @@ function BacktestPageInner() {
   // ── Layout ───────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-4 max-w-[1600px]">
-      <PageBanner pageKey="backtest" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">백테스트</h1>
+        <p className="text-text-3 text-sm mt-0.5">과거 데이터로 트레이딩 전략을 시뮬레이션하여 성과를 검증합니다. EMA 크로스오버, MACD, RSI 전략을 지원합니다.</p>
+      </div>
       {/* Page title */}
       <div className="flex justify-end gap-4 text-xs">
         <Link href="/experiments" className="text-text-3 hover:text-accent no-underline transition-colors">

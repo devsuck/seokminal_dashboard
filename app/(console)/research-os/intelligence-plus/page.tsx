@@ -27,32 +27,32 @@ export default function ResearchIntelligencePlus() {
   const cov = ep?.coverage_context;
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P171-180 · Intelligence Enhancement" title="Autonomous Research Intelligence"
+      <PageHeader kicker="P171-180 · 인텔리전스 강화" title="자율 연구 인텔리전스"
         right={av && <div className="flex gap-1.5">
-          <Badge tone={av.validated ? "pos" : "warn"}>{av.validated ? "VALIDATED" : "REVIEW"}</Badge>
-          <Badge tone="hud">reuse {av.reuse_count}</Badge>
+          <Badge tone={av.validated ? "pos" : "warn"}>{av.validated ? "검증됨" : "검토 필요"}</Badge>
+          <Badge tone="hud">재사용 {av.reuse_count}</Badge>
         </div>} />
       <div className="p-5 space-y-5">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="연구 질문…"
             className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-10 text-[12.5px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-10 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">Discover</button>
+          <button type="submit" className="px-4 h-10 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">탐색</button>
         </form>
         {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
         {data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatTile label="Creative Hypotheses" value={String(ch?.count ?? 0)} sub={`${(ch?.diversity?.sources ?? []).length} sources`} tone="hud" />
-              <StatTile label="Research Queue" value={String(cq?.queue_size ?? 0)} sub="continuous backlog" tone="pos" />
-              <StatTile label="Knowledge Coverage" value={cov?.research_coverage != null ? `${Math.round(cov.research_coverage * 100)}%` : "—"} sub={`gap ${cov?.knowledge_gap != null ? Math.round(cov.knowledge_gap * 100) : 0}%`} tone="warn" />
-              <StatTile label="Autonomy Audit" value={av?.validated ? "PASS" : "REVIEW"} sub={`dup ${av?.duplicated_logic.length ?? 0} · reuse ${av?.reuse_count ?? 0}`} tone={av?.validated ? "pos" : "warn"} />
+              <StatTile label="창의적 가설" value={String(ch?.count ?? 0)} sub={`소스 ${(ch?.diversity?.sources ?? []).length}개`} tone="hud" />
+              <StatTile label="리서치 큐" value={String(cq?.queue_size ?? 0)} sub="상시 백로그" tone="pos" />
+              <StatTile label="지식 커버리지" value={cov?.research_coverage != null ? `${Math.round(cov.research_coverage * 100)}%` : "—"} sub={`공백 ${cov?.knowledge_gap != null ? Math.round(cov.knowledge_gap * 100) : 0}%`} tone="warn" />
+              <StatTile label="자율성 감사" value={av?.validated ? "통과" : "검토 필요"} sub={`중복 ${av?.duplicated_logic.length ?? 0} · 재사용 ${av?.reuse_count ?? 0}`} tone={av?.validated ? "pos" : "warn"} />
             </div>
             <div className="text-[10px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
 
             {/* Creative hypotheses (P171) */}
             <Panel>
-              <PanelHead kicker="P171 · Creative Hypothesis Discovery" title="Multi-Source Hypotheses"
+              <PanelHead kicker="P171 · 창의적 가설 발굴" title="다중 소스 가설"
                 right={ch && <Badge tone="hud">{ch.count}</Badge>} />
               <div className="p-4 space-y-2">
                 {(ch?.hypotheses ?? []).slice(0, 6).map((h) => (
@@ -62,12 +62,12 @@ export default function ResearchIntelligencePlus() {
                       <Badge tone="mute">{h.source}</Badge>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[9.5px] c-num text-[var(--c-text-3)]">
-                      <span>novelty {h.novelty_score.toFixed(2)}</span>
-                      <span>uncertainty {h.uncertainty.toFixed(2)}</span>
-                      <span>conf {h.confidence}</span>
-                      <span>prior {h.similar_historical_research.prior_research_count}</span>
-                      {h.similar_historical_research.tried_before && <span className="text-[var(--c-warn)]">tried_before</span>}
-                      <span>conflicts {h.conflicting_evidence.count}</span>
+                      <span>참신성 {h.novelty_score.toFixed(2)}</span>
+                      <span>불확실성 {h.uncertainty.toFixed(2)}</span>
+                      <span>신뢰도 {h.confidence}</span>
+                      <span>과거 연구 {h.similar_historical_research.prior_research_count}</span>
+                      {h.similar_historical_research.tried_before && <span className="text-[var(--c-warn)]">이전 시도됨</span>}
+                      <span>상충 {h.conflicting_evidence.count}</span>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {h.required_validation.slice(0, 5).map((v) => <span key={v} className="text-[8.5px] px-1.5 py-0.5 border border-[var(--c-border)] text-[var(--c-text-3)]">{v}</span>)}
@@ -80,7 +80,7 @@ export default function ResearchIntelligencePlus() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Continuous queue (P173) */}
               <Panel>
-                <PanelHead kicker="P173 · Continuous Research Queue" title="Prioritized Backlog"
+                <PanelHead kicker="P173 · 상시 리서치 큐" title="우선순위 백로그"
                   right={cq && <Badge tone="pos">{cq.queue_size}</Badge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(cq?.by_source ?? {}).length > 0 && (
@@ -100,7 +100,7 @@ export default function ResearchIntelligencePlus() {
 
               {/* Experiment prioritization (P174) */}
               <Panel>
-                <PanelHead kicker="P174 · Experiment Prioritization" title="Recommended Next"
+                <PanelHead kicker="P174 · 실험 우선순위화" title="다음 추천"
                   right={<Badge tone="hud">{ep?.recommendations.length ?? 0}</Badge>} />
                 <div className="p-4 space-y-1.5">
                   {(ep?.recommendations ?? []).slice(0, 6).map((r, i) => (
@@ -119,7 +119,7 @@ export default function ResearchIntelligencePlus() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Planning (P177) */}
               <Panel>
-                <PanelHead kicker="P177 · Institutional Planning" title="Agendas & Roadmap" />
+                <PanelHead kicker="P177 · 기관 차원 계획" title="의제 & 로드맵" />
                 <div className="p-4 space-y-2">
                   {Object.entries(data.research_planning ?? {}).map(([horizon, plan]) => (
                     <div key={horizon} className="c-panel-2 p-2.5">
@@ -133,7 +133,7 @@ export default function ResearchIntelligencePlus() {
 
               {/* Productivity (P179) + Reflection (P176) */}
               <Panel>
-                <PanelHead kicker="P179 · Productivity + P176 · Reflection" title="Metrics & Lessons" />
+                <PanelHead kicker="P179 · 생산성 + P176 · 회고" title="지표 & 교훈" />
                 <div className="p-4 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     {Object.entries(data.productivity?.metrics ?? {}).slice(0, 6).map(([k, m]) => (
@@ -150,7 +150,7 @@ export default function ResearchIntelligencePlus() {
                     </div>
                   ))}
                   {(data.self_reflection?.test_next ?? []).slice(0, 2).map((t, i) => (
-                    <div key={`r${i}`} className="text-[10px] text-[var(--c-text-3)]">↳ next: {t}</div>
+                    <div key={`r${i}`} className="text-[10px] text-[var(--c-text-3)]">↳ 다음: {t}</div>
                   ))}
                 </div>
               </Panel>
@@ -158,8 +158,8 @@ export default function ResearchIntelligencePlus() {
 
             {/* Autonomy validation (P180) */}
             <Panel>
-              <PanelHead kicker="P180 · Autonomy Validation" title="Safety & Reuse Audit"
-                right={av && <Badge tone={av.validated ? "pos" : "warn"}>{av.validated ? "VALIDATED" : "REVIEW"}</Badge>} />
+              <PanelHead kicker="P180 · 자율성 검증" title="안전성 & 재사용 감사"
+                right={av && <Badge tone={av.validated ? "pos" : "warn"}>{av.validated ? "검증됨" : "검토 필요"}</Badge>} />
               <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1">
                 {(av?.checks ?? []).map((c) => (
                   <div key={c.check} className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default function ResearchIntelligencePlus() {
               </div>
               {(av?.remaining_limitations ?? []).length > 0 && (
                 <div className="px-4 pb-4">
-                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">Remaining Limitations</div>
+                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">남은 제약사항</div>
                   {(av?.remaining_limitations ?? []).map((l, i) => <div key={i} className="text-[10px] text-[var(--c-text-3)]">· {l}</div>)}
                 </div>
               )}

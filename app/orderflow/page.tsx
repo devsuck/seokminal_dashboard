@@ -4,7 +4,6 @@
 import { useEffect, useRef, useState } from "react";
 import { InstrumentSelect } from "@/components/InstrumentSelect";
 import { LivePulse } from "@/components/Jarvis";
-import { PageBanner } from "@/components/PageBanner";
 import { OrderflowChart } from "@/components/orderflow/OrderflowChart";
 import { OrderbookReplay } from "@/components/orderflow/OrderbookReplay";
 import { useOrderflowSocket, type OrderflowConnectionState } from "@/hooks/useOrderflowSocket";
@@ -70,7 +69,9 @@ export default function OrderflowPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <PageBanner pageKey="orderflow" />
+      <div className="mb-4">
+        <h1 className="text-text-1 text-lg font-semibold tracking-tight">오더플로우</h1>
+      </div>
       <div className="flex items-center gap-4">
         <InstrumentSelect value={symbol} onChange={setSymbol} instruments={ORDERFLOW_SYMBOLS} />
         <div className="flex border border-border rounded overflow-hidden">
