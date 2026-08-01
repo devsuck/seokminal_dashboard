@@ -232,7 +232,7 @@ export function CommandRail() {
         )}
       </Link>
 
-      {/* Command Center */}
+      {/* Home */}
       <Link href="/hud" className={`group relative flex items-center gap-3 h-11 px-3.5 no-underline shrink-0 transition-colors ${
         isActive("/hud") ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_9%,transparent)]"
                              : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
