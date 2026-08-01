@@ -28,12 +28,13 @@ import { toast } from "@/lib/toast";
    3) 계좌 잔액 + 돈길 핵심 3줄
    상세 수치는 각 전용 페이지(/lab, /auto-research, /lab/execution)로 위임. */
 
-type Tone = "pos" | "accent" | "info" | "neg" | "text-3";
+type Tone = "pos" | "accent" | "info" | "neg" | "warn" | "text-3";
 const TONE: Record<Tone, { solid: string; text: string }> = {
   pos:      { solid: "bg-pos",    text: "text-pos" },
   accent:   { solid: "bg-accent", text: "text-accent" },
   info:     { solid: "bg-info",   text: "text-info" },
   neg:      { solid: "bg-neg",    text: "text-neg" },
+  warn:     { solid: "bg-warn",   text: "text-warn" },
   "text-3": { solid: "bg-text-3", text: "text-text-3" },
 };
 
@@ -316,7 +317,7 @@ export default function HudPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2">
             {attentionItems.map((it) => (
               <Link key={it.id} href={it.href} className="flex items-center gap-2 border-b border-border px-2 py-1 no-underline hover:opacity-80">
-                <StatusDot tone={it.tone === "neg" ? "neg" : it.tone === "warn" ? "accent" : "info"} />
+                <StatusDot tone={it.tone === "neg" ? "neg" : it.tone === "warn" ? "warn" : "info"} />
                 <span className="text-[11px] font-data text-text-1 truncate flex-1">{it.label}</span>
                 <span className="text-[10px] font-data text-text-3 truncate">{it.detail}</span>
               </Link>
