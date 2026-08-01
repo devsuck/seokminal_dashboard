@@ -1,3 +1,73 @@
+## Phase 195 — 홈/네비 단순화 1단계: /hud "판단 필요" 큐 + Operator 나브 모드 (2026-08-01) ✅ SHIPPED
+
+유저: "플랫폼이 심플하지 않다" — 리서치/시스템 잡다한 상태를 사람이 매번 확인하는 대시보드가 되어버렸다는 피드백. `/hud`와 `/command` 두 개의 경쟁하는 홈페이지, `CommandRail` 나브 9그룹/54항목 헤더 항상노출이 원인으로 지목됨. 2단계 중 1단계(IA/UX, 페이지 삭제 없음)만 진행 — "1+3으로 가자"(홈 통합+판단필요 큐 + 나브 Operator 토글)로 접근 확정, 브레인스토밍→스펙(`docs/superpowers/specs/2026-08-01-home-nav-simplification-design.md`)→플랜(`docs/superpowers/plans/2026-08-01-home-nav-simplification.md`)→subagent-driven-development 4태스크 실행+각 태스크 리뷰+최종 브랜치 리뷰까지 전부 완료.
+
+### 구현
+- `lib/attention.ts`: `deriveAttentionItems()` 순수함수 — pipeline 제안대기/risk BLOCK/investment-os 승격게이트/리서치 후보 4개 신호를 "판단 필요" 카드로 변환. 백엔드 변경 없음, 기존 `/console/*` 엔드포인트만 소비.
+- `/hud`에 "판단 필요" Panel 신설, `/command`(Command Center) 폐기·삭제 — `/hud`가 유일한 홈페이지로 흡수. 나브 브랜드/홈 링크 전부 `/hud`로 재조준, `lib/research-os.ts`·`intel/research-os/page.tsx`의 `/command` 폴백 6곳도 정리.
+- `CommandRail.tsx`에 Operator 모드 토글 추가 — 기본값 켜짐, 9그룹 중 3그룹(트레이딩 데스크/봇·에이전트/Research·모니터링)만 노출, "전체보기"로 해제. `CommandPalette` 검색은 필터와 무관하게 전체 54항목 계속 도달 가능(숨긴 게 아니라 접은 것).
+
+### 최종 브랜치 리뷰에서 잡힌 이슈 (전부 수정)
+- `/hud`의 신규 fetch 3개(pipeline/risk/investment-os)가 원래 4초 폴링 루프에 있었음 — `investment-os`가 매 호출 220ms(백엔드가 소스트리 전체 `ast.parse` 재실행) 걸려서 상시 열린 홈페이지에서 발열 리스크. 30초 느린 루프(잔액 폴링과 동일 주기)로 이동.
+- "전부 정상" 0상태 문구가 유닛다운 상태를 커버 안 하는데 시스템 전체 정상인 것처럼 읽혀서 "판단 대기 항목 없음"으로 스코프 좁힘.
+- `트레이딩 데스크` 그룹 내부에 남아있던 구식 `/hud` 항목이 신규 최상단 "홈" 링크와 중복 노출 — 제거.
+- `docs/CONSOLE.md`의 삭제된 `/command` 라우트 표 행 정리.
+
+### 컨트롤러가 판단하고 안 고친 것 (판단만 하고 넘어감)
+- "승격 대기" 카드 조건에 백엔드 상수(`human_approval_mandatory`, 영구 True)가 껴 있어 AND절이 사실상 죽은 코드 — 그래도 `gates.passed` 자체는 진짜 변동 신호라 카드가 계속 뜨는 게 버그는 아님, 안 고침.
+- 스펙엔 있었지만 플랜에서 빠진 "참고 섹션"(regime/council 격하 표시) — 실질 손실은 posture 패널 하나뿐(council/status는 다른 경로로 이미 살아있음), 유저의 원래 목표(정보량 줄이기)에 부합해서 재구현 안 하기로 판단.
+
+### 변경된 파일
+- 신규: `lib/attention.ts`, `tests/lib/attention.test.ts`, `tests/lib/commandRailGroups.test.ts`
+- 수정: `app/hud/page.tsx`, `components/console/CommandRail.tsx`, `lib/research-os.ts`, `app/(console)/intel/research-os/page.tsx`, `docs/CONSOLE.md`
+- 삭제: `app/(console)/command/page.tsx`
+
+### 다음 할 일
+- 2단계(Approach B, 실제 페이지 삭제)는 유저가 명시적으로 요청할 때까지 시작 안 함.
+- 검증: `npx tsc --noEmit` clean, `npm test` 316/316 pass (28 files).
+
+---
+
+## Phase 194 — 플랫폼 압축 아이데이션(Track C 레거시 감사) + 네이밍 충돌 정리 + 워치리스트 라이브가 버그 수정 (2026-07-31) ✅ SHIPPED
+
+유저: "플랫폼 너무 방대해, 필요없는 기능 쳐내고 압축하고 싶다" 아이데이션 요청 → 4트랙 제시 후 유저가 Track C(레거시 `TERMINAL_GROUPS` 45페이지에 기존 `dashboard_migration_map.md` 감사방법론 적용) 선택. 유저가 "os랑 레거시랑 겹치는 게 아무것도 없다고?"로 내 성급한 결론 지적 → 백엔드 소스까지 재검증. "둘 다 해줘"→"ㅇㅇ 진행해"로 리네임 3건 확정·실행.
+
+### Track C — 레거시 45페이지 감사 (5개 클러스터 병렬 에이전트)
+- 결론: 레거시 레이어 내부 중복 거의 없음 — 겹쳐 보이는 페이지들은 전부 "teaser→canonical drill-down" 패턴(예: `hud`(1줄 요약)→`overview`(작은 티저 스트립)→`lab/execution`(전체 상세)), `research-os` 유지 페이지들과 동일한 정당한 패턴.
+- OS(console)↔레거시 교차 중복도 최종 확인 결과 거의 없음 — 설계상 분리(OS=페이퍼/거버넌스 트랙, `jarvis.paper_execution.ledger` 기반; 레거시=실제 브로커 라이브 트랙, Alpaca/KIS/HL 직결)임을 `api_server/console_api.py` `/console/positions`·`/console/orders` docstring으로 확인. 처음엔 스팟체크 2~3쌍만 보고 "안 겹침" 단정했다가 유저 지적으로 재검증, 결론 자체는 유지됐지만 근거 보강.
+- 진짜 충돌은 코드/라벨 레벨 네이밍 뿐: `/overview` nav라벨 "개요" ↔ investment-os 내부 탭 "개요"(완전 다른 내용), `/validation` "검증 터미널" ↔ console 쪽 `getValidation`/`getValidationLoop`(3-way 이름 혼동), `lib/experiment-storage.ts`와 `lib/api.ts`에 동명 함수 `getExperiments`(무관한 기능, dev 레벨 충돌).
+
+### 실행한 리네임 3건
+- `/overview` nav라벨 "개요"→"AI 자본 개요"
+- `/validation` nav라벨+h1 "검증 터미널"→"리서치 실험 로그", `app/ict/page.tsx` back-link 텍스트도 동기화
+- `lib/experiment-storage.ts`의 `getExperiments`→`getSavedRuns`(호출부 4곳 + `app/experiments/page.tsx` + 테스트 8곳 전부 갱신)
+- 검증: `npx tsc --noEmit` clean, `npx vitest run tests/lib/experiment-storage.test.ts` 10/10 pass.
+
+### 이전 세션에서 밀려있던 미커밋 작업도 같이 커밋
+- `WatchlistSidebar.tsx`: 라이브가 고정버그 수정 — parquet 카탈로그(`getBars`, 최초 적재 후 갱신 안 됨) 대신 venue별 라우팅 `fetchBarsForSymbol` 사용 + 60초 폴링.
+- `/market`에 뉴스·캘린더 탭 흡수, `CommandRail` 최상위 nav 중복 제거.
+- `PaperPosition`에 `current_price`/`market_value`/`unrealized_pnl` 추가, `app/infra` 포지션 테이블·헤더에 미실현P&L 표시.
+
+### 변경된 파일
+- `components/console/CommandRail.tsx`, `app/validation/page.tsx`, `app/ict/page.tsx`, `lib/experiment-storage.ts`, `app/experiments/page.tsx`, `tests/lib/experiment-storage.test.ts`
+- `components/market/WatchlistSidebar.tsx`, `app/market/page.tsx`, `lib/api.ts`, `app/infra/page.tsx`
+
+### 다음 할 일 (제안만 함, 유저 승인 대기 — 진행 안 함)
+- ~~`app/ib/page.tsx` 삭제~~ → 2026-08-01 Phase 196에서 실행
+- `research-os` 고아 4개(`market`/`intelligence`/`live-intelligence`/`organization`) 삭제 — 전부 참조 0건 grep 확인
+- `intel/research-os`(432줄 허브) → `investment-os` Research Evidence 탭으로 리다이렉트, `dashboard_migration_map.md`의 "deprecated, 리다이렉트 대기" 분류 그대로. 이거 하면 `intelligence-plus`도 참조 끊겨서 삭제 가능해짐.
+
+---
+
+## Phase 196 — 2단계(Approach B) 착수: `app/ib/page.tsx` 삭제 (2026-08-01) ✅ SHIPPED
+
+Phase 194에서 나온 삭제 후보 중 1번(`app/ib/page.tsx`, 고아 페이지, `getIBBars`와 기능 중복) 유저 승인 → 삭제 실행. 참조 0건 재확인(grep) 후 `git rm`, `npx tsc --noEmit` clean.
+
+### 다음 할 일
+- 나머지 2단계 후보(research-os 고아 4개, intel/research-os 리다이렉트)는 유저 승인 대기.
+
+---
+
 ## Phase 193 — research-os "리서치 실행" 목표 무시 버그 수정 + 5페이지 UX 개편 (2026-07-31) ✅ SHIPPED
 
 유저: research-os `agents` 페이지 목표 입력→"리서치 실행" 흐름 검증 요청. 입력 전달은 되는데 백엔드 가설생성 로직이 타이핑한 목표를 무시하는 버그 발견, 보고. `agents`/`workflow` 페이지 먼저 디자인 개편 제안 → 유저 "응 바로 작업 진행해줘 너가 말한 두개 전부"(백엔드 수정 + `committee`/`discovery`/`chat` 나머지 페이지도 같은 개편) 승인.
