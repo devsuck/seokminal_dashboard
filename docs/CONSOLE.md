@@ -30,7 +30,6 @@ npm run dev          # http://localhost:3010 (또는 3000)
 
 | 그룹 | 라우트 | 데이터(`/console/*`) |
 |---|---|---|
-| — | `/command` | status · pipeline · regime · council |
 | Intelligence | `/intel/research` · `/intel/market` · `/intel/knowledge` | research · market · knowledge |
 | Quant Lab | `/quant/hypothesis` · `/quant/experiments`(Strategy DNA) · `/quant/backtests` · `/quant/validation` | experiments · strategies · validation |
 | Portfolio OS | `/portfolio-os/allocation` · `/portfolio-os/risk` · `/portfolio-os/positions` | allocation · risk · positions |

@@ -148,7 +148,7 @@ export default function HudPage() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health, pipeline, risk, ios] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -160,11 +160,8 @@ export default function HudPage() {
         getTriggeredAlerts(c.signal).catch(() => null),
         getVrpBotStatus(c.signal).catch(() => null),
         getLabHealth(c.signal).catch(() => null),  // 봇·에이전트 정합성 불변식
-        getConsolePipeline(c.signal).catch(() => null),
-        getRisk(c.signal).catch(() => null),
-        getInvestmentOs(1_000_000, c.signal).catch(() => null),
       ]);
-      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health, pipeline, risk, ios });
+      if (mounted && !c.signal.aborted) setF((prev) => ({ ...prev, lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health }));
     }
     load();
     const iv = setInterval(load, 4000);
@@ -174,6 +171,9 @@ export default function HudPage() {
   // 계좌 잔액은 KIS/IB 등 외부 브로커 API를 직접 호출해 5~30초씩 걸릴 수 있음 —
   // 4초 주기 메인 피드 루프에 섞으면 abort-then-check 경합으로 상태 갱신 자체가 막힘.
   // 별도의 느린 주기로 독립 폴링.
+  // pipeline/risk/investment-os도 여기서 같이 폴링 — getInvestmentOs는 validate_separation()이
+  // 매 요청마다 ast.parse로 소스 트리를 재파싱해 200ms+ 걸림. 판단 필요 신호는 초단위 신선도가
+  // 필요 없으므로(30초면 충분) 4초 메인 루프에 두면 상시 열려있는 홈페이지에서 CPU를 계속 태움.
   useEffect(() => {
     let mounted = true;
     let inFlight = false;
@@ -184,7 +184,13 @@ export default function HudPage() {
         const b = await getAccountBalances();
         if (mounted) setBal(b);
       } catch { /* 이전 값 유지 */ }
-      finally { inFlight = false; }
+      const [pipeline, risk, ios] = await Promise.all([
+        getConsolePipeline().catch(() => null),
+        getRisk().catch(() => null),
+        getInvestmentOs(1_000_000).catch(() => null),
+      ]);
+      if (mounted) setF((prev) => ({ ...prev, pipeline, risk, ios }));
+      inFlight = false;
     }
     loadBal();
     const iv = setInterval(loadBal, 30000);
@@ -311,7 +317,7 @@ export default function HudPage() {
         </PanelHeader>
         {attentionItems.length === 0 ? (
           <div className="px-2 py-1.5">
-            <StatusDot tone="pos" label="전부 정상 — 판단 필요한 항목 없음" />
+            <StatusDot tone="pos" label="판단 대기 항목 없음" />
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2">

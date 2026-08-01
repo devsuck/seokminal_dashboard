@@ -51,7 +51,6 @@ const TERMINAL_GROUPS: RailGroup[] = [
     { href: "/orderflow", label: "오더플로우" },
   ] },
   { label: "트레이딩 데스크", items: [
-    { href: "/hud", label: "HUD" },
     { href: "/overview", label: "AI 자본 개요" },
     { href: "/portfolio", label: "포트폴리오" },
     { href: "/lab/execution", label: "체결 콘솔" },
