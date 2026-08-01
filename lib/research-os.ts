@@ -48,7 +48,7 @@ export const RESEARCH_OS_SECTIONS: NavSectionView[] = [
     moduleCount: 80,
     items: [
       { item: "Monitoring", moduleCount: 9, href: "/exec/monitor", note: "모니터링·관측성·헬스" },
-      { item: "Configuration", moduleCount: 71, href: "/command", note: "거버넌스·정책·설정" },
+      { item: "Configuration", moduleCount: 71, href: "/hud", note: "거버넌스·정책·설정" },
     ],
   },
 ];
@@ -73,7 +73,7 @@ export interface Capability {
   live: boolean;   // 이 콘솔에 대응 페이지가 있으면 true
 }
 export const RESEARCH_OS_CAPABILITIES: Capability[] = [
-  { phase: "P41", name: "Integration Audit", live: false, href: "/command",
+  { phase: "P41", name: "Integration Audit", live: false, href: "/hud",
     summary: "기존 아키텍처 결정적 감사 — 인벤토리·의존성·중복·미사용(백엔드 산출물)." },
   { phase: "P42", name: "Local Runtime", live: true, href: "/exec/monitor",
     summary: "로컬 단일 진입점 — 시작·모듈 발견·헬스 체크(클라우드 없음)." },
@@ -88,14 +88,14 @@ export const RESEARCH_OS_CAPABILITIES: Capability[] = [
 // 섹션/항목 → 기존 콘솔 라우트 조회(라이브 데이터에 href 를 입히기 위한 UI 매핑).
 export function itemHref(section: string, item: string): string {
   const s = RESEARCH_OS_SECTIONS.find((x) => x.section === section);
-  return s?.items.find((i) => i.item === item)?.href ?? "/command";
+  return s?.items.find((i) => i.item === item)?.href ?? "/hud";
 }
 export function itemNote(section: string, item: string): string {
   const s = RESEARCH_OS_SECTIONS.find((x) => x.section === section);
   return s?.items.find((i) => i.item === item)?.note ?? "";
 }
 export function capHref(phase: string): string {
-  return RESEARCH_OS_CAPABILITIES.find((c) => c.phase === phase)?.href ?? "/command";
+  return RESEARCH_OS_CAPABILITIES.find((c) => c.phase === phase)?.href ?? "/hud";
 }
 
 // 섹션 → 색(이 앱 고유 토큰). CVD-safe(ΔE 10.3>8) · 항상 라벨 병기(색 단독 의존 금지).
@@ -109,7 +109,7 @@ export const SECTION_ORDER = ["Research", "Knowledge", "Agents", "System"] as co
 
 // 헌장 6워크스페이스 → 대표 라우트(있는 것으로 연결).
 export const WORKSPACE_HREF: Record<string, string> = {
-  Home: "/command",
+  Home: "/hud",
   Research: "/lab",
   Experiments: "/research-os/strategy-lab",
   Knowledge: "/research-os/graph",
