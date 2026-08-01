@@ -11,6 +11,11 @@ import {
   type AccountBalances, type TriggeredAlert, type VrpBotStatus, type CollectorKey,
   type LabHealth,
 } from "@/lib/api";
+import {
+  getConsolePipeline, getRisk, getInvestmentOs,
+  type ConsolePipeline, type RiskResp, type InvestmentOsResp,
+} from "@/lib/console-api";
+import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { displayLevel } from "@/lib/agent-level";
@@ -69,6 +74,7 @@ interface Feed {
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
   exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
   vrp: VrpBotStatus | null; health: LabHealth | null;
+  pipeline: ConsolePipeline | null; risk: RiskResp | null; ios: InvestmentOsResp | null;
 }
 
 interface Unit {
@@ -115,7 +121,7 @@ function UnitCard({ u, onRestart, restarting }: {
 }
 
 export default function HudPage() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null });
+  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null, pipeline: null, risk: null, ios: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
   const [restarting, setRestarting] = useState<Partial<Record<CollectorKey, boolean>>>({});
@@ -141,7 +147,7 @@ export default function HudPage() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health, pipeline, risk, ios] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -153,8 +159,11 @@ export default function HudPage() {
         getTriggeredAlerts(c.signal).catch(() => null),
         getVrpBotStatus(c.signal).catch(() => null),
         getLabHealth(c.signal).catch(() => null),  // 봇·에이전트 정합성 불변식
+        getConsolePipeline(c.signal).catch(() => null),
+        getRisk(c.signal).catch(() => null),
+        getInvestmentOs(1_000_000, c.signal).catch(() => null),
       ]);
-      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health });
+      if (mounted && !c.signal.aborted) setF({ lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health, pipeline, risk, ios });
     }
     load();
     const iv = setInterval(load, 4000);
@@ -186,7 +195,7 @@ export default function HudPage() {
     return () => clearInterval(t);
   }, []);
 
-  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp, health } = f;
+  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp, health, pipeline, risk, ios } = f;
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -254,6 +263,13 @@ export default function HudPage() {
     units.push({ kind: "BOT", name: "VRP 아이언콘도어", running: vrp.enabled, detail: vrpDetail, href: "/vrp" });
   }
 
+  const attentionItems = deriveAttentionItems({
+    pipeline: pipeline ? { proposals: pipeline.proposals } : null,
+    risk: risk ? { by_status: risk.by_status } : null,
+    investmentOs: ios ? { gates: ios.gates, execution_ladder: ios.execution_ladder } : null,
+    autoResearch: ar ? { n_candidates: ar.n_candidates } : null,
+  });
+
   const nRunning = units.filter(u => u.running).length;
   const wd = sys?.research_service?.watchdog;
 
@@ -285,6 +301,28 @@ export default function HudPage() {
             <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 animate-blink font-data font-bold">정합성 오류 {health!.n_errors}</span>
           )}
         </div>
+      </Panel>
+
+      {/* 판단 필요 — 사람 결정 걸리는 것만. 0건이면 한 줄로 접힘 */}
+      <Panel className="mb-1">
+        <PanelHeader right={<span className="tabular-nums">{attentionItems.length}건</span>}>
+          판단 필요
+        </PanelHeader>
+        {attentionItems.length === 0 ? (
+          <div className="px-2 py-1.5">
+            <StatusDot tone="pos" label="전부 정상 — 판단 필요한 항목 없음" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2">
+            {attentionItems.map((it) => (
+              <Link key={it.id} href={it.href} className="flex items-center gap-2 border-b border-border px-2 py-1 no-underline hover:opacity-80">
+                <StatusDot tone={it.tone === "neg" ? "neg" : it.tone === "warn" ? "accent" : "info"} />
+                <span className="text-[11px] font-data text-text-1 truncate flex-1">{it.label}</span>
+                <span className="text-[10px] font-data text-text-3 truncate">{it.detail}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </Panel>
 
       {/* 유닛 로스터 — 메인. 뭐가 돌고 있는지 한 눈에 */}
