@@ -7,8 +7,8 @@ import { ShutdownButton } from "@/components/ShutdownButton";
 import { CommandPalette } from "@/components/console/CommandPalette";
 
 // ── IA ──────────────────────────────────────────────────────────────
-interface RailItem { href: string; label: string }
-interface RailGroup { label: string; items: RailItem[] }
+export interface RailItem { href: string; label: string }
+export interface RailGroup { label: string; items: RailItem[] }
 
 // 콘솔(거버넌스 OS) 그룹 — 신규 라우트. Phase 132 집행전환 최종목표의 메인 레이어라
 // TERMINAL_GROUPS(레거시)보다 위계상 상위 — 항상 먼저 렌더.
@@ -86,6 +86,12 @@ const TERMINAL_GROUPS: RailGroup[] = [
 ];
 
 const ALL_GROUPS: RailGroup[] = [...CONSOLE_GROUPS, ...TERMINAL_GROUPS];
+const OPERATOR_GROUP_LABELS = ["트레이딩 데스크", "봇 · 에이전트", "Research · 모니터링"];
+const OPERATOR_MODE_KEY = "commandRailOperatorMode";
+
+export function filterGroupsForOperator(groups: RailGroup[]): RailGroup[] {
+  return groups.filter((g) => OPERATOR_GROUP_LABELS.includes(g.label));
+}
 const OPEN_GROUPS_KEY = "commandRailOpenGroups";
 
 function Diamond() {
@@ -120,6 +126,7 @@ function GroupGlyph({ label }: { label: string }) {
 export function CommandRail() {
   const pathname = usePathname();
   const [open, setOpen] = useState(true);
+  const [operatorMode, setOperatorMode] = useState(true);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const groupIsActive = (g: RailGroup) => g.items.some((it) => isActive(it.href));
@@ -136,6 +143,19 @@ export function CommandRail() {
     setOpenGroups(active ? { ...stored, [active.label]: true } : stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(OPERATOR_MODE_KEY);
+    if (stored !== null) setOperatorMode(stored === "true");
+  }, []);
+
+  function toggleOperatorMode() {
+    setOperatorMode((prev) => {
+      const next = !prev;
+      localStorage.setItem(OPERATOR_MODE_KEY, String(next));
+      return next;
+    });
+  }
 
   function toggleGroup(label: string) {
     setOpenGroups((prev) => {
@@ -230,11 +250,11 @@ export function CommandRail() {
 
       {/* Groups (scroll) */}
       <div className="flex-1 min-h-0 overflow-y-auto py-1.5">
-        {renderGroups(CONSOLE_GROUPS)}
+        {renderGroups(operatorMode ? filterGroupsForOperator(CONSOLE_GROUPS) : CONSOLE_GROUPS)}
         {/* divider → 레거시 트레이딩 터미널 */}
         <div className="mt-3 mb-1 mx-3.5 border-t border-[var(--c-border)]" />
         {open && <div className="px-3.5 pt-1 pb-1 text-[8.5px] font-semibold tracking-[0.28em] text-[var(--c-text-3)] uppercase opacity-70">터미널 · 레거시</div>}
-        {renderGroups(TERMINAL_GROUPS)}
+        {renderGroups(operatorMode ? filterGroupsForOperator(TERMINAL_GROUPS) : TERMINAL_GROUPS)}
       </div>
 
       {/* Footer: status + shutdown + collapse */}
@@ -252,6 +272,10 @@ export function CommandRail() {
             <ShutdownButton collapsed />
           </div>
         )}
+        <button onClick={toggleOperatorMode}
+          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[10px] tracking-wide">
+          {open ? (operatorMode ? "전체보기" : "간단히 보기") : (operatorMode ? "전체" : "간단")}
+        </button>
         <button onClick={() => setOpen((v) => !v)}
           className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "" : "rotate-180"}`}>
