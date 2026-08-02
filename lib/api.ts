@@ -2105,6 +2105,7 @@ export interface InsiderTrade {
   role?: string | null;         // KR: 직책
   event_cause?: string | null;  // KR: 증감원인
   dart_url?: string | null;     // KR: 공시 원문 링크
+  rcept_no?: string | null;     // KR: report-lag 조회용
 }
 
 export async function searchDartCompany(q: string, signal?: AbortSignal): Promise<DartCompany[]> {
@@ -2130,6 +2131,18 @@ export async function getInsiderUSRecent(days: number, maxFilings: number, signa
 export async function getInsiderKRRecent(days: number, maxCorps: number, signal?: AbortSignal): Promise<InsiderTrade[]> {
   const r = await fetch(`${API_URL}/insider/kr/recent?days=${days}&max_corps=${maxCorps}`, { signal });
   return handleResponse<InsiderTrade[]>(r);
+}
+
+export interface ReportLag {
+  rcept_no: string;
+  rcept_dt: string;
+  lags_days: number[];
+}
+
+export async function getInsiderKRReportLag(rceptNo: string, rceptDt: string, signal?: AbortSignal): Promise<ReportLag> {
+  const p = new URLSearchParams({ rcept_no: rceptNo, rcept_dt: rceptDt });
+  const r = await fetch(`${API_URL}/insider/kr/report-lag?${p.toString()}`, { signal });
+  return handleResponse<ReportLag>(r);
 }
 
 export interface CongressTrade {

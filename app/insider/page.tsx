@@ -5,6 +5,7 @@ import {
   ApiError,
   getInsiderKR,
   getInsiderKRRecent,
+  getInsiderKRReportLag,
   getInsiderUS,
   getInsiderUSRecent,
   getInsiderCongress,
@@ -153,7 +154,34 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
 
 // ── KR Table ──────────────────────────────────────────────────────────────────
 
+type LagState = { loading: boolean; lags?: number[]; error?: boolean };
+
 function KRTable({ trades }: { trades: InsiderTrade[] }) {
+  const [lagState, setLagState] = useState<Record<string, LagState>>({});
+  const ctrlMapRef = useRef<Map<string, AbortController>>(new Map());
+
+  useEffect(() => {
+    const ctrlMap = ctrlMapRef.current;
+    return () => { ctrlMap.forEach(c => c.abort()); };
+  }, []);
+
+  const fetchLag = useCallback((rceptNo: string, rceptDt: string) => {
+    ctrlMapRef.current.get(rceptNo)?.abort();
+    const ctrl = new AbortController();
+    ctrlMapRef.current.set(rceptNo, ctrl);
+    setLagState(s => ({ ...s, [rceptNo]: { loading: true } }));
+    getInsiderKRReportLag(rceptNo, rceptDt, ctrl.signal)
+      .then(res => {
+        if (ctrlMapRef.current.get(rceptNo) !== ctrl) return;
+        setLagState(s => ({ ...s, [rceptNo]: { loading: false, lags: res.lags_days } }));
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (ctrlMapRef.current.get(rceptNo) !== ctrl) return;
+        setLagState(s => ({ ...s, [rceptNo]: { loading: false, error: true } }));
+      });
+  }, []);
+
   if (trades.length === 0)
     return <div className="p-8 text-center text-text-3 text-sm">거래 없음</div>;
   return (
@@ -166,6 +194,7 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
             <th className="px-3 py-2 text-left font-medium">회사명</th>
             <th className="px-3 py-2 text-center font-medium">구분</th>
             <th className="px-3 py-2 text-left font-medium">공시명</th>
+            <th className="px-3 py-2 text-center font-medium">지연</th>
             <th className="px-3 py-2 text-center font-medium">원문</th>
           </tr>
         </thead>
@@ -175,6 +204,8 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
             const isSell = t.trade_type === "SELL";
             const isCorpAction = isCorporateAction(t.trade_type);
             const rowHover = isBuy ? "hover:bg-pos/5": isSell ? "hover:bg-neg/5": isCorpAction ? "hover:bg-warn/5": "hover:bg-panel-2";
+            const rceptNo = t.rcept_no;
+            const lag = rceptNo ? lagState[rceptNo] : undefined;
             return (
               <tr key={i} className={`border-t border-border transition-colors ${rowHover}`}>
                 <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
@@ -187,6 +218,28 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
                 </td>
                 <td className="px-3 py-2 text-text-2 text-[11px] max-w-[280px] truncate">
                   {t.report_type || t.event_cause || "—"}
+                </td>
+                <td className="px-3 py-2 text-center whitespace-nowrap">
+                  {!rceptNo ? "—" : lag?.loading ? (
+                    <span className="text-text-3 text-[10px]">조회중…</span>
+                  ) : lag?.error ? (
+                    <span className="text-neg text-[10px]">실패</span>
+                  ) : lag?.lags ? (
+                    lag.lags.length === 0 ? (
+                      <span className="text-text-3 text-[10px]">—</span>
+                    ) : (
+                      <span className={`text-[10px] font-data font-semibold ${Math.max(...lag.lags) > 5 ? "text-warn" : "text-text-2"}`}>
+                        {lag.lags.join(",")}일
+                      </span>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => fetchLag(rceptNo, t.trade_date)}
+                      className="text-[10px] text-accent hover:underline"
+                    >
+                      확인
+                    </button>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-center">
                   {t.dart_url ? (
