@@ -6,6 +6,12 @@ import { toast } from "@/lib/toast";
 
 const POLL_MS = 30_000;
 
+function linkFor(botId: string): { href: string; label: string } {
+  if (botId.startsWith("polymarket")) return { href: "/polymarket", label: "폴리마켓 대시보드" };
+  if (botId.startsWith("mlb")) return { href: "/mlb", label: "MLB 대시보드" };
+  return { href: "/agents", label: "에이전트 목록" };
+}
+
 function sendPushNotification(title: string, body: string) {
   if (typeof window === "undefined") return;
   if (!("Notification" in window)) return;
@@ -43,8 +49,8 @@ export function AlertPoller() {
           if (seenIds.current.has(key)) continue;
           seenIds.current.add(key);
           if (!isInit) {
-            toast.show(` ${a.rule_label}: ${a.detail}`, "warn", 8000);
-            sendPushNotification("NAUTILUS 알림", `${a.rule_label}: ${a.detail}`);
+            toast.show(`${a.rule_label}\n${a.detail}`, "warn", 8000, linkFor(a.bot_id));
+            sendPushNotification(a.rule_label, a.detail);
           }
         }
       } catch {

@@ -9,17 +9,19 @@ import {
   getInsiderUSRecent,
   getInsiderCongress,
   getGovContracts,
+  getOptionsUOA,
   searchDartCompany,
   type DartCompany,
   type InsiderTrade,
   type InsiderTradeType,
   type CongressTrade,
   type GovContract,
+  type OptionsUOA,
 } from "@/lib/api";
 import { Panel } from "@/components/ui/Panel";
 import { Button, SegmentedToggle } from "@/components/ui";
 
-type Market = "us" | "kr" | "congress" | "gov";
+type Market = "us" | "kr" | "congress" | "gov" | "options";
 type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
 type MinValue = 0 | 10_000 | 50_000 | 100_000 | 500_000 | 1_000_000;
 
@@ -284,6 +286,46 @@ function GovTable({ rows }: { rows: import("@/lib/api").GovContract[] }) {
   );
 }
 
+// ── Options UOA Table ─────────────────────────────────────────────────────────
+
+function OptionsUOATable({ rows }: { rows: import("@/lib/api").OptionsUOA[] }) {
+  if (rows.length === 0)
+    return <div className="p-8 text-center text-text-3 text-sm">플래그된 콘트랙트 없음</div>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
+            <th className="px-3 py-2 text-left font-medium">티커</th>
+            <th className="px-3 py-2 text-left font-medium">콘트랙트</th>
+            <th className="px-3 py-2 text-right font-medium">만기(D)</th>
+            <th className="px-3 py-2 text-right font-medium">OTM</th>
+            <th className="px-3 py-2 text-right font-medium">거래량</th>
+            <th className="px-3 py-2 text-right font-medium">OI</th>
+            <th className="px-3 py-2 text-right font-medium">Vol/OI</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((x, i) => (
+            <tr key={i} className="border-t border-border hover:bg-panel-2 transition-colors">
+              <td className="px-3 py-2 text-text-1 font-medium font-data">{x.ticker}</td>
+              <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">
+                <span className={x.type === "call" ? "text-pos" : "text-neg"}>{x.type === "call" ? "C" : "P"}</span>
+                {" "}${x.strike} · {x.expiration_date}
+              </td>
+              <td className="px-3 py-2 text-right font-data text-text-3">{x.dte}</td>
+              <td className="px-3 py-2 text-right font-data text-text-3">{x.moneyness_pct.toFixed(1)}%</td>
+              <td className="px-3 py-2 text-right font-data text-text-1">{x.volume.toLocaleString()}</td>
+              <td className="px-3 py-2 text-right font-data text-text-3">{x.open_interest.toLocaleString()}</td>
+              <td className="px-3 py-2 text-right font-data font-semibold text-warn">{x.vol_oi_ratio.toFixed(1)}x</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Summary Bar ───────────────────────────────────────────────────────────────
 
 function SummaryBar({ trades, market }: { trades: InsiderTrade[]; market: Market }) {
@@ -412,6 +454,29 @@ export default function InsiderPage() {
   const [govError, setGovError] = useState<string | null>(null);
   const govCtrl = useRef<AbortController | null>(null);
 
+  // Options UOA state
+  const [uoaTicker, setUoaTicker] = useState("");
+  const [uoaData, setUoaData] = useState<OptionsUOA[]>([]);
+  const [uoaLoading, setUoaLoading] = useState(false);
+  const [uoaError, setUoaError] = useState<string | null>(null);
+  const uoaCtrl = useRef<AbortController | null>(null);
+
+  const fetchUOA = useCallback(async (tickers?: string) => {
+    uoaCtrl.current?.abort();
+    const ctrl = new AbortController();
+    uoaCtrl.current = ctrl;
+    setUoaLoading(true); setUoaError(null); setUoaData([]);
+    try {
+      const res = await getOptionsUOA(tickers, ctrl.signal);
+      if (!ctrl.signal.aborted) setUoaData(res);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted) setUoaError(e instanceof ApiError ? e.message : "조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setUoaLoading(false);
+    }
+  }, []);
+
   const fetchGov = useCallback(async () => {
     govCtrl.current?.abort();
     const ctrl = new AbortController();
@@ -432,7 +497,7 @@ export default function InsiderPage() {
   const krCtrl = useRef<AbortController | null>(null);
   const congCtrl = useRef<AbortController | null>(null);
 
-  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); }, []);
+  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); uoaCtrl.current?.abort(); }, []);
 
   const fetchCongress = useCallback(async () => {
     congCtrl.current?.abort();
@@ -521,7 +586,8 @@ export default function InsiderPage() {
     if (market === "us") fetchUSRecent(days);
     else if (market === "kr") fetchKRRecent(days);
     else if (market === "congress") fetchCongress();
-    else fetchGov();
+    else if (market === "gov") fetchGov();
+    else fetchUOA();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market, days]);
 
@@ -569,6 +635,7 @@ export default function InsiderPage() {
               { value: "kr", label: "🇰🇷 KR", activeClass: "border-accent bg-accent text-black" },
               { value: "congress", label: " 의회", activeClass: "border-accent bg-accent text-black" },
               { value: "gov", label: " 정부계약", activeClass: "border-accent bg-accent text-black" },
+              { value: "options", label: "🎯 옵션 UOA", activeClass: "border-accent bg-accent text-black" },
             ]}
           />
         </div>
@@ -672,6 +739,35 @@ export default function InsiderPage() {
       </div>
       )}
 
+      {/* ── Search row (Options UOA) ────────────────────────────────────── */}
+      {market === "options" && (
+        <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3">
+          <span className="text-text-3 text-xs shrink-0">티커 (선택, 쉼표구분):</span>
+          <input
+            value={uoaTicker}
+            onChange={e => setUoaTicker(e.target.value.toUpperCase())}
+            onKeyDown={e => { if (e.key === "Enter") fetchUOA(uoaTicker || undefined); }}
+            placeholder="MSTR, TSLA…  (비워두면 다른 insider leg 플래그 티커 자동조회)"
+            className="bg-bg border border-border rounded px-3 py-1.5 text-text-1 text-sm font-data w-96 focus:border-accent outline-none"/>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => fetchUOA(uoaTicker || undefined)}
+            disabled={uoaLoading}
+            className="rounded hover:opacity-90">
+            {uoaLoading ? "…" : "조회"}
+          </Button>
+          {uoaTicker && (
+            <button
+              onClick={() => { setUoaTicker(""); fetchUOA(); }}
+              className="text-text-3 text-xs hover:text-text-1 border border-border rounded px-2 py-1.5">
+              자동조회로
+            </button>
+          )}
+          <span className="text-text-3 text-xs ml-auto">Alpaca 옵션체인 · 만기짧고+OTM깊고+Vol/OI급등</span>
+        </div>
+      )}
+
       {/* ── Congress ────────────────────────────────────────────────────── */}
       {market === "congress" && (
         <>
@@ -693,6 +789,19 @@ export default function InsiderPage() {
           {!govLoading && (
             <Panel>
               <GovTable rows={govData} />
+            </Panel>
+          )}
+        </>
+      )}
+
+      {/* ── Options UOA ─────────────────────────────────────────────────── */}
+      {market === "options" && (
+        <>
+          {uoaError && <p className="text-neg text-sm px-1">{uoaError}</p>}
+          {uoaLoading && <p className="text-text-3 text-sm px-1">로딩 중… (옵션체인 스캔)</p>}
+          {!uoaLoading && (
+            <Panel>
+              <OptionsUOATable rows={uoaData} />
             </Panel>
           )}
         </>

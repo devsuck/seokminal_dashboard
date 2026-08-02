@@ -2165,6 +2165,26 @@ export async function getGovContracts(days = 30, limit = 40, signal?: AbortSigna
   return handleResponse<GovContract[]>(r);
 }
 
+export interface OptionsUOA {
+  ticker: string;
+  contract_symbol: string;
+  type: "call" | "put";
+  strike: number;
+  expiration_date: string;
+  dte: number;
+  spot: number;
+  moneyness_pct: number;
+  volume: number;
+  open_interest: number;
+  vol_oi_ratio: number;
+}
+
+export async function getOptionsUOA(tickers?: string, signal?: AbortSignal): Promise<OptionsUOA[]> {
+  const q = tickers ? `?tickers=${encodeURIComponent(tickers)}` : "";
+  const r = await fetch(`${API_URL}/insider/options-uoa${q}`, { signal });
+  return handleResponse<OptionsUOA[]>(r);
+}
+
 // ── Copy-Trade Autopilot (페이퍼) ────────────────────────────────────────────────
 
 export interface CopySignal {
@@ -3396,6 +3416,31 @@ export async function setPolymarketBotConfig(cfg: PolymarketBotConfig): Promise<
 }
 export async function runPolymarketBotNow(): Promise<Record<string, unknown>> {
   const r = await fetch(`${API_URL}/polymarket/run-now`, { method: "POST" });
+  return handleResponse(r);
+}
+
+// ── 샤프월렛 컨버전스 신호 paper 집행 봇(다각화 봇과 별개, v1 bucket1/bucket3만) ──────
+export interface SharpWalletBotStatus {
+  enabled: boolean; interval_sec: number; budget: number; trade_size_shares: number;
+  max_concurrent_positions: number; spent: number; realized_pnl: number; remaining: number;
+  positions: unknown[]; last_run: string | null; log: unknown[]; note: string;
+}
+export interface SharpWalletBotConfig {
+  enabled?: boolean; interval_sec?: number; budget?: number; trade_size_shares?: number;
+  max_concurrent_positions?: number; reset_spent?: boolean;
+}
+export async function getSharpWalletBotStatus(signal?: AbortSignal): Promise<SharpWalletBotStatus> {
+  const r = await fetch(`${API_URL}/polymarket-sharp-wallet-bot/status`, { signal });
+  return handleResponse<SharpWalletBotStatus>(r);
+}
+export async function setSharpWalletBotConfig(cfg: SharpWalletBotConfig): Promise<{ ok: boolean }> {
+  const r = await fetch(`${API_URL}/polymarket-sharp-wallet-bot/config`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
+  });
+  return handleResponse(r);
+}
+export async function runSharpWalletBotNow(): Promise<Record<string, unknown>> {
+  const r = await fetch(`${API_URL}/polymarket-sharp-wallet-bot/run-now`, { method: "POST" });
   return handleResponse(r);
 }
 

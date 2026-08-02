@@ -1,9 +1,15 @@
 export type ToastType = "info" | "success" | "warn" | "error";
 
+export interface ToastLink {
+  href: string;
+  label: string;
+}
+
 export interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  link?: ToastLink;
 }
 
 type Listener = (toasts: Toast[]) => void;
@@ -16,9 +22,9 @@ function notify() {
 }
 
 export const toast = {
-  show(message: string, type: ToastType = "info", durationMs = 5000) {
+  show(message: string, type: ToastType = "info", durationMs = 5000, link?: ToastLink) {
     const id = crypto.randomUUID();
-    _toasts = [..._toasts, { id, message, type }];
+    _toasts = [..._toasts, { id, message, type, link }];
     notify();
     setTimeout(() => toast.dismiss(id), durationMs);
   },
