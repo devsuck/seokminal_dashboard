@@ -1,3 +1,63 @@
+## Phase 197 — DART 공시지연 실측 + elestock/list.json 리포트코드 버그 수정 (2026-08-03) ✅ SHIPPED
+
+### 배경
+- 유저가 공유한 OpenPlanter 깃헙(카피트레이딩용?) 검토 요청 → OSINT/지식그래프 데스크톱 GUI로 매매실행과 무관, 5개월 방치, 단일기여자 → 카피트레이딩 부적합 판정, 채택 안 함.
+- 유저 정정: "카피트레이딩 아니라 내부거래자 매매(DART insider)임. 공시 지연 얼마나 되는지부터 확인해줘."
+
+### 발견한 버그 3건 (전부 근본원인 추적 후 수정)
+1. **`elestock.json`이 `bgn_de`/`end_de`/`page_no`/`page_count` 파라미터 자체를 무시**하고 항상 전체 이력 반환 — curl로 1999년 불가능 범위 줘도 2024+ 전체 데이터 나옴으로 증명. `get_executive_stock_changes()`에 클라이언트 post-filter 추가로 수정.
+2. `elestock.json` 요약 API엔 실거래일 필드가 없음(`rcept_dt`=접수일만). 원본 `document.xml`의 "세부변동내역" 표 `AUNIT="MDF_DM"`(결제일 기준 변동일)을 직접 파싱하는 `get_report_lag_days()` 신규 구현.
+3. **리포트코드 오분류**: `list.json` 조회에 `pblntf_ty=B`/`pblntf_detail_ty=B001`을 썼는데 이건 "주요사항보고서"(CB발행·증자결정 등)이지 임원·주요주주 소유상황보고서가 아님. 올바른 코드는 `D`/`D002`. 이 버그 때문에 최초 8건 실측이 전부 0건으로 나왔음 — 실측 스크립트 + `dart_client.py`의 `get_recent_kr_insider_feed()`(운영 코드, `/insider` 실피드가 씀) 둘 다 D002로 수정. (`get_recent_kr_corporate_actions()`는 원래 주요사항보고서를 찾는 용도라 B001 그대로 맞음, 안 건드림.)
+
+### 실측 결과 (D002 수정 후 30건 샘플)
+```
+n=80  평균=24.0일  중앙값=1.0일  최대=1552일  법정기한(5영업일) 초과=10건 (12%)
+(원문 오기로 보이는 음수 lag 3건 제외: [-1460, -3, -4])
+```
+중앙값 1일이 실질 대표값(대부분 결제일 익일 공시), 평균은 꼬리 이상치(리파인 1552일 등)에 왜곡됨. 법정기한 초과 12%는 실제 위반 사례. 음수 lag는 원문 XML 직접 대조로 확인한 신고자측 데이터 오기(연도 오타 등)로 판명, 우리쪽 파싱 버그 아님.
+
+### 잡은 환경 이슈
+- sandbox 네트워크 심한 스로틀링(문서당 45-60초+) — 30건 순차 다운로드에 20분+ 소요, `run_in_background`+`ScheduleWakeup`으로 대응.
+- `dotenv.load_dotenv()`가 `python3 - <<EOF` 스틴/heredoc 실행시 `AssertionError: assert frame.f_back is not None`로 죽음(`find_dotenv()`가 콜스택 프레임 워킹 실패) — 실제 `.py` 파일로 작성해 실행하면 회피됨. 향후 원샷 디버그 스크립트는 heredoc 말고 파일로 작성할 것.
+
+### 변경된 파일
+- 수정: `seokminal-multi-venue/insider/dart_client.py`(post-filter, `get_report_lag_days()` 신규, `get_recent_kr_insider_feed()` D002 수정)
+- 신규: `seokminal-multi-venue/tests/test_dart_client.py`(3 tests, 전체 16/16 pass)
+- 신규: `seokminal-multi-venue/research/measure_dart_disclosure_lag.py`(실측 스크립트)
+
+### 다음 할 일
+- 없음 — 유저 원 질문("공시지연 얼마나 되는지") 답변 완료. `get_report_lag_days()`를 프로덕션 API/프론트에 노출할지는 미결정, 유저가 명시 요청 전엔 안 함.
+- git commit 안 함(유저 명시 요청 없음).
+
+---
+
+## Phase 196 — 토스트 UX 개선 + 옵션 UOA(비정상 옵션거래량) 신규 leg on /insider (Alpaca) (2026-08-02) ✅ SHIPPED
+
+### 배경
+- sharp_wallet 봇 알림 토스트가 실제로 뜨는지(디버그 트리거 아닌 진짜 30초 폴링 사이클) 콘솔 로그 타이밍으로 검증 완료 — 파이프라인 정상, 이전 "토스트 안 뜸" 관찰은 스크린샷 타이밍 미스일 뿐 실버그 아니었음.
+- 유저 피드백: "팝업 정보가 불친절함. 무슨 알람인지·어떤 액션인지·해당 대시보드로 넘어가는 버튼 필요" → 토스트 UX 개선.
+- 유저 질문: "만기 짧은 콜/풋에 대량매매 = 인사이더 트레이딩 참고 가능?" → UOA(Unusual Options Activity) 학계·SEC/FINRA 실사용 근거 있음, 단독 알파로는 노이즈 큼·상업적으로 포화 → 기존 `/insider` 멀티시그널 컨버전스 프레임(DART/congress/gov-contracts/EDGAR Form4/Finnhub)에 새 leg로 편입 제안 → 유저 승인, 단 **"ib는 채택하지말고 alpaca로"** 명시 제약.
+
+### 완료된 작업
+1. **토스트 UX**: 제목/본문 분리(`\n` + `whitespace-pre-line`) + 클릭시 관련 대시보드로 이동하는 링크 버튼(`bot_id` 프리픽스로 `/polymarket`·`/mlb`·`/agents` 라우팅).
+2. **옵션 UOA 백엔드(Alpaca)**: `insider/options_uoa_client.py` 신규 — 만기≤14일+OTM≥10%+Vol/OI≥3x 콘트랙트만 스캔·플래그. `GET /insider/options-uoa` 신규(명시 티커 or 다른 insider leg가 이미 플래그한 티커 자동조회). 5개 pytest 신규(총 13/13 pass). 라이브 curl로 명시/자동 두 모드 다 검증.
+3. **프론트 옵션 UOA 탭**: `lib/api.ts`에 `getOptionsUOA()`, `app/insider/page.tsx`에 "🎯 옵션 UOA" 탭 신설(상태/fetch/AbortController/검색행/테이블 전부 wiring). `npx tsc --noEmit` clean. 브라우저 실동작 검증(자동조회 30건 + AAPL 명시조회 둘 다 실데이터 정상 렌더).
+
+### 디버깅 중 잡은 실버그 2건 (Alpaca SDK)
+- `get_option_chain`의 `OptionsSnapshot`엔 이 SDK 버전에서 `daily_bar`(거래량) 필드 자체가 없음 → `get_option_bars`(Day timeframe, 배치조회)로 전환.
+- `BarSet`은 `__contains__` 없어서 `sym in bars`가 항상 `False` → `bars.data.get(sym, [])`로 직접 dict 조회해야 함. 문서화 안 된 SDK 갭, 후속 확장시 기억할 것.
+
+### 변경된 파일
+- 신규: `seokminal-multi-venue/insider/options_uoa_client.py`
+- 수정: `seokminal-dashboard/lib/toast.ts`, `components/ui/ToastContainer.tsx`, `components/AlertPoller.tsx`, `lib/api.ts`, `app/insider/page.tsx`
+- 수정: `seokminal-multi-venue/api_server/main.py`(import + `OptionsUOA` 모델 + 엔드포인트), `tests/test_insider.py`(+5 tests)
+
+### 다음 할 일
+- 없음 — 이번 세션 요청 범위(토스트 UX + 옵션 UOA Alpaca leg) 전부 완료·검증됨.
+- (참고) IB는 이 기능에서 명시적으로 배제됨 — 향후 옵션 데이터 관련 작업에서 재검토하지 말 것.
+
+---
+
 ## Phase 195 — 홈/네비 단순화 1단계: /hud "판단 필요" 큐 + Operator 나브 모드 (2026-08-01) ✅ SHIPPED
 
 유저: "플랫폼이 심플하지 않다" — 리서치/시스템 잡다한 상태를 사람이 매번 확인하는 대시보드가 되어버렸다는 피드백. `/hud`와 `/command` 두 개의 경쟁하는 홈페이지, `CommandRail` 나브 9그룹/54항목 헤더 항상노출이 원인으로 지목됨. 2단계 중 1단계(IA/UX, 페이지 삭제 없음)만 진행 — "1+3으로 가자"(홈 통합+판단필요 큐 + 나브 Operator 토글)로 접근 확정, 브레인스토밍→스펙(`docs/superpowers/specs/2026-08-01-home-nav-simplification-design.md`)→플랜(`docs/superpowers/plans/2026-08-01-home-nav-simplification.md`)→subagent-driven-development 4태스크 실행+각 태스크 리뷰+최종 브랜치 리뷰까지 전부 완료.
