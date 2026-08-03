@@ -490,6 +490,9 @@ function InsiderPageInner() {
     setMarketState(m);
     router.replace(m === "convergence" ? "/insider?tab=convergence" : "/insider", { scroll: false });
   }, [router]);
+  useEffect(() => {
+    if (searchParams.get("tab") === "convergence") setMarketState("convergence");
+  }, [searchParams]);
   const [tradeFilter, setTradeFilter] = useState<TradeFilter>("all");
   const [minValue, setMinValue] = useState<MinValue>(0);
   const [days] = useState(30);

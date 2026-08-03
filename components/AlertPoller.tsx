@@ -44,7 +44,7 @@ export function AlertPoller() {
       if (inFlight.current) return;
       inFlight.current = true;
       try {
-        const alerts = await getTriggeredAlerts();
+        const alerts = await getTriggeredAlerts(AbortSignal.timeout(POLL_MS));
         const isInit = !initialized.current;
         initialized.current = true;
 
