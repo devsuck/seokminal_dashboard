@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ApiError,
   getInsiderKR,
@@ -11,6 +12,7 @@ import {
   getInsiderCongress,
   getGovContracts,
   getOptionsUOA,
+  getInsiderConvergence,
   searchDartCompany,
   type DartCompany,
   type InsiderTrade,
@@ -18,11 +20,12 @@ import {
   type CongressTrade,
   type GovContract,
   type OptionsUOA,
+  type ConvergenceSignal,
 } from "@/lib/api";
 import { Panel } from "@/components/ui/Panel";
 import { Button, SegmentedToggle } from "@/components/ui";
 
-type Market = "us" | "kr" | "congress" | "gov" | "options";
+type Market = "us" | "kr" | "congress" | "gov" | "options" | "convergence";
 type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
 type MinValue = 0 | 10_000 | 50_000 | 100_000 | 500_000 | 1_000_000;
 
@@ -477,8 +480,16 @@ function KRCompanySearch({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function InsiderPage() {
-  const [market, setMarket] = useState<Market>("us");
+function InsiderPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [market, setMarketState] = useState<Market>(
+    (searchParams.get("tab") as Market) === "convergence" ? "convergence" : "us"
+  );
+  const setMarket = useCallback((m: Market) => {
+    setMarketState(m);
+    router.replace(m === "convergence" ? "/insider?tab=convergence" : "/insider", { scroll: false });
+  }, [router]);
   const [tradeFilter, setTradeFilter] = useState<TradeFilter>("all");
   const [minValue, setMinValue] = useState<MinValue>(0);
   const [days] = useState(30);
@@ -513,6 +524,30 @@ export default function InsiderPage() {
   const [uoaLoading, setUoaLoading] = useState(false);
   const [uoaError, setUoaError] = useState<string | null>(null);
   const uoaCtrl = useRef<AbortController | null>(null);
+
+  // Convergence state
+  const [convMarket, setConvMarket] = useState<"kr" | "us">("kr");
+  const [convData, setConvData] = useState<ConvergenceSignal[]>([]);
+  const [convLoading, setConvLoading] = useState(false);
+  const [convError, setConvError] = useState<string | null>(null);
+  const [convDrawer, setConvDrawer] = useState<ConvergenceSignal | null>(null);
+  const convCtrl = useRef<AbortController | null>(null);
+
+  const fetchConvergence = useCallback(async (m: "kr" | "us") => {
+    convCtrl.current?.abort();
+    const ctrl = new AbortController();
+    convCtrl.current = ctrl;
+    setConvLoading(true); setConvError(null); setConvData([]);
+    try {
+      const res = await getInsiderConvergence(m, 30, ctrl.signal);
+      if (!ctrl.signal.aborted) setConvData(res);
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      if (!ctrl.signal.aborted) setConvError(e instanceof ApiError ? e.message : "조회 실패");
+    } finally {
+      if (!ctrl.signal.aborted) setConvLoading(false);
+    }
+  }, []);
 
   const fetchUOA = useCallback(async (tickers?: string) => {
     uoaCtrl.current?.abort();
@@ -550,7 +585,7 @@ export default function InsiderPage() {
   const krCtrl = useRef<AbortController | null>(null);
   const congCtrl = useRef<AbortController | null>(null);
 
-  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); uoaCtrl.current?.abort(); }, []);
+  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); uoaCtrl.current?.abort(); convCtrl.current?.abort(); }, []);
 
   const fetchCongress = useCallback(async () => {
     congCtrl.current?.abort();
@@ -640,9 +675,15 @@ export default function InsiderPage() {
     else if (market === "kr") fetchKRRecent(days);
     else if (market === "congress") fetchCongress();
     else if (market === "gov") fetchGov();
+    else if (market === "convergence") fetchConvergence(convMarket);
     else fetchUOA();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market, days]);
+
+  useEffect(() => {
+    if (market === "convergence") fetchConvergence(convMarket);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convMarket]);
 
   // Filter logic
   const rawData = market === "us" ? usData : krData;
@@ -689,6 +730,7 @@ export default function InsiderPage() {
               { value: "congress", label: " 의회", activeClass: "border-accent bg-accent text-black" },
               { value: "gov", label: " 정부계약", activeClass: "border-accent bg-accent text-black" },
               { value: "options", label: "🎯 옵션 UOA", activeClass: "border-accent bg-accent text-black" },
+              { value: "convergence", label: "🔥 컨버전스", activeClass: "border-accent bg-accent text-black" },
             ]}
           />
         </div>
@@ -860,6 +902,87 @@ export default function InsiderPage() {
         </>
       )}
 
+      {/* ── Convergence ─────────────────────────────────────────────────── */}
+      {market === "convergence" && (
+        <>
+          <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3">
+            <span className="text-text-3 text-xs shrink-0">마켓:</span>
+            <SegmentedToggle
+              value={convMarket}
+              onChange={setConvMarket}
+              size="sm"
+              options={[
+                { value: "kr", label: "🇰🇷 KR", activeClass: "border-accent bg-accent text-black" },
+                { value: "us", label: "🇺🇸 US", activeClass: "border-accent bg-accent text-black" },
+              ]}
+            />
+            <span className="text-text-3 text-xs ml-auto">서로 다른 leg가 같은 티커·같은 방향으로 겹치면 표시 (score = 겹친 leg 종류 수)</span>
+          </div>
+          {convError && <p className="text-neg text-sm px-1">{convError}</p>}
+          {convLoading && <p className="text-text-3 text-sm px-1">로딩 중…</p>}
+          {!convLoading && convData.length === 0 && !convError && (
+            <Panel className="p-12 text-center">
+              <p className="text-text-3 text-sm">컨버전스 신호 없음</p>
+            </Panel>
+          )}
+          {!convLoading && convData.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {convData.map(sig => (
+                <button
+                  key={`${sig.market}:${sig.ticker}:${sig.direction}`}
+                  onClick={() => setConvDrawer(sig)}
+                  className="text-left bg-panel border border-border rounded-lg p-4 hover:border-accent transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-text-1 font-data font-semibold">{sig.ticker}</span>
+                    <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${sig.market === "kr" ? "bg-info/15 text-info border-info/25" : "bg-panel-2 text-text-3 border-border"}`}>
+                      {sig.market === "kr" ? "🇰🇷 KR" : "🇺🇸 US"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${sig.direction === "BULLISH" ? "bg-pos/15 text-pos border-pos/25" : "bg-neg/15 text-neg border-neg/25"}`}>
+                      {sig.direction === "BULLISH" ? "🟢 상승" : "🔴 하락"}
+                    </span>
+                    <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${sig.score >= 3 ? "bg-accent/15 text-accent border-accent/25" : "bg-warn/15 text-warn border-warn/25"}`}>
+                      score {sig.score} {sig.score >= 3 ? "강함" : "주의"}
+                    </span>
+                  </div>
+                  <div className="text-text-3 text-xs">
+                    {Array.from(new Set(sig.legs.map(l => l.source))).join(" · ")}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {convDrawer && (
+            <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setConvDrawer(null)}>
+              <div className="absolute inset-0 bg-black/50" />
+              <div className="relative w-full max-w-md bg-panel border-l border-border h-full overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-text-1 font-semibold font-data">{convDrawer.ticker} — {convDrawer.direction === "BULLISH" ? "🟢 상승" : "🔴 하락"}</h2>
+                  <button onClick={() => setConvDrawer(null)} className="text-text-3 hover:text-text-1">✕</button>
+                </div>
+                <div className="space-y-3">
+                  {convDrawer.legs.map((leg, i) => (
+                    <div key={i} className="bg-panel-2 border border-border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-text-1 text-xs font-semibold">{leg.source}</span>
+                        <span className="text-text-3 text-xs font-data">{leg.trade_date}</span>
+                      </div>
+                      <p className="text-text-2 text-xs">{leg.detail}</p>
+                      {leg.url && (
+                        <a href={leg.url} target="_blank" rel="noopener noreferrer" className="text-accent text-xs hover:underline mt-1 inline-block">
+                          원문 보기 →
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* ── US/KR Error ─────────────────────────────────────────────────── */}
       {market === "us" && usError && <p className="text-neg text-sm px-1">{usError}</p>}
       {market === "kr" && krError && <p className="text-neg text-sm px-1">{krError}</p>}
@@ -896,4 +1019,8 @@ export default function InsiderPage() {
       )}
     </div>
   );
+}
+
+export default function InsiderPage() {
+  return <Suspense><InsiderPageInner /></Suspense>;
 }
