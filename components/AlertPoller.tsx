@@ -35,11 +35,14 @@ async function requestNotificationPermission() {
 export function AlertPoller() {
   const seenIds = useRef(new Set<string>());
   const initialized = useRef(false);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     requestNotificationPermission();
 
     async function poll() {
+      if (inFlight.current) return;
+      inFlight.current = true;
       try {
         const alerts = await getTriggeredAlerts();
         const isInit = !initialized.current;
@@ -56,6 +59,8 @@ export function AlertPoller() {
         }
       } catch {
         // silent — polling failure shouldn't break UI
+      } finally {
+        inFlight.current = false;
       }
     }
 
