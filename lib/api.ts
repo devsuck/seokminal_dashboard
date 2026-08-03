@@ -1939,7 +1939,8 @@ export type AlertConditionType =
   | "pnl_above"
   | "pnl_below"
   | "bot_error"
-  | "bot_stopped";
+  | "bot_stopped"
+  | "insider_convergence";
 
 export interface AlertRule {
   id: string;
@@ -2196,6 +2197,26 @@ export async function getOptionsUOA(tickers?: string, signal?: AbortSignal): Pro
   const q = tickers ? `?tickers=${encodeURIComponent(tickers)}` : "";
   const r = await fetch(`${API_URL}/insider/options-uoa${q}`, { signal });
   return handleResponse<OptionsUOA[]>(r);
+}
+
+export interface ConvergenceLeg {
+  source: string;
+  trade_date: string;
+  detail: string;
+  url: string | null;
+}
+
+export interface ConvergenceSignal {
+  ticker: string;
+  market: "kr" | "us";
+  direction: "BULLISH" | "BEARISH";
+  score: number;
+  legs: ConvergenceLeg[];
+}
+
+export async function getInsiderConvergence(market: "kr" | "us", days = 30, signal?: AbortSignal): Promise<ConvergenceSignal[]> {
+  const r = await fetch(`${API_URL}/insider/convergence?market=${market}&days=${days}`, { signal });
+  return handleResponse<ConvergenceSignal[]>(r);
 }
 
 // ── Copy-Trade Autopilot (페이퍼) ────────────────────────────────────────────────
