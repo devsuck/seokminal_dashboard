@@ -532,6 +532,7 @@ function InsiderPageInner() {
   const [convError, setConvError] = useState<string | null>(null);
   const [convDrawer, setConvDrawer] = useState<ConvergenceSignal | null>(null);
   const convCtrl = useRef<AbortController | null>(null);
+  const convMountedRef = useRef(false);
 
   const fetchConvergence = useCallback(async (m: "kr" | "us") => {
     convCtrl.current?.abort();
@@ -681,6 +682,10 @@ function InsiderPageInner() {
   }, [market, days]);
 
   useEffect(() => {
+    if (!convMountedRef.current) {
+      convMountedRef.current = true;
+      return;
+    }
     if (market === "convergence") fetchConvergence(convMarket);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convMarket]);
