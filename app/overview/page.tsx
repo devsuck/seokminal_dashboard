@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  listAgents, getAgentPerformance, getBuybackBot, getExecutionConsole, getLabTasks,
-  type TradingAgent, type AgentPerformance, type BuybackBot, type ExecutionConsole, type LabTask,
+  listAgents, getAgentPerformance, getBuybackBot, getExecutionConsole, getLabTasks, getDashboardPnlAll,
+  type TradingAgent, type AgentPerformance, type BuybackBot, type ExecutionConsole, type LabTask, type DashboardPnlAll,
 } from "@/lib/api";
 import { LivePulse, AnimatedNumber } from "@/components/Jarvis";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { LoadingState } from "@/components/ui";
 
 /* 총 포트폴리오 — 지금 얼마가 어떤 AI에 가있는지 + 각 AI 수익률·매매기록.
    + 연구 트랙(페이퍼 돈길) 스트립: 라이브 배분 0이어도 진짜 돈길은 여기서 보이게. */
@@ -34,6 +35,7 @@ export default function OverviewPage() {
   const [bot, setBot] = useState<BuybackBot | null>(null);
   const [exec, setExec] = useState<ExecutionConsole | null>(null);
   const [paperTasks, setPaperTasks] = useState<LabTask[] | null>(null);
+  const [pnlAll, setPnlAll] = useState<DashboardPnlAll | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -47,6 +49,7 @@ export default function OverviewPage() {
       getBuybackBot(ctrl.signal).then(b => { if (mounted) setBot(b); }).catch(() => {});
       getExecutionConsole(ctrl.signal).then(e => { if (mounted) setExec(e); }).catch(() => {});
       getLabTasks(ctrl.signal).then(t => { if (mounted) setPaperTasks(t.tasks); }).catch(() => {});
+      getDashboardPnlAll(ctrl.signal).then(d => { if (mounted) setPnlAll(d); }).catch(() => {});
       try {
         const { agents } = await listAgents(ctrl.signal);
         const perfs = await Promise.all(agents.map(a =>
@@ -116,6 +119,7 @@ export default function OverviewPage() {
         </Link>
       )}
 
+      {!rows && !err && <LoadingState message="포트폴리오 로딩 중…" />}
       {err && <div className="text-xs text-neg border border-neg/30 rounded px-3 py-2">오류: {err}</div>}
       {rows && rows.length === 0 && (
         <div className="bg-panel border border-border rounded-lg p-6 text-center text-text-3 text-sm">
@@ -134,6 +138,29 @@ export default function OverviewPage() {
                 const colors = ["bg-accent/70", "bg-info/70", "bg-pos/70", "bg-warn/70", "bg-neg/60"];
                 return <div key={r.agent.id} className={`${colors[i % colors.length]} ${widthClass(w)}`} title={`${r.agent.name} ${w.toFixed(0)}%`} />;
               })}
+            </div>
+          </div>
+        </Panel>
+      )}
+
+      {/* 독립봇 실현손익 — council 에이전트와 별개 자본(dart/vrp/polymarket/sharp_wallet/copytrade) */}
+      {pnlAll && (
+        <Panel>
+          <PanelHeader>독립봇 실현손익</PanelHeader>
+          <div className="p-3 space-y-1.5">
+            {pnlAll.bots.map(b => (
+              <div key={b.id} className="flex items-center justify-between text-xs">
+                <span className="text-text-2">{b.name}{b.note && <span className="text-text-3"> ({b.note})</span>}</span>
+                <span className={`font-data px-1 font-bold ${b.realized_pnl === null ? "text-text-3" : b.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                  {b.realized_pnl === null ? "—" : won(b.realized_pnl)}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border">
+              <span className="text-text-1 font-semibold">합계 (에이전트+독립봇)</span>
+              <span className={`font-data px-1 font-bold ${pnlAll.grand_total_realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                {won(pnlAll.grand_total_realized_pnl)}
+              </span>
             </div>
           </div>
         </Panel>

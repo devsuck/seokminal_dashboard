@@ -1600,6 +1600,20 @@ export async function getAgentsOverview(signal?: AbortSignal): Promise<AgentsOve
   return r.json();
 }
 
+export interface DashboardBotRow { id: string; name: string; realized_pnl: number | null; note?: string }
+export interface DashboardPnlAll {
+  agents: AgentOverviewRow[];
+  agents_totals: AgentsOverview["totals"];
+  bots: DashboardBotRow[];
+  bots_totals: { realized_pnl: number };
+  grand_total_realized_pnl: number;
+}
+export async function getDashboardPnlAll(signal?: AbortSignal): Promise<DashboardPnlAll> {
+  const r = await fetch(`${API_URL}/dashboard/pnl/all`, { signal });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 export interface AccountRow {
   venue: string; label: string; ccy: string; mode: string | null;
   balance: number | null; allocated: number; error?: string | null;
@@ -2712,6 +2726,25 @@ export async function copyAutoExit(tpPct: number, slPct: number): Promise<CopyAu
   return handleResponse(r);
 }
 
+// ── 카피트레이딩 자동청산 (서버측 상시 루프) ─────────────────────────────────────
+export interface CopytradeBotLog {
+  ts: string; kind: string; ticker?: string; pl_pct?: number; reason?: string; msg?: string;
+}
+export interface CopytradeBotStatus {
+  enabled: boolean; interval_sec: number; tp_pct: number; sl_pct: number;
+  last_run: string | null; log: CopytradeBotLog[];
+}
+export async function getCopytradeBotStatus(signal?: AbortSignal): Promise<CopytradeBotStatus> {
+  const r = await fetch(`${API_URL}/copytrade/auto/status`, { signal });
+  return handleResponse<CopytradeBotStatus>(r);
+}
+export async function setCopytradeBotConfig(cfg: { enabled?: boolean; interval_sec?: number; tp_pct?: number; sl_pct?: number }): Promise<{ ok: boolean }> {
+  const r = await fetch(`${API_URL}/copytrade/auto/config`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
+  });
+  return handleResponse(r);
+}
+
 // ── Economic Calendar ──────────────────────────────────────────────────────────
 
 export interface EconomicEvent {
@@ -3454,10 +3487,15 @@ export async function runPolymarketBotNow(): Promise<Record<string, unknown>> {
 }
 
 // ── 샤프월렛 컨버전스 신호 paper 집행 봇(다각화 봇과 별개, v1 bucket1/bucket3만) ──────
+export interface SharpWalletPosition {
+  condition_id: string; convergence_bucket: number; horizon_s: number; direction: number;
+  entry_price: number; entry_ts: number; exit_at: number; usd: number; shares: number;
+  entry_spread_bps: number | null; outcome_index: number;
+}
 export interface SharpWalletBotStatus {
   enabled: boolean; interval_sec: number; budget: number; trade_size_shares: number;
   max_concurrent_positions: number; spent: number; realized_pnl: number; remaining: number;
-  positions: unknown[]; last_run: string | null; log: unknown[]; note: string;
+  positions: SharpWalletPosition[]; last_run: string | null; log: PolymarketBotLog[]; note: string;
 }
 export interface SharpWalletBotConfig {
   enabled?: boolean; interval_sec?: number; budget?: number; trade_size_shares?: number;
