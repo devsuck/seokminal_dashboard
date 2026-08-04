@@ -12,27 +12,27 @@ export default function OperatingConsole() {
   const { data, err, loading } = useConsole<OperatingConsoleResp>((s) => getOperatingConsole(s), [], 60000);
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P70" title="운영 콘솔"
+      <PageHeader title="운영 콘솔"
         right={data && <Badge tone="hud">{data.date}</Badge>} />
       <StateBlock loading={loading} err={err}>
         {data && (
           <div className="p-5 space-y-5">
             {/* 상단 KPI */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatTile label="리서치 레코드" value={num(data.research.total_records)} accent="hud"
+              <StatTile label="리서치 레코드" value={num(data.research.total_records)}
                 sub={`${num(data.research.experiment_runs)}건 실행 · ${num(data.research.active_sources)}개 소스`} />
               <StatTile label="기회" value={data.opportunities.length} accent="pos"
                 sub="오늘의 리서치 큐" tone="pos" />
               <StatTile label="열린 리스크" value={num(data.risks.total_failures)} accent="warn"
                 tone="warn" sub={`상위: ${data.risks.top_category ?? "—"}`} />
-              <StatTile label="활성 세션" value={data.sessions.active} accent="info"
+              <StatTile label="활성 세션" value={data.sessions.active}
                 sub={`총 ${data.sessions.count}건`} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* 오늘의 기회 */}
               <Panel>
-                <PanelHead kicker="P58" title="오늘의 기회" right={<Badge tone="pos">{data.opportunities.length}</Badge>} />
+                <PanelHead title="오늘의 기회" right={<Badge tone="mute">{data.opportunities.length}</Badge>} />
                 <div className="p-4 space-y-2">
                   {data.opportunities.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">축적 메모리가 채워지면 연구 후보가 제안됩니다.</div>}
                   {data.opportunities.map((o, i) => (
@@ -52,7 +52,7 @@ export default function OperatingConsole() {
 
               {/* 오늘의 리스크 */}
               <Panel>
-                <PanelHead kicker="P62" title="오늘의 리스크" right={<Badge tone="warn">{data.risks.top_category ?? "—"}</Badge>} />
+                <PanelHead title="오늘의 리스크" right={<Badge tone="warn">{data.risks.top_category ?? "—"}</Badge>} />
                 <div className="p-4 space-y-3">
                   {Object.entries(data.risks.by_category ?? {}).slice(0, 6).map(([cat, n]) => {
                     const max = Math.max(1, ...Object.values(data.risks.by_category ?? { x: 1 }));
@@ -75,7 +75,7 @@ export default function OperatingConsole() {
 
               {/* 포트폴리오 노출 + 페이퍼 */}
               <Panel>
-                <PanelHead kicker="P61·P63" title="노출 & 페이퍼 트레이딩" />
+                <PanelHead title="노출 & 페이퍼 트레이딩" />
                 <div className="p-4 space-y-2">
                   <KV k="페이퍼 자본" v={`$${num(data.exposure.capital)}`} />
                   <KV k="총 노출" v={`$${num(data.exposure.gross_exposure)} (${num(data.exposure.exposure_pct, 1)}%)`} />
@@ -88,7 +88,7 @@ export default function OperatingConsole() {
 
               {/* 이벤트 + 추천 */}
               <Panel>
-                <PanelHead kicker="P60·P59" title="이벤트 & 추천" />
+                <PanelHead title="이벤트 & 추천" />
                 <div className="p-4 space-y-3">
                   <KV k="공급망 맵" v={`${data.events.node_count ?? 0}개 노드 · ${data.events.edge_count ?? 0}개 엣지`} />
                   {data.recommendations.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">추천할 상위 기회 없음.</div>}
@@ -104,8 +104,8 @@ export default function OperatingConsole() {
             </div>
 
             {/* 세션 */}
-            <Panel>
-              <PanelHead kicker="P66" title="활성 세션" right={<Badge tone="info">활성 {data.sessions.active}</Badge>} />
+            <Panel className="opacity-70">
+              <PanelHead title="활성 세션" right={<Badge tone="mute">활성 {data.sessions.active}</Badge>} />
               <div className="p-4">
                 {data.sessions.items.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">활성 세션 없음 — 워크플로 탭에서 세션을 시작하세요.</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

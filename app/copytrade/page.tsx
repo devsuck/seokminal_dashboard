@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ApiError, getCopyTraders, getCopyPositions, mirrorCopyTrade,
-  closeCopyPosition, copyAutoExit,
+  closeCopyPosition, copyAutoExit, getCopytradeBotStatus, setCopytradeBotConfig,
   type TraderCard, type CopyPosition,
 } from "@/lib/api";
 import { EmptyState, LoadingState, Button } from "@/components/ui";
@@ -12,9 +12,6 @@ import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 const NOTIONAL_KEY = "copytrade-notional";
 const TOTAL_BUDGET_KEY = "copytrade-total-budget";
-const AUTO_EXIT_KEY = "copytrade-auto-exit";
-const TP_KEY = "copytrade-tp-pct";
-const SL_KEY = "copytrade-sl-pct";
 
 // 이름 → 안정적 색상 (아바타 배경)
 const AVATAR_COLORS = [
@@ -43,6 +40,7 @@ export default function CopyTradePage() {
   const [autoExit, setAutoExit] = useState(false);
   const [tpPct, setTpPct] = useState("15");
   const [slPct, setSlPct] = useState("7");
+  const [botLastRun, setBotLastRun] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<"return" | "recent">("return");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -50,14 +48,31 @@ export default function CopyTradePage() {
   const [toast, setToast] = useState<string | null>(null);
   const tCtrl = useRef<AbortController | null>(null);
   const pCtrl = useRef<AbortController | null>(null);
+  const sCtrl = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const n = localStorage.getItem(NOTIONAL_KEY); if (n) setNotional(n);
     const b = localStorage.getItem(TOTAL_BUDGET_KEY); if (b) setTotalBudget(b);
-    const a = localStorage.getItem(AUTO_EXIT_KEY); if (a) setAutoExit(a === "true");
-    const t = localStorage.getItem(TP_KEY); if (t) setTpPct(t);
-    const s = localStorage.getItem(SL_KEY); if (s) setSlPct(s);
   }, []);
+
+  // 자동청산 설정 = 서버 상시 루프의 설정(브라우저 무관하게 동작). 진실 소스는 서버.
+  const loadBotStatus = useCallback(() => {
+    sCtrl.current?.abort();
+    const ctrl = new AbortController(); sCtrl.current = ctrl;
+    getCopytradeBotStatus(ctrl.signal)
+      .then(s => {
+        if (ctrl.signal.aborted) return;
+        setAutoExit(s.enabled); setTpPct(String(s.tp_pct)); setSlPct(String(s.sl_pct));
+        setBotLastRun(s.last_run);
+      })
+      .catch(e => { if (!(e instanceof DOMException && e.name === "AbortError")) { /* 백엔드 미기동 — 무시 */ } });
+  }, []);
+
+  useEffect(() => {
+    loadBotStatus();
+    const iv = setInterval(loadBotStatus, 60_000);
+    return () => { clearInterval(iv); sCtrl.current?.abort(); };
+  }, [loadBotStatus]);
 
   const loadPositions = useCallback(() => {
     pCtrl.current?.abort();
@@ -125,13 +140,20 @@ export default function CopyTradePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tpPct, slPct, loadPositions]);
 
-  // 자동청산 ON이면 포지션 폴링 주기(60초)마다 TP/SL 규칙 적용
-  useEffect(() => {
-    if (!autoExit) return;
-    runAutoExit();
-    const iv = setInterval(runAutoExit, 60_000);
-    return () => clearInterval(iv);
-  }, [autoExit, runAutoExit]);
+  async function toggleAutoExit() {
+    const v = !autoExit;
+    setAutoExit(v);
+    try { await setCopytradeBotConfig({ enabled: v }); }
+    catch { flash("설정 저장 실패 — 백엔드 확인"); setAutoExit(!v); }
+  }
+  async function saveTpSl(next: { tp?: string; sl?: string }) {
+    try {
+      await setCopytradeBotConfig({
+        tp_pct: parseFloat(next.tp ?? tpPct) || 15,
+        sl_pct: parseFloat(next.sl ?? slPct) || 7,
+      });
+    } catch { /* 다음 blur 시 재시도 */ }
+  }
 
   const totalPl = positions.reduce((a, p) => a + p.unrealized_pl, 0);
 
@@ -270,16 +292,20 @@ export default function CopyTradePage() {
           </PanelHeader>
           {/* 자동청산 규칙 — TP/SL 넘으면 자동 매도, 예산 회수 */}
           <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 flex-wrap">
-            <button onClick={() => { const v = !autoExit; setAutoExit(v); localStorage.setItem(AUTO_EXIT_KEY, String(v)); }}
+            <button onClick={toggleAutoExit}
+              title="서버 상시 루프 — 브라우저를 닫아도 계속 동작"
               className={`text-[11px] px-2.5 py-1 rounded border ${autoExit ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
-              {autoExit ? "● 자동청산 ON" : "자동청산 OFF"}
+              {autoExit ? "● 자동청산 ON (서버)" : "자동청산 OFF"}
             </button>
             <label className="text-text-3 text-[10px]">익절%</label>
-            <input value={tpPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setTpPct(v); localStorage.setItem(TP_KEY, v); }}
+            <input value={tpPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setTpPct(v); }}
+              onBlur={e => saveTpSl({ tp: e.target.value })}
               inputMode="decimal" className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 text-xs font-data outline-none focus:border-accent" />
             <label className="text-text-3 text-[10px]">손절%</label>
-            <input value={slPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setSlPct(v); localStorage.setItem(SL_KEY, v); }}
+            <input value={slPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setSlPct(v); }}
+              onBlur={e => saveTpSl({ sl: e.target.value })}
               inputMode="decimal" className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 text-xs font-data outline-none focus:border-accent" />
+            {botLastRun && <span className="text-text-3 text-[10px]" title={botLastRun}>마지막 실행 {new Date(botLastRun).toLocaleTimeString()}</span>}
             <button onClick={runAutoExit}
               className="text-[10px] px-2 py-1 rounded border border-border text-text-3 hover:text-accent hover:border-accent ml-auto">
               지금 적용

@@ -383,7 +383,7 @@ export default function HudPage() {
       {/* 계좌 + 돈길 핵심 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 items-start">
         {bal ? <Balances bal={bal} /> : (
-          <div className="bg-panel border border-border p-2 text-text-3 text-[11px]">계좌 정보 로딩 중…</div>
+          <div className="bg-panel border border-border p-2 text-text-3 text-[11px]">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
         )}
         <Panel>
           <PanelHeader right={<Link href="/lab/execution" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>

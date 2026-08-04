@@ -11,6 +11,7 @@ import { useGexSnapshot } from "@/hooks/useGexSnapshot";
 import { useFundingSnapshot } from "@/hooks/useFundingSnapshot";
 import { getOrderflowSymbols } from "@/lib/api";
 import { currencyForSymbol, hlCoinForSymbol } from "@/lib/orderflow-data";
+import { LoadingState } from "@/components/ui";
 
 // 오더플로우 백엔드가 실제 지원하는 종목만 — 일반 InstrumentSelect의 전체 카탈로그(주식 등)는 여기 해당 없음.
 // HL 코인: research/data/hl_funding_loader.py LIQUID_PERPS와 동기화. 선물: orderflow/ib_adapter.py _FUTURES_SYMBOLS.
@@ -93,7 +94,9 @@ export default function OrderflowPage() {
           <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
-      {viewMode === "live" ? (
+      {viewMode === "live" && connectionState === "connecting" && footprint.length === 0 ? (
+        <LoadingState message="오더플로우 소켓 연결 중…" />
+      ) : viewMode === "live" ? (
         <OrderflowChart
           symbol={symbol}
           footprint={footprint}

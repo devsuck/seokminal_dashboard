@@ -1,7 +1,7 @@
 "use client";
 // P161-170 — Committee & Production Readiness. Overview/Committee/Debate/Conviction/Portfolio/Governance/Production/Metrics/Review.
 // /console/production-readiness. READ ONLY · 위원회·거버넌스·모니터링 · BUY/SELL/EXECUTE/ALLOCATE 없음.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getProductionReadiness, type ProductionReadinessResp } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
@@ -14,11 +14,16 @@ export default function ProductionReadiness() {
   const [data, setData] = useState<ProductionReadinessResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async (query: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setErr(null);
-    try { setData(await getProductionReadiness(query)); } catch (e) { setErr((e as Error).message); }
+    try { const d = await getProductionReadiness(query, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
   }, []);
-  useEffect(() => { run("Does momentum work in KR equities?"); }, [run]);
+  useEffect(() => { run("Does momentum work in KR equities?"); return () => abortRef.current?.abort(); }, [run]);
 
   const ov = data?.institutional_overview;
   const cp = data?.committee_packet;

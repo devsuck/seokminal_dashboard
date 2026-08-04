@@ -1,7 +1,7 @@
 "use client";
 // P78 — Research Timeline. 기존 append-only 원장에서 재구성한 연구 타임라인. /console/research-timeline.
 // READ ONLY · 새 히스토리 DB 없음.
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { getResearchTimeline, type TimelineResp } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, Badge } from "@/components/console/primitives";
@@ -20,13 +20,17 @@ export default function Timeline() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async (topic: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setLoading(true); setErr(null);
-    try { setData(await getResearchTimeline(topic)); }
-    catch (e) { setErr((e as Error).message); }
-    finally { setLoading(false); }
+    try { const d = await getResearchTimeline(topic, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
+    finally { if (!ctrl.signal.aborted) setLoading(false); }
   }, []);
-  useEffect(() => { run(""); }, [run]);
+  useEffect(() => { run(""); return () => abortRef.current?.abort(); }, [run]);
 
   return (
     <div className="min-h-full">

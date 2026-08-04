@@ -345,13 +345,13 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let live = true;
+    const ctrl = new AbortController();
     setLoading(true);
-    getGodModeEligibility(agent.id)
-      .then(r => { if (live) setCheck(r); })
-      .catch(e => { if (live) setError(e instanceof Error ? e.message : String(e)); })
-      .finally(() => { if (live) setLoading(false); });
-    return () => { live = false; };
+    getGodModeEligibility(agent.id, ctrl.signal)
+      .then(r => { if (!ctrl.signal.aborted) setCheck(r); })
+      .catch(e => { if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? e.message : String(e)); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => { ctrl.abort(); };
   }, [agent.id]);
 
   if (agent.god_mode) {
@@ -518,32 +518,34 @@ export default function AgentsPage() {
   // Poll cycles for the selected agent.
   useEffect(() => {
     if (!selected) { setCycles([]); return; }
+    const ctrl = new AbortController();
     let live = true;
     async function poll() {
       try {
-        const { cycles } = await getAgentCycles(selected!, 30);
+        const { cycles } = await getAgentCycles(selected!, 30, ctrl.signal);
         if (live) setCycles(cycles);
       } catch { /* ignore */ }
-      cyclePollRef.current = setTimeout(poll, 5000);
+      if (live) cyclePollRef.current = setTimeout(poll, 5000);
     }
     poll();
-    return () => { live = false; if (cyclePollRef.current) clearTimeout(cyclePollRef.current); };
+    return () => { live = false; ctrl.abort(); if (cyclePollRef.current) clearTimeout(cyclePollRef.current); };
   }, [selected]);
 
   // Poll performance (real-time PnL) for the selected agent.
   useEffect(() => {
     setDistill(null);  // clear stale distillation when switching agents
     if (!selected) { setPerf(null); return; }
+    const ctrl = new AbortController();
     let live = true;
     async function poll() {
       try {
-        const p = await getAgentPerformance(selected!);
+        const p = await getAgentPerformance(selected!, ctrl.signal);
         if (live) setPerf(p);
       } catch { /* ignore */ }
-      perfPollRef.current = setTimeout(poll, 5000);
+      if (live) perfPollRef.current = setTimeout(poll, 5000);
     }
     poll();
-    return () => { live = false; if (perfPollRef.current) clearTimeout(perfPollRef.current); };
+    return () => { live = false; ctrl.abort(); if (perfPollRef.current) clearTimeout(perfPollRef.current); };
   }, [selected]);
 
   async function handleDistill() {

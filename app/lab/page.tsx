@@ -9,7 +9,7 @@ import {
 import { LivePulse, ThinkingLine } from "@/components/Jarvis";
 import AutoResearchPanel from "@/components/AutoResearchPanel";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
-import { Button } from "@/components/ui";
+import { Button, LoadingState } from "@/components/ui";
 
 // ── 진행바 폭: style={{}} 금지 → 리터럴 Tailwind 폭 클래스 룩업(10% 스텝) ──
 const WIDTHS = [
@@ -152,6 +152,8 @@ export default function LabPage() {
           </div>
         </Panel>
       )}
+
+      {!st && !err && <LoadingState message="LAB 상태 로딩 중…" />}
 
       {/* Guardrail */}
       <Panel>

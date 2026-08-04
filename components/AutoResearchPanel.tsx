@@ -28,6 +28,7 @@ function fnum(n: number | null | undefined, d = 4, sign = false): string {
 export default function AutoResearchPanel({ embedded = false }: { embedded?: boolean }) {
   const [st, setSt] = useState<AutoResearchStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [promoting, setPromoting] = useState<string | null>(null);
@@ -46,10 +47,15 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
   }, []);
 
   async function onRun() {
-    setBusy(true); setErr(null);
-    try { setSt(await runAutoResearch()); }
+    setBusy(true); setErr(null); setElapsed(0);
+    const tick = setInterval(() => setElapsed(s => s + 1), 1000);
+    try {
+      const res = await runAutoResearch();
+      if (res.busy) setErr("이미 다른 배치가 실행 중 — 아래는 이전 실행 결과");
+      else setSt(res);
+    }
     catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
-    finally { setBusy(false); }
+    finally { clearInterval(tick); setBusy(false); }
   }
 
   async function onPromote(cid: string, thesis: string) {
@@ -82,7 +88,7 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
           </div>
           <button onClick={onRun} disabled={busy}
             className="px-3 py-1.5 text-sm font-medium rounded border border-accent/50 text-accent bg-accent/10 disabled:opacity-40 cursor-pointer">
-            {busy ? "실행중…" : "▶ 배치 실행"}
+            {busy ? `실행중… ${elapsed}s (보통 1~2분)` : "▶ 배치 실행"}
           </button>
         </div>
       ) : (
@@ -105,7 +111,7 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
               </div>
             </div>
             <Button variant="primary" size="md" onClick={onRun} disabled={busy}>
-              {busy ? "실행중…" : "▶ 배치 실행"}
+              {busy ? `실행중… ${elapsed}s (보통 1~2분)` : "▶ 배치 실행"}
             </Button>
           </div>
           {st && (

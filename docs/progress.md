@@ -1,3 +1,159 @@
+## Phase 202 — 카피트레이딩 자동청산 서버 루프 이전 (2026-08-04) ✅ SHIPPED
+
+### 배경
+- 유저: "카트 오토파일럿, 카피트레이딩 업그레이드로 넘어가보자" → "카피트레이딩 자동청산부터 서버 루프로 옮겨줘". 기존 자동청산이 `app/copytrade/page.tsx`의 `useEffect` 60초 폴링(브라우저 탭 열려있어야만 동작)에 의존 — DART 오토봇(`dart_autobot.py`, 브라우저 무관 서버 상시 루프)과 구조적으로 비대칭이던 갭.
+
+### 완료된 작업
+- `dart_autobot.py` 패턴(JSON config/state + JSONL 로그 + `asyncio` 백그라운드 루프 + 킬스위치 체크) 그대로 따라 `copytrade_autobot.py` 신규 작성. Alpaca `get_all_positions()`가 유일한 진실 소스라 dart봇과 달리 로컬 포지션 추적 상태는 두지 않음(단순화).
+- `main.py`: `copytrade_autobot` 라우터 등록 + `@app.on_event("startup")`에 `_copytrade_bot_start()` 배선(다른 서버봇들과 동일 지점).
+- 기존 수동용 `/copytrade/auto-exit` 엔드포인트는 그대로 유지(테스트/수동 트리거용), 신규 서버 루프는 `/copytrade/auto/{status,config,run-now}`로 분리.
+- 프론트(`app/copytrade/page.tsx`): 자동청산 토글/익절%/손절% 를 `localStorage` 대신 서버 설정(`getCopytradeBotStatus`/`setCopytradeBotConfig`)에 연결. 브라우저 폴링으로 직접 청산 실행하던 `useEffect`(60초 인터벌) 제거 — 이제 서버 루프가 실행을 전담, 프론트는 상태 표시(마지막 실행 시각)+토글/설정+수동 "지금 적용" 버튼만.
+- `lib/api.ts`에 `getCopytradeBotStatus`/`setCopytradeBotConfig`/`CopytradeBotStatus`/`CopytradeBotLog` 추가(DART 오토봇 API 패턴 그대로).
+- 테스트: `tests/test_copytrade_autobot.py` 신규(TP/SL 발동·미발동·disabled 스킵 4케이스) 전부 통과. `npx tsc --noEmit` clean. `bash scripts/restart_api.sh` 후 `/copytrade/auto/status`·`/copytrade/auto/config` 실제 curl로 라이브 확인.
+
+### 변경된 파일
+- `seokminal-multi-venue/api_server/copytrade_autobot.py` (신규)
+- `seokminal-multi-venue/api_server/main.py` (라우터 등록 + startup 배선)
+- `seokminal-multi-venue/tests/test_copytrade_autobot.py` (신규)
+- `seokminal-dashboard/lib/api.ts`, `seokminal-dashboard/app/copytrade/page.tsx`
+
+### 다음 할 일
+- 유저가 다음으로 언급한 DART 오토파일럿 개선(소급 과매수 예산 리셋 미해결 건, JSON state 마이그레이션 로직 정리)은 아직 미시작 — "카피트레이딩부터"라 순서상 다음 후보지만 유저 재확인 없이 먼저 손대지 않음.
+
+### 막힌 부분/결정사항
+- `pytest tests/ -q` 전체 실행 시 `test_alerts_api.py::test_triggered_includes_insider_convergence_signal` + `test_polymarket_sharp_wallet_bot.py` 3건 실패 확인됨 — 이번 변경(copytrade_autobot/main.py 라우터 등록)과 무관한 별개 서브시스템(내부자 컨버전스 신호, 샤프월렛 봇)이라 원인 미조사. 다음 세션에서 원인 확인 필요(라이브 데이터 의존 플레이키일 가능성).
+
+---
+
+## Phase 201 — UI/UX 정리 스윕: 로딩 카피·스피너·AbortController 패턴드리프트·씬페이지 감사 (2026-08-04) ✅ SHIPPED
+
+### 배경
+- 유저 "해 그러면 나머지들도 전부 다 해줘 나 잘거라서" — 이전 세션에서 조사된 UI/UX 잔여 태스크 전부 자율 실행 지시(취침). 실채팅 없이 4개 태스크(Task #3~#6) 완주.
+
+### 완료된 작업
+- **Task #3 — `/hud` 로딩 카피**: `계좌 정보 로딩 중…`이 IB Gateway 정상 응답지연(6~8초) 동안 멈춘 것처럼 보이던 문제. `(IB Gateway 응답 대기, 6~8초 정상)` 문구 추가.
+- **Task #4 — cold-load 시 빈 화면 6곳에 `LoadingState` 배선**: `buyback-doctor`, `overview`, `edges`, `lab`, `orderflow` 5개 페이지에 `components/ui`의 `LoadingState` 적용. `backtest/heatmap`은 유저 트리거형(버튼 클릭 그리드서치, 이미 진행률 표시 있음)이라 대상 아님 확인 후 스킵.
+- **Task #5 — AbortController 패턴드리프트 수정 (~11개 페이지)**: 프로젝트 컨벤션(abort→create→assign ref→fetch→catch AbortError→finally guard→unmount cleanup) 위반 두 유형 발견 후 수정.
+  - `investment-os/page.tsx`: 공용 `useTabFetch` 훅 + 14개 호출부, 추가 raw fetch `useEffect` 2곳 — 전부 `let live` 패턴 또는 취소 전무 → AbortController로 교체.
+  - `agents/page.tsx`: `GodModePanel` + 사이클/퍼포먼스 폴링 `useEffect` 2곳. **부수 발견**: 두 폴링 루프가 `let live` 가드와 무관하게 `setTimeout(poll, 5000)`을 무조건 재예약 — unmount 후 in-flight fetch가 resolve되면 cleanup의 `clearTimeout`이 잡을 수 없는 새 타이머가 재생성되는 실제 폴링 누수 버그. `if (live) ... setTimeout(...)`으로 재예약 자체를 게이팅해서 같이 수정.
+  - `research-os/{graph,discovery,workflow,production,brain,timeline,intelligence-plus}/page.tsx` 7개 전부: 취소 전무(가장 심한 패턴) → 전부 AbortController로 교체.
+  - `experiments/page.tsx`는 `localStorage` 동기 읽기라 네트워크 취소 대상 아님 확인 후 스킵.
+- **Task #6 — 씬 콘솔 페이지 6곳 감사 (읽기전용)**: `exec/orders`, `council/{logs,agents,decisions}`, `portfolio-os/{positions,risk}` — 형제 페이지 대비 28~41줄로 짧아 미완성 의심됐으나, 전부 `useConsole` + 실제 fetch + `StateBlock` 로딩/에러/빈상태 처리 확인. 하드코딩·TODO 없음 — **의도된 미니멀 상태뷰, 수정 불필요.**
+- `npx tsc --noEmit` clean (Task #4, #5 각각 재검증).
+
+### 변경된 파일
+- `app/hud/page.tsx`
+- `app/buyback-doctor/page.tsx`, `app/overview/page.tsx`, `app/edges/page.tsx`, `app/lab/page.tsx`, `app/orderflow/page.tsx`
+- `app/(console)/investment-os/page.tsx`, `app/agents/page.tsx`
+- `app/(console)/research-os/{graph,discovery,workflow,production,brain,timeline,intelligence-plus}/page.tsx`
+
+### 다음 할 일
+- 없음 — Task #3~#6 전부 완료.
+- **보류 (유저 확인 필요, 자율 진행 범위 제외)**: `/hud`(레거시 Tailwind 토큰) vs `research-os`(CSS 변수 `var(--c-*)`) 시각언어 이원화 — 디자인 결정 필요, 유저 복귀 후 직접 지시 없이는 손대지 않음.
+
+### 막힌 부분/결정사항
+- 없음.
+
+---
+
+## Phase 200 — 샤프월렛 봇 시각화 + 배치실행 체감시간 + 승격 라벨 정정 (2026-08-04) ✅ SHIPPED
+
+### 배경
+- 유저 3건 동시 제기: (1) 샤프월렛 봇 진행상황 시각화 페이지 없음, (2) 홈 "리서치 후보" 배치실행 눌러도 안 도는 것처럼 보임, (3) "승격" 알림 클릭해도 뭔지 모르겠음. 유저 실채팅 없이 자율 진행(직전 세션 3건 백그라운드 조사 리포트 기반).
+
+### 완료된 작업
+- **(2) 배치실행 "안 돌아가는" 체감 버그 — 근본원인 확정**: `curl --max-time 60`으로 실측 — 실제론 78초 걸리는 동기 연산(BH-FDR + permutation test n=300)인데 프론트에 진행 표시가 전혀 없어서 죽은 것처럼 보였음. `lab_api.py` docstring도 "수초 내 완료"라고 잘못 적혀 있어서 애초에 타임아웃/진행표시가 안 붙어 있었던 원인. 수정: `AutoResearchPanel.tsx`에 실행 중 경과초 카운터 + "(보통 1~2분)" 안내 추가, `busy:true` 응답 시 이전 결과를 새 결과처럼 덮어쓰지 않고 "이미 다른 배치가 실행 중" 메시지로 명시. docstring도 실측값으로 정정.
+  - 부가 확인: 이 배치가 도는 동안 uvicorn 단일 워커가 막혀 `/investment-os` 등 무관한 페이지 API 호출도 같이 pending 되는 것 브라우저 네트워크 탭에서 직접 확인 — "동기 78초 연산이 이벤트루프 블록" 진단이 다른 페이지에서도 재확인됨.
+- **(1) 샤프월렛 봇 시각화**: `app/polymarket/page.tsx`에 기존 `polymarket_bot` UI 패턴(토글/지금실행/지출·PnL 스트립/누적PnL 차트/포지션 테이블/실행로그) 그대로 재사용해 `#sharp-wallet-bot` 섹션 신규 추가. 요약 배지를 그 섹션으로 점프하는 앵커링크로 변경. `lib/api.ts`에 `SharpWalletPosition` 타입 추가(`unknown[]` 대체).
+- **(3) "승격" 라벨 모호함 정정**: `investment-os` 페이지는 URL로 탭 상태 안 됨(`useSearchParams` 없어서 항상 개요 탭으로 랜딩, "승격" 단어는 운영 탭에만 있었음) → `app/insider/page.tsx`에서 쓰던 `Suspense`+`useSearchParams` 패턴 이식, `?tab=ops` 딥링크 동작하게 함. `lib/attention.ts`의 `ladder-gate` 항목 라벨/설명 문구를 "자문용 — 실제 실행/전략 변경 없음"으로 명확화하고 href를 `/investment-os?tab=ops`로 변경. 운영 탭 사다리 패널에 이 사다리는 포트폴리오 전체 자문용 시뮬레이션이고, 실제 전략을 페이퍼로 올리는 진짜 승격은 Auto-Research의 "🚀 페이퍼로 올리기" 버튼이라는 설명 문구 + 링크 추가.
+- `npx tsc --noEmit` clean. 브라우저로 3개 페이지 전부 라이브 검증(아래 참고).
+
+### 변경된 파일
+- `seokminal-multi-venue/api_server/lab_api.py` (docstring)
+- `components/AutoResearchPanel.tsx`
+- `lib/api.ts`
+- `app/polymarket/page.tsx`
+- `app/(console)/investment-os/page.tsx`
+- `lib/attention.ts`
+
+### 브라우저 검증
+- `/polymarket` → 요약 배지 "→ 상세" 클릭 시 `#sharp-wallet-bot`로 정상 점프, 실데이터(실현손익 $-376, 최근 정산 14건, 봇 실행 로그)로 섹션 렌더 확인.
+- `/auto-research` → "▶ 배치 실행" 클릭 시 버튼 라벨이 "실행중... 0s → 5s (보통 1~2분)"로 실시간 틱 확인. 배치 자체는 정상 완료(`status.json`: n_candidates 3).
+- `/investment-os?tab=ops` → 운영 탭으로 바로 랜딩 확인, 신규 설명 문구 + Auto-Research 링크 렌더 확인.
+
+### 다음 할 일
+- 없음 — 3건 모두 완료.
+
+### 막힌 부분/결정사항
+- 없음.
+
+---
+
+## Phase 199 — 인사이더 컨버전스 스코어링 최종 리뷰 + 픽스 라운드 (2026-08-03) ✅ SHIPPED
+
+### 배경
+- `docs/superpowers/plans/2026-08-03-insider-convergence-scoring.md`(7-task, backend repo에 위치) SDD 실행 마무리 세션. 구현 자체는 전 세션 완료 — 이번엔 Task 7 수동검증 블로커 해소 + 최종 전체-브랜치 리뷰 + 픽스. 유저 실채팅 없이 자율 진행.
+
+### 완료된 작업
+- **버그 근본원인 확정 + 수정 (commit `13fc5d1`)**: `AlertPoller.tsx` `setInterval` 폴링에 in-flight guard 없어 겹친 `/alerts/triggered` 요청이 Chrome 호스트당 6-커넥션 한도를 다 잡아먹음 → `/insider/convergence?market=us`가 클라이언트에서 큐잉된 채 백엔드에 도달도 못 해 US 컨버전스 탭이 영구 "pending"으로 보였던 버그. `inFlight` ref 가드로 해결.
+- **최종 전체-브랜치 리뷰(opus) findings 중 프론트 2건 수정 (commit `6db22b5`)**:
+  - HIGH: `app/insider/page.tsx` — `/insider?tab=convergence` 토스트 딥링크가 이미 `/insider`에 있을 때 소프트 네비게이션이라 탭 전환 안 됨 → `searchParams` 감시 `useEffect` 추가.
+  - MEDIUM: `AlertPoller.tsx`의 `inFlight` 가드에 타임아웃 없어 응답 없는 fetch 하나가 폴링 영구 마비 가능 → `getTriggeredAlerts(AbortSignal.timeout(POLL_MS))`.
+  - (백엔드 3건은 `seokminal-multi-venue/docs/progress.md` 참조, commits `2d0e360`/`7634f56`)
+- `npx tsc --noEmit` clean(두 라운드 다 재검증).
+
+### 변경된 파일
+- `components/AlertPoller.tsx`, `app/insider/page.tsx`
+
+### 다음 할 일
+- [x] 컨버전스 탭이 실제 알림(🔥 컨버전스 toast → 클릭)에서 정상 전환되는지 브라우저 재확인 — **완료, 아래 참고.**
+- 이 프로젝트는 "main 직접 커밋" 컨벤션 — 별도 머지/PR 없음, 이미 완료 상태.
+
+### 막힌 부분/결정사항
+- 없음.
+
+### 추가: 딥링크 클릭 브라우저 재검증 (같은 세션, 계속)
+
+유저 지시("브라우저로 컨버전스 딥링크 클릭 재확인해줘"). 백엔드 uvicorn이 이번 세션 커밋(`2d0e360`/`7634f56`) 이전부터 떠있어 구버전 코드로 응답 중이었던 걸 발견 → `scripts/restart_api.sh`로 재기동 후 재검증(상세는 backend `docs/progress.md` 참조).
+
+- 토스트가 8초 안에 사라져 스크린샷으로 못 잡아서, 브라우저에 `MutationObserver`를 심어 토스트 DOM 삽입 즉시 딥링크(`a[href*="tab=convergence"]`)를 자동 클릭하도록 우회.
+- 클릭 후 URL이 `/insider?tab=convergence`로 전환되고 컨버전스 탭 버튼이 active 클래스(`border-accent bg-accent text-black`)로 바뀌는 것까지 확인 — `app/insider/page.tsx`의 `useEffect` searchParams 동기화 fix 라이브 동작 확정.
+
+### 다음 세션 확인 (추가)
+- 없음 — 이 플랜(2026-08-03-insider-convergence-scoring) SDD 사이클 전체 완료.
+
+---
+
+## Phase 198 — report-lag 프론트 연동 + search_company DART API 오용 버그 수정 (2026-08-03) ✅ SHIPPED
+
+### 배경
+- Phase 197에서 만든 `get_report_lag_days()`/`/insider/kr/report-lag` 엔드포인트를 프론트에 연동("프론트에도 report-lag 연동해줘").
+- 브라우저 검증 중 KR 회사검색이 항상 빈 결과 반환하는 별개의 기존 버그 발견 → 유저 지시("지금 고치고 report-lag 브라우저 확인부터 마저")로 같이 수정.
+
+### 발견한 버그: `search_company()` DART `company.json` 오용
+- `company.json`은 **corp_code 단건조회 전용** API — `corp_name`을 검색 파라미터로 줘도 먹지 않아 항상 빈 결과. 공식 이름검색 방법은 `corpCode.xml`(전체 상장사 zip) 받아서 로컬 필터링뿐.
+- 수정: `_get_corp_list()` 신규(24h 메모리 캐시, `kr_universe.client`와 동일 double-checked-locking 컨벤션) + `search_company()`가 이걸 이름 부분일치+상장사(`stock_code` 有)만 필터하도록 교체.
+- corpCode.xml 최초(캐시 미스) 다운로드가 sandbox 네트워크 스로틀로 165초 걸림(코드 문제 아님, 환경 문제) — 이후 캐시 히트는 즉시.
+
+### 완료된 작업
+1. **프론트 report-lag 연동**: `app/insider/page.tsx`의 `KRTable`에 행별 "확인" 버튼 — 클릭 시 `rcept_no` 기준 지연일수 조회, `Map<rcept_no, AbortController>`로 행별 abort→create→fetch→catch AbortError→unmount cleanup 패턴 적용. `lib/api.ts`에 `getInsiderKRReportLag()` + `ReportLag` 인터페이스 추가.
+2. **search_company 버그 수정**: `insider/dart_client.py` — 위 내용. 테스트 3건 신규(`tests/test_dart_client.py`, 총 21/21 pass).
+3. **브라우저 실동작 검증**: KR탭→"삼성전자" 검색(정상 결과 뜸)→선택→개별거래 테이블(765건) 로드→"확인" 클릭→"6일" 지연값 정상 렌더 확인.
+
+### 변경된 파일
+- 수정: `seokminal-multi-venue/insider/dart_client.py`(`search_company()` 재작성, `_get_corp_list()` 신규)
+- 수정: `seokminal-multi-venue/tests/test_dart_client.py`(+3 tests)
+- 수정: `seokminal-dashboard/app/insider/page.tsx`(`KRTable` report-lag UI), `lib/api.ts`(`getInsiderKRReportLag`)
+
+### 커밋
+- 백엔드 `52920b6`: search_company 버그 수정
+- 프론트 `c6e2f7e`: report-lag UI 연동
+
+### 다음 할 일
+- 없음 — 이번 세션 요청 범위(report-lag 프론트 연동 + 발견된 회사검색 버그) 전부 완료·커밋됨.
+
+---
+
 ## Phase 197 — DART 공시지연 실측 + elestock/list.json 리포트코드 버그 수정 (2026-08-03) ✅ SHIPPED
 
 ### 배경

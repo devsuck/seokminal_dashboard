@@ -1,7 +1,7 @@
 "use client";
 // P68 — Research OS Workflow. 워크플로 단계·사람승인 상태·세션·큐. 세션 관리(create/pause/resume/archive)만 변경,
 // 나머지는 READ ONLY. Human Decision 은 사람만 · 자동 거래·집행 없음.
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getResearchWorkflow, sessionAction, type ResearchWorkflowResp } from "@/lib/console-api";
 import { PageHeader, StateBlock } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
@@ -44,12 +44,16 @@ export default function WorkflowPage() {
   const [busy, setBusy] = useState("");
   const [goal, setGoal] = useState("");
 
+  const abortRef = useRef<AbortController | null>(null);
   const load = useCallback(async () => {
-    try { setData(await getResearchWorkflow()); setErr(null); }
-    catch (e) { setErr((e as Error).message); }
-    finally { setLoading(false); }
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    try { const d = await getResearchWorkflow(ctrl.signal); if (!ctrl.signal.aborted) { setData(d); setErr(null); } }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
+    finally { if (!ctrl.signal.aborted) setLoading(false); }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); return () => abortRef.current?.abort(); }, [load]);
 
   const act = async (action: string, sessionId = "", g = "") => {
     setBusy(sessionId || action);

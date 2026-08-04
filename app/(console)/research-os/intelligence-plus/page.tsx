@@ -2,7 +2,7 @@
 // P171-180 — Autonomous Research Intelligence Enhancement.
 // Creative hypotheses · search tree · continuous queue · prioritization · planning · productivity · reflection · autonomy validation.
 // /console/research-intelligence. READ ONLY · 연구 자동 실행 없음 · 자율 승인 없음 · BUY/SELL/EXECUTE/ALLOCATE 없음.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getResearchIntelligence, type ResearchIntelligenceResp } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
@@ -14,11 +14,16 @@ export default function ResearchIntelligencePlus() {
   const [data, setData] = useState<ResearchIntelligenceResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async (query: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setErr(null);
-    try { setData(await getResearchIntelligence(query)); } catch (e) { setErr((e as Error).message); }
+    try { const d = await getResearchIntelligence(query, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
   }, []);
-  useEffect(() => { run("Does momentum work in KR equities?"); }, [run]);
+  useEffect(() => { run("Does momentum work in KR equities?"); return () => abortRef.current?.abort(); }, [run]);
 
   const ch = data?.creative_hypotheses;
   const cq = data?.continuous_queue;

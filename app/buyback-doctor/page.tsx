@@ -6,6 +6,7 @@ import { getBuybackAnalysis, type BuybackAnalysis } from "@/lib/api";
 import { ArcReactor, RadialGauge } from "@/components/Hud";
 import { LivePulse } from "@/components/Jarvis";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { LoadingState } from "@/components/ui";
 
 /* Buyback 손실 진단 — 왜 깨졌는지(결정적 진단) + 더 정교한 청산룰이 기대치를 올리나(시뮬).
    v1(hold20) 동결 → 청산룰은 v2 섀도 후보로만 평가. */
@@ -67,6 +68,7 @@ export default function BuybackDoctorPage() {
         )}
       </div>
 
+      {!a && !err && <LoadingState message="자사주 매입 분석 로딩 중…" />}
       {err && <div className="text-xs text-neg border border-neg/30 rounded px-3 py-2">오류: {err}</div>}
       {pending && (
         <Panel className="p-4 flex items-center gap-3">

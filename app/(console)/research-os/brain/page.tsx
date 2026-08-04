@@ -1,7 +1,7 @@
 "use client";
 // P131-140 — Research Brain Workspace. Knowledge Graph / Past Research / Failures / Strategy·Company Memory / Conflicts / Lessons.
 // /console/research-brain. READ ONLY · 지식 시스템 전용 · 자동 거래·집행 없음.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getResearchBrain, type ResearchBrainResp, type BrainNode } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
@@ -25,11 +25,16 @@ export default function ResearchBrain() {
   const [data, setData] = useState<ResearchBrainResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async (t: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setErr(null);
-    try { setData(await getResearchBrain(t)); } catch (e) { setErr((e as Error).message); }
+    try { const d = await getResearchBrain(t, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
   }, []);
-  useEffect(() => { run(""); }, [run]);
+  useEffect(() => { run(""); return () => abortRef.current?.abort(); }, [run]);
 
   const kh = data?.knowledge_health;
   const layout = useMemo(() => {

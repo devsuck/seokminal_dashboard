@@ -38,8 +38,8 @@ export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
 
   if (input.investmentOs?.gates.passed && input.investmentOs.execution_ladder.human_approval_mandatory) {
     items.push({
-      id: "ladder-gate", label: "다음 단계 승격 가능",
-      detail: "승인 필요", href: "/investment-os", tone: "info",
+      id: "ladder-gate", label: "준비도 사다리 다음 단계 승인 가능",
+      detail: "자문용 — 실제 실행/전략 변경 없음", href: "/investment-os?tab=ops", tone: "info",
     });
   }
 

@@ -7,6 +7,7 @@ import {
   type FleetResponse, type FleetCollector,
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { LoadingState } from "@/components/ui";
 
 // ── 졸업 스코어카드(수익 게이트) 색/라벨 ────────────────────────────────────────
 function gradeStyle(s: string): string {
@@ -203,6 +204,8 @@ export default function EdgesPage() {
           </span>
         )}>가설별 검증</PanelHeader>
         {err && <div className="text-neg text-xs px-3 py-2">엣지 조회 실패(백엔드 미기동?): {err}</div>}
+        {!edges && !err && <LoadingState message="가설 검증 데이터 로딩 중…" />}
+        {edges && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -266,6 +269,7 @@ export default function EdgesPage() {
             </tbody>
           </table>
         </div>
+        )}
       </Panel>
     </div>
   );

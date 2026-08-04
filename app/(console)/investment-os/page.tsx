@@ -8,7 +8,8 @@
 // — 신규 API 없음, 신규 계산 없음. write action이 있는 페이지(research-os/workflow의 세션 제어,
 // research-os/committee의 memo 생성 등)는 병합하지 않고 "↗" 링크로만 참조(기능 유실 방지).
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   getInvestmentOs, advanceLadder, getForwardLearning, getDataConnection, getResearchAccountability,
   getResearchOrganization, getAllocation, getPositions,
@@ -69,16 +70,24 @@ const DECISION_TONE: Record<string, "pos" | "warn" | "neg" | "mute"> = {
 };
 
 // ── 탭 최초 활성화 시 1회만 fetch, 이후 캐시(동시 다건 로드 방지) ──────
-function useTabFetch<T>(active: boolean, fetcher: () => Promise<T>) {
+function useTabFetch<T>(active: boolean, fetcher: (signal: AbortSignal) => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     if (!active || fetchedRef.current) return;
     fetchedRef.current = true;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setLoading(true);
-    fetcher().then(setData).catch((e) => setErr((e as Error).message)).finally(() => setLoading(false));
+    fetcher(ctrl.signal)
+      .then((r) => { if (!ctrl.signal.aborted) setData(r); })
+      .catch((e) => { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => { ctrl.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
   return { data, err, loading };
@@ -101,10 +110,17 @@ function TabLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export default function InvestmentOs() {
+function InvestmentOsInner() {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<InvestmentOsResp | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("overview");
+  const [tab, setTab] = useState<TabKey>(
+    TABS.some(t => t.key === searchParams.get("tab")) ? (searchParams.get("tab") as TabKey) : "overview"
+  );
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (TABS.some(x => x.key === t)) setTab(t as TabKey);
+  }, [searchParams]);
   // 승인 워크플로 상태
   const [currentRung, setCurrentRung] = useState("PAPER");
   const [reviewed, setReviewed] = useState(false);
@@ -116,34 +132,49 @@ export default function InvestmentOs() {
   const [conn, setConn] = useState<DataConnectionResp | null>(null);
   const [acct, setAcct] = useState<ResearchAccountabilityResp | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async () => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setErr(null);
-    try { setData(await getInvestmentOs()); } catch (e) { setErr((e as Error).message); }
+    try {
+      const r = await getInvestmentOs(1_000_000, ctrl.signal);
+      if (!ctrl.signal.aborted) setData(r);
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message);
+    }
   }, []);
-  useEffect(() => { run(); }, [run]);
+  useEffect(() => { run(); return () => abortRef.current?.abort(); }, [run]);
+
+  const sideAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    getForwardLearning().then(setFwd).catch(() => {});
-    getDataConnection().then(setConn).catch(() => {});
-    getResearchAccountability().then(setAcct).catch(() => {});
+    sideAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    sideAbortRef.current = ctrl;
+    getForwardLearning(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setFwd(r); }).catch(() => {});
+    getDataConnection(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setConn(r); }).catch(() => {});
+    getResearchAccountability(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setAcct(r); }).catch(() => {});
+    return () => ctrl.abort();
   }, []);
 
   // STEP4-D 병합 섹션 — 탭 활성화 시 lazy fetch, 기존 API 그대로 재사용
-  const monthly = useTabFetch<MonthlyReviewResp>(tab === "overview", () => getMonthlyReview());
-  const org = useTabFetch<ResearchOrganizationResp>(tab === "overview", () => getResearchOrganization());
-  const alloc = useTabFetch<AllocationResp>(tab === "overview", () => getAllocation());
-  const positions = useTabFetch<PositionsResp>(tab === "overview", () => getPositions());
-  const valLoop = useTabFetch<ValidationLoopResp>(tab === "strategy", () => getValidationLoop());
-  const val = useTabFetch<ValidationResp>(tab === "strategy", () => getValidation());
-  const market = useTabFetch<MarketCockpitResp>(tab === "research", () => getMarketCockpit());
-  const inst = useTabFetch<InstitutionalIntelligenceResp>(tab === "research", () => getInstitutionalIntelligence());
-  const riskGov = useTabFetch<RiskResp>(tab === "risk", () => getRisk());
-  const prod = useTabFetch<ProductionReadinessResp>(tab === "risk", () => getProductionReadiness());
-  const agents = useTabFetch<AgentsResp>(tab === "risk", () => getAgents());
-  const council = useTabFetch<ConsoleCouncil>(tab === "risk", () => getConsoleCouncil(40));
-  const logs = useTabFetch<LogsResp>(tab === "risk", () => getLogs(80));
-  const monitor = useTabFetch<MonitorResp>(tab === "ops", () => getMonitor());
-  const orders = useTabFetch<OrdersResp>(tab === "ops", () => getOrders());
-  const live = useTabFetch<LiveIntelligenceResp>(tab === "ops", () => getLiveIntelligence());
+  const monthly = useTabFetch<MonthlyReviewResp>(tab === "overview", (sig) => getMonthlyReview(sig));
+  const org = useTabFetch<ResearchOrganizationResp>(tab === "overview", (sig) => getResearchOrganization("", sig));
+  const alloc = useTabFetch<AllocationResp>(tab === "overview", (sig) => getAllocation(sig));
+  const positions = useTabFetch<PositionsResp>(tab === "overview", (sig) => getPositions(sig));
+  const valLoop = useTabFetch<ValidationLoopResp>(tab === "strategy", (sig) => getValidationLoop("", sig));
+  const val = useTabFetch<ValidationResp>(tab === "strategy", (sig) => getValidation(sig));
+  const market = useTabFetch<MarketCockpitResp>(tab === "research", (sig) => getMarketCockpit(sig));
+  const inst = useTabFetch<InstitutionalIntelligenceResp>(tab === "research", (sig) => getInstitutionalIntelligence("", "semiconductor", "TSMC", sig));
+  const riskGov = useTabFetch<RiskResp>(tab === "risk", (sig) => getRisk(sig));
+  const prod = useTabFetch<ProductionReadinessResp>(tab === "risk", (sig) => getProductionReadiness("", sig));
+  const agents = useTabFetch<AgentsResp>(tab === "risk", (sig) => getAgents(sig));
+  const council = useTabFetch<ConsoleCouncil>(tab === "risk", (sig) => getConsoleCouncil(40, sig));
+  const logs = useTabFetch<LogsResp>(tab === "risk", (sig) => getLogs(80, sig));
+  const monitor = useTabFetch<MonitorResp>(tab === "ops", (sig) => getMonitor(sig));
+  const orders = useTabFetch<OrdersResp>(tab === "ops", (sig) => getOrders(sig));
+  const live = useTabFetch<LiveIntelligenceResp>(tab === "ops", (sig) => getLiveIntelligence(sig));
 
   const nextRung = RUNGS[Math.min(RUNGS.indexOf(currentRung) + 1, RUNGS.length - 1)];
   const nextIsAuto = nextRung === "AUTO_EXECUTION";
@@ -603,6 +634,11 @@ export default function InvestmentOs() {
                   <PanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리"
                     right={<Badge tone="neg">auto_execution: {String(ladder?.auto_execution_enabled)}</Badge>} />
                   <div className="p-4 space-y-3">
+                    <div className="text-[10.5px] text-[var(--c-text-3)] leading-relaxed c-panel-2 px-3 py-2">
+                      전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
+                      승인해도 새로고침하면 PAPER로 리셋되고, 실제로 바뀌는 건 없습니다(AUTO_EXECUTION은 영구 비활성).
+                      특정 전략을 실제 페이퍼 운용으로 올리는 "승격"은 여기가 아니라 <Link href="/auto-research" className="text-[var(--c-hud)] hover:underline">Auto-Research</Link>의 "🚀 페이퍼로 올리기" 버튼입니다.
+                    </div>
                     <div className="flex flex-wrap items-center gap-1">
                       {RUNGS.map((r, i) => {
                         const isAuto = r === "AUTO_EXECUTION";
@@ -744,4 +780,8 @@ export default function InvestmentOs() {
       </div>
     </div>
   );
+}
+
+export default function InvestmentOs() {
+  return <Suspense><InvestmentOsInner /></Suspense>;
 }

@@ -1,2 +1,9 @@
 datetime,symbol,direction,ict_context,of_trigger,level_basis,entry,stop,target,risk_r,result_r,note
 2026-07-30T22:01:00+00:00,BTC.HL,long,CISD+OB,stop_run,OB,64727.0,64660.0,64854.0,1.0,1.8955,"auto paper engine, exit=target"
+2026-08-02T15:13:00+00:00,BTC.HL,short,CISD+OB,absorption,OB,63108.0,63182.0,63098.0,1.0,0.2095,"auto paper engine, exit=target"
+2026-08-03T00:17:00+00:00,BTC.HL,long,CISD+OB,stop_run,OB,63418.0,63320.0,63480.0,1.0,-1.0,"auto paper engine, exit=stop"
+2026-08-03T03:27:00+00:00,BTC.HL,long,CISD+OB,absorption,OB,63068.0,62960.0,63160.0,1.0,-1.0,"auto paper engine, exit=stop"
+2026-08-04T00:02:00+00:00,BTC.HL,short,CISD+OB,stop_run,OB,63511.0,63651.0,63367.0,1.0,1.0286,"auto paper engine, exit=target"
+2026-08-04T00:29:00+00:00,BTC.HL,long,CISD+OB,absorption,OB,63423.0,63120.0,63480.0,1.0,0.1881,"auto paper engine, exit=target"
+2026-08-04T01:18:00+00:00,BTC.HL,short,CISD+OB,stop_run,OB,63479.0,63497.0,63429.0,1.0,-1.0556,"auto paper engine, exit=stop"
+2026-08-04T03:03:00+00:00,BTC.HL,long,CISD+OB,stop_run,OB,63763.0,63657.0,63784.0,1.0,0.1981,"auto paper engine, exit=target"

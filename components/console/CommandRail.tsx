@@ -35,7 +35,7 @@ const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Research · 랩", items: [
     { href: "/research-os/strategy-lab", label: "전략 랩" },
     { href: "/research-os/chat", label: "리서치 챗" },
-    { href: "/intel/research-os", label: "Jarvis 라이브뷰" },
+    { href: "/investment-os?tab=research", label: "Jarvis 라이브뷰" },
   ] },
   { label: "Investment OS", items: [
     { href: "/investment-os", label: "Investment OS" },

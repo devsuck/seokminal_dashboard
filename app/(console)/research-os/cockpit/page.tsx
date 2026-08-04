@@ -19,27 +19,27 @@ export default function Cockpit() {
   const { data, err, loading } = useConsole<CockpitResp>((s) => getCockpit(s), [], 60000);
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P85" title="리서치 콕핏"
+      <PageHeader title="리서치 콕핏"
         right={data && <Badge tone={bandTone(data.research_health?.health_band)}>헬스 {num(data.health_score, 1)}</Badge>} />
       <StateBlock loading={loading} err={err}>
         {data && (
           <div className="p-5 space-y-5">
             {/* KPI */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <StatTile label="리서치 레코드" value={num(data.research?.total_records)} accent="hud"
+              <StatTile label="리서치 레코드" value={num(data.research?.total_records)}
                 sub={`${num(data.research?.experiment_runs)}건 실행`} />
               <StatTile label="헬스 점수" value={num(data.health_score, 1)} accent={bandTone(data.research_health?.health_band)}
                 tone={bandTone(data.research_health?.health_band) === "pos" ? "pos" : "warn"} sub={data.research_health?.health_band} />
               <StatTile label="검토 대기" value={data.human_review_queue?.length ?? 0} accent="warn" tone="warn" />
-              <StatTile label="지식" value={num(data.knowledge_growth?.total)} accent="pos"
+              <StatTile label="지식" value={num(data.knowledge_growth?.total)}
                 sub={`${num(data.knowledge_graph?.node_count)}개 그래프 노드`} />
-              <StatTile label="기회" value={data.top_opportunities?.length ?? 0} accent="info" />
+              <StatTile label="기회" value={data.top_opportunities?.length ?? 0} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Current Loop */}
               <Panel>
-                <PanelHead kicker="P72" title="현재 루프"
+                <PanelHead title="현재 루프"
                   right={data.current_loop?.requires_human_checkpoint && <Badge tone="hud">체크포인트</Badge>} />
                 <div className="p-4">
                   {!data.current_loop?.loop_id && <div className="text-[11px] text-[var(--c-text-3)]">진행 중 자율 루프 없음.</div>}
@@ -55,7 +55,7 @@ export default function Cockpit() {
               </Panel>
               {/* Health coverage */}
               <Panel>
-                <PanelHead kicker="P81" title="리서치 헬스" right={<Badge tone={bandTone(data.research_health?.health_band)}>{data.research_health?.trend}</Badge>} />
+                <PanelHead title="리서치 헬스" right={<Badge tone={bandTone(data.research_health?.health_band)}>{data.research_health?.trend}</Badge>} />
                 <div className="p-4 space-y-2">
                   {Object.entries(data.research_health?.coverage ?? {}).map(([k, v]) => (
                     <div key={k}>
@@ -72,7 +72,7 @@ export default function Cockpit() {
               </Panel>
               {/* Highest risks */}
               <Panel>
-                <PanelHead kicker="P62" title="최고 리스크" right={<Badge tone="warn">{data.highest_risks?.top_category ?? "—"}</Badge>} />
+                <PanelHead title="최고 리스크" right={<Badge tone="warn">{data.highest_risks?.top_category ?? "—"}</Badge>} />
                 <div className="p-4 space-y-2">
                   {Object.entries(data.highest_risks?.by_category ?? {}).slice(0, 6).map(([c, n]) => {
                     const max = Math.max(1, ...Object.values(data.highest_risks?.by_category ?? { x: 1 }));
@@ -89,8 +89,8 @@ export default function Cockpit() {
             </div>
 
             {/* Timeline */}
-            <Panel>
-              <PanelHead kicker="P78" title="리서치 타임라인" right={<Badge tone="mute">{data.timeline?.length ?? 0}</Badge>} />
+            <Panel className="opacity-70">
+              <PanelHead title="리서치 타임라인" right={<Badge tone="mute">{data.timeline?.length ?? 0}</Badge>} />
               <div className="p-4">
                 {(!data.timeline || data.timeline.length === 0) && <div className="text-[11px] text-[var(--c-text-3)]">원장에서 재구성할 이벤트 없음(연구가 기록되면 채워집니다).</div>}
                 <div className="flex flex-wrap gap-1.5">
@@ -112,7 +112,7 @@ export default function Cockpit() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Opportunities */}
               <Panel>
-                <PanelHead kicker="P58" title="상위 기회" right={<Badge tone="pos">{data.top_opportunities?.length ?? 0}</Badge>} />
+                <PanelHead title="상위 기회" right={<Badge tone="mute">{data.top_opportunities?.length ?? 0}</Badge>} />
                 <div className="p-4 space-y-2">
                   {(data.top_opportunities ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">메모리가 채워지면 후보가 제안됩니다.</div>}
                   {(data.top_opportunities ?? []).map((o, i) => (
@@ -126,7 +126,7 @@ export default function Cockpit() {
               {/* Human review + quick resume + exposure */}
               <div className="space-y-4">
                 <Panel>
-                  <PanelHead kicker="사람" title="사람 검토 큐" right={<Badge tone="warn">{data.human_review_queue?.length ?? 0}</Badge>} />
+                  <PanelHead title="사람 검토 큐" right={<Badge tone="warn">{data.human_review_queue?.length ?? 0}</Badge>} />
                   <div className="p-4 space-y-1.5">
                     {(data.human_review_queue ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">검토 대기 없음.</div>}
                     {(data.human_review_queue ?? []).map((h) => (
@@ -134,8 +134,8 @@ export default function Cockpit() {
                     ))}
                   </div>
                 </Panel>
-                <Panel>
-                  <PanelHead kicker="P66" title="빠른 재개" />
+                <Panel className="opacity-70">
+                  <PanelHead title="빠른 재개" />
                   <div className="p-4 space-y-1.5">
                     {(data.quick_resume ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">재개할 세션 없음.</div>}
                     {(data.quick_resume ?? []).map((s) => (

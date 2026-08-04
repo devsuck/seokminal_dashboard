@@ -2,7 +2,7 @@
 // P181-200 — Autonomous Research Discovery & Validation Loop v3.0.
 // Cycle status · Opportunity discovery · Hypothesis board · Experiment queue · Validation · Ranking · Human review queue.
 // /console/autonomous-research. READ ONLY · 연구 자동화 ON · 실행 OFF · 자동 백테스트 없음 · WAITING_HUMAN 유지.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getAutonomousResearch, type AutonomousResearchResp } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
@@ -21,11 +21,17 @@ export default function AutonomousDiscovery() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async (query: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setLoading(true); setErr(null);
-    try { setData(await getAutonomousResearch(query)); } catch (e) { setErr((e as Error).message); } finally { setLoading(false); }
+    try { const d = await getAutonomousResearch(query, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
+    finally { if (!ctrl.signal.aborted) setLoading(false); }
   }, []);
-  useEffect(() => { run("Does momentum work in KR equities?"); }, [run]);
+  useEffect(() => { run("Does momentum work in KR equities?"); return () => abortRef.current?.abort(); }, [run]);
   const submit = (text: string) => { setQ(text); run(text); };
 
   const cyc = data?.cycle_status;

@@ -1,7 +1,7 @@
 "use client";
 // P79 — Research Knowledge Graph. 기존 memory_graph/relationship_graph + 원장 결합 다개체 그래프.
 // /console/research-graph. READ ONLY 시각화 · 새 그래프 엔진 없음.
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { getResearchGraph, type ResearchGraphResp } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, Badge } from "@/components/console/primitives";
@@ -21,13 +21,17 @@ export default function KnowledgeGraph() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async (topic: string) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setLoading(true); setErr(null);
-    try { const d = await getResearchGraph(topic); setData(d); setSel(null); }
-    catch (e) { setErr((e as Error).message); }
-    finally { setLoading(false); }
+    try { const d = await getResearchGraph(topic, ctrl.signal); if (!ctrl.signal.aborted) { setData(d); setSel(null); } }
+    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
+    finally { if (!ctrl.signal.aborted) setLoading(false); }
   }, []);
-  useEffect(() => { run(""); }, [run]);
+  useEffect(() => { run(""); return () => abortRef.current?.abort(); }, [run]);
 
   const pos = useMemo(() => {
     const p: Record<string, { x: number; y: number }> = {};
