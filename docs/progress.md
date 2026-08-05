@@ -1,3 +1,31 @@
+## Phase 203 — Polymarket 함의관계 위반 모듈 라이브 전환 (2026-08-05) ✅ SHIPPED
+
+### 배경
+- 유저가 폴리마켓 고수익 트레이더(swisstony) 프로필 조사 요청(브라우저+API 리버스엔지니어링, `data-api.polymarket.com/positions`·`/activity` 엔드포인트, 지갑주소 `0x204f72f35326db932158cba6adff0b9a1da95e14` 확보) 후 "나도 이런 봇 만들고 싶다"고 요청.
+- 조사 결과: 시간당 ~1000건 체결(5시간 5000건, MLB는 1.5%뿐 — 축구/테니스/e스포츠가 대부분), 보유 MLB 포지션 105건 진입가 14c~90c 전구간 고른 분포 → 마켓메이킹/상관마켓 헤지형 봇으로 판단, "인간 MLB 전문가" 서사 아님.
+- 새로 설계하는 대신 이미 SDD 완료돼있던 `research/polymarket_market_implication/`(코드 완성, 라이브 미시작 상태) 재개를 제안 → 승인받음.
+
+### 완료된 작업
+- Groq `llama-3.3-70b-versatile` 모델 유효성 실호출 확인(200 OK) — deprecated 아님.
+- `polymarket-implication-collect`(일 1회 페어 발굴), `polymarket-implication-watch`(시간당 위반 감시) tmux 세션 기동.
+- 첫 collect 사이클 완주 확인(LLM 순차호출이라 ~15분 소요): 마켓 192개 태깅, 후보쌍 1개 발굴(Elon 트윗수 마켓 pattern_type B) → `pairs.jsonl` 기록됨.
+- `scripts/deploy/ensure_collectors.sh`, `api_server/lab_api.py`(`COLLECTOR_SESSIONS`)에 두 세션 등록(desired-state + HUD 모니터링).
+- `.gitignore`에 `entity_cache.json` 추가(기존 `*.jsonl` 글롭이 이 파일 미커버).
+
+### 변경된 파일
+- `seokminal-multi-venue/scripts/deploy/ensure_collectors.sh`
+- `seokminal-multi-venue/api_server/lab_api.py`
+- `seokminal-multi-venue/.gitignore`
+
+### 다음 할 일
+- 위반 30~50건 쌓이면 QA(정성 검토 오탐률) + 포워드 pnl N≥20 게이트부터. 미충족이면 sharp_wallet과 동일하게 paper 무기한 유지 — 표본 부족 상태에서 라이브 전환 판단 금지.
+- collect가 하루 1회, `LLM_DAILY_CALL_CAP=500`(태깅+분류 합산)이라 후보쌍 축적이 느릴 수 있음 — 며칠 지나서도 쌍이 한 자릿수면 `MIN_VOLUME_USD`/후보필터 기준 재검토.
+
+### 막힌 부분/결정사항
+- 없음.
+
+---
+
 ## Phase 202 — 카피트레이딩 자동청산 서버 루프 이전 (2026-08-04) ✅ SHIPPED
 
 ### 배경
