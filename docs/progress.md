@@ -1,3 +1,166 @@
+## Phase 208 — 공유 모의계좌 크로스봇 청산 버그 수정 (2026-08-14) ✅ SHIPPED
+
+### 배경
+- 사용자 리포트: "다트 오토파일럿 왜 보유주식 안보이냐". `/dart/positions`(KIS 모의 실보유 조회)는 빈 배열, 근데 `dart_autobot` 내부 장부(`cfg["positions"]`)엔 7종목·spent=₩999,194/1,000,000(remaining ₩806) 남아있어 "예산 부족"으로 신규 매수 계속 실패 중이었음.
+- 원인 추적: KIS 모의 잔고 조회(`inquire-balance`) 직접 호출 → `rt_cd=0` 정상, `output1`(보유) 빈 배열, `scts_evlu_amt=0` — 계좌에 실제로 0주. DART봇 로그엔 이 7종목에 대한 매도 이벤트가 전혀 없음(자기가 안 팜).
+- 진짜 원인: `api_server/routers/agents.py`의 `_daytrade_tick_locked`(KR/HL/US 데이트레이드 에이전트 공용) 가 청산 판정 시 **브로커 계좌 전체 보유**(`kis.get_holdings()`/`get_all_positions()`/`get_positions()`)를 "내 포지션"으로 착각해 자기 TP/SL·시그널로 청산. 실행 중이던 `KR 거시 전략 AI`(agent 126ea9ce)가 **DART봇이 산 종목까지 자기 걸로 알고 조용히 매도**함. 같은 클래스 버그가 `condition_tick_endpoint`(Lv1)에도 있었음(`qtyh`를 브로커 전체 수량으로 계산 → 다른 봇 몫까지 매도 가능) — 그리고 지금 US Alpaca 페이퍼 에이전트 3개가 동시 running 중이라 그쪽도 실제로 살아있는 버그였음(계좌 하나 공유).
+
+### 완료된 작업
+- `api_server/dart_autobot.py`: `_reconcile_positions()` 추가 — tick마다 로컬 포지션 vs 브로커 실보유 대조, 브로커에 없는 코드는 spent 환급 후 드롭(모의계좌가 외부 요인으로 꼬여도 예산이 영구히 안 묶이게). 수동 run-now로 즉시 정리 → spent 0, remaining ₩1,000,000, positions 0.
+- `api_server/routers/agents.py` `_daytrade_tick_locked`: `own_codes`(에이전트 자기 사이클 원장 `_perf.open_positions`에 있는 심볼만) 계산 후 HL/KIS/Alpaca-paper/IB-live 4개 venue 분기 전부 `held` 빌드를 이 집합으로 스코프. 남의 계좌 보유는 아예 안 보이게.
+- `condition_tick_endpoint`(Lv1): KR/Alpaca 매도 수량을 브로커 전체 잔고가 아니라 `min(내 원장 수량, 브로커 수량)`으로 캡.
+- 백엔드 재기동 3회(각 수정 후), 테스트 2230개 전부 통과.
+
+### 다음
+- 커밋 완료(dart_autobot 손절 지정가 기능/reconcile 분리 커밋 + agents.py 스코핑 커밋).
+- 관찰 포인트: DART봇 예산 정상화됐으니 다음 장중 tick에서 정상 매수 재개되는지 확인.
+- 미룬 것: 실계좌(IB live) 쪽 fix는 코드만 맞춰뒀고 현재 live 에이전트가 없어 실제 검증은 못 함 — live 에이전트 붙이면 한 번 확인.
+
+---
+
+## Phase 207 — options_uoa 2단계: 사후수익률 라벨링 (2026-08-06) ✅ SHIPPED
+
+### 배경
+- 1단계(수집)만 돌고 있었음. 이벤트 218건 쌓였는데 **수익률을 붙이는 코드가 없어** 임계값 스윕/BH-FDR로 못 넘어감.
+
+### 완료된 작업
+- `research/run_options_uoa_forward.py` 신규 — 이벤트 → 신호 집계 → 기초자산 사후수익률(1/3/5 거래일) 라벨링.
+  - **lookahead 방지**: 탐지일 **다음 거래일 시가** 진입(탐지가 장중/장마감 후라 당일 종가 진입은 미래참조). `run_kr_dart_event_study.py`와 같은 규약.
+  - **pseudo-replication 방지**: 통계 단위를 (티커, 탐지일, 방향)으로 집계. 218 이벤트 → **신호 21건**. 같은 날 같은 티커 계약 20개를 세면 같은 기초자산 수익률을 20번 센 셈.
+  - call=롱 / put=숏(부호 반전). 같은 티커·같은 날 call·put 동시 발생은 **따로 집계** — 합치면 상쇄됨.
+  - 미래 바 부족하면 `None`(라벨 미완성) — 0으로 채우지 않음.
+  - 출력 `research/data/options_uoa_forward/labels.jsonl` — **수집 디렉터리와 분리**. `options_uoa/*.jsonl`에 쓰면 함대 헬스가 mtime을 수집기 생존으로 오독함(Phase 206 하트비트와 같은 이유).
+  - 알파카 일봉(IEX 피드, 무료플랜 제약). `load_dotenv()` 직접 호출 — api_server 밖 스크립트라 키가 안 잡혔음.
+- `tests/test_options_uoa_forward.py` 신규 6건: 다음거래일 진입, put 부호반전, 미래바 부족 시 None, 같은날 계약 병합, call/put 분리, 미라벨 행 제외.
+
+### 검증
+- `pytest tests/ -q` **2208 passed**.
+- 실데이터 실행: 이벤트 218 → 신호 21(티커 8), 라벨 **0건** — 일봉이 08-05까지인데 이벤트가 08-04~08-06이라 보유기간 미경과. 정상 동작.
+- 파이프라인 자체는 과거 날짜(07-20/07-21, INTC)로 end-to-end 확인 — fwd_1d/3d/5d 실수치 산출됨.
+
+### 다음 할 일
+- 매 거래일 스크립트 재실행하면 라벨이 채워짐. **n≥30 신호**(≈2주 수집) 후 임계값 스윕(vol_oi_ratio·dte·moneyness) → BH-FDR 등록.
+- 지금 신호율 ≈7건/일 → 5거래일이면 n≈35. 08-13 전후 재점검.
+- **알림 설치됨**: `crontab` 2026-08-13 09:07 → `scripts/options_uoa_n_check.sh`(라벨러 실행 + n 로그 + macOS 알림). 해제는 `crontab -r`.
+
+### 막힌 부분/결정사항
+- 라벨링 단계에선 `MIN_VOL_OI=0`(필터 없음). 임계값을 여기서 정하면 스윕 자체가 사후선택이 됨 — 다음 단계에서 스윕.
+- 알파카 무료 IEX 피드라 당일 바가 늦음. 실측 라벨은 항상 T+1 이후에만 확정.
+
+---
+
+## Phase 206 — 함대 오탐 제거 + 통화혼합 근본수정 + 그래프 이력 (2026-08-06) ✅ SHIPPED
+
+### 배경
+- Phase 205 잔여 2건: (2) 수집기 staleness 임계 오보정, (3) 검증 미완 항목들.
+
+### 완료된 작업
+- **수집기 staleness 오탐 — 원인 2종으로 갈렸음**
+  - *긴 사이클 vs 짧은 임계*: `polymarket_implication_watch`(WATCH_INTERVAL_S=3600), `polymarket_implication_collect`(SCAN_INTERVAL_S=86400)가 DEFAULT 900s 임계라 **사이클 대기 중 상시 stale**. `api_server/fleet_health.py` STALE_AFTER_S에 7200 / 172800(각 사이클 ×2) 추가.
+  - *이벤트 0건 = 파일 미갱신*: `options_uoa`는 `append_events()`가 빈 리스트면 early-return이라 미장 마감 중엔 아무것도 안 씀 → 살아있어도 dead/stale로 찍힘. `research/collector_heartbeat.py` 신규 — 폴링 성공마다 `<data_dir>/.heartbeat` touch로 **"살아있음"과 "데이터 나옴"을 분리**. 확장자를 `.jsonl`로 안 한 이유: 분석 스크립트들이 data_dir의 `*.jsonl`을 이벤트로 읽어감.
+  - `api_server/lab_api.py` `_tmux_process_status`: mtime을 `*.jsonl` + `.heartbeat` 중 max로. 하트비트 없는 수집기엔 무영향.
+  - 결과: `/lab/fleet` **12/12 fresh**(이전 3건 stale/오탐).
+- **통화 혼합 근본수정(서버)** — Phase 205에서 프론트만 우회했던 것. 소비자 grep 결과 프론트 사용처 0 → `/dashboard/pnl/all` 응답에서 `grand_total_realized_pnl` **삭제**(₩ 에이전트 + $ 봇을 더한 값). `lib/api.ts` 타입·`tests/test_dashboard_pnl.py` 기대값도 정리.
+- **`/infra` 병목 스코어 추세 — 죽은 패널이었음**: 육안 검증하려다 발견. 프론트가 부르는 `GET /graph/history/{node_id}` **라우트가 서버에 아예 없음**(404 → catch → `history=[]` → `history.length>=2` 영구 미충족). 노드 22개 전부 이력 0.
+  - `api_server/graph_api.py`: 패치마다 노드 스코어 스냅샷을 `graph_history.jsonl`에 append(`_append_history`) + `GET /graph/history/{node_id}` 신설(limit=200, 오래된 것→최신).
+
+### 변경된 파일
+- 백엔드 신규: `research/collector_heartbeat.py`, `tests/test_graph_history.py`
+- 백엔드 수정: `api_server/fleet_health.py`, `api_server/lab_api.py`, `api_server/graph_api.py`, `api_server/main.py`, `research/run_options_uoa_collect.py`, `tests/test_fleet_health.py`, `tests/test_dashboard_pnl.py`
+- 프론트 수정: `lib/api.ts`(타입에서 grand_total 제거)
+
+### 검증
+- 백엔드 `pytest tests/ -q` **2202 passed**(신규 5건: 긴사이클 임계 회귀 2 + 하트비트 1 + 그래프 이력 3 중 일부).
+- 프론트 `npx tsc --noEmit` 통과, `npm test` **316/316**.
+- API 재기동 후 실측: `/lab/fleet` 12/12 fresh, `.heartbeat` 생성 확인, `GET /graph/history/nvidia` 200 `{history: []}`.
+
+### 다음 할 일
+- `/infra` 추세 스파크라인 육안 검증은 여전히 불가 — 이력이 이제 쌓이긴 하나 **패치 2회 이상 누적돼야** 패널이 뜸. AI 업데이트 2번 돈 뒤 확인.
+- 네비게이션 IA(고아 페이지 27개, CommandRail 38링크) — 유저가 보류 결정.
+
+### 막힌 부분/결정사항
+- 임계값 회귀 테스트는 상수를 하드코딩하지 않고 각 수집기 스크립트의 `*_INTERVAL_S`를 import해서 비교 — 사이클 상수가 바뀌면 테스트가 먼저 깨지게.
+- `grand_total_realized_pnl`은 필드 유지 대신 삭제 선택. 소비자가 0이고, 남겨두면 다음 사람이 또 더할 footgun이라 판단.
+
+---
+
+## Phase 205 — 가독성/정보전달 업그레이드 (2026-08-06) ✅ SHIPPED
+
+### 배경
+- 유저 요청: "가독성과 정보 전달 최적화를 위한 시각화 및 UXUI 업그레이드".
+- Phase 204 감사에서 드러난 근본 문제: 화면이 상태를 **이진(초록/빨강, running/stopped)**으로만 표시해 정도(degree)를 못 보여줌 + 같은 개념을 페이지마다 다른 말(raw key, raw enum)로 부름.
+
+### 완료된 작업
+- **슬라이스 1 — HUD 정보 위계**
+  - `lib/collectors.ts` 신규: 수집기 12개의 한글 라벨·목적지 href, verdict 라벨/톤 단일 출처.
+  - `components/ui/FreshnessBar.tsx` 신규: `age/stale_after` 비율을 10% 해상도 정적 클래스로 그림(`style={{}}` 금지 규칙 준수). "45초 전"과 "55분 전"이 똑같이 초록이던 문제 해결.
+  - `app/hud/page.tsx`: 하드코딩 수집기 목록 삭제 → `/lab/fleet` 단일 출처 기반 자동 생성(서버에 수집기 추가돼도 프론트 수정 불필요). 로스터를 "전략"과 "수집기 함대"로 분리, verdict 기반 칩/배경/재기동버튼. 월드클락을 패널헤더 한 줄로 압축. 돈길 3칸 그리드 → 4단 스테퍼(엣지→페이퍼→ARM→LIVE).
+  - `lib/api.ts` `CollectorKey` 8개 → 서버 COLLECTOR_SESSIONS와 동일한 12개.
+  - 부수 수확: 이진 표시 때문에 stale 4개가 HUD에서 초록 "가동"으로 보이던 게 드러남 → 이제 "정상 11/12 · 이상 1"로 표면화.
+- **슬라이스 2 — 중복 시각화 통합**
+  - `components/charts/Sparkline.tsx` 신규(`invert`: 낮을수록 좋은 지표용, `stretch`: 컨테이너 폭 맞춤).
+  - `app/edges/page.tsx` 로컬 `Sparkline`, `app/infra/page.tsx` `sparklinePath` 제거 후 교체. `app/performance/page.tsx`는 축·벤치마크·베이스라인 있는 정식 차트라 통합 대상 아님(그대로 둠).
+- **슬라이스 3(일부) — 용어 통일**
+  - `/edges`, `/polymarket` 함대 패널: raw key(`options_uoa`) → 한글 라벨, raw verdict(`stale`) → `지연`, FreshnessBar 추가. 원문 key/reason은 `title`에 보존.
+  - `lib/edge-labels.ts` 신규: `gradeStyle`/`gradeLabel`/`edgeStatusLabel`이 `/edges`·`/polymarket`에 각각 복제돼 있던 것 통합. `/polymarket`이 노출하던 raw `not_significant` → `미유의`.
+- **슬라이스 3 — /overview 통화 혼합 버그 + /portfolio 비중 시각화**
+  - **버그**: `/overview` 총 배분이 KRW 100만 + USD 1만×2 + $100 + $10만을 통화 무시하고 더해 `1120100`을 표시. 총손익·총수익률도 동일. 배분 막대도 이 탓에 달러 배분이 0.9%로 반올림 소멸해 조각 2개만 보였음.
+  - 수정: `currencyOf(market)`으로 통화별 그룹 집계 → 요약 카드가 `₩1,000,000` 행과 `$120,100` 행으로 분리. 막대도 통화별 + **범례(이름·%)** 추가 → 숨어 있던 에이전트 5개 전부 보임.
+  - `AnimatedNumber`: 천단위 구분 없이 `1120100`으로 찍던 것 `toLocaleString`으로 교체. 부호를 통화기호 바깥에 찍도록(`-$2,665`, 기존이면 `$-2665`) + `signed` 프롭.
+  - 독립봇 실현손익 합계: 서버 `grand_total_realized_pnl`이 KRW 에이전트 손익까지 더한 값이라 사용 중단 → 통화 안 섞인 `bots_totals`(순수 $)만 표시. `-467` → `-$389`.
+  - 배분/현금/투자중처럼 부호 의미 없는 금액에 `+`가 붙던 것 `amt()`로 분리.
+  - `/portfolio` 거래소별 분포 표: 비중 열에 막대 추가(숫자만으론 상대비교 느림).
+  - `components/ui/Bar.tsx` 신규 — 폭 클래스 테이블이 3번째로 복제될 참이라 추출, `FreshnessBar`가 이걸 쓰도록 변경.
+
+### 변경된 파일
+- 신규: `lib/collectors.ts`, `lib/edge-labels.ts`, `components/ui/FreshnessBar.tsx`, `components/ui/Bar.tsx`, `components/charts/Sparkline.tsx`
+- 수정: `app/hud/page.tsx`, `app/edges/page.tsx`, `app/polymarket/page.tsx`, `app/infra/page.tsx`, `app/overview/page.tsx`, `app/portfolio/page.tsx`, `components/Jarvis.tsx`, `lib/api.ts`, `components/ui/index.ts`
+
+### 검증
+- `npx tsc --noEmit` 통과. `npm test` **316/316**. 선행 실패 1건(`tests/lib/attention.test.ts`가 `lib/attention.ts:41` 라벨을 옛 문구로 기대)은 유저 지시대로 **라벨 유지 + 테스트 기대값 수정**으로 정리 — label/detail/href 3개 다 현재 구현에 맞춤.
+- 브라우저 육안 확인: `/hud`, `/edges`, `/polymarket`, `/overview`, `/portfolio`.
+
+### 다음 할 일
+- `/infra` 병목 스코어 추세 스파크라인은 육안 검증 못 함(선택 노드 history 스냅샷 1개뿐이라 `history.length >= 2` 미충족). tsc·로직 동일성으로만 확인.
+
+### 막힌 부분/결정사항
+- `style={{}}` 금지 규칙 때문에 정도 표시는 10% 단위 정적 클래스로 양자화. 10% 해상도면 신선도·비중 판단엔 충분하다고 판단.
+- `/performance` equity 차트는 스파크라인이 아니므로 통합하지 않음 — 억지로 합치면 축/라벨 옵션이 딸려 들어와 공용 컴포넌트가 비대해짐.
+- 통화 혼합은 서버 `/dashboard/pnl/all`에도 있음(`grand_total_realized_pnl`). 프론트에서 안 쓰는 것으로 우회했고 서버는 안 건드림 — 다른 소비자가 있는지 미확인.
+
+---
+
+## Phase 204 — 대시보드 UX 감사 + 수정 (2026-08-06) ✅ SHIPPED
+
+### 배경
+- 유저가 "UXUI적으로 어떻냐" 요청 → 크롬으로 전 페이지 육안 감사, 5개 지적 → 1/4/5 우선 수정 지시, 이어서 "화면 자체 문제" 감사분까지 전부 작업 지시.
+
+### 완료된 작업
+- **차트 로딩 상태 부재**: `/market` ChartTab이 로딩 중에도 빈 상태를 그려서, `/search`에만 있는 "불러오기" 버튼을 누르라는 유령 안내를 띄움. `loading` 분기 추가 + 빈 상태에 실제 동작하는 "다시 시도" 버튼.
+- **HUD 정합성 위반 행이 막다른 길**: 엔티티별 목적지 매핑(`violationHref`) 후 `<Link>` + `→` 어포던스.
+- **백테스트 실행 버튼 스크롤 이탈**: 규칙 편집기가 길어 실행 버튼이 화면 밖으로. 컨트롤 행 `sticky top-0`(스크롤 조상 = `app/layout.tsx <main>`).
+- **브로커 에러 원문 노출**: `[Errno 61] Connection refused` → `errorHint()`로 조치 문구 변환(원문은 `title` 속성 보존).
+- **로딩 중 "계좌 없음" 오표시**: 포트폴리오는 fast(알파카/HL) → slow(KIS 30초) 2단 로드인데, 대기 구간에 KRW/USDC 섹션이 "계좌 없음"을 표시. `balancesPending` 상태로 분리.
+- **맨 로더 3곳**: `/overview`, `/portfolio`, `/insider` → `LoadingState` + 소요시간 hint.
+- **TimeSeries 좌하단 라이브러리 로고와 라인 겹침**: `rightPriceScale.scaleMargins`로 bottom 여백 확보(모든 TimeSeries 공통).
+- API 서버 재기동(`scripts/restart_api.sh`) — 08-04 기동분이라 Phase 203 수집기 3개가 HUD에 안 보이던 것 해소. `/lab/fleet` n_total 9 → 12.
+
+### 변경된 파일
+- `components/market/ChartTab.tsx`
+- `components/ui/StrategyControlPanel.tsx`
+- `components/charts/TimeSeries.tsx`
+- `app/hud/page.tsx`
+- `app/portfolio/page.tsx`
+- `app/overview/page.tsx`
+- `app/insider/page.tsx`
+
+### 다음 할 일
+- 미착수 지적 2건: (a) CommandRail에 없는 고아 페이지 27개, (b) 38링크 스크롤 컬럼 + 운영자모드 이진 토글 — 네비게이션 정보구조 재설계라 별도 작업 필요.
+- 수집기 staleness 임계값 재보정: `options_uoa`(3600s)는 미장 마감 후 야간마다 stale 오탐, `polymarket_implication_*`(900s)는 실제 사이클 주기보다 짧음. 임계 자체가 틀린 것이라 알람 신뢰도 깎임.
+
+### 막힌 부분/결정사항
+- `/market` 차트가 "죽었다"는 초기 진단은 오진이었음 — dev 모드 첫 페인트가 15~25초 걸린 것. 데이터 배선은 정상, 수정 범위를 로딩 상태 표시로 축소.
+- lightweight-charts 로고는 제거(`attributionLogo: false`) 대신 여백 확보로 회피 — 어트리뷰션 유지.
 ## Phase 203 — Polymarket 함의관계 위반 모듈 라이브 전환 (2026-08-05) ✅ SHIPPED
 
 ### 배경
