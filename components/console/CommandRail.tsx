@@ -25,6 +25,7 @@ const CONSOLE_GROUPS: RailGroup[] = [
     { href: "/research-os/brain", label: "리서치 브레인" },
     { href: "/research-os/workflow", label: "워크플로우" },
     { href: "/research-os/discovery", label: "자율 발굴 v3.0" },
+    { href: "/research-os/strategy-generation", label: "전략 후보 생성" },
   ] },
   { label: "Research · 거버넌스", items: [
     { href: "/research-os/committee", label: "투자위원회" },

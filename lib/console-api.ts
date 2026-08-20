@@ -176,6 +176,23 @@ export const sessionAction = (action: string, sessionId = "", goal = "", s?: Abo
   post<SessionLite & { error?: string }>(
     `/console/session/${action}?session_id=${encodeURIComponent(sessionId)}&goal=${encodeURIComponent(goal)}`, s);
 
+// ══════════════ Research Strategy Generation (P29) ══════════════
+export interface StrategyCandidate {
+  candidate_id: string; session_id: string; category: string; statement: string;
+  source_refs: string[]; state: string; occurred_at: string;
+}
+export interface StrategyGenerationSummary {
+  timestamp: string; session_event_count: number; session_count: number;
+  candidate_event_count: number; candidate_count: number; hypothesis_count: number;
+  novelty_count: number; evidence_count: number; report_count: number; artifact_count: number;
+}
+export interface ResearchStrategyGenerationResp {
+  candidates: StrategyCandidate[]; summary: StrategyGenerationSummary;
+  is_advisory: boolean; is_decision: boolean; disclaimer: string;
+}
+export const getResearchStrategyGeneration = (s?: AbortSignal) =>
+  get<ResearchStrategyGenerationResp>("/console/research-strategy-generation", s);
+
 export interface DecisionMemoResp {
   question?: string; recommendation?: string; rationale?: string;
   evidence?: { digest: string; sources: string[] };
