@@ -26,9 +26,8 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "console", label: "운영 콘솔" },
 ];
 
-function num(n: number | undefined | null, d = 0) {
-  return typeof n === "number" && !Number.isNaN(n) ? n : d;
-}
+const num = (n: number | undefined | null, d = 0) =>
+  (n == null ? "—" : n.toLocaleString(undefined, { maximumFractionDigits: d }));
 
 function PipelineInner() {
   const router = useRouter();
