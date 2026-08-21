@@ -16,27 +16,11 @@ export interface RailGroup { label: string; items: RailItem[] }
 // 5-tab 셸에 흡수되어 top-level nav에서 제거됨(route/파일은 무변경, 직링크로 계속 접근 가능).
 // 남은 항목은 write action·drill-down이 있는 "유지" 페이지뿐.
 const CONSOLE_GROUPS: RailGroup[] = [
-  { label: "Research · 모니터링", items: [
-    { href: "/research-os/cockpit", label: "경영진 콕핏" },
-    { href: "/research-os/console", label: "운영 콘솔" },
-  ] },
-  { label: "Research · 파이프라인", items: [
-    { href: "/research-os/agents", label: "리서치 에이전트" },
-    { href: "/research-os/brain", label: "리서치 브레인" },
-    { href: "/research-os/workflow", label: "워크플로우" },
-    { href: "/research-os/discovery", label: "자율 발굴 v3.0" },
-    { href: "/research-os/strategy-generation", label: "전략 후보 생성" },
-  ] },
-  { label: "Research · 거버넌스", items: [
-    { href: "/research-os/committee", label: "투자위원회" },
-    { href: "/research-os/explain", label: "설명가능성" },
-    { href: "/research-os/graph", label: "지식 그래프" },
-    { href: "/research-os/timeline", label: "타임라인" },
-  ] },
-  { label: "Research · 랩", items: [
-    { href: "/research-os/strategy-lab", label: "전략 랩" },
-    { href: "/research-os/chat", label: "리서치 챗" },
-    { href: "/investment-os?tab=research", label: "Jarvis 라이브뷰" },
+  { label: "Research OS", items: [
+    { href: "/research-os/pipeline", label: "파이프라인" },
+    { href: "/research-os/validation", label: "검증·실전준비" },
+    { href: "/research-os/governance", label: "거버넌스" },
+    { href: "/research-os/chat", label: "어시스턴트" },
   ] },
   { label: "Investment OS", items: [
     { href: "/investment-os", label: "Investment OS" },
@@ -86,7 +70,7 @@ const TERMINAL_GROUPS: RailGroup[] = [
 ];
 
 const ALL_GROUPS: RailGroup[] = [...CONSOLE_GROUPS, ...TERMINAL_GROUPS];
-const OPERATOR_GROUP_LABELS = ["트레이딩 데스크", "봇 · 에이전트", "Research · 모니터링"];
+const OPERATOR_GROUP_LABELS = ["트레이딩 데스크", "봇 · 에이전트", "Research OS"];
 const OPERATOR_MODE_KEY = "commandRailOperatorMode";
 
 export function filterGroupsForOperator(groups: RailGroup[]): RailGroup[] {
@@ -106,10 +90,7 @@ function Diamond() {
 
 function GroupGlyph({ label }: { label: string }) {
   const g: Record<string, React.ReactNode> = {
-    "Research · 모니터링": <><circle cx="8" cy="8" r="6.5" /><path d="M8 4.5v3.5l2.5 1.5" /><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" /></>,
-    "Research · 파이프라인": <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
-    "Research · 거버넌스": <><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M5 8h6M8 5v6" /></>,
-    "Research · 랩": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,
+    "Research OS": <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
     "마켓": <><polyline points="1,11 4.5,6 7,8.5 10,4 14.5,8" /><line x1="1" y1="14" x2="15" y2="14" /></>,
     "트레이딩 데스크": <><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></>,
     "봇 · 에이전트": <><rect x="3" y="5" width="10" height="7" rx="2" /><circle cx="6" cy="8.5" r="1" fill="currentColor" stroke="none" /><circle cx="10" cy="8.5" r="1" fill="currentColor" stroke="none" /><path d="M8 2v3M6 2h4" /></>,
