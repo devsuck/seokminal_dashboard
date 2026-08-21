@@ -28,8 +28,8 @@ const TONE = {
 } as const;
 
 /* ── 카운트업 숫자 (metric 착지 애니메이션) ──────────────────────── */
-export function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "", className = "" }:
-  { value: number; decimals?: number; prefix?: string; suffix?: string; className?: string }) {
+export function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "", signed = false, className = "" }:
+  { value: number; decimals?: number; prefix?: string; suffix?: string; signed?: boolean; className?: string }) {
   const [disp, setDisp] = useState(0);
   const raf = useRef<number | null>(null);
   const from = useRef(0);
@@ -44,7 +44,10 @@ export function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "", 
     raf.current = requestAnimationFrame(tick);
     return () => { if (raf.current) cancelAnimationFrame(raf.current); };
   }, [value]);
-  return <span className={`font-data tabular-nums ${className}`}>{prefix}{disp.toFixed(decimals)}{suffix}</span>;
+  // 부호는 prefix(통화기호) 바깥에 찍어야 "$-2665"가 아니라 "-$2,665"가 됨
+  const sign = disp < 0 ? "-" : signed ? "+" : "";
+  const body = Math.abs(disp).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return <span className={`font-data tabular-nums ${className}`}>{sign}{prefix}{body}{suffix}</span>;
 }
 
 /* ── 타이핑 커서 (AI가 "생각 중" 텍스트) ─────────────────────────── */

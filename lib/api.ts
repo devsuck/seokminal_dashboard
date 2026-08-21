@@ -1606,7 +1606,7 @@ export interface DashboardPnlAll {
   agents_totals: AgentsOverview["totals"];
   bots: DashboardBotRow[];
   bots_totals: { realized_pnl: number };
-  grand_total_realized_pnl: number;
+  // grand_total_realized_pnl 없음 — ₩ 에이전트와 $ 봇을 섞어 더한 값이라 서버에서 제거됨
 }
 export async function getDashboardPnlAll(signal?: AbortSignal): Promise<DashboardPnlAll> {
   const r = await fetch(`${API_URL}/dashboard/pnl/all`, { signal });
@@ -2099,6 +2099,8 @@ export type InsiderTradeType =
   | "RIGHTS_ISSUE"   // 무상증자
   | "PAID_IN"        // 유상증자
   | "CANCELLATION"   // 주식소각
+  | "BUYBACK"        // 자기주식 취득
+  | "DISPOSAL"       // 자기주식 처분
   | "HOLD_REPORT"    // 보유변동 없는 보고
   | "OTHER";
 
@@ -2589,9 +2591,12 @@ export async function getLabStatus(signal?: AbortSignal): Promise<LabStatus> {
   return handleResponse<LabStatus>(r);
 }
 
+// 서버 api_server/lab_api.py COLLECTOR_SESSIONS와 동일 집합 유지
 export type CollectorKey = "polymarket_tick" | "polymarket_arb" | "hl_orderflow_tick"
   | "cross_venue_skew_tick" | "polymarket_whale_tick" | "polymarket_updown_arb"
-  | "polymarket_sharp_wallet_tick" | "polymarket_mlb_specialist_tick";
+  | "polymarket_sharp_wallet_tick" | "polymarket_mlb_specialist_tick"
+  | "polymarket_event_divergence" | "options_uoa"
+  | "polymarket_implication_collect" | "polymarket_implication_watch";
 
 export async function restartCollector(key: CollectorKey): Promise<{ running: boolean; last_write: string | null; age_sec: number | null }> {
   const r = await fetch(`${API_URL}/lab/collectors/${key}/restart`, { method: "POST" });

@@ -8,7 +8,7 @@ import {
   type OmsOrder, type VenuePnl,
 } from "@/lib/api";
 import { Panel as UiPanel, PanelHeader } from "@/components/ui/Panel";
-import { SegmentedToggle, LoadingState, EmptyState } from "@/components/ui";
+import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead } from "@/components/console/primitives";
 import { FinancialMetric, TerminalTable } from "@/components/terminal";
@@ -43,6 +43,18 @@ function StatusDot({ ok }: { ok: boolean }) {
   return <span className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-pos" : "bg-neg"}`} />;
 }
 
+/** 원문 에러 → 사용자가 할 수 있는 조치. 매칭 안 되면 원문 앞 80자. */
+function errorHint(error: string): string {
+  const e = error.toLowerCase();
+  if (e.includes("connection refused") || e.includes("errno 61"))
+    return "브로커 연결 끊김 — IB Gateway/TWS 실행 후 포트 7496 확인";
+  if (e.includes("timeout") || e.includes("timed out"))
+    return "응답 시간 초과 — 브로커 API 지연, 잠시 후 재시도";
+  if (e.includes("401") || e.includes("403") || e.includes("unauthorized") || e.includes("token"))
+    return "인증 실패 — API 키/토큰 만료 확인";
+  return error.slice(0, 80);
+}
+
 // ── 계좌 카드 ────────────────────────────────────────────────────────────────
 
 function AccountCard({
@@ -64,7 +76,7 @@ function AccountCard({
               <ModeChip mode={mode} paper={paper} />
             </div>
             {error ? (
-              <p className="text-neg text-[10px] mt-0.5 truncate">{error.slice(0, 80)}</p>
+              <p className="text-neg text-[10px] mt-0.5 truncate" title={error}>{errorHint(error)}</p>
             ) : (
               <p className="text-text-3 text-[10px] mt-0.5">{ccy}</p>
             )}
@@ -277,6 +289,8 @@ function AccountsTab() {
   const [kisMockHoldings, setKisMockHoldings] = useState<KISHolding[]>([]);
   const [kisLiveHoldings, setKisLiveHoldings] = useState<KISHolding[]>([]);
   const [loading, setLoading] = useState(true);
+  // 느린 balances(KIS 최대 30초)가 도착 전까지 "계좌 없음" 오표시 방지
+  const [balancesPending, setBalancesPending] = useState(true);
 
   const load = useCallback(() => {
     // Fast: Alpaca + LKG paper — show UI immediately
@@ -300,7 +314,7 @@ function AccountsTab() {
     getAccountBalances(ctrl.signal)
       .then(r => setAccounts(r.accounts))
       .catch(() => {})
-      .finally(() => clearTimeout(tid));
+      .finally(() => { clearTimeout(tid); setBalancesPending(false); });
     getKisHoldings(true, ctrl.signal).then(r => setKisMockHoldings(r.holdings)).catch(() => {});
     getKisHoldings(false, ctrl.signal).then(r => setKisLiveHoldings(r.holdings)).catch(() => {});
   }, []);
@@ -336,7 +350,11 @@ function AccountsTab() {
     ...usdcAccounts.filter(a => a.balance != null).map(a => ({ venue: a.label, ccy: "USDC", balance: a.balance as number, share: usdcTotal ? (a.balance as number) / usdcTotal : 0 })),
   ];
 
-  if (loading) return <p className="text-text-3 text-sm text-center py-12">로딩 중…</p>;
+  if (loading) return (
+    <div className="py-12">
+      <LoadingState message="계좌 잔고 조회 중…" hint="브로커 6곳 순차 조회 — 5~10초 걸립니다" />
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4 items-start">
@@ -377,7 +395,7 @@ function AccountsTab() {
             </AccountCard>
           ))}
           {krwAccounts.length === 0 && (
-            <p className="text-text-3 text-xs">KRW 계좌 없음</p>
+            <p className="text-text-3 text-xs">{balancesPending ? "한투 잔고 조회 중… (최대 30초)" : "KRW 계좌 없음"}</p>
           )}
         </CcySection>
 
@@ -398,7 +416,7 @@ function AccountsTab() {
             </AccountCard>
           ))}
           {usdcAccounts.length === 0 && (
-            <p className="text-text-3 text-xs">Hyperliquid 계좌 없음</p>
+            <p className="text-text-3 text-xs">{balancesPending ? "HL 잔고 조회 중…" : "Hyperliquid 계좌 없음"}</p>
           )}
         </CcySection>
       </div>
@@ -419,7 +437,12 @@ function AccountsTab() {
                 { key: "venue", label: "거래소" },
                 { key: "ccy", label: "통화" },
                 { key: "balance", label: "잔고", align: "r", sortable: true, render: (r) => fmt(r.balance, r.ccy, true) },
-                { key: "share", label: "비중", align: "r", sortable: true, render: (r) => `${(r.share * 100).toFixed(1)}%` },
+                { key: "share", label: "비중", align: "r", sortable: true, render: (r) => (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Bar ratio={r.share} tone="bg-accent/70" />
+                    <span className="tabular-nums">{(r.share * 100).toFixed(1)}%</span>
+                  </span>
+                ) },
               ]}
             />
           )}

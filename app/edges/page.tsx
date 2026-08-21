@@ -8,25 +8,15 @@ import {
 } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 import { LoadingState } from "@/components/ui";
+import { Sparkline } from "@/components/charts/Sparkline";
+import { FreshnessBar } from "@/components/ui/FreshnessBar";
+import { collectorMeta, VERDICT_LABEL, type Verdict } from "@/lib/collectors";
+import { gradeStyle, gradeLabel, edgeStatusLabel } from "@/lib/edge-labels";
 
-// ── 졸업 스코어카드(수익 게이트) 색/라벨 ────────────────────────────────────────
-function gradeStyle(s: string): string {
-  if (s === "graduated") return "border-pos/50 text-pos bg-pos/10";
-  if (s === "failed") return "border-neg/50 text-neg bg-neg/10";
-  return "border-warn/40 text-warn bg-warn/10"; // accumulating
-}
-function gradeLabel(s: string): string {
-  return ({ graduated: "졸업", failed: "탈락", accumulating: "축적중" } as Record<string, string>)[s] ?? s;
-}
 const GRADE_CHECK_LABEL: Record<string, string> = {
   powered: "표본 검정력", p_strong: "p-value", fdr_survivor: "FDR 생존", oos_persistence: "OOS 지속성",
 };
 
-// ── 검증 상태 라벨(디테일용) ────────────────────────────────────────────────────
-function edgeStatusLabel(s: string): string {
-  return ({ significant: "유의(FDR생존)", not_significant: "미유의", no_data: "데이터없음",
-    warming: "계산중", pending: "대기(맥조립)", error: "오류" } as Record<string, string>)[s] ?? s;
-}
 function fleetStyle(v: string): string {
   if (v === "fresh" || v === "ok") return "border-pos/40 text-pos bg-pos/10";
   if (v === "stale" || v === "warn") return "border-warn/40 text-warn bg-warn/10";
@@ -43,24 +33,11 @@ function fmtAge(s: number | null | undefined): string {
   return `${Math.round(s / 3600)}h`;
 }
 
-// ── p-value 감쇠 스파크라인(인라인 SVG, 저비용). y=낮을수록 좋음 → 위로 반전 ──────
-function Sparkline({ traj, dir }: { traj: EdgeTrajPoint[]; dir: string }) {
+// ── p-value 감쇠 스파크라인. p는 낮을수록 좋음 → invert로 위가 좋은 방향 ──────────
+function PSparkline({ traj, dir }: { traj: EdgeTrajPoint[]; dir: string }) {
   const pts = traj.map((r) => r.min_p_value).filter((v): v is number => typeof v === "number");
-  if (pts.length < 2) return <span className="text-text-3 text-xs">—</span>;
-  const w = 88, h = 24, pad = 2;
-  const max = Math.max(...pts), min = Math.min(...pts);
-  const span = max - min || 1;
   const stroke = dir === "improving" ? "var(--color-pos)" : dir === "decaying" ? "var(--color-neg)" : "var(--color-text-3)";
-  const d = pts.map((v, i) => {
-    const x = pad + (i * (w - 2 * pad)) / (pts.length - 1);
-    const y = pad + ((v - min) / span) * (h - 2 * pad); // p 낮음=위(좋음)
-    return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  return (
-    <svg width={w} height={h} className="overflow-visible" role="img" aria-label={`p-value 추세 ${dir}`}>
-      <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} />
-    </svg>
-  );
+  return <Sparkline values={pts} invert stroke={stroke} label={`p-value 추세 ${dir}`} />;
 }
 
 // ── p-value 크기 바(작을수록 강함 → 바 길이 = 1-p) ──────────────────────────────
@@ -157,7 +134,8 @@ export default function EdgesPage() {
       <Panel>
         <PanelHeader right={fleet && (
           <span className={`text-xs px-2 py-0.5 border ${fleetStyle(fleet.ok ? "fresh" : fleet.worst_verdict === "fresh" ? "stale" : fleet.worst_verdict)}`}>
-            {fleet.ok ? "정상" : fleet.worst_verdict === "fresh" ? "주의: 반복재기동" : `주의: ${fleet.worst_verdict}`}
+            {fleet.ok ? "정상" : fleet.worst_verdict === "fresh" ? "주의: 반복재기동"
+              : `주의: ${VERDICT_LABEL[fleet.worst_verdict as Verdict] ?? fleet.worst_verdict}`}
           </span>
         )}>수집기 함대 헬스</PanelHeader>
         {fleetErr && <div className="text-neg text-xs px-3 py-2">함대 조회 실패(백엔드 미기동?): {fleetErr}</div>}
@@ -165,7 +143,7 @@ export default function EdgesPage() {
           <div className="px-3 pb-3">
             <div className="text-text-3 text-xs mb-2 flex items-center justify-between flex-wrap gap-x-3 gap-y-1">
               <span>
-                fresh {fleet.counts.fresh} · stale {fleet.counts.stale} · stuck {fleet.counts.stuck} · dead {fleet.counts.dead} / {fleet.n_total}
+                정상 {fleet.counts.fresh} · 지연 {fleet.counts.stale} · 멈춤 {fleet.counts.stuck} · 죽음 {fleet.counts.dead} / {fleet.n_total}
               </span>
               {fleet.disk && (
                 <span className={`px-1.5 py-0.5 border ${fleetStyle(fleet.disk.verdict)}`} title={fleet.disk.reason}>
@@ -177,8 +155,10 @@ export default function EdgesPage() {
               {fleet.collectors.map((c: FleetCollector) => (
                 <div key={c.key} className="flex items-center justify-between border border-text-3/15 px-2 py-1.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`text-xs px-1.5 py-0.5 border shrink-0 ${fleetStyle(c.verdict)}`}>{c.verdict}</span>
-                    <span className="text-text-2 text-xs truncate">{c.key}</span>
+                    <span className={`text-xs px-1.5 py-0.5 border shrink-0 ${fleetStyle(c.verdict)}`}>
+                      {VERDICT_LABEL[c.verdict as Verdict] ?? c.verdict}
+                    </span>
+                    <span className="text-text-2 text-xs truncate" title={c.key}>{collectorMeta(c.key).label}</span>
                     {c.flapping && (
                       <span className="text-xs px-1.5 py-0.5 border shrink-0 border-warn/40 text-warn bg-warn/10"
                         title="24h 내 반복 재기동 — 근본원인 미해결 의심">
@@ -186,7 +166,8 @@ export default function EdgesPage() {
                       </span>
                     )}
                   </div>
-                  <span className="text-text-3 text-xs tabular-nums shrink-0" title={c.reason}>
+                  <span className="flex items-center gap-1.5 text-text-3 text-xs tabular-nums shrink-0" title={c.reason}>
+                    <FreshnessBar ageSec={c.age_sec} staleAfterS={c.stale_after_s} verdict={c.verdict as Verdict} />
                     {fmtAge(c.age_sec)}
                   </span>
                 </div>
@@ -240,7 +221,7 @@ export default function EdgesPage() {
                     <td className="px-3 py-2 text-text-2 text-xs tabular-nums">
                       {e.summary ? e.summary.n_events.toLocaleString() : "—"}
                     </td>
-                    <td className="px-3 py-2"><Sparkline traj={e.trajectory} dir={e.trend.direction} /></td>
+                    <td className="px-3 py-2"><PSparkline traj={e.trajectory} dir={e.trend.direction} /></td>
                   </tr>
                 )];
                 if (isOpen) rows.push(

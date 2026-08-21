@@ -15,6 +15,9 @@ import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { BarChart, type BarItem } from "@/components/charts/BarChart";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
+import { FreshnessBar } from "@/components/ui/FreshnessBar";
+import { collectorMeta, VERDICT_LABEL, type Verdict } from "@/lib/collectors";
+import { gradeStyle, gradeLabel, edgeStatusLabel } from "@/lib/edge-labels";
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
@@ -34,12 +37,6 @@ function fmtAge(s: number | null | undefined): string {
   if (s < 5400) return `${Math.round(s / 60)}m`;
   return `${Math.round(s / 3600)}h`;
 }
-function gradeStyle(s: string): string {
-  if (s === "graduated") return "border-pos/50 text-pos bg-pos/10";
-  if (s === "failed") return "border-neg/50 text-neg bg-neg/10";
-  return "border-warn/40 text-warn bg-warn/10"; // accumulating
-}
-const GRADE_LABEL: Record<string, string> = { graduated: "졸업", failed: "탈락", accumulating: "축적중" };
 // mlb_specialist_consensus는 전용 페이지(/mlb)가 있어 링크만 걸고 상세는 중복 렌더 안 함
 const POLY_HYP_LINK: Record<string, string> = { mlb_specialist_consensus: "/mlb" };
 
@@ -221,14 +218,19 @@ export default function PolymarketPage() {
               {polyCollectors.map(c => (
                 <div key={c.key} className="flex items-center justify-between border border-text-3/15 px-2 py-1.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`text-xs px-1.5 py-0.5 border shrink-0 ${fleetStyle(c.verdict)}`}>{c.verdict}</span>
-                    <span className="text-text-2 text-xs truncate" title={c.reason}>{c.key}</span>
+                    <span className={`text-xs px-1.5 py-0.5 border shrink-0 ${fleetStyle(c.verdict)}`}>
+                      {VERDICT_LABEL[c.verdict as Verdict] ?? c.verdict}
+                    </span>
+                    <span className="text-text-2 text-xs truncate" title={`${c.key} — ${c.reason}`}>{collectorMeta(c.key).label}</span>
                     {c.flapping && (
                       <span className="text-xs px-1.5 py-0.5 border shrink-0 border-warn/40 text-warn bg-warn/10"
                         title="24h 내 반복 재기동 — 근본원인 미해결 의심">재기동×{c.restart_count_24h}</span>
                     )}
                   </div>
-                  <span className="text-text-3 text-xs tabular-nums shrink-0">{fmtAge(c.age_sec)}</span>
+                  <span className="flex items-center gap-1.5 text-text-3 text-xs tabular-nums shrink-0">
+                    <FreshnessBar ageSec={c.age_sec} staleAfterS={c.stale_after_s} verdict={c.verdict as Verdict} />
+                    {fmtAge(c.age_sec)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -242,8 +244,8 @@ export default function PolymarketPage() {
                   <div className="flex items-center justify-between py-1.5 text-xs gap-2">
                     <span className="text-text-2 min-w-0 truncate">{e.title}{href && <span className="text-accent"> → 상세</span>}</span>
                     <span className="flex items-center gap-1.5 shrink-0">
-                      <span className={`px-1.5 py-0.5 border ${gradeStyle(e.grade.status)}`}>{GRADE_LABEL[e.grade.status] ?? e.grade.status}</span>
-                      <span className="text-text-3">{e.status}</span>
+                      <span className={`px-1.5 py-0.5 border ${gradeStyle(e.grade.status)}`}>{gradeLabel(e.grade.status)}</span>
+                      <span className="text-text-3">{edgeStatusLabel(e.status)}</span>
                     </span>
                   </div>
                 );

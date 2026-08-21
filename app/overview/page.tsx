@@ -29,6 +29,16 @@ function pct(n: number | null | undefined, d = 2): string {
 function won(n: number | null | undefined): string {
   return typeof n === "number" ? `${n >= 0 ? "+" : ""}${Math.round(n).toLocaleString()}` : "—";
 }
+/** 배분·잔고처럼 부호가 의미 없는 금액 (손익이 아님) */
+function amt(n: number | null | undefined): string {
+  return typeof n === "number" ? Math.round(n).toLocaleString() : "—";
+}
+
+// KRW와 USD를 그냥 더하면 의미 없는 숫자가 나옴 → 통화별로 집계를 쪼갠다.
+function currencyOf(market: TradingAgent["market"]): "₩" | "$" {
+  return market === "KR" ? "₩" : "$";
+}
+const ALLOC_COLORS = ["bg-accent/70", "bg-info/70", "bg-pos/70", "bg-warn/70", "bg-neg/60"];
 
 export default function OverviewPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -68,10 +78,21 @@ export default function OverviewPage() {
     return () => { mounted = false; clearInterval(iv); abortRef.current?.abort(); };
   }, []);
 
-  const totalAlloc = rows?.reduce((s, r) => s + (r.perf?.alloc ?? r.agent.account_alloc ?? 0), 0) ?? 0;
-  const totalPnl = rows?.reduce((s, r) => s + (r.perf?.total_pnl ?? 0), 0) ?? 0;
-  const totalReturn = totalAlloc > 0 ? (totalPnl / totalAlloc) * 100 : 0;
   const running = rows?.filter(r => r.agent.status === "running").length ?? 0;
+
+  // 통화별 집계 — 각 통화 안에서만 합산/수익률 계산
+  const groups = (() => {
+    const m = new Map<string, { cur: string; alloc: number; pnl: number; rows: Row[] }>();
+    for (const r of rows ?? []) {
+      const cur = currencyOf(r.agent.market);
+      const g = m.get(cur) ?? { cur, alloc: 0, pnl: 0, rows: [] };
+      g.alloc += r.perf?.alloc ?? r.agent.account_alloc ?? 0;
+      g.pnl += r.perf?.total_pnl ?? 0;
+      g.rows.push(r);
+      m.set(cur, g);
+    }
+    return [...m.values()].sort((a, b) => b.alloc - a.alloc);
+  })();
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
@@ -80,15 +101,18 @@ export default function OverviewPage() {
         <LivePulse tone={running > 0 ? "pos" : "text-3"} label={running > 0 ? `${running} 가동` : "대기"} />
       </div>
 
-      {/* 총괄 요약 — 이 페이지의 답: 얼마가, 어디에, 성과는 */}
-      {rows && rows.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Summary label="총 배분" num={totalAlloc} decimals={0} />
-          <Summary label="총 손익" num={totalPnl} decimals={0} prefix={totalPnl >= 0 ? "+" : ""} pos={totalPnl >= 0} />
-          <Summary label="총 수익률" num={totalReturn} decimals={2} prefix={totalReturn >= 0 ? "+" : ""} suffix="%" pos={totalReturn >= 0} />
-          <Summary label="가동 AI" val={`${running} / ${rows.length}`} />
-        </div>
-      )}
+      {/* 총괄 요약 — 통화별로 따로. KRW+USD 합산은 의미 없는 숫자라 만들지 않음 */}
+      {groups.map(g => {
+        const ret = g.alloc > 0 ? (g.pnl / g.alloc) * 100 : 0;
+        return (
+          <div key={g.cur} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Summary label={`총 배분 (${g.cur})`} num={g.alloc} decimals={0} prefix={g.cur} />
+            <Summary label="총 손익" num={g.pnl} decimals={0} prefix={g.cur} signed pos={g.pnl >= 0} />
+            <Summary label="총 수익률" num={ret} decimals={2} suffix="%" signed pos={ret >= 0} />
+            <Summary label="AI" val={`${g.rows.filter(r => r.agent.status === "running").length} / ${g.rows.length} 가동`} />
+          </div>
+        );
+      })}
 
       {/* 연구 트랙 — 페이퍼 돈길 (라이브 배분과 별개, 실캐피탈 0) */}
       {bot && (
@@ -119,7 +143,7 @@ export default function OverviewPage() {
         </Link>
       )}
 
-      {!rows && !err && <LoadingState message="포트폴리오 로딩 중…" />}
+      {!rows && !err && <LoadingState message="포트폴리오 로딩 중…" hint="에이전트별 손익 집계 — 5~10초 걸립니다" />}
       {err && <div className="text-xs text-neg border border-neg/30 rounded px-3 py-2">오류: {err}</div>}
       {rows && rows.length === 0 && (
         <div className="bg-panel border border-border rounded-lg p-6 text-center text-text-3 text-sm">
@@ -127,18 +151,35 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* 배분 막대 */}
-      {rows && rows.length > 0 && totalAlloc > 0 && (
+      {/* 배분 막대 — 색만 있고 이름이 없으면 못 읽으므로 범례 동반 */}
+      {groups.some(g => g.alloc > 0) && (
         <Panel>
           <PanelHeader>AI별 자본 배분</PanelHeader>
-          <div className="p-3">
-            <div className="flex h-4 rounded overflow-hidden border border-border">
-              {rows.map((r, i) => {
-                const w = ((r.perf?.alloc ?? r.agent.account_alloc ?? 0) / totalAlloc) * 100;
-                const colors = ["bg-accent/70", "bg-info/70", "bg-pos/70", "bg-warn/70", "bg-neg/60"];
-                return <div key={r.agent.id} className={`${colors[i % colors.length]} ${widthClass(w)}`} title={`${r.agent.name} ${w.toFixed(0)}%`} />;
-              })}
-            </div>
+          <div className="p-3 space-y-3">
+            {groups.filter(g => g.alloc > 0).map(g => (
+              <div key={g.cur} className="space-y-1.5">
+                <div className="text-[10px] uppercase tracking-wider text-text-3">{g.cur} · {amt(g.alloc)}</div>
+                <div className="flex h-4 rounded overflow-hidden border border-border">
+                  {g.rows.map((r, i) => {
+                    const w = ((r.perf?.alloc ?? r.agent.account_alloc ?? 0) / g.alloc) * 100;
+                    return <div key={r.agent.id} className={`${ALLOC_COLORS[i % ALLOC_COLORS.length]} ${widthClass(w)}`}
+                      title={`${r.agent.name} ${w.toFixed(1)}%`} />;
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {g.rows.map((r, i) => {
+                    const w = ((r.perf?.alloc ?? r.agent.account_alloc ?? 0) / g.alloc) * 100;
+                    return (
+                      <span key={r.agent.id} className="flex items-center gap-1.5 text-[11px] text-text-3">
+                        <span className={`inline-block w-2 h-2 rounded-sm ${ALLOC_COLORS[i % ALLOC_COLORS.length]}`} />
+                        <span className="text-text-2">{r.agent.name}</span>
+                        <span className="font-data tabular-nums">{w.toFixed(1)}%</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </Panel>
       )}
@@ -152,14 +193,15 @@ export default function OverviewPage() {
               <div key={b.id} className="flex items-center justify-between text-xs">
                 <span className="text-text-2">{b.name}{b.note && <span className="text-text-3"> ({b.note})</span>}</span>
                 <span className={`font-data px-1 font-bold ${b.realized_pnl === null ? "text-text-3" : b.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
-                  {b.realized_pnl === null ? "—" : won(b.realized_pnl)}
+                  {b.realized_pnl === null ? "—" : `${b.realized_pnl >= 0 ? "+" : "-"}$${amt(Math.abs(b.realized_pnl))}`}
                 </span>
               </div>
             ))}
+            {/* 서버의 grand_total은 KRW 에이전트 손익까지 더해서(=통화 혼합) 의미가 없어 쓰지 않음 */}
             <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border">
-              <span className="text-text-1 font-semibold">합계 (에이전트+독립봇)</span>
-              <span className={`font-data px-1 font-bold ${pnlAll.grand_total_realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
-                {won(pnlAll.grand_total_realized_pnl)}
+              <span className="text-text-1 font-semibold">독립봇 합계 ($)</span>
+              <span className={`font-data px-1 font-bold ${pnlAll.bots_totals.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                {pnlAll.bots_totals.realized_pnl >= 0 ? "+" : "-"}${amt(Math.abs(pnlAll.bots_totals.realized_pnl))}
               </span>
             </div>
           </div>
@@ -186,7 +228,7 @@ export default function OverviewPage() {
                         title={r.agent.validation_reason ?? "registry 미등록 전략"}>미검증</span>
                     )}
                   </div>
-                  <div className="text-[11px] text-text-3">배분 {won(p?.alloc ?? r.agent.account_alloc)} · 자율 Lv{r.agent.autonomy}</div>
+                  <div className="text-[11px] text-text-3">배분 {currencyOf(r.agent.market)}{amt(p?.alloc ?? r.agent.account_alloc)} · 자율 Lv{r.agent.autonomy}</div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className={`text-sm font-data px-1 font-bold inline-block ${(p?.return_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{pct(p?.return_pct)}</div>
@@ -198,8 +240,8 @@ export default function OverviewPage() {
               {open && p && (
                 <div className="px-4 pb-4 border-t border-border pt-3 space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    <Kv k="현금" v={won(p.cash)} />
-                    <Kv k="투자중" v={won(p.invested)} />
+                    <Kv k="현금" v={`${currencyOf(r.agent.market)}${amt(p.cash)}`} />
+                    <Kv k="투자중" v={`${currencyOf(r.agent.market)}${amt(p.invested)}`} />
                     <Kv k="실현손익" v={won(p.realized_pnl)} pos={p.realized_pnl >= 0} />
                     <Kv k="평가손익" v={won(p.unrealized_pnl)} pos={p.unrealized_pnl >= 0} />
                   </div>
@@ -245,14 +287,14 @@ export default function OverviewPage() {
   );
 }
 
-function Summary({ label, val, num, decimals = 0, prefix = "", suffix = "", pos }:
-  { label: string; val?: string; num?: number; decimals?: number; prefix?: string; suffix?: string; pos?: boolean }) {
+function Summary({ label, val, num, decimals = 0, prefix = "", suffix = "", signed = false, pos }:
+  { label: string; val?: string; num?: number; decimals?: number; prefix?: string; suffix?: string; signed?: boolean; pos?: boolean }) {
   const c = pos === undefined ? "text-text-1" : pos ? "text-pos" : "text-neg";
   return (
     <div className="hud-frame bg-panel border border-border rounded-lg px-3 py-2.5 text-center">
       <div className={`text-lg font-semibold font-data ${c}`}>
         {typeof num === "number"
-          ? <AnimatedNumber value={num} decimals={decimals} prefix={prefix} suffix={suffix} />
+          ? <AnimatedNumber value={num} decimals={decimals} prefix={prefix} suffix={suffix} signed={signed} />
           : val}
       </div>
       <div className="text-[10px] uppercase tracking-wider text-text-3">{label}</div>

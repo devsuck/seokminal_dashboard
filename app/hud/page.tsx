@@ -5,11 +5,11 @@ import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
   getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts, getVrpBotStatus,
-  restartCollector, getLabHealth,
+  restartCollector, getLabHealth, getFleet,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
   type AccountBalances, type TriggeredAlert, type VrpBotStatus, type CollectorKey,
-  type LabHealth,
+  type LabHealth, type FleetResponse,
 } from "@/lib/api";
 import {
   getConsolePipeline, getRisk, getInvestmentOs,
@@ -18,6 +18,8 @@ import {
 import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { FreshnessBar } from "@/components/ui/FreshnessBar";
+import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
 import { displayLevel } from "@/lib/agent-level";
 import { toast } from "@/lib/toast";
 
@@ -55,17 +57,36 @@ const WORLD_CITIES: { label: string; tz: string }[] = [
   { label: "도쿄", tz: "Asia/Tokyo" },
 ];
 
+/** 참고 정보라 한 줄로 눌러둠 — 상단 픽셀은 조치가 필요한 상태 표시에 양보. */
 function WorldClock({ now }: { now: Date }) {
   return (
-    <div className="grid grid-cols-4 divide-x divide-border">
+    <div className="flex items-center justify-end gap-4 px-2 py-0.5">
       {WORLD_CITIES.map(c => (
-        <div key={c.tz} className="px-2 py-1 text-center">
-          <p className="text-text-3 text-[8px] uppercase tracking-widest">{c.label}</p>
-          <p className="text-text-1 text-xs font-data tabular-nums">
+        <span key={c.tz} className="inline-flex items-baseline gap-1">
+          <span className="text-text-3 text-[8px] uppercase tracking-widest">{c.label}</span>
+          {/* SSR 시각과 클라이언트 시각은 1초 차이로 어긋남 — 시계는 하이드레이션 비교 대상 아님 */}
+          <span className="text-text-2 text-[10px] font-data tabular-nums" suppressHydrationWarning>
             {now.toLocaleTimeString("en-GB", { timeZone: c.tz, hour12: false })}
-          </p>
-        </div>
+          </span>
+        </span>
       ))}
+    </div>
+  );
+}
+
+/** 돈길 = 순서 있는 관문. 텍스트 3칸으로는 "어디까지 왔나"가 안 보여서 스테퍼로. */
+function LadderStep({ label, value, state }: {
+  label: string; value: string; state: "done" | "current" | "blocked" | "pending";
+}) {
+  const tone = state === "done" ? "text-pos" : state === "blocked" ? "text-neg"
+    : state === "current" ? "text-accent" : "text-text-3";
+  const bar = state === "done" ? "bg-pos" : state === "blocked" ? "bg-neg"
+    : state === "current" ? "bg-accent" : "bg-border";
+  return (
+    <div className="flex-1 min-w-0 px-1.5 pb-1.5">
+      <div className={`h-0.5 mb-1 ${bar}`} />
+      <p className="text-text-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
+      <p className={`font-data text-xs font-bold truncate ${tone}`}>{value}</p>
     </div>
   );
 }
@@ -74,13 +95,25 @@ interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
   exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
-  vrp: VrpBotStatus | null; health: LabHealth | null;
+  vrp: VrpBotStatus | null; health: LabHealth | null; fleet: FleetResponse | null;
   pipeline: ConsolePipeline | null; risk: RiskResp | null; ios: InvestmentOsResp | null;
 }
 
 interface Unit {
-  kind: "AI" | "BOT"; name: string; running: boolean; detail: string; href: string;
+  kind: "AI" | "BOT" | "수집기"; name: string; running: boolean; detail: string; href: string;
   collectorKey?: CollectorKey;
+  /** 수집기 전용 — 신선도 정도. running 이진만으로는 "45초 전"과 "55분 전"이 구분 안 됨. */
+  fleet?: { verdict: Verdict; ageSec: number | null; staleAfterS: number; reason: string };
+}
+
+/** 정합성 위반 엔티티 → 조사할 페이지. 모르는 엔티티는 랩 개요로. */
+function violationHref(entity: string): string {
+  if (entity.startsWith("agent:")) return "/agents";
+  if (entity.includes("polymarket")) return "/polymarket";
+  if (entity.includes("buyback")) return "/buyback-doctor";
+  if (entity.includes("copytrade")) return "/copytrade";
+  if (entity.includes("dart")) return "/dart-auto";
+  return "/lab";
 }
 
 function formatAge(ageSec: number | null): string {
@@ -93,22 +126,32 @@ function formatAge(ageSec: number | null): string {
 function UnitCard({ u, onRestart, restarting }: {
   u: Unit; onRestart?: (key: CollectorKey) => void; restarting?: boolean;
 }) {
-  const deadCollector = !!u.collectorKey && !u.running;
+  const v = u.fleet?.verdict;
+  // 재시작 버튼은 프로세스가 실제로 문제일 때만(멈춤·죽음). 지연은 임계 문제일 수 있어 제외.
+  const broken = v === "dead" || v === "stuck" || (!!u.collectorKey && !u.fleet && !u.running);
+  const tone = v ? VERDICT_TONE[v] : null;
+  const statusText = v ? VERDICT_LABEL[v] : u.running ? "가동" : "정지";
+  const statusCls = tone
+    ? `${tone.bg} ${tone.text}${v === "dead" || v === "stuck" ? " animate-blink" : ""}`
+    : u.running ? "bg-pos/20 text-pos" : "bg-neg/10 text-text-3";
   return (
     <div className={`flex items-center gap-2 border-b border-border px-2 py-1 transition-colors ${
-      u.running ? "bg-pos/5" : deadCollector ? "bg-neg/10" : ""}`}>
-      <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80">
-        <StatusDot tone={u.running ? "pos" : deadCollector ? "neg" : "text-3"} />
+      broken ? "bg-neg/10" : v === "stale" ? "bg-warn/5" : u.running ? "bg-pos/5" : ""}`}>
+      <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80"
+        title={u.fleet?.reason ?? undefined}>
+        <StatusDot tone={v ? (v === "fresh" ? "pos" : v === "stale" ? "warn" : "neg") : u.running ? "pos" : "text-3"} />
         <span className="text-[11px] font-data text-text-1 truncate flex-1">{u.name}</span>
-        <span className="text-[10px] font-data text-text-3 truncate">{u.detail}</span>
+        {u.fleet && (
+          <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
+        )}
+        <span className={`text-[10px] font-data text-text-3 truncate text-right ${u.fleet ? "w-20" : "max-w-[45%]"}`}>{u.detail}</span>
       </Link>
       <span className={`text-[8px] px-1 border font-data shrink-0 ${
         u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
-      <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${
-        u.running ? "bg-pos/20 text-pos" : deadCollector ? "bg-neg/15 text-neg animate-blink" : "bg-neg/10 text-text-3"}`}>
-        {u.running ? "가동" : "정지"}
+      <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
+        {statusText}
       </span>
-      {deadCollector && (
+      {broken && u.collectorKey && (
         <button
           onClick={() => onRestart?.(u.collectorKey!)}
           disabled={restarting}
@@ -122,7 +165,7 @@ function UnitCard({ u, onRestart, restarting }: {
 }
 
 export default function HudPage() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null, pipeline: null, risk: null, ios: null });
+  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
   const [restarting, setRestarting] = useState<Partial<Record<CollectorKey, boolean>>>({});
@@ -133,8 +176,11 @@ export default function HudPage() {
     try {
       await restartCollector(key);
       toast.show(`${key} 재시작 완료`, "success");
-      const sys = await getLabStatus().catch(() => null);
-      if (sys) setF((prev) => ({ ...prev, sys }));
+      const [sys, fleet] = await Promise.all([
+        getLabStatus().catch(() => null),
+        getFleet().catch(() => null),
+      ]);
+      setF((prev) => ({ ...prev, sys: sys ?? prev.sys, fleet: fleet ?? prev.fleet }));
     } catch (e) {
       toast.show(`${key} 재시작 실패: ${e instanceof Error ? e.message : String(e)}`, "error");
     } finally {
@@ -148,7 +194,7 @@ export default function HudPage() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health, fleet] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -160,8 +206,9 @@ export default function HudPage() {
         getTriggeredAlerts(c.signal).catch(() => null),
         getVrpBotStatus(c.signal).catch(() => null),
         getLabHealth(c.signal).catch(() => null),  // 봇·에이전트 정합성 불변식
+        getFleet(c.signal).catch(() => null),      // 수집기 신선도 판정(fresh/stale/stuck/dead)
       ]);
-      if (mounted && !c.signal.aborted) setF((prev) => ({ ...prev, lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health }));
+      if (mounted && !c.signal.aborted) setF((prev) => ({ ...prev, lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health, fleet }));
     }
     load();
     const iv = setInterval(load, 4000);
@@ -202,7 +249,7 @@ export default function HudPage() {
     return () => clearInterval(t);
   }, []);
 
-  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp, health, pipeline, risk, ios } = f;
+  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp, health, fleet, pipeline, risk, ios } = f;
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -227,37 +274,15 @@ export default function HudPage() {
   units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: `보유 ${bot?.open ?? 0}`, href: "/lab/tasks" });
   if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "사용" : "꺼짐", href: "/dart-auto" });
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} 틱`, href: "/lab" });
-  if (sys?.processes?.polymarket_tick) units.push({
-    kind: "BOT", name: "폴리마켓 틱 수집기", running: sys.processes.polymarket_tick.running,
-    detail: formatAge(sys.processes.polymarket_tick.age_sec), href: "/lab", collectorKey: "polymarket_tick",
-  });
-  if (sys?.processes?.polymarket_arb) units.push({
-    kind: "BOT", name: "폴리마켓 arb 스캐너", running: sys.processes.polymarket_arb.running,
-    detail: formatAge(sys.processes.polymarket_arb.age_sec), href: "/lab", collectorKey: "polymarket_arb",
-  });
-  if (sys?.processes?.hl_orderflow_tick) units.push({
-    kind: "BOT", name: "HL 오더플로우 틱 수집기", running: sys.processes.hl_orderflow_tick.running,
-    detail: formatAge(sys.processes.hl_orderflow_tick.age_sec), href: "/orderflow", collectorKey: "hl_orderflow_tick",
-  });
-  if (sys?.processes?.cross_venue_skew_tick) units.push({
-    kind: "BOT", name: "크로스벤뉴 스큐 수집기", running: sys.processes.cross_venue_skew_tick.running,
-    detail: formatAge(sys.processes.cross_venue_skew_tick.age_sec), href: "/orderflow", collectorKey: "cross_venue_skew_tick",
-  });
-  if (sys?.processes?.polymarket_whale_tick) units.push({
-    kind: "BOT", name: "폴리마켓 고래 체결 수집기", running: sys.processes.polymarket_whale_tick.running,
-    detail: formatAge(sys.processes.polymarket_whale_tick.age_sec), href: "/orderflow", collectorKey: "polymarket_whale_tick",
-  });
-  if (sys?.processes?.polymarket_sharp_wallet_tick) units.push({
-    kind: "BOT", name: "폴리마켓 샤프월렛 수집기", running: sys.processes.polymarket_sharp_wallet_tick.running,
-    detail: formatAge(sys.processes.polymarket_sharp_wallet_tick.age_sec), href: "/orderflow", collectorKey: "polymarket_sharp_wallet_tick",
-  });
-  if (sys?.processes?.polymarket_updown_arb) units.push({
-    kind: "BOT", name: "폴리마켓 초단기 up/down 차익 스캐너", running: sys.processes.polymarket_updown_arb.running,
-    detail: formatAge(sys.processes.polymarket_updown_arb.age_sec), href: "/lab", collectorKey: "polymarket_updown_arb",
-  });
-  if (sys?.processes?.polymarket_mlb_specialist_tick) units.push({
-    kind: "BOT", name: "폴리마켓 MLB 스페셜리스트 수집기", running: sys.processes.polymarket_mlb_specialist_tick.running,
-    detail: formatAge(sys.processes.polymarket_mlb_specialist_tick.age_sec), href: "/mlb", collectorKey: "polymarket_mlb_specialist_tick",
+  // 수집기는 /lab/fleet이 단일 출처 — 서버에 수집기가 추가되면 여기 손 안 대도 자동 반영.
+  const collectorUnits: Unit[] = (fleet?.collectors ?? []).map(c => {
+    const meta = collectorMeta(c.key);
+    return {
+      kind: "수집기" as const, name: meta.label, href: meta.href,
+      running: c.running, detail: formatAge(c.age_sec),
+      collectorKey: c.key as CollectorKey,
+      fleet: { verdict: c.verdict, ageSec: c.age_sec, staleAfterS: c.stale_after_s, reason: c.reason },
+    };
   });
   if (vrp) {
     const lastLog = vrp.log?.[0];
@@ -278,18 +303,15 @@ export default function HudPage() {
   });
 
   const nRunning = units.filter(u => u.running).length;
+  const nHealthy = collectorUnits.filter(u => u.fleet?.verdict === "fresh").length;
+  const nDegraded = collectorUnits.length - nHealthy;
   const wd = sys?.research_service?.watchdog;
 
   return (
     <div className="min-h-screen p-1 sm:p-1.5 font-data">
-      {/* 월드 클락 스트립 */}
+      {/* 상단 상태 스트립 — 시계는 우측에 얹어 한 줄 절약 */}
       <Panel className="mb-1">
-        <WorldClock now={now} />
-      </Panel>
-
-      {/* 상단 상태 스트립 */}
-      <Panel className="mb-1">
-        <PanelHeader>시스템 상태</PanelHeader>
+        <PanelHeader right={<WorldClock now={now} />}>시스템 상태</PanelHeader>
         <div className="flex items-center gap-3 px-2 py-1">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
@@ -332,13 +354,30 @@ export default function HudPage() {
         )}
       </Panel>
 
-      {/* 유닛 로스터 — 메인. 뭐가 돌고 있는지 한 눈에 */}
+      {/* 유닛 로스터 — 전략(AI·봇)과 데이터 수집기는 고장 의미가 달라서 분리 */}
       <Panel className="mb-1">
         <PanelHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
-          유닛 로스터
+          유닛 로스터 · 전략
         </PanelHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {units.map((u, i) => (
+            <UnitCard key={`${u.name}-${i}`} u={u} />
+          ))}
+        </div>
+      </Panel>
+
+      {/* 수집기 함대 — 신선도 정도(바)까지 표시. 가동/정지 이진으로는 지연을 못 잡음 */}
+      <Panel className="mb-1">
+        <PanelHeader right={
+          <span className={`tabular-nums ${nDegraded > 0 ? "text-warn" : "text-pos"}`}>
+            {collectorUnits.length > 0 ? `정상 ${nHealthy}/${collectorUnits.length}` : "…"}
+            {nDegraded > 0 ? ` · 이상 ${nDegraded}` : ""}
+          </span>
+        }>
+          수집기 함대
+        </PanelHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2">
+          {collectorUnits.map((u, i) => (
             <UnitCard
               key={`${u.name}-${i}`}
               u={u}
@@ -347,6 +386,9 @@ export default function HudPage() {
             />
           ))}
         </div>
+        {collectorUnits.length === 0 && (
+          <div className="px-2 py-1.5 text-text-3 text-[11px]">수집기 상태 로딩 중…</div>
+        )}
       </Panel>
 
       {/* 정합성 감시 — 봇·에이전트 회계 불변식(조용한 돈 버그 감지). /lab/health */}
@@ -366,12 +408,16 @@ export default function HudPage() {
         {health && health.violations.length > 0 && (
           <div className="max-h-56 overflow-y-auto">
             {health.violations.map((v, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
+              <Link
+                key={i}
+                href={violationHref(v.entity)}
+                className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px] hover:bg-panel-2 transition-colors">
                 <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
                 <span className="text-text-3 shrink-0 w-32 truncate">{v.entity}</span>
                 <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-neg" : "text-warn"}`}>{v.code}</span>
                 <span className="text-text-2 truncate flex-1">{v.detail}</span>
-              </div>
+                <span className="text-text-3 shrink-0">→</span>
+              </Link>
             ))}
           </div>
         )}
@@ -389,21 +435,18 @@ export default function HudPage() {
           <PanelHeader right={<Link href="/lab/execution" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
             돈길
           </PanelHeader>
-          <div className="grid grid-cols-3 text-center divide-x divide-border">
-            <div className="p-1.5">
-              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">엣지</p>
-              <p className={`font-data text-xs font-bold ${edgeTone}`}>{edgeLabel}</p>
-            </div>
-            <div className="p-1.5">
-              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">페이퍼 기간</p>
-              <p className={`font-data text-xs font-bold ${paperMo >= paperMin ? "text-pos" : "text-info"}`}>{paperMo}/{paperMin}mo</p>
-            </div>
-            <div className="p-1.5">
-              <p className="text-text-3 text-[9px] uppercase tracking-wider mb-0.5">Live 집행</p>
-              <p className={`font-data text-xs font-bold ${jarvis?.live_execution === "blocked" ? "text-neg" : "text-pos"}`}>
-                {jarvis?.live_execution ?? "—"}
-              </p>
-            </div>
+          {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
+          <div className="flex pt-1">
+            <LadderStep label="1 엣지" value={edgeLabel}
+              state={edge?.status === "confirmed" ? "done" : edge?.status === "drifting" ? "blocked" : "current"} />
+            <LadderStep label="2 페이퍼" value={`${paperMo}/${paperMin}mo`}
+              state={paperMo >= paperMin ? "done" : edge?.status === "confirmed" ? "current" : "pending"} />
+            <LadderStep label="3 ARM" value={arm?.decision ?? "—"}
+              state={arm?.decision === "GO" ? "done" : arm?.decision === "KILL" ? "blocked"
+                : paperMo >= paperMin ? "current" : "pending"} />
+            <LadderStep label="4 LIVE" value={jarvis?.live_execution ?? "—"}
+              state={jarvis?.live_execution === "blocked" ? "blocked"
+                : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
           </div>
         </Panel>
       </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { CandlestickChart } from "@/components/CandlestickChart";
-import { EmptyState } from "@/components/ui";
+import { EmptyState, LoadingState } from "@/components/ui";
 import {
   getQuote, getCryptoBook, WS_URL,
   type BarOut,
@@ -291,9 +291,18 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
             {indicators.volume.on && <VolumeChart bars={bars} />}
             {indicators.obv.on && <OBVChart bars={bars} />}
           </>
-        ) : (
+        ) : loading ? (
           <div className="h-[480px] flex items-center justify-center">
-            <EmptyState message="차트 데이터 없음" hint={error ? "" : "불러오기를 클릭하면 봉 데이터를 가져옵니다"} />
+            <LoadingState message={`${symbol} 봉 데이터 불러오는 중…`} hint="처음 로드는 10~20초 걸릴 수 있습니다" />
+          </div>
+        ) : (
+          <div className="h-[480px] flex flex-col items-center justify-center gap-3">
+            <EmptyState message="차트 데이터 없음" hint={error ? "" : "이 종목·주기의 봉 데이터가 비어 있습니다"} />
+            <button
+              onClick={() => loadBars(tf)}
+              className="px-3 h-7 text-xs font-medium rounded border border-border text-text-2 hover:border-accent hover:text-accent bg-transparent cursor-pointer transition-colors">
+              다시 시도
+            </button>
           </div>
         )}
       </div>

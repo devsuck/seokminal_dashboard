@@ -23,9 +23,9 @@ import {
   type ConvergenceSignal,
 } from "@/lib/api";
 import { Panel } from "@/components/ui/Panel";
-import { Button, SegmentedToggle } from "@/components/ui";
+import { Button, SegmentedToggle, LoadingState } from "@/components/ui";
 
-type Market = "us" | "kr" | "congress" | "gov" | "options" | "convergence";
+type Market = "us" | "kr" | "congress" | "gov" | "options" | "convergence" | "overall";
 type TradeFilter = "all" | "BUY" | "SELL" | "CORP_ACTION" | "HOLD_REPORT";
 type MinValue = 0 | 10_000 | 50_000 | 100_000 | 500_000 | 1_000_000;
 
@@ -93,7 +93,35 @@ function isCorporateAction(type: string) {
 
 // ── US Table ──────────────────────────────────────────────────────────────────
 
+type SortKey = "date" | "value";
+
+function SortHeader({ label, active, dir, onClick, align = "left" }: {
+  label: string; active: boolean; dir: "asc" | "desc"; onClick: () => void; align?: "left" | "right";
+}) {
+  return (
+    <th
+      className={`px-3 py-2 font-medium cursor-pointer select-none hover:text-text-1 ${align === "right" ? "text-right" : "text-left"}`}
+      onClick={onClick}
+    >
+      {label}{active && <span className="text-accent ml-0.5">{dir === "asc" ? "▲" : "▼"}</span>}
+    </th>
+  );
+}
+
 function USTable({ trades }: { trades: InsiderTrade[] }) {
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
+
+  const sorted = [...trades].sort((a, b) => {
+    const av = sort.key === "date" ? a.trade_date : (a.value_usd ?? 0);
+    const bv = sort.key === "date" ? b.trade_date : (b.value_usd ?? 0);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sort.dir === "asc" ? cmp : -cmp;
+  });
+
+  function toggleSort(key: SortKey) {
+    setSort(s => s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" });
+  }
+
   if (trades.length === 0)
     return <div className="p-8 text-center text-text-3 text-sm">거래 없음</div>;
   return (
@@ -101,19 +129,19 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
       <table className="w-full text-xs border-collapse">
         <thead>
           <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider border-b border-border">
-            <th className="px-3 py-2 text-left font-medium">날짜</th>
+            <SortHeader label="날짜" active={sort.key === "date"} dir={sort.dir} onClick={() => toggleSort("date")} />
             <th className="px-3 py-2 text-left font-medium">티커</th>
             <th className="px-3 py-2 text-left font-medium">회사</th>
             <th className="px-3 py-2 text-left font-medium">내부자</th>
             <th className="px-3 py-2 text-center font-medium">구분</th>
             <th className="px-3 py-2 text-right font-medium">가격</th>
             <th className="px-3 py-2 text-right font-medium">주수</th>
-            <th className="px-3 py-2 text-right font-medium">거래금액</th>
+            <SortHeader label="거래금액" active={sort.key === "value"} dir={sort.dir} onClick={() => toggleSort("value")} align="right" />
             <th className="px-3 py-2 text-right font-medium">보유후</th>
           </tr>
         </thead>
         <tbody>
-          {trades.map((t, i) => {
+          {sorted.map((t, i) => {
             const isBuy  = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
             const valClass = isBuy ? "bg-pos/20 text-pos" : isSell ? "bg-neg/20 text-neg" : "text-text-2";
@@ -121,7 +149,7 @@ function USTable({ trades }: { trades: InsiderTrade[] }) {
               <tr
                 key={i}
                 className={`border-t border-border/50 transition-colors ${
-                  isBuy ? "hover:bg-pos/5" : isSell ? "hover:bg-neg/5" : "hover:bg-panel-2"}`}
+                  isBuy ? "bg-pos/5 hover:bg-pos/10" : isSell ? "bg-neg/5 hover:bg-neg/10" : "hover:bg-panel-2"}`}
               >
                 <td className="px-3 py-1.5 text-text-3 font-data whitespace-nowrap text-[11px]">
                   {t.trade_date}
@@ -206,11 +234,14 @@ function KRTable({ trades }: { trades: InsiderTrade[] }) {
             const isBuy = t.trade_type === "BUY";
             const isSell = t.trade_type === "SELL";
             const isCorpAction = isCorporateAction(t.trade_type);
-            const rowHover = isBuy ? "hover:bg-pos/5": isSell ? "hover:bg-neg/5": isCorpAction ? "hover:bg-warn/5": "hover:bg-panel-2";
+            const tint = isBuy ? "bg-pos/5 hover:bg-pos/10"
+              : isSell ? "bg-neg/5 hover:bg-neg/10"
+              : isCorpAction ? "bg-warn/5 hover:bg-warn/10"
+              : "hover:bg-panel-2";
             const rceptNo = t.rcept_no;
             const lag = rceptNo ? lagState[rceptNo] : undefined;
             return (
-              <tr key={i} className={`border-t border-border transition-colors ${rowHover}`}>
+              <tr key={i} className={`border-t border-border transition-colors ${tint}`}>
                 <td className="px-3 py-2 text-text-3 font-data whitespace-nowrap">{t.trade_date}</td>
                 <td className="px-3 py-2 font-data font-semibold text-accent whitespace-nowrap">
                   {t.ticker ?? "—"}
@@ -382,6 +413,234 @@ function OptionsUOATable({ rows }: { rows: import("@/lib/api").OptionsUOA[] }) {
   );
 }
 
+// ── Signal Grid (scored, bot-condition-friendly) ───────────────────────────────
+// score: -1..1 (양수=매수/콜/상승 쏠림, 음수=매도/풋 쏠림). gov는 0..1(단방향, 계약 자체가 항상 호재).
+
+type Signal = { key: string; score: number; detail: string };
+
+// 막대 폭: style={{}} 금지 → 리터럴 폭 클래스(5% 스텝)
+const WIDTHS: Record<number, string> = {
+  0: "w-0", 5: "w-[5%]", 10: "w-[10%]", 15: "w-[15%]", 20: "w-[20%]", 25: "w-[25%]", 30: "w-[30%]",
+  35: "w-[35%]", 40: "w-[40%]", 45: "w-[45%]", 50: "w-[50%]", 55: "w-[55%]", 60: "w-[60%]", 65: "w-[65%]",
+  70: "w-[70%]", 75: "w-[75%]", 80: "w-[80%]", 85: "w-[85%]", 90: "w-[90%]", 95: "w-[95%]", 100: "w-full",
+};
+function widthClass(p: number): string { return WIDTHS[Math.max(0, Math.min(100, Math.round(p / 5) * 5))] ?? "w-0"; }
+
+function SignalGrid({ note, signals }: { note: string; signals: Signal[] }) {
+  if (signals.length === 0) return null;
+  return (
+    <Panel className="p-3">
+      <div className="text-text-3 text-[10px] uppercase tracking-wider mb-2 px-1">{note}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        {signals.map(s => {
+          const isPos = s.score >= 0;
+          const pct = Math.round(Math.abs(s.score) * 100);
+          return (
+            <div key={s.key} className={`rounded-lg border p-2.5 ${isPos ? "border-pos/25 bg-pos/5" : "border-neg/25 bg-neg/5"}`}>
+              <div className="flex items-center justify-between mb-1 gap-2">
+                <span className="font-data font-bold text-text-1 text-sm truncate">{s.key}</span>
+                <span className={`font-data text-xs font-bold whitespace-nowrap ${isPos ? "text-pos" : "text-neg"}`}>
+                  {isPos ? "+" : ""}{s.score.toFixed(2)}
+                </span>
+              </div>
+              <div className="h-1 w-full rounded-full overflow-hidden bg-neg/20 flex mb-1">
+                <div className={`h-full ${isPos ? "bg-pos" : "bg-neg ml-auto"} ${widthClass(pct)}`} />
+              </div>
+              <div className="text-text-3 text-[10px]">{s.detail}</div>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+function computeOptionSignals(rows: import("@/lib/api").OptionsUOA[]): Signal[] {
+  const byTicker = new Map<string, { callN: number; putN: number; callVol: number; putVol: number }>();
+  for (const x of rows) {
+    const agg = byTicker.get(x.ticker) ?? { callN: 0, putN: 0, callVol: 0, putVol: 0 };
+    if (x.type === "call") { agg.callN += 1; agg.callVol += x.volume; }
+    else { agg.putN += 1; agg.putVol += x.volume; }
+    byTicker.set(x.ticker, agg);
+  }
+  const signals: Signal[] = [];
+  for (const [ticker, agg] of byTicker) {
+    if (agg.callN + agg.putN < 2) continue; // 노이즈: 계약 1건은 신뢰 낮음
+    const totalVol = agg.callVol + agg.putVol;
+    if (totalVol === 0) continue;
+    const score = (agg.callVol - agg.putVol) / totalVol;
+    if (score === 0) continue;
+    signals.push({
+      key: ticker,
+      score,
+      detail: `콜 ${agg.callN}건 (거래량 ${agg.callVol.toLocaleString()}) · 풋 ${agg.putN}건 (거래량 ${agg.putVol.toLocaleString()})`,
+    });
+  }
+  return signals.sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 12);
+}
+
+// DART 기업행위 방향성 — insider/convergence.py _DART_CORP_ACTION_DIRECTION과 동일 매핑(+CANCELLATION은 소각이라 출처 무관 호재).
+const KR_CORP_ACTION_DIRECTION: Partial<Record<InsiderTradeType, "BUY" | "SELL">> = {
+  BUYBACK: "BUY", CANCELLATION: "BUY", PAID_IN: "SELL", DISPOSAL: "SELL",
+};
+
+function computeTickerSignals(trades: InsiderTrade[], market: Market): Signal[] {
+  const byTicker = new Map<string, { buyN: number; sellN: number; buyW: number; sellW: number }>();
+  for (const t of trades) {
+    const dir = t.trade_type === "BUY" || t.trade_type === "SELL" ? t.trade_type : KR_CORP_ACTION_DIRECTION[t.trade_type];
+    if (!dir) continue;
+    const ticker = t.ticker || t.issuer || t.corp_name;
+    if (!ticker) continue;
+    const weight = market === "us" ? (t.value_usd ?? 0) : 1;
+    const agg = byTicker.get(ticker) ?? { buyN: 0, sellN: 0, buyW: 0, sellW: 0 };
+    if (dir === "BUY") { agg.buyN += 1; agg.buyW += weight; }
+    else { agg.sellN += 1; agg.sellW += weight; }
+    byTicker.set(ticker, agg);
+  }
+
+  const signals: Signal[] = [];
+  for (const [ticker, agg] of byTicker) {
+    const totalW = agg.buyW + agg.sellW;
+    const totalN = agg.buyN + agg.sellN;
+    if (totalN < 2) continue; // 노이즈: 표본 1건은 신뢰 낮음
+    const score = totalW > 0 ? (agg.buyW - agg.sellW) / totalW : (agg.buyN - agg.sellN) / totalN;
+    if (score === 0) continue; // 완전 동률은 방향 판단 불가
+    signals.push({
+      key: ticker,
+      score,
+      detail: `매수 ${agg.buyN}건${market === "us" && agg.buyW > 0 ? ` (${fmt$(agg.buyW)})` : ""} · 매도 ${agg.sellN}건${market === "us" && agg.sellW > 0 ? ` (${fmt$(agg.sellW)})` : ""}`,
+    });
+  }
+  return signals.sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 12);
+}
+
+function parseAmountMidpoint(s?: string | null): number {
+  if (!s) return 0;
+  const nums = Array.from(s.matchAll(/[\d,]+/g))
+    .map(m => Number(m[0].replace(/,/g, "")))
+    .filter(n => !Number.isNaN(n) && n > 0);
+  if (nums.length === 0) return 0;
+  if (nums.length === 1) return nums[0];
+  return (nums[0] + nums[1]) / 2;
+}
+
+function computeCongressSignals(trades: import("@/lib/api").CongressTrade[]): Signal[] {
+  const byTicker = new Map<string, { buyN: number; sellN: number; buyW: number; sellW: number }>();
+  for (const t of trades) {
+    if (t.trade_type !== "BUY" && t.trade_type !== "SELL") continue;
+    if (!t.ticker) continue;
+    const weight = parseAmountMidpoint(t.amount);
+    const agg = byTicker.get(t.ticker) ?? { buyN: 0, sellN: 0, buyW: 0, sellW: 0 };
+    if (t.trade_type === "BUY") { agg.buyN += 1; agg.buyW += weight; }
+    else { agg.sellN += 1; agg.sellW += weight; }
+    byTicker.set(t.ticker, agg);
+  }
+
+  const signals: Signal[] = [];
+  for (const [ticker, agg] of byTicker) {
+    const totalW = agg.buyW + agg.sellW;
+    const totalN = agg.buyN + agg.sellN;
+    if (totalN < 2) continue; // 노이즈: 표본 1건은 신뢰 낮음
+    const score = totalW > 0 ? (agg.buyW - agg.sellW) / totalW : (agg.buyN - agg.sellN) / totalN;
+    if (score === 0) continue;
+    signals.push({
+      key: ticker,
+      score,
+      detail: `매수 ${agg.buyN}건${agg.buyW > 0 ? ` (${fmt$(agg.buyW)})` : ""} · 매도 ${agg.sellN}건${agg.sellW > 0 ? ` (${fmt$(agg.sellW)})` : ""}`,
+    });
+  }
+  return signals.sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 12);
+}
+
+// gov contract: 항상 호재(수주=매수 방향 뉴스)라 방향 대칭이 없음 — score는 0..1, 현재 로드된 목록 내 최대 수주기업 대비 상대 규모.
+function computeGovSignals(rows: import("@/lib/api").GovContract[]): Signal[] {
+  const byRecipient = new Map<string, { amount: number; n: number }>();
+  for (const r of rows) {
+    const agg = byRecipient.get(r.recipient) ?? { amount: 0, n: 0 };
+    agg.amount += r.amount;
+    agg.n += 1;
+    byRecipient.set(r.recipient, agg);
+  }
+  const maxAmount = Math.max(0, ...Array.from(byRecipient.values(), a => a.amount));
+  if (maxAmount === 0) return [];
+
+  const signals: Signal[] = [];
+  for (const [recipient, agg] of byRecipient) {
+    signals.push({
+      key: recipient,
+      score: agg.amount / maxAmount,
+      detail: `계약 ${agg.n}건 · 합계 ${fmt$(agg.amount)}`,
+    });
+  }
+  return signals.sort((a, b) => b.score - a.score).slice(0, 12);
+}
+
+// ── 종합 신호 (소스 교차 티커 합산) ──────────────────────────────────────────────
+// 정부계약은 ticker 필드가 없어(recipient=회사명) 여기 합치지 못함 — 정부계약 탭에서 별도 확인.
+
+type OverallRow = { ticker: string; us?: number; kr?: number; congress?: number; options?: number; composite: number; n: number };
+
+function computeOverallSignals(us: Signal[], kr: Signal[], congress: Signal[], options: Signal[]): OverallRow[] {
+  const map = new Map<string, { us?: number; kr?: number; congress?: number; options?: number }>();
+  const add = (list: Signal[], field: "us" | "kr" | "congress" | "options") => {
+    for (const s of list) {
+      const e = map.get(s.key) ?? {};
+      e[field] = s.score;
+      map.set(s.key, e);
+    }
+  };
+  add(us, "us"); add(kr, "kr"); add(congress, "congress"); add(options, "options");
+
+  const rows: OverallRow[] = [];
+  for (const [ticker, e] of map) {
+    const scores = [e.us, e.kr, e.congress, e.options].filter((v): v is number => v !== undefined);
+    if (scores.length === 0) continue;
+    const composite = scores.reduce((a, b) => a + b, 0) / scores.length;
+    rows.push({ ticker, ...e, composite, n: scores.length });
+  }
+  return rows.sort((a, b) => b.n - a.n || Math.abs(b.composite) - Math.abs(a.composite));
+}
+
+function OverallTable({ rows }: { rows: OverallRow[] }) {
+  if (rows.length === 0)
+    return <div className="p-8 text-center text-text-3 text-sm">신호 없음</div>;
+  const cell = (v?: number) => v === undefined
+    ? <span className="text-text-3">—</span>
+    : <span className={`font-data font-semibold ${v >= 0 ? "text-pos" : "text-neg"}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}</span>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-panel-2 text-text-3 text-[10px] uppercase tracking-wider">
+            <th className="px-3 py-2 text-left font-medium">티커</th>
+            <th className="px-3 py-2 text-right font-medium">내부자(US)</th>
+            <th className="px-3 py-2 text-right font-medium">내부자(KR)</th>
+            <th className="px-3 py-2 text-right font-medium">의회</th>
+            <th className="px-3 py-2 text-right font-medium">옵션</th>
+            <th className="px-3 py-2 text-right font-medium">종합</th>
+            <th className="px-3 py-2 text-center font-medium">소스수</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.ticker} className={`border-t transition-colors ${r.n >= 2 ? "border-l-2 border-l-accent bg-accent/5" : ""} border-border ${r.composite >= 0 ? "hover:bg-pos/5" : "hover:bg-neg/5"}`}>
+              <td className="px-3 py-2 font-data font-semibold text-text-1 whitespace-nowrap">{r.ticker}</td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">{cell(r.us)}</td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">{cell(r.kr)}</td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">{cell(r.congress)}</td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">{cell(r.options)}</td>
+              <td className={`px-3 py-2 text-right font-data font-bold whitespace-nowrap ${r.composite >= 0 ? "text-pos" : "text-neg"}`}>
+                {r.composite >= 0 ? "+" : ""}{r.composite.toFixed(2)}
+              </td>
+              <td className={`px-3 py-2 text-center ${r.n >= 2 ? "text-accent font-bold" : "text-text-3"}`}>{r.n}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Summary Bar ───────────────────────────────────────────────────────────────
 
 function SummaryBar({ trades, market }: { trades: InsiderTrade[]; market: Market }) {
@@ -389,9 +648,19 @@ function SummaryBar({ trades, market }: { trades: InsiderTrade[]; market: Market
   const sells = trades.filter(t => t.trade_type === "SELL");
   const buyVal = buys.reduce((s, t) => s + (t.value_usd ?? 0), 0);
   const sellVal = sells.reduce((s, t) => s + (t.value_usd ?? 0), 0);
+  const ratioBase = market === "us" ? buyVal + sellVal : buys.length + sells.length;
+  const buyShare = ratioBase > 0
+    ? (market === "us" ? buyVal : buys.length) / ratioBase * 100
+    : 50;
 
   return (
-    <div className="flex flex-wrap gap-6 px-4 py-3 bg-panel-2 border-b border-border text-xs">
+    <div className="flex flex-col gap-2 px-4 py-3 bg-panel-2 border-b border-border text-xs">
+    {ratioBase > 0 && (
+      <div className="h-1.5 w-full rounded-full overflow-hidden bg-neg/20 flex">
+        <div className={`h-full bg-pos ${widthClass(buyShare)}`} />
+      </div>
+    )}
+    <div className="flex flex-wrap gap-6">
       <div>
         <span className="text-text-3 uppercase tracking-wider text-[10px]">총 건수</span>
         <span className="ml-2 text-text-1 font-data font-medium">{trades.length}</span>
@@ -412,6 +681,7 @@ function SummaryBar({ trades, market }: { trades: InsiderTrade[]; market: Market
           </span>
         </div>
       )}
+    </div>
     </div>
   );
 }
@@ -534,7 +804,9 @@ function InsiderPageInner() {
   const [convLoading, setConvLoading] = useState(false);
   const [convError, setConvError] = useState<string | null>(null);
   const [convDrawer, setConvDrawer] = useState<ConvergenceSignal | null>(null);
+  const [convOptionScores, setConvOptionScores] = useState<Record<string, number>>({});
   const convCtrl = useRef<AbortController | null>(null);
+  const convUoaCtrl = useRef<AbortController | null>(null);
   const convMountedRef = useRef(false);
 
   const fetchConvergence = useCallback(async (m: "kr" | "us") => {
@@ -589,7 +861,29 @@ function InsiderPageInner() {
   const krCtrl = useRef<AbortController | null>(null);
   const congCtrl = useRef<AbortController | null>(null);
 
-  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); uoaCtrl.current?.abort(); convCtrl.current?.abort(); }, []);
+  useEffect(() => () => { usCtrl.current?.abort(); krCtrl.current?.abort(); congCtrl.current?.abort(); govCtrl.current?.abort(); uoaCtrl.current?.abort(); convCtrl.current?.abort(); convUoaCtrl.current?.abort(); }, []);
+
+  // 컨버전스 카드에 옵션 leg의 콜/풋 쏠림 score를 얹기 위해, options_uoa leg가 있는 티커만 추가 조회
+  useEffect(() => {
+    const tickers = Array.from(new Set(
+      convData.filter(s => s.market === "us" && s.legs.some(l => l.source === "options_uoa")).map(s => s.ticker)
+    ));
+    convUoaCtrl.current?.abort();
+    if (tickers.length === 0) { setConvOptionScores({}); return; }
+    const ctrl = new AbortController();
+    convUoaCtrl.current = ctrl;
+    (async () => {
+      try {
+        const rows = await getOptionsUOA(tickers.join(","), ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        const scores: Record<string, number> = {};
+        for (const s of computeOptionSignals(rows)) scores[s.key] = s.score;
+        setConvOptionScores(scores);
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+      }
+    })();
+  }, [convData]);
 
   const fetchCongress = useCallback(async () => {
     congCtrl.current?.abort();
@@ -680,6 +974,7 @@ function InsiderPageInner() {
     else if (market === "congress") fetchCongress();
     else if (market === "gov") fetchGov();
     else if (market === "convergence") fetchConvergence(convMarket);
+    else if (market === "overall") { fetchUSRecent(days); fetchKRRecent(days); fetchCongress(); fetchUOA(); }
     else fetchUOA();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market, days]);
@@ -733,12 +1028,13 @@ function InsiderPageInner() {
             onChange={setMarket}
             size="sm"
             options={[
-              { value: "us", label: "🇺🇸 US", activeClass: "border-accent bg-accent text-black" },
-              { value: "kr", label: "🇰🇷 KR", activeClass: "border-accent bg-accent text-black" },
-              { value: "congress", label: " 의회", activeClass: "border-accent bg-accent text-black" },
-              { value: "gov", label: " 정부계약", activeClass: "border-accent bg-accent text-black" },
-              { value: "options", label: "🎯 옵션 UOA", activeClass: "border-accent bg-accent text-black" },
-              { value: "convergence", label: "🔥 컨버전스", activeClass: "border-accent bg-accent text-black" },
+              { value: "overall", label: "종합", activeClass: "border-accent bg-accent text-black" },
+              { value: "us", label: "US", activeClass: "border-accent bg-accent text-black" },
+              { value: "kr", label: "KR", activeClass: "border-accent bg-accent text-black" },
+              { value: "congress", label: "의회", activeClass: "border-accent bg-accent text-black" },
+              { value: "gov", label: "정부계약", activeClass: "border-accent bg-accent text-black" },
+              { value: "options", label: "옵션 UOA", activeClass: "border-accent bg-accent text-black" },
+              { value: "convergence", label: "컨버전스", activeClass: "border-accent bg-accent text-black" },
             ]}
           />
         </div>
@@ -871,15 +1167,36 @@ function InsiderPageInner() {
         </div>
       )}
 
+      {/* ── Overall ─────────────────────────────────────────────────────── */}
+      {market === "overall" && (
+        <>
+          {(usLoading || krLoading || congLoading || uoaLoading) && <p className="text-text-3 text-sm px-1">로딩 중…</p>}
+          <Panel className="p-3">
+            <div className="text-text-3 text-[10px] uppercase tracking-wider mb-2 px-1">
+              소스별 -1~+1 score · 종합은 존재하는 소스 평균(정렬용, 절대 신뢰값 아님) · 정부계약은 티커 연결 안 돼 제외(정부계약 탭 별도 확인)
+            </div>
+            <OverallTable rows={computeOverallSignals(
+              computeTickerSignals(usData, "us"),
+              computeTickerSignals(krData, "kr"),
+              computeCongressSignals(congData),
+              computeOptionSignals(uoaData)
+            )} />
+          </Panel>
+        </>
+      )}
+
       {/* ── Congress ────────────────────────────────────────────────────── */}
       {market === "congress" && (
         <>
           {congError && <p className="text-neg text-sm px-1">{congError}</p>}
           {congLoading && <p className="text-text-3 text-sm px-1">로딩 중…</p>}
           {!congLoading && (
-            <Panel>
-              <CongressTable trades={congData} />
-            </Panel>
+            <>
+              <SignalGrid note="종목별 의회 매매 신호 — score -1~+1, 신고금액 구간 중간값 가중 매수/매도 쏠림" signals={computeCongressSignals(congData)} />
+              <Panel>
+                <CongressTable trades={congData} />
+              </Panel>
+            </>
           )}
         </>
       )}
@@ -890,9 +1207,12 @@ function InsiderPageInner() {
           {govError && <p className="text-neg text-sm px-1">{govError}</p>}
           {govLoading && <p className="text-text-3 text-sm px-1">로딩 중… (USASpending)</p>}
           {!govLoading && (
-            <Panel>
-              <GovTable rows={govData} />
-            </Panel>
+            <>
+              <SignalGrid note="수주 기업별 신호 — score 0~1, 로드된 목록 내 최대 수주기업 대비 상대 규모 (계약 수주는 항상 호재라 단방향)" signals={computeGovSignals(govData)} />
+              <Panel>
+                <GovTable rows={govData} />
+              </Panel>
+            </>
           )}
         </>
       )}
@@ -903,9 +1223,12 @@ function InsiderPageInner() {
           {uoaError && <p className="text-neg text-sm px-1">{uoaError}</p>}
           {uoaLoading && <p className="text-text-3 text-sm px-1">로딩 중… (옵션체인 스캔)</p>}
           {!uoaLoading && (
-            <Panel>
-              <OptionsUOATable rows={uoaData} />
-            </Panel>
+            <>
+              <SignalGrid note="종목별 옵션 신호 — score -1~+1, 콜/풋 플래그 거래량 쏠림" signals={computeOptionSignals(uoaData)} />
+              <Panel>
+                <OptionsUOATable rows={uoaData} />
+              </Panel>
+            </>
           )}
         </>
       )}
@@ -920,8 +1243,8 @@ function InsiderPageInner() {
               onChange={setConvMarket}
               size="sm"
               options={[
-                { value: "kr", label: "🇰🇷 KR", activeClass: "border-accent bg-accent text-black" },
-                { value: "us", label: "🇺🇸 US", activeClass: "border-accent bg-accent text-black" },
+                { value: "kr", label: "KR", activeClass: "border-accent bg-accent text-black" },
+                { value: "us", label: "US", activeClass: "border-accent bg-accent text-black" },
               ]}
             />
             <span className="text-text-3 text-xs ml-auto">서로 다른 leg가 같은 티커·같은 방향으로 겹치면 표시 (score = 겹친 leg 종류 수)</span>
@@ -943,16 +1266,21 @@ function InsiderPageInner() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-text-1 font-data font-semibold">{sig.ticker}</span>
                     <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${sig.market === "kr" ? "bg-info/15 text-info border-info/25" : "bg-panel-2 text-text-3 border-border"}`}>
-                      {sig.market === "kr" ? "🇰🇷 KR" : "🇺🇸 US"}
+                      {sig.market === "kr" ? "KR" : "US"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${sig.direction === "BULLISH" ? "bg-pos/15 text-pos border-pos/25" : "bg-neg/15 text-neg border-neg/25"}`}>
-                      {sig.direction === "BULLISH" ? "🟢 상승" : "🔴 하락"}
+                      {sig.direction === "BULLISH" ? "매수 우세" : "매도 우세"}
                     </span>
                     <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${sig.score >= 3 ? "bg-accent/15 text-accent border-accent/25" : "bg-warn/15 text-warn border-warn/25"}`}>
                       score {sig.score} {sig.score >= 3 ? "강함" : "주의"}
                     </span>
+                    {convOptionScores[sig.ticker] !== undefined && (
+                      <span className={`text-xs font-bold rounded px-1.5 py-0.5 border ${convOptionScores[sig.ticker] >= 0 ? "bg-pos/15 text-pos border-pos/25" : "bg-neg/15 text-neg border-neg/25"}`}>
+                        옵션 {convOptionScores[sig.ticker] >= 0 ? "+" : ""}{convOptionScores[sig.ticker].toFixed(2)}
+                      </span>
+                    )}
                   </div>
                   <div className="text-text-3 text-xs">
                     {Array.from(new Set(sig.legs.map(l => l.source))).join(" · ")}
@@ -966,7 +1294,14 @@ function InsiderPageInner() {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative w-full max-w-md bg-panel border-l border-border h-full overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-text-1 font-semibold font-data">{convDrawer.ticker} — {convDrawer.direction === "BULLISH" ? "🟢 상승" : "🔴 하락"}</h2>
+                  <h2 className="text-text-1 font-semibold font-data">
+                    {convDrawer.ticker} — {convDrawer.direction === "BULLISH" ? "상승" : "하락"}
+                    {convOptionScores[convDrawer.ticker] !== undefined && (
+                      <span className={`ml-2 text-xs font-bold ${convOptionScores[convDrawer.ticker] >= 0 ? "text-pos" : "text-neg"}`}>
+                        (옵션 {convOptionScores[convDrawer.ticker] >= 0 ? "+" : ""}{convOptionScores[convDrawer.ticker].toFixed(2)})
+                      </span>
+                    )}
+                  </h2>
                   <button onClick={() => setConvDrawer(null)} className="text-text-3 hover:text-text-1">✕</button>
                 </div>
                 <div className="space-y-3">
@@ -997,14 +1332,16 @@ function InsiderPageInner() {
 
       {/* ── Loading hint ────────────────────────────────────────────────── */}
       {market === "us" && usLoading && (
-        <p className="text-text-3 text-sm px-1">로딩 중… (EDGAR 응답 5~20초 소요)</p>
+        <div className="py-8"><LoadingState message="EDGAR 공시 조회 중…" hint="SEC 응답 5~20초 소요" /></div>
       )}
       {market === "kr" && krLoading && (
-        <p className="text-text-3 text-sm px-1">로딩 중…</p>
+        <div className="py-8"><LoadingState message="DART 공시 조회 중…" /></div>
       )}
 
       {/* ── US/KR Results ───────────────────────────────────────────────── */}
       {(market === "us" || market === "kr") && (filtered.length > 0 || rawData.length > 0) ? (
+        <>
+        <SignalGrid note={`종목별 매매 신호 — score -1~+1, 매수/매도 건수${market === "us" ? "·금액" : ""} 쏠림`} signals={computeTickerSignals(filtered, market)} />
         <Panel>
           <SummaryBar trades={filtered} market={market} />
           {market === "us" ? (
@@ -1018,6 +1355,7 @@ function InsiderPageInner() {
             </div>
           )}
         </Panel>
+        </>
       ) : (
         (market === "us" || market === "kr") && !usLoading && !krLoading && (rawData.length === 0) && (
           <Panel className="p-12 text-center">

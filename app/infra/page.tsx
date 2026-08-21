@@ -9,6 +9,7 @@ import {
   type PaperState, type PaperPosition, type GraphHistoryPoint,
 } from "@/lib/api";
 import { TOKEN, categoricalColor } from "@/lib/chart-colors";
+import { Sparkline } from "@/components/charts/Sparkline";
 
 // ── 색상 시스템 ───────────────────────────────────────────────────────────────
 const SECTOR_COLOR: Record<string, string> = {
@@ -29,20 +30,6 @@ const TYPE_SHAPE: Record<string, string> = {
   technology: "triangle",
 };
 function sectorColor(s: string) { return SECTOR_COLOR[s] ?? TOKEN.text3; }
-
-// ── 시계열 스파크라인 (#2 추세) ────────────────────────────────────────────────
-function sparklinePath(values: number[], w: number, h: number): string {
-  if (values.length < 2) return "";
-  const min = Math.min(...values), max = Math.max(...values);
-  const range = max - min || 1;
-  return values
-    .map((v, i) => {
-      const x = (i / (values.length - 1)) * w;
-      const y = h - ((v - min) / range) * h;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
 
 // ── D3 시뮬레이션 노드/링크 타입 ──────────────────────────────────────────────
 interface SimNode extends d3.SimulationNodeDatum, GraphNode { r: number; }
@@ -520,12 +507,10 @@ export default function InfraGraphPage() {
                   <span className="text-text-3 uppercase tracking-wider">병목 스코어 추세</span>
                   <span className="text-text-3">{history.length}개 스냅샷</span>
                 </div>
-                <svg width="100%" height="36" viewBox="0 0 220 36" preserveAspectRatio="none">
-                  <path
-                    d={sparklinePath(history.map(h => h.bottleneck_score ?? 0), 220, 32)}
-                    fill="none" stroke={TOKEN.neg} strokeWidth={1.5}
-                  />
-                </svg>
+                <Sparkline
+                  values={history.map(h => h.bottleneck_score ?? 0)}
+                  w={220} h={36} stretch stroke={TOKEN.neg} label="병목 스코어 추세"
+                />
                 <div className="flex justify-between text-[9px] text-text-3 mt-0.5">
                   <span>{new Date(history[0].ts).toLocaleDateString("ko-KR")}</span>
                   <span>{new Date(history[history.length - 1].ts).toLocaleDateString("ko-KR")}</span>

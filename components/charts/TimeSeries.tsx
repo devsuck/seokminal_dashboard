@@ -25,7 +25,8 @@ export function TimeSeries({ series, height = 220, yFormat }: {
       layout: { background: { color: TOKEN.panel2 }, textColor: TOKEN.text3 },
       grid: { vertLines: { color: TOKEN.border }, horzLines: { color: TOKEN.border } },
       timeScale: { borderColor: TOKEN.border, timeVisible: true },
-      rightPriceScale: { borderColor: TOKEN.border },
+      // bottom 여백 = 좌하단 라이브러리 로고와 라인 겹침 방지
+      rightPriceScale: { borderColor: TOKEN.border, scaleMargins: { top: 0.1, bottom: 0.18 } },
       localization: { priceFormatter: yFormat ?? ((v: number) => v.toFixed(2)) },
     });
 

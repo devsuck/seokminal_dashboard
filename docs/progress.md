@@ -1,3 +1,201 @@
+## Phase 217 — sharp_wallet_bot 청산루프 정합성버그 수정 + 다각화봇 note 정정 (2026-08-19) ✅ SHIPPED
+
+### 배경
+- 사용자 리포트: "홈 수집기 재시작 버튼 눌러도 안돌아가고, 정합성 감시 다 빨간색".
+- 재시작 버튼: `polymarket_mlb_specialist_tick` 실제로는 정상 재시작됨(tmux 세션 재생성 확인) — 새 데이터 write까지 반영 지연(수 분) 때문에 누른 직후엔 여전히 죽은 것처럼 보였을 뿐, 코드 버그 아님.
+- 정합성 감시(`/lab/health`) 6건 위반 전부 `polymarket_sharp_wallet_bot` 하나에서 발생: STUCK_EXIT 5건(포지션이 exit_at 지나고 45시간+ 미청산) + SPENT_MISMATCH 1건.
+
+### 근본원인
+- `data/polymarket_sharp_wallet_bot.json`: `enabled=false`(Phase214~216에서 사용자 확인 대기 중 비활성화된 상태). 그런데 `api_server/polymarket_sharp_wallet_bot.py`의 `tick()`이 `enabled=false`면 통째로 `return {"skipped": "disabled"}` — 신규진입뿐 아니라 **청산 로직(`_process_exits`)까지 같이 스킵**돼서, 봇 끄기 전에 열려있던 포지션이 영원히 미청산 상태로 남아 정합성 검사기가 계속 위반 잡음.
+
+### 완료된 작업
+- `api_server/polymarket_sharp_wallet_bot.py` — `tick()`/`_loop()` 재구성: `_process_exits`는 `enabled` 값과 무관하게 항상 먼저 실행, `enabled=false`/킬스위치일 때 막는 건 신규진입(`_scan_and_enter`)뿐. `_loop()`도 disabled여도 매 interval마다 `tick()` 호출하도록 게이트 제거.
+- `tests/test_polymarket_sharp_wallet_bot.py` — `test_tick_disabled_skips` 반환값 갱신(`closed` 키 추가), `test_tick_disabled_still_processes_exits` 신규(disabled여도 exit는 돌고 entry는 안 도는지 검증).
+- `api_server/polymarket_bot.py` — `status()`의 `note` 필드 정정: 낡은 "엣지 주장 없음" → Phase213 검증결과(mid_favorite 밴드 BH-FDR 생존, p=0.026, n=37 기준 candidate) 반영, n≥100 재검증 전까지 paper 유지라고 명시.
+- `api_server/polymarket_sharp_wallet_bot.py` — `status()`의 `note`도 정정: 실집행 no_edge 확정(2274건 exit, 승률13.7%, pnl -$1900.74) + disabled 유지·재개 금지 명시. 단 연구 신호 자체(BH-FDR+워크포워드, 300s 호라이즌)는 별개로 여전히 `paper_candidate_forward_test_required` — 원시데이터(`polymarket_sharp_wallet_tick` 수집기)/검증러너는 삭제 안 하고 보류.
+
+### 검증
+- `pytest tests/test_polymarket_sharp_wallet_bot.py -q` 27 passed.
+- `bash scripts/restart_api.sh` 재기동 → 재기동 직후 첫 tick에서 미청산 포지션 5개 자동청산 확인, `/lab/health` STUCK_EXIT 5건 → 0건.
+- `pytest tests/ -q` 2251 passed (회귀 없음). `npm test`(vitest) 316 passed.
+
+### 남은 것 (미해결/보류)
+- `SPENT_MISMATCH`(spent=$0.04, 오픈포지션 0개) 잔차 — 사소한 반올림 드리프트, 이번엔 미조치.
+- 샤프월렛 완전 삭제 여부 — 사용자에게 3단계(실행봇/수집기/리서치검증러너) 스코프 설명, **"일단 보류"로 확인**. 다음에 삭제 논의 재개하면 이 세 계층 구분해서 다시 물을 것.
+- 다각화봇(`polymarket_bot`) mid_favorite 표본 22/100(resolve 41건 중) — n≥100 되면 재검증 필요(Phase213 조건).
+- 진단 중 별건 발견 → 후속조사로 해소: `convergence_legs` 수집기가 한때 `/lab/fleet`에서 `stale`(16.8시간, 임계 12시간) 찍혔었는데, 재확인 결과 자연복구(현재 fresh, 244s 전). pane 로그의 EDGAR 403(`efts.sec.gov`)은 수동 재현 시 200 정상 응답 — 일시적 레이트리밋/순단으로 판단, `insider/edgar_client.py` try/except가 흡수해 프로세스는 안 죽음. 오늘자 4개 소스(dart_corp_action/form4/congress/options_uoa) 전부 정상 적재 확인됨. 조치 불필요.
+
+---
+
+## Phase 216 — 플랫폼 미사용 기능 감사 + 오더플로우 데스크탑 이전 보류 (2026-08-15) ✅ SHIPPED(감사) / 🔶 보류(오더플로우)
+
+### 완료된 작업 (env 복구 + 감사)
+- `copytrade_autobot` 미작동 원인: `.env`엔 Alpaca 키 다 있었는데 떠있던 uvicorn 프로세스가 그 키 로딩 이전에 뜬 상태로 계속 살아있었음. `scripts/restart_api.sh`로 재기동 → `load_dotenv()` 재적용 확인, `run-now` 테스트에서 `no_alpaca_key` 스킵 없이 정상 포지션조회까지 감(청산대상 0건뿐). `enabled=true`로 켜둠.
+- `lkg_paper`("Living Knowledge Graph" 페이퍼봇, `api_server/graph_api.py`): 키/CLI 다 정상, 6시간 주기 스케줄러가 토요일 전체+일요일 18시(KST) 전 스킵하는 설계라 그냥 주말이라 안 돎 — 버그 아님.
+- 플랫폼 전체 미사용기능 감사(서브에이전트 fork, 24 tool calls) 완료:
+  - **HIGH**: 콘솔 신규 8페이지(`intel/research-os`, `council/*`, `portfolio-os/allocation|positions`, `exec/monitor`, `design-system`) — 페이지+백엔드(`console_api.py`) 다 있는데 `CommandRail.tsx`에 링크가 없어 고아. `docs/CONSOLE.md`에 정식 문서화됨, 진행중인 nav 개편 플랜과 시점 겹침 — 방치 아니라 IA 마이그레이션 중 링크 연결 누락으로 판단.
+  - **MEDIUM**: `exec/orders`/`portfolio-os/risk`(같은 nav 미연결, 내용은 살아있음), `jarvis/research_workflow/` 레거시 8~9개(공식 `__deprecated__` 마커, 의도된 보존), `research/run_orderflow_*.py` 10개(실험레지스트리 기록 0건, gz버그 미수정 그 파일군과 동일), `run_polymarket_event_divergence_scan.py`(수집만 하고 분석 스크립트 없음, docstring에 명시된 범위밖).
+  - **클린**: 백엔드 라우터 17개 전부 프론트 참조 있음, `*_old`/`*_v2`류 레거시 네이밍 파일 0건.
+
+### 오더플로우 방향성 논의 — 보류
+- 사용자 질문: "개발 방향성에 오더플로우가 맞는지 고민 중" → 검토 결과 한달째 검증결과 0건, 메인 방향성(폴리마켓/이벤트 확률, BH-FDR+워크포워드)과 도메인 이질적, gz버그(Phase 213에서 미수정 deferred)까지 겹쳐 있다고 답변.
+- gz버그 수정 + 검증 재실행 먼저 하자고 제안했으나 **사용자 거절**: "그거하면 컴터 터진다. 그냥 옮겨서 할게" — 데스크탑으로 개발환경 이전 예정, 맥북보다 성능 좋아서 그쪽에서 처리하겠다는 판단(맥북 발열 이슈는 CLAUDE.md에 이미 기록됨: `--reload` 상시가동 금지 사유).
+- **결정: 오더플로우 gz버그 수정 + 죽었는지 판정, 전부 데스크탑 이전 이후로 보류.** 맥북에서 더 손대지 말 것.
+
+### 다음
+- 데스크탑 이전 시점에 오더플로우 계열(`research/run_orderflow_*.py` 10개) gz-blindness 스윕 + 재검증부터 시작.
+- 콘솔 신규 8페이지 `CommandRail.tsx` 링크 연결 여부 — 사용자 결정 대기(삭제 후보 아님, 연결 여부만 미결).
+- `run_polymarket_event_divergence_scan.py` 계속 끌지 여부 — 사용자 결정 대기.
+- Phase 215의 미결 항목(`vrp_bot`/`polymarket_sharp_wallet_bot` 비활성화 여부, `polymarket_whale_tick` 수집기 원인불명 재발)도 여전히 대기 중.
+
+## Phase 215 — 전체 봇/수집기 헬스체크 (2026-08-15) 🔶 진행중 (사용자 답변 대기)
+
+### 배경
+- 사용자: "지금 데이터 모은게 한두개가 아닌데 나머지도 어떻게 잘 되어가나 체크해줄래?" — sharp_wallet/다각화봇 외 나머지 전체 상태 점검 요청.
+
+### 수집기(collector) 헬스 — `GET /lab/fleet`
+- 13개 중 12개 fresh, `polymarket_whale_tick` 1개만 `stuck`(마지막 write 19:38:04Z, age 2900s+ >> 임계 600s의 4배).
+- `POST /lab/collectors/polymarket_whale_tick/restart`로 공식 재기동 1회 실행 — 재기동 직후 pane에 `ConnectionError: data-api.polymarket.com Connection refused` 반복(포함 프로세스 pid 92489). 같은 시각 수동 `curl`/직접 python `requests.get`은 둘 다 200 즉시 성공 — 프로세스별로 갈린 원인 미상(프록시 env 없음, macOS 방화벽도 disabled 확인, Little Snitch 미설치 확인).
+- 진단 중 실수로 tmux pane에 무심코 Ctrl-C 전송(세션 재기동 확인 목적 아니었음) — 세션이 wrapper 루프로 되어 있었는지 자동으로 새 프로세스(pid 93561)로 재기동됨, 데이터 유실은 없음(수집만 중단됐던 구간, 저장된 과거 데이터는 안 건드림). 재기동 직후 잠깐 pane 깨끗했지만 수 분 뒤 동일 `Connection refused` 재발 확인(Monitor로 확인) — **재기동 2회(92489→93561) 모두 동일 증상, 근본 미해결**.
+- 방화벽(disabled 확인), Little Snitch(미설치), 프록시 env(없음) 다 배제. 동일 시각 수동 `curl`/직접 `python3 -c "requests.get(...)"`는 즉시 200 성공 — 이 프로세스(수집기)만 골라서 거부당하는 원인 미상. 코드 버그는 아님(요청 로직 자체는 정상 동작 확인됨), OS/네트워크 레벨의 프로세스별 이슈로 추정 — 재기동으로 해결 안 되는 걸 확인했으니 더 이상 재기동 반복은 의미 없음, 사용자에게 에스컬레이션.
+
+### 봇(paper bot) 실현손익 — `data/*.json`/`*_log.jsonl` 직접 조회
+| 봇 | 상태 | 판정 |
+|---|---|---|
+| `dart_autobot` | enabled, spent=0(토요일, 휴장이라 정상), 최근 26건 청산 승률 69.2%/평균 +6.7% | 정상 |
+| `copytrade_autobot` | enabled=false, 로그 2건(켰다가 즉시 끔, 08-04 이후 미가동) | 의도적 비활성 |
+| `polymarket_bot`(다각화) | realized_pnl=$194.49, mid_favorite 밴드로 이미 승격 조치됨(Phase 214) | 정상 |
+| `polymarket_sharp_wallet_bot` | realized_pnl=**-$1900.74**, enabled=true로 계속 손실 누적 중 | Phase 214에서 이미 죽음 판정, 미조치 |
+| `vrp_bot` | enabled=true, spent=0, realized_pnl=0 — 로그 918건 중 916건 `scan_fail`(07-07~08-14, 한달+ 연속), 원인: Alpaca `Connection refused` 830회 + IB `no historical bars`류 87회. **가동 이래 단 한번도 거래 성공한 적 없음** | **신규 발견 — 방치된 죽은 봇** |
+| `lkg_paper` | capital=10000, cash=6400, position 2건, closed 0건 | 정상(아직 평가할 청산 이력 없음) |
+
+### 다음 (사용자 답변 대기 중)
+- `vrp_bot` 끌지 / Alpaca API 키·IB Gateway 접속 상태부터 조사할지 — 인증정보 확인이 필요해 단독 처리 안 함.
+- `polymarket_sharp_wallet_bot` 비활성화 여부 (Phase 214에서부터 이어지는 미결 질문).
+- `polymarket_whale_tick` 재기동 후 실제 데이터 재적재 확인 — Monitor 결과 대기 중.
+
+## Phase 214 — 샤프월렛 실거래 P&L 확인(진짜 죽음) + 다각화 봇 mid_favorite 승격 (2026-08-15) ✅ SHIPPED
+
+### 배경
+- Phase 213에서 "샤프월렛 verdict은 여전히 paper_candidate_forward_test_required, 안 죽음"이라 답했는데, 사용자가 "지금 -1000달러잖아, 망한 전략 아니냐"고 반박. Phase 213 답변은 `research/run_polymarket_sharp_wallet_validate.py`(과거 원장 재생 백테스트, TRADE_SIZE=1.0 단위)만 봤고, 실제 라이브 페이퍼 집행봇(`api_server/polymarket_sharp_wallet_bot.py`, `data/polymarket_sharp_wallet_bot.json`/`_log.jsonl`)의 실현손익은 확인 안 한 게 원인 — 별개 파일이라 누락.
+
+### 확인 결과
+- `data/polymarket_sharp_wallet_bot.json`: `realized_pnl = -1900.74`(사용자 말대로 실질적으로 "-1000대", 좀비 청산 이력 포함).
+- `data/polymarket_sharp_wallet_bot_log.jsonl` exit 로그 2274건 집계: 승 311 / 패 1963(승률 13.7%), 총 pnl **-$1900.74**. 호라이즌별: 30s -$143, 120s -$134, 300s -$1624(2044건 — 볼륨 대부분 여기, 백테스트에서 유일하게 walk-forward 통과했던 그 호라이즌인데 실집행에서 제일 크게 깨짐).
+- 결론 수정: 사용자가 맞음. 연구 백테스트(과거 원장 재생, 단위 스테이크 소액 엣지)와 실제 forward paper 집행(2026-08-02~) 결과가 정반대 — 이게 바로 "forward_test_required" 상태가 기다리던 그 forward test였고, 결과는 명백히 실패. **verdict을 사실상 `no_edge`/폐기로 취급해야 함** — in-sample 신호가 out-of-sample에서 완전히 붕괴한 교과서 사례.
+- Phase 213 결론("안 죽음") 정정: verdict 필드(BH-FDR+walk-forward)는 과거원장 재생 기준이라 안 죽었다고 나온 거고, 실집행 결과는 죽었음. 앞으로는 이 두 개를 같이 봐야 함 — research validator verdict만으로 생사 판단 금지.
+
+### 조치
+- 사용자가 명시 위임한 2번(다각화 봇 mid_favorite 승격)만 실행: 운영 중인 API(`POST /polymarket/config`)로 `min_price=0.49, max_price=0.74`(0.50 정확힌 clamp상 불가, 가장 가까운 값) 적용 완료 — `side="favorite"` 등 나머지 설정 그대로, paper 그대로.
+- 샤프월렛 봇(`enabled=true`로 계속 돌아가는 중, 계속 실손실 누적 페이퍼)은 위임 범위 밖이라 건드리지 않음 — 끌지 여부는 사용자 확인 필요.
+
+### 다음
+- 샤프월렛 페이퍼봇 비활성화 여부 확인 필요(사용자 대기).
+- `research/agents/experiment_registry.jsonl`의 `polymarket_sharp_wallet_convergence_v1` status를 실집행 P&L 반영해 갱신할지 검토(현재는 여전히 `paper_candidate_forward_test_required`로 기록됨 — research verdict 기준이라 틀린 건 아니지만 오해 소지).
+
+## Phase 213 — gz-blindness 버그 스윕 + 샤프월렛 재검증 (2026-08-15) ✅ SHIPPED
+
+### 배경
+- 사용자: "샤프월렛전략 지금 망했잖아, 미드 페이버릿으로 승격해서 데이터 모으자"고 제안.
+- 확인 차 `run_polymarket_sharp_wallet_validate.py` 재실행 → `n_anchors=1593`, `dates` 겨우 3일치(08-13~08-15). 과거 레지스트리 기록(08-04, n_anchors=6122, 15일치)과 비교해 급감 발견.
+- 근본원인: Phase 210에서 추가한 `research/compress_old_data.py`(2일 지난 jsonl→gz 압축, cron 매일) 자체 docstring이 "읽는 쪽 gz-aware 아니면 무음으로 데이터 유실"이라고 경고해뒀는데, 실제로 그 리더들을 안 고쳐놓음 — cron이 돌면서 압축이 쌓일수록 검증러너들이 최근 2~3일치만 보게 되는 회귀. `cross_venue_skew`(gz 185개, 최다 피해)는 자기 문서에서 "gz-aware 참고구현"이라 인용한 `load_venue_snapshots`조차 앞단 `_available_dates()`가 plain glob이라 gz 날짜 자체를 못 찾아 사실상 같이 뚫려있었음.
+
+### 완료된 작업
+- `research/jsonl_dates.py` 신규 — 공용 헬퍼 3개(`list_dates`/`open_stem`/`iter_all_rows`), plain+gz 둘 다 인식. 캐치한 버그: `list_dates(glob_prefix=...)` 최초 구현이 프리픽스 뒤에 `*` 안 붙여서(`f"{glob_prefix}{suffix}"`) prefix 지정 호출은 전부 매치 실패 — `tests/test_jsonl_dates.py` 작성 중 자체 발견, `f"{glob_prefix}*{suffix}"`로 수정.
+- 이 헬퍼로 스윕 교체(9개 파일): `research/hypotheses/polymarket_sharp_wallet.py`, `polymarket_whale.py`(→`polymarket_whale_coincidence.py`는 재수출이라 자동 해결), `research/run_polymarket_sharp_wallet_validate.py`, `run_polymarket_whale_validate.py`, `run_polymarket_whale_coincidence_validate.py`, `run_mlb_specialist_validate.py`, `run_cross_venue_skew_validate.py`, `run_options_uoa_forward.py`, `run_polymarket_arb_validation.py`, `run_sharp_wallet_maker_vs_taker.py`.
+- `tests/test_jsonl_dates.py` 신규 — 8 tests.
+- `pytest tests/ -q` 2248 passed(2240→2248, 회귀 없음).
+- 오더플로우 계열 스크립트(`run_orderflow_signal_matrix*.py` 등 7개)는 동일 버그 계열이지만 이번 스윕 범위 밖 — 후속 필요(미착수).
+
+### 재검증 결과 — 샤프월렛, 07-21~08-15 전체(26일, n_anchors=9756, 과거 최대치 갱신)
+- BH-FDR: bucket 풀 9/9 생존, score tercile 풀 9/9 생존(둘 다 alpha=0.1) — 여기까진 늘 그랬음.
+- walk-forward: **18개 중 5개만 통과**, 전부 300s 호라이즌(`bucket1/2/3:300s`, `mid:300s`, `high:300s`) — 30s/120s는 버킷·티어 안 가리고 전부 실패. 이 패턴은 08-03/08-04 기록과도 일관됨(그때도 6~11/18).
+- verdict: **`paper_candidate_forward_test_required`**(안 죽음, 원래 상태 그대로) — "망했다"는 사용자 관찰은 gz 버그로 3일치만 본 이전 실행 탓, 교정 데이터로도 결론 동일.
+
+### 다음
+- 사용자 질문 답변 완료(대화로 전달): (1) 샤프월렛 안 죽음, 항상 이 상태였음 — 30s/120s 호라이즌은 구조적으로 walk-forward 못 뚫는 듯, 300s만 유효할 가능성. (2) 미드 페이버릿 밴드 승격 관련 논의 진행.
+- 오더플로우 7개 파일 gz-blindness 후속 스윕 — 미착수.
+
+### 배경
+- 사용자: 폴리마켓 다각화 봇(`api_server/polymarket_bot.py`) 실현손익 $194.49(스펜드 $300) 보고 "제일 잘 버는 전략 같다"고 언급.
+- 1차 응답: 이 봇은 코드/설계문서에 "엣지 주장 없음"이라 명시된 무엣지 베이스라인(대조군)이라고 설명 → 사용자가 "32승 5패인데 그런 말을 하나, 봐야 알지 않냐. MLB도 효율시장이라 개인엣지 없다 했으면서 설계문서 업데이트 필요없냐"고 반박.
+- 손으로 캘리브레이션 검정(진입가=시장 내재확률 대비 실제 승률) 해봤더니 z≈2.23(미보정 단일검정) — 프로젝트 규율(BH-FDR+워크포워드) 없이 판단하면 안 되는 상황이라 사용자가 정식 파이프라인 태우자고 요청.
+
+### 완료된 작업
+- `research/run_polymarket_bot_diversification_validate.py` 신규 — `data/polymarket_bot_log.jsonl`(kind="resolve") 읽어 귀무가설(entry_price=진짜 확률, 효율시장)을 Bernoulli 몬테카를로(N_RUNS=500)로 검정. 가격밴드 2변형(mid_favorite <중앙값, heavy_favorite ≥중앙값) 단일 BH-FDR 풀(alpha=0.1) + walk-forward(전/후반 둘다 양수) 게이트. `research/run_mlb_specialist_validate.py`/`run_polymarket_whale_coincidence_validate.py`와 동일 idiom, `validation/baselines·multiple_testing·metrics·cost_model` 그대로 재사용.
+- `tests/test_run_polymarket_bot_diversification_validate.py` 신규 — 9 tests.
+
+### 검증 결과 (표본 37건, 2026-08-15 기준)
+- mid_favorite(진입가 0.50~0.74, n=18): win_rate 83.3%, total_pnl $151.6(코스트 반영), **p=0.026**, walk-forward 전/후반 둘다 양수(+39.3/+112.3) → BH-FDR(alpha=0.1, m=2) 생존.
+- heavy_favorite(진입가 0.74~0.89, n=19): win_rate 89.5%, total_pnl $26.1, p=0.226 → BH-FDR 미생존(walk-forward는 통과하지만 다중검정 보정에서 탈락).
+- 전체 verdict: **candidate**(mid_favorite 밴드에 한정). heavy_favorite 밴드는 no_edge.
+- `pytest tests/ -q` 2240 passed(2231→2240, 회귀 없음).
+
+### 다음
+- **실집행 승격 아님.** 표본 37건 단일 데이터셋, 밴드분할 자체가 사후설계(pre-registration 아님) — house 규율(paper 우선) 그대로 유지, 데이터 더 쌓인 뒤(예: n≥100) 재검증 필요.
+- `api_server/polymarket_bot.py` note 필드("엣지 주장 없음")는 지금 데이터 기준으로 낡음 — "미검증/mid-favorite 밴드 candidate" 정도로 수정 고려(사용자 확인 대기, 아직 미착수).
+- MLB 설계문서(`docs/superpowers/specs/2026-07-21-polymarket-mlb-specialist-design.md`)는 업데이트 불필요로 판단: 그 결론은 MLB(유동성 큰 성숙 시장) 한정이고 이번 신호는 완전 다른 시장군(정치/스포츠 프롭/크립토 저유동성)이라 서로 독립적 — 사용자에게 이 판단 근거 전달 완료.
+
+## Phase 209 — 트레이딩 에이전트 5개 좀비 상태 자동복구 (2026-08-15) ✅ SHIPPED
+
+### 배경
+- 사용자: "다트 오토파일럿 보유종목 왜 안떠" 문의 계기로 전체 점검. `/dart/positions`는 정상(모의계좌 실제로 0주 — desync reconcile이 정상 처리한 결과, Phase 208 이후 동작대로).
+- 점검 중 발견: `/agents` 5개(스윙검증-US·자율형 학습 AI·KR 거시 전략 AI·lv5 가상화폐·US Daytrade E2E 검증) 전부 `status="running"`인데 `session_live=false`. tmux 서버가 리셋돼 `seokminal-agent-*` 세션이 전부 사라진 상태였고, 대시보드엔 계속 "running"으로 표시돼 실제로는 매매 안 하고 방치 중이었음.
+- 근원: `status` 필드는 start/stop 시점에만 DB에 쓰여지고 tmux 세션 생존 여부와 별개로 관리됨. `dart_autobot`(asyncio 상시태스크, 서버 프로세스에 종속)과 달리 트레이딩 에이전트는 tmux 세션(별도 프로세스)이라 서버 재기동만으론 안 살아나고, 자동 복구 로직 자체가 없었음.
+
+### 완료된 작업
+- `api_server/main.py` — `_revive_agents()` 추가, startup 훅(`_start_dart_bot`) 맨 앞에서 호출. `agent_store.list_agents()` 순회해 `status=="running"` 인데 세션 죽은 것만 기존 `start_agent()`(멱등, 세션 있으면 no-op) 재호출.
+- 새 함수/엔드포인트 없음 — 기존 `routers/agents.py`의 `_agent_tmux`/`_session_exists`/`start_agent` 재사용.
+
+### 검증
+- `bash scripts/restart_api.sh` 재기동 → 5개 전부 `session_live=true` 확인, tmux 세션 5개 새로 생성됨.
+- `pytest tests/ -k agent -q` 49 passed.
+
+### 다음
+- 완료: 2번 문제(디스크) — 아래 Phase 210에서 처리.
+
+---
+
+## Phase 210 — 디스크 압박 해소: compress_old_data 스케줄 누락 (2026-08-15) ✅ SHIPPED
+
+### 배경
+- 점검 중 발견: 디스크 20GB 남음(91.6% 사용). `research/data/polymarket_tick` 21G, `cross_venue_skew` 15G — 회전 없이 무제한 누적.
+- 원인은 신규 버그 아님 — `research/compress_old_data.py`(오래된 jsonl gzip 압축, 최근 2일 제외, 리더들 이미 `.gz` 인식)가 이미 존재하고 정상 동작하는데 **스케줄이 안 걸려있었음**. 마지막 압축 흔적이 07-26 — 20일 방치. `crontab -l` 확인해보니 압축 관련 항목 자체가 없었음(수동으로 한 번 돌리고 잊혀진 것으로 추정).
+
+### 완료된 작업
+- `scripts/compress_old_data.sh` 신규 — `research/compress_old_data.py` 실행 + 로그(`logs/compress_old_data.log`), 기존 `options_uoa_n_check.sh` 패턴 따름.
+- `crontab` 등록: 매일 04:00 `compress_old_data.sh` 자동 실행.
+- 즉시 1회 수동 실행 — 519개 파일(33G) 압축, **디스크 여유 20G → 55G** 회복. `polymarket_tick` 21G→5.6G, `cross_venue_skew` 15G→4.6G.
+
+### 검증
+- `pytest tests/test_compress_old_data.py tests/test_prune_old_data.py -q` 11 passed (사전).
+- 압축 후 `pytest tests/ -q` 2230 passed — `.gz` 전환이 기존 리더(cross_venue_skew, polymarket_tick fill_sim 등)에 영향 없음 확인.
+
+### 다음
+- `research/prune_old_data.py`(retention 90일, 실삭제)는 아직 미스케줄 — 지금은 압축만으로 여유 확보돼 급하지 않음. 디스크 다시 빠듯해지면 이것도 크론 등록 고려.
+
+---
+
+## Phase 211 — convergence_legs 함대 stale 오탐 수정 (2026-08-15) ✅ SHIPPED
+
+### 배경
+- 3번 문제(폴리마켓/HL 네트워크 순단)는 재조사해보니 이미 자연복구(재연결 로직 정상 동작) — 코드 조치 불필요.
+- 대신 `/lab/fleet` 재확인 중 실제 버그 발견: `convergence_legs` 수집기가 그 순간에도 `stale`로 오탐 중이었음.
+- 원인: `research/run_convergence_signal_collect.py`(POLL_INTERVAL_SEC=21600, 6h 주기)가 `api_server/fleet_health.py`의 `STALE_AFTER_S` 오버라이드 맵에 없어서 DEFAULT 900s 임계 적용 → 사이클 대기 중 상시 stale. **Phase 206에서 고친 것과 완전히 같은 버그 클래스**(`polymarket_implication_watch/collect`), Phase 206 이후 추가된 수집기가 그 맵에 누락된 것.
+
+### 완료된 작업
+- `api_server/fleet_health.py` — `STALE_AFTER_S["convergence_legs"] = 43200`(POLL_INTERVAL_SEC × 2, 기존 컨벤션).
+- `tests/test_fleet_health.py` — `test_convergence_legs_not_stale_between_cycles` 회귀테스트 추가(Phase 206 패턴과 동일하게 사이클 상수 직접 import해서 임계 대조).
+
+### 검증
+- `pytest tests/ -q` 2231 passed.
+- 재기동 후 `/lab/fleet`: 13/13 fresh(이전 12 fresh + 1 stale).
+
+### 다음
+- 없음. 새 수집기 추가할 때마다 `STALE_AFTER_S`에 실제 폴링주기 기준으로 넣는 걸 습관화할 것 — 이번이 벌써 두 번째 누락.
+
+---
+
 ## Phase 208 — 공유 모의계좌 크로스봇 청산 버그 수정 (2026-08-14) ✅ SHIPPED
 
 ### 배경

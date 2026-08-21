@@ -164,7 +164,14 @@ export default function DartAutoPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
         {/* 공시 */}
         <Panel>
-          <PanelHeader right={<span className="tabular-nums">{signals.length}건 · 1분 갱신</span>}>
+          <PanelHeader right={
+            <span className="tabular-nums flex items-center gap-2">
+              <span className="text-pos">매수 {signals.filter(s => s.verdict === "BUY").length}</span>
+              <span className="text-neg">회피 {signals.filter(s => s.verdict === "AVOID").length}</span>
+              <span className="text-text-3">중립 {signals.filter(s => s.verdict === "SKIP").length}</span>
+              <span className="text-text-3">· 1분 갱신</span>
+            </span>
+          }>
             기업행위 공시 (최근 14일)
           </PanelHeader>
           {error ? <div className="p-2"><EmptyState message="공시 로드 실패" hint={error} /></div>
@@ -185,8 +192,11 @@ export default function DartAutoPage() {
                 <tbody>
                   {signals.map((s, i) => {
                     const k = `${s.corp_name}:${s.action_type}:${s.date}:${s.ticker ?? ""}:${i}`;
+                    const tint = s.verdict === "BUY" ? "bg-pos/5 hover:bg-pos/10"
+                      : s.verdict === "AVOID" ? "bg-neg/5 hover:bg-neg/10"
+                      : "hover:bg-panel-2";
                     return (
-                      <tr key={k} className="border-b border-border/50 hover:bg-panel-2">
+                      <tr key={k} className={`border-b border-border/50 transition-colors ${tint}`}>
                         <td className="px-3 py-2 text-text-2 truncate max-w-[120px]">{s.corp_name}</td>
                         <td className="px-3 py-2 font-data text-text-1">{s.ticker ?? "—"}</td>
                         <td className="px-3 py-2 text-text-3 text-xs">{s.action_label}</td>
