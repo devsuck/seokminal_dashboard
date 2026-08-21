@@ -4,9 +4,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
 import {
-  getValidationLoop, type ValidationLoopResp, type LifecycleStep, type LifecycleRow,
+  getValidationLoop, type ValidationLoopResp,
   getProductionReadiness, type ProductionReadinessResp,
-  getResearchIntelligence, type ResearchIntelligenceResp, type CreativeHypothesis,
+  getResearchIntelligence, type ResearchIntelligenceResp,
 } from "@/lib/console-api";
 
 type TabKey = "validation" | "production" | "intelligence-plus";

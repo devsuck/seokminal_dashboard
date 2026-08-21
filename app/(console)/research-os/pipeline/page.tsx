@@ -4,12 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader, useConsole, StateBlock, KV } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge, Meter } from "@/components/console/primitives";
 import {
-  getResearchWorkflow, sessionAction, type ResearchWorkflowResp, type SessionLite,
+  getResearchWorkflow, sessionAction, type ResearchWorkflowResp,
   getAutonomousResearch, type AutonomousResearchResp,
   getResearchStrategyGeneration, type ResearchStrategyGenerationResp,
   getStrategyLab, type StrategyLabResp,
-  getAgentWorkspace, type AgentWorkspaceResp, type AgentRow,
-  getResearchBrain, type ResearchBrainResp, type BrainNode, type BrainEdge,
+  getAgentWorkspace, type AgentWorkspaceResp,
+  getResearchBrain, type ResearchBrainResp, type BrainNode,
   getCockpit, type CockpitResp,
   getOperatingConsole, type OperatingConsoleResp,
 } from "@/lib/console-api";
@@ -70,6 +70,8 @@ export default function Pipeline() {
   );
 }
 
+// ---- workflow/page.tsx (P68 — Research OS Workflow. 워크플로 단계·사람승인 상태·세션·큐. 세션 관리(create/pause/resume/archive)만 변경,) ----
+// 나머지는 READ ONLY. Human Decision 은 사람만 · 자동 거래·집행 없음.
 const STATUS_TONE: Record<string, string> = {
   COMPLETED: "var(--c-pos)", BLOCKED: "var(--c-warn)", PENDING: "var(--c-hud)",
   SKIPPED: "var(--c-text-3)", CANCELLED: "var(--c-neg)", FAILED: "var(--c-neg)",
@@ -261,6 +263,9 @@ function SBtn({ label, onClick, busy, tone = "hud" }: { label: string; onClick: 
     </button>
   );
 }
+// ---- discovery/page.tsx (P181-200 — Autonomous Research Discovery & Validation Loop v3.0.) ----
+// Cycle status · Opportunity discovery · Hypothesis board · Experiment queue · Validation · Ranking · Human review queue.
+// /console/autonomous-research. READ ONLY · 연구 자동화 ON · 실행 OFF · 자동 백테스트 없음 · WAITING_HUMAN 유지.
 const LIFECYCLE = ["CREATED", "OBSERVING", "DISCOVERING", "GENERATING", "PRIORITIZING",
   "WAITING_HUMAN", "EXTERNAL_VALIDATION", "ANALYZING", "LEARNING", "COMPLETED"];
 const DISCOVERY_EXAMPLES = [
@@ -482,6 +487,8 @@ function DiscoveryTab() {
     </div>
   );
 }
+// ---- strategy-generation/page.tsx (P29 — Research Strategy Generation. 역사적 지식 기반 연구 전략 후보 원장(rsg_) 뷰.) ----
+// READ ONLY · GENERATED ≠ SELECTED · 선택·승인·배포·실행·거래 없음.
 const STATE_TONE: Record<string, "hud" | "pos" | "warn" | "mute"> = {
   PROPOSED: "hud", ANALYZED: "hud", NOVELTY_CHECKED: "warn", REVIEWED: "pos", ARCHIVED: "mute",
 };
@@ -564,6 +571,8 @@ function StrategyGenerationTab() {
     </div>
   );
 }
+// ---- strategy-lab/page.tsx (P91 — Strategy Laboratory. Strategy DNA(factors/universe/horizon/entry/exit/risk/validation/failure/regimes).) ----
+// /console/strategy-lab. READ ONLY · 기존 실험/실패/리스크 재조립. 거래·집행 없음.
 function StrategyLabTab() {
   const [q, setQ] = useState("momentum");
   const [data, setData] = useState<StrategyLabResp | null>(null);
@@ -632,6 +641,8 @@ function StrategyLabTab() {
     </div>
   );
 }
+// ---- agents/page.tsx (P121-130 — Research Agents Workspace. Director→Analyst→Strategy→Critic→Writer. Analysis only.) ----
+// /console/agent-workspace. READ ONLY · 분석 전용 에이전트 · 자동 거래·집행·투자결정 없음.
 const ROLE_TONE: Record<string, string> = {
   director: "var(--c-hud)", specialist: "var(--c-blue)", critic: "var(--c-warn)", report: "var(--c-emerald)",
 };
@@ -810,6 +821,8 @@ function AgentsTab() {
     </div>
   );
 }
+// ---- brain/page.tsx (P131-140 — Research Brain Workspace. Knowledge Graph / Past Research / Failures / Strategy·Company Memory / Conflicts / Lessons.) ----
+// /console/research-brain. READ ONLY · 지식 시스템 전용 · 자동 거래·집행 없음.
 const HEALTH_TONE: Record<string, "pos" | "warn" | "neg" | "mute"> = {
   HEALTHY: "pos", FAIR: "warn", DEGRADED: "neg", EMPTY: "mute",
 };
@@ -962,6 +975,8 @@ function MemoryList({ title, kicker, nodes, tone }: { title: string; kicker: str
     </Panel>
   );
 }
+// ---- cockpit/page.tsx (P85 — Executive Research Cockpit. 모든 역량의 통합 홈. /console/cockpit 실데이터.) ----
+// READ ONLY · 분석/요약/추천만, 자동 거래·집행·자본배분 없음. 사람이 모든 결정을 한다.
 const CONF: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
 const bandTone = (b?: string) => (b === "HEALTHY" ? "pos" : b === "FAIR" ? "hud" : "warn");
 const STAGE_TONE: Record<string, string> = {
@@ -1117,6 +1132,8 @@ function CockpitTab() {
     </div>
   );
 }
+// ---- console/page.tsx (P70 — Hedge Fund Operating Console. 오늘의 연구·기회·리스크·이벤트·노출·페이퍼·세션·추천을 한 화면에.) ----
+// /console/operating-console 실데이터. READ ONLY · 분석/요약/추천만, 자동 거래·집행·자본배분 없음.
 const CONF_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
 
 function ConsoleTab() {

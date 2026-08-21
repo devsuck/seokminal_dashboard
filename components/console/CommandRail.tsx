@@ -12,9 +12,10 @@ export interface RailGroup { label: string; items: RailItem[] }
 
 // 콘솔(거버넌스 OS) 그룹 — 신규 라우트. Phase 132 집행전환 최종목표의 메인 레이어라
 // TERMINAL_GROUPS(레거시)보다 위계상 상위 — 항상 먼저 렌더.
-// STEP4-D(docs/step4/dashboard_migration_map.md): "병합"/"숨김" 분류 페이지는 investment-os
-// 5-tab 셸에 흡수되어 top-level nav에서 제거됨(route/파일은 무변경, 직링크로 계속 접근 가능).
-// 남은 항목은 write action·drill-down이 있는 "유지" 페이지뿐.
+// Research OS 4-shell 통합(2026-08-21): 옛 15개 research-os 라우트는 pipeline/validation/
+// governance 3개 탭-셸 페이지(+ 손대지 않은 chat)로 합쳐짐. 옛 URL은 파일이 리다이렉트
+// 스텁으로 재작성돼 307로 새 ?tab= 경로로 넘어감(lib/researchOsRedirects.ts 참고).
+// 옛 라우트는 CommandPalette 검색에서는 여전히 찾을 수 있음 — 여기 visible nav에는 없음.
 const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Research OS", items: [
     { href: "/research-os/pipeline", label: "파이프라인" },

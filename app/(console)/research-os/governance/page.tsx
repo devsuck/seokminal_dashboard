@@ -2,13 +2,13 @@
 import { Suspense, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/console/widgets";
-import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
+import { Panel, PanelHead, Badge } from "@/components/console/primitives";
 import {
   getCouncilExpanded, type CouncilExpandedResp,
   getDecisionMemo, type DecisionMemoResp,
   getExplainability, type ExplainabilityResp, type EvidenceNode,
-  getResearchGraph, type ResearchGraphResp, type KGraphNode, type KGraphEdge,
-  getResearchTimeline, type TimelineResp, type TimelineEntry,
+  getResearchGraph, type ResearchGraphResp,
+  getResearchTimeline, type TimelineResp,
 } from "@/lib/console-api";
 
 type TabKey = "committee" | "explain" | "graph" | "timeline";
