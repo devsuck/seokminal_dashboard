@@ -1,0 +1,17 @@
+export const OLD_TO_NEW: Record<string, string> = {
+  "/research-os/workflow": "/research-os/pipeline?tab=workflow",
+  "/research-os/discovery": "/research-os/pipeline?tab=discovery",
+  "/research-os/strategy-generation": "/research-os/pipeline?tab=strategy-generation",
+  "/research-os/strategy-lab": "/research-os/pipeline?tab=strategy-lab",
+  "/research-os/agents": "/research-os/pipeline?tab=agents",
+  "/research-os/brain": "/research-os/pipeline?tab=brain",
+  "/research-os/cockpit": "/research-os/pipeline?tab=cockpit",
+  "/research-os/console": "/research-os/pipeline?tab=console",
+  "/research-os/validation": "/research-os/validation?tab=validation",
+  "/research-os/production": "/research-os/validation?tab=production",
+  "/research-os/intelligence-plus": "/research-os/validation?tab=intelligence-plus",
+  "/research-os/committee": "/research-os/governance?tab=committee",
+  "/research-os/explain": "/research-os/governance?tab=explain",
+  "/research-os/graph": "/research-os/governance?tab=graph",
+  "/research-os/timeline": "/research-os/governance?tab=timeline",
+};
