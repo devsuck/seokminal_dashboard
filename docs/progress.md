@@ -1,3 +1,41 @@
+## Phase 223 — 미니멀 밀도 리디자인 + PWA화 (2026-08-22) ✅ SHIPPED
+
+### 배경
+seokminal v2 2단계 마무리 + 3단계. Phase 222가 색상 토큰만 바꿨던 것과 달리, 유저가 "오토파일럿 앱처럼 미니멀하게"를 요청 — 컴포넌트 종류 축소·정보 밀도 축소를 브레인스토밍(spike→approach 선택→섹션별 design→spec)으로 정식 거쳐 스펙/플랜 작성 후 SDD 2태스크로 실행. 스펙 `docs/superpowers/specs/2026-08-22-autopilot-minimal-density-design.md`, 플랜 `docs/superpowers/plans/2026-08-22-autopilot-minimal-density.md`. 완료 직후 유저가 "PWA까지 전부 마무리해줘, 외출할거니까"로 3단계(PWA화)까지 위임 — 이 단계는 브레인스토밍 승인 게이트 없이 컨트롤러 자체 판단(ruling)으로 진행.
+
+### 완료된 작업 — 미니멀 밀도 (SDD, 2태스크 + 최종 리뷰)
+- `hud-frame` 장식 CSS(코너브래킷, 레거시 다크 accent 참조) 전량 제거 — `app/globals.css` 규칙 삭제 + 6개 파일(`ExecutionTab`/`LabTab`/`PortfolioTab`/`AutoResearchPanel`) 클래스 토큰 제거
+- `/hud` Home 탭 8카드 → 5블록 재구성: 시스템개요(시스템상태+정합성감시 병합), 판단필요, 인프라상태(유닛로스터+수집기함대 병합), 돈길, 최근활동(신규 `SegmentedToggle` 토글로 알림/LAB로그/페이퍼체결 3카드 통합)
+- `components/ui/SegmentedToggle.tsx`에 `inactiveClass` prop 추가 — 최종 whole-branch 리뷰가 잡아낸 "비활성 버튼이 라이트 카드 위에서 레거시 다크 토큰(`border-border`/`text-text-3`) 그대로 노출" 결함 수정, `hud/page.tsx` 호출부만 `ap-line`/`ap-ink` 오버라이드 적용(다른 다크 라우트 호출부는 기본값 유지라 영향 없음)
+
+### 완료된 작업 — PWA화 (컨트롤러 자체 설계, 별도 스펙 없음)
+- `app/manifest.ts`(Next 네이티브 컨벤션) — name/icons/start_url/standalone/theme_color(`#FF9F0A`)
+- `app/icon.png`(512)·`app/apple-icon.png`(180)·`public/icons/{icon-192,icon-512,icon-maskable-512}.png` — 이미 설치돼 있던 `sharp`(next/image 트랜지티브 의존성)로 신규 의존성 없이 생성, ap-brand 단색 배경 + "S" 모노그램
+- `public/sw.js` + `components/PwaRegister.tsx` — 설치 가능성(installability) 충족용 최소 서비스워커, **오프라인 캐싱 없음**(의도적 설계 판단, 아래 rulings 참조)
+- `app/layout.tsx` — `viewport.themeColor`, `appleWebApp` 메타, `<PwaRegister />` 마운트
+
+### 변경된 파일
+`app/globals.css`, `components/hud/{ExecutionTab,LabTab,PortfolioTab}.tsx`, `components/AutoResearchPanel.tsx`,
+`app/hud/page.tsx`, `components/ui/SegmentedToggle.tsx`,
+`app/manifest.ts`(신규), `app/icon.png`(신규), `app/apple-icon.png`(신규), `public/icons/*.png`(신규 3개), `public/sw.js`(신규), `components/PwaRegister.tsx`(신규), `app/layout.tsx`
+
+### 막힌 부분/결정사항 (rulings)
+- Task 1 브리프가 4파일/5곳만 전제했는데 `AutoResearchPanel.tsx`에 `hud-frame` 참조 2곳 추가 발견(implementer가 grep으로 확인, DONE_WITH_CONCERNS) → 죽은 CSS 클래스 방치 방지 위해 스코프 확장해 같이 제거, 별도 커밋(`a94796f`)으로 분리해 리뷰어에 위임 → CONDITIONAL PASS로 승인됨
+- 최종 whole-branch 리뷰(opus)에서 SegmentedToggle 비활성 버튼 레거시 토큰 누출(minor) + stale 주석(nit) 발견 → 컨트롤러가 직접 수정(`inactiveClass` prop 추가, 기본값 불변으로 다른 호출부 무영향) 후 즉시 커밋. `app/agents/page.tsx`의 동일 컴포넌트 사용처 2곳도 같은 결함이 있으나 Phase 222(이미 종료된 다른 phase) 소관이라 손대지 않음 — 후속 정리 후보로 기록
+- **PWA 오프라인 미지원은 의도적 설계**: 실거래/포트폴리오 대시보드에서 서비스워커가 API 응답을 캐싱하면 stale 가격·포지션을 "최신"처럼 보여줄 위험이 있음 → sw.js는 설치 가능성만 충족(no-op fetch 핸들러), 정적 자산이든 API든 캐싱 전략 없음. 오프라인에서는 그냥 로드 실패 — 트레이딩 툴에서는 이게 맞는 동작이라 판단
+- 개발서버 dev-mode Turbopack에서 `app/icon.png`/`app/manifest.ts` 추가 후 `require is not defined` SSR 에러 발생 → `.next` 캐시 삭제 + 서버 재기동으로 해결(신규 메타데이터 컨벤션 파일은 hot-reload로 못 잡는 turbopack 캐시 이슈로 판단, 코드 결함 아님)
+
+### 검증
+`npx tsc --noEmit` 통과, `npm test` 29 files / 319 tests 전부 통과. 브라우저 육안 확인: `/hud` 4탭(Home/Lab/Execution/Portfolio) 전부 hud-frame 제거 후 렌더링 정상, 최근활동 토글 활성/비활성 색상 정상(`ap-brand`/`ap-line`). `/manifest.webmanifest`·`/icon.png`·`/apple-icon.png`·`/sw.js` 전부 200, `<head>`에 `theme-color`/`manifest`/`apple-mobile-web-app-*` 메타 정상 주입 확인.
+
+### 다음 할 일
+- 미전환 13개 라우트(`portfolio`,`polymarket`,`copytrade` 등) 라이트 전환(Phase 222부터 이어지는 후속 phase)
+- `app/agents/page.tsx`의 SegmentedToggle 2곳도 `inactiveClass` 적용(발견은 됐으나 이번 phase 스코프 밖이라 미수정)
+- PWA 설치 UX(A2HS 프롬프트 커스텀 배너 등)는 미구현 — 필요해지면 후속 phase
+- iOS 홈 화면 추가 후 실제 standalone 렌더링은 미검증(개발환경 제약, 실기기 테스트 필요)
+
+---
+
 ## Phase 222 — Autopilot 라이트 리디자인 (2026-08-22) ✅ SHIPPED
 
 ### 배경
