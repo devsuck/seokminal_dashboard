@@ -18,6 +18,7 @@ import {
 import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { SegmentedToggle } from "@/components/ui/SegmentedToggle";
 import { FreshnessBar } from "@/components/ui/FreshnessBar";
 import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
 import { displayLevel } from "@/lib/agent-level";
@@ -221,6 +222,7 @@ function HomeTab() {
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
   const [restarting, setRestarting] = useState<Partial<Record<CollectorKey, boolean>>>({});
+  const [activityView, setActivityView] = useState<"alerts" | "log" | "trades">("alerts");
   const abortRef = useRef<AbortController | null>(null);
 
   async function handleRestart(key: CollectorKey) {
@@ -363,8 +365,8 @@ function HomeTab() {
     <div className="min-h-screen p-1 sm:p-1.5 font-data">
       {/* 상단 상태 스트립 — 시계는 우측에 얹어 한 줄 절약 */}
       <Card className="mb-1">
-        <CardHeader right={<WorldClock now={now} />}>시스템 상태</CardHeader>
-        <div className="flex items-center gap-3 px-2 py-1">
+        <CardHeader right={<WorldClock now={now} />}>시스템개요</CardHeader>
+        <div className="flex items-center gap-3 px-2 py-1 border-b border-ap-line">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
             <Link href="/lab/execution"
@@ -378,10 +380,26 @@ function HomeTab() {
           {wd?.critical && (
             <span className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">감시견 경보</span>
           )}
-          {(health?.n_errors ?? 0) > 0 && (
-            <span className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">정합성 오류 {health!.n_errors}</span>
-          )}
+          <span className={`ml-auto tabular-nums text-[10px] font-data ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
+            {health ? (health.ok ? "정합성 이상 없음" : `정합성 오류 ${health.n_errors} · 위반 ${health.n_violations}`) : "정합성 로딩 중…"}
+          </span>
         </div>
+        {health && health.violations.length > 0 && (
+          <div className="max-h-56 overflow-y-auto">
+            {health.violations.map((v, i) => (
+              <Link
+                key={i}
+                href={violationHref(v.entity)}
+                className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px] hover:bg-ap-bg transition-colors">
+                <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
+                <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>
+                <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-ap-down" : "text-ap-caution"}`}>{v.code}</span>
+                <span className="text-ap-ink-2 truncate flex-1">{v.detail}</span>
+                <span className="text-ap-ink-3 shrink-0">→</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* 판단 필요 — 사람 결정 걸리는 것만. 0건이면 한 줄로 접힘 */}
@@ -406,28 +424,24 @@ function HomeTab() {
         )}
       </Card>
 
-      {/* 유닛 로스터 — 전략(AI·봇)과 데이터 수집기는 고장 의미가 달라서 분리 */}
+      {/* 인프라상태 — 전략(AI·봇)과 데이터 수집기 통합. 고장 의미가 달라서 절 구분은 유지 */}
       <Card className="mb-1">
-        <CardHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
-          유닛 로스터 · 전략
+        <CardHeader right={
+          <span className="tabular-nums">
+            {nRunning}/{units.length} 가동 · 수집 {collectorUnits.length > 0 ? `${nHealthy}/${collectorUnits.length}` : "…"}
+          </span>
+        }>
+          인프라상태
         </CardHeader>
+        <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3">전략</div>
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {units.map((u, i) => (
             <UnitCard key={`${u.name}-${i}`} u={u} />
           ))}
         </div>
-      </Card>
-
-      {/* 수집기 함대 — 신선도 정도(바)까지 표시. 가동/정지 이진으로는 지연을 못 잡음 */}
-      <Card className="mb-1">
-        <CardHeader right={
-          <span className={`tabular-nums ${nDegraded > 0 ? "text-ap-caution" : "text-ap-up"}`}>
-            {collectorUnits.length > 0 ? `정상 ${nHealthy}/${collectorUnits.length}` : "…"}
-            {nDegraded > 0 ? ` · 이상 ${nDegraded}` : ""}
-          </span>
-        }>
-          수집기 함대
-        </CardHeader>
+        <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3 border-t border-ap-line">
+          수집기{nDegraded > 0 && <span className="text-ap-caution normal-case"> · 이상 {nDegraded}</span>}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {collectorUnits.map((u, i) => (
             <UnitCard
@@ -440,41 +454,6 @@ function HomeTab() {
         </div>
         {collectorUnits.length === 0 && (
           <div className="px-2 py-1.5 text-ap-ink-3 text-[11px]">수집기 상태 로딩 중…</div>
-        )}
-      </Card>
-
-      {/* 정합성 감시 — 봇·에이전트 회계 불변식(조용한 돈 버그 감지). /lab/health */}
-      <Card className="mb-1">
-        <CardHeader right={
-          <span className={`tabular-nums ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
-            {health ? (health.ok ? "이상 없음" : `${health.n_errors} 오류 · ${health.n_violations} 위반`) : "…"}
-          </span>
-        }>
-          정합성 감시
-        </CardHeader>
-        {health && health.violations.length === 0 && (
-          <div className="px-2 py-1.5">
-            <StatusDot tone="pos" label="봇·에이전트 회계 정합성 정상" />
-          </div>
-        )}
-        {health && health.violations.length > 0 && (
-          <div className="max-h-56 overflow-y-auto">
-            {health.violations.map((v, i) => (
-              <Link
-                key={i}
-                href={violationHref(v.entity)}
-                className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px] hover:bg-ap-bg transition-colors">
-                <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
-                <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>
-                <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-ap-down" : "text-ap-caution"}`}>{v.code}</span>
-                <span className="text-ap-ink-2 truncate flex-1">{v.detail}</span>
-                <span className="text-ap-ink-3 shrink-0">→</span>
-              </Link>
-            ))}
-          </div>
-        )}
-        {!health && (
-          <div className="px-2 py-1.5 text-ap-ink-3 text-[11px]">정합성 상태 로딩 중…</div>
         )}
       </Card>
 
@@ -503,66 +482,79 @@ function HomeTab() {
         </Card>
       </div>
 
-      {/* 로그 + 최근 체결 + 알림 — 빈 공간 없이 실시간 활동 채움 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 items-start mt-1">
-        <Card>
-          <CardHeader right={<span className="tabular-nums">{alerts?.length ?? 0}건</span>}>
-            최근 알림
-          </CardHeader>
-          <div className="max-h-64 overflow-y-auto">
-            {(alerts ?? []).slice(0, 14).map((a, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
-                <span className="text-ap-ink-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
-                <span className="text-ap-caution truncate flex-1">{a.rule_label}</span>
-                <span className="text-ap-ink-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
-              </div>
-            ))}
-            {(alerts?.length ?? 0) === 0 && (
-              <div className="px-2 py-3 text-ap-ink-3 text-[11px]">알림 없음</div>
-            )}
-          </div>
-        </Card>
-        <Card>
-          <CardHeader right={<span className="tabular-nums">{lab?.log?.length ?? 0}줄</span>}>
-            AI LAB 로그
-          </CardHeader>
-          <div className="max-h-64 overflow-y-auto">
-            {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
-                <span className="text-ap-ink-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
-                <span className={`shrink-0 w-12 truncate ${
-                  l.level === "error" ? "text-ap-down" : l.level === "warn" ? "text-ap-caution" : "text-ap-ink-3"}`}>{l.stage}</span>
-                <span className="text-ap-ink-2 truncate flex-1">{l.msg}</span>
-              </div>
-            ))}
-            {(lab?.log?.length ?? 0) === 0 && (
-              <div className="px-2 py-3 text-ap-ink-3 text-[11px]">로그 없음</div>
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader right={<span className="tabular-nums">{exec?.paper?.recent_closed?.length ?? 0}건</span>}>
-            최근 페이퍼 체결
-          </CardHeader>
-          <div className="max-h-64 overflow-y-auto">
-            {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
-                <span className="text-ap-ink-1 truncate flex-1">{t.corp}</span>
-                <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.entry_date}</span>
-                <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
-                <span className={`shrink-0 w-14 text-right px-1 font-bold ${
-                  (t.pnl_pct ?? 0) > 0 ? "bg-ap-up/20 text-ap-up" : (t.pnl_pct ?? 0) < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-3"}`}>
-                  {t.pnl_pct != null ? `${t.pnl_pct.toFixed(2)}%` : "—"}
-                </span>
-              </div>
-            ))}
-            {(exec?.paper?.recent_closed?.length ?? 0) === 0 && (
-              <div className="px-2 py-3 text-ap-ink-3 text-[11px]">체결 없음</div>
-            )}
-          </div>
-        </Card>
-      </div>
+      {/* 최근활동 — 알림/LAB 로그/페이퍼 체결을 토글 1카드로 통합 */}
+      <Card className="mt-1">
+        <CardHeader right={
+          <span className="tabular-nums">
+            {activityView === "alerts" ? `${alerts?.length ?? 0}건`
+              : activityView === "log" ? `${lab?.log?.length ?? 0}줄`
+              : `${exec?.paper?.recent_closed?.length ?? 0}건`}
+          </span>
+        }>
+          최근활동
+        </CardHeader>
+        <div className="px-2 pt-2">
+          <SegmentedToggle
+            size="sm"
+            value={activityView}
+            onChange={setActivityView}
+            options={[
+              { value: "alerts", label: "알림", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+              { value: "log", label: "LAB 로그", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+              { value: "trades", label: "페이퍼 체결", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+            ]}
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto mt-1">
+          {activityView === "alerts" && (
+            <>
+              {(alerts ?? []).slice(0, 14).map((a, i) => (
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                  <span className="text-ap-ink-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
+                  <span className="text-ap-caution truncate flex-1">{a.rule_label}</span>
+                  <span className="text-ap-ink-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
+                </div>
+              ))}
+              {(alerts?.length ?? 0) === 0 && (
+                <div className="px-2 py-3 text-ap-ink-3 text-[11px]">알림 없음</div>
+              )}
+            </>
+          )}
+          {activityView === "log" && (
+            <>
+              {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                  <span className="text-ap-ink-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
+                  <span className={`shrink-0 w-12 truncate ${
+                    l.level === "error" ? "text-ap-down" : l.level === "warn" ? "text-ap-caution" : "text-ap-ink-3"}`}>{l.stage}</span>
+                  <span className="text-ap-ink-2 truncate flex-1">{l.msg}</span>
+                </div>
+              ))}
+              {(lab?.log?.length ?? 0) === 0 && (
+                <div className="px-2 py-3 text-ap-ink-3 text-[11px]">로그 없음</div>
+              )}
+            </>
+          )}
+          {activityView === "trades" && (
+            <>
+              {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                  <span className="text-ap-ink-1 truncate flex-1">{t.corp}</span>
+                  <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.entry_date}</span>
+                  <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
+                  <span className={`shrink-0 w-14 text-right px-1 font-bold ${
+                    (t.pnl_pct ?? 0) > 0 ? "bg-ap-up/20 text-ap-up" : (t.pnl_pct ?? 0) < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-3"}`}>
+                    {t.pnl_pct != null ? `${t.pnl_pct.toFixed(2)}%` : "—"}
+                  </span>
+                </div>
+              ))}
+              {(exec?.paper?.recent_closed?.length ?? 0) === 0 && (
+                <div className="px-2 py-3 text-ap-ink-3 text-[11px]">체결 없음</div>
+              )}
+            </>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
