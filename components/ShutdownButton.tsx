@@ -59,38 +59,38 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
       {/* Modal */}
       {phase !== "idle" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-panel border border-border rounded-2xl w-[520px] max-h-[80vh] flex flex-col shadow-2xl">
+          <div className="bg-ap-surface border border-ap-line rounded-2xl w-[520px] max-h-[80vh] flex flex-col shadow-2xl">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center gap-3">
+            <div className="px-6 py-4 border-b border-ap-line flex items-center gap-3">
               {phase === "done" || phase === "killing" ? (
-                <span className="w-5 h-5 rounded-full bg-pos flex items-center justify-center text-black text-xs font-bold shrink-0">✓</span>
+                <span className="w-5 h-5 rounded-full bg-ap-up flex items-center justify-center text-black text-xs font-bold shrink-0">✓</span>
               ) : (
-                <span className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin inline-block shrink-0" />
+                <span className="w-5 h-5 rounded-full border-2 border-ap-brand border-t-transparent animate-spin inline-block shrink-0" />
               )}
-              <span className="text-text-1 font-semibold flex-1">
+              <span className="text-ap-ink-1 font-semibold flex-1">
                 {phase === "killing" ? "서버 종료 중..." : "Mr. Seokminal 인수인계"}
               </span>
               {phase === "handoff" && (
-                <button onClick={cancel} className="text-[11px] text-text-3 hover:text-neg bg-transparent border-0 cursor-pointer">
+                <button onClick={cancel} className="text-[11px] text-ap-ink-3 hover:text-ap-down bg-transparent border-0 cursor-pointer">
                   취소
                 </button>
               )}
             </div>
 
             {/* Phase label */}
-            <div className="px-6 py-2 text-[11px] text-accent">{PHASE_LABEL[phase]}</div>
+            <div className="px-6 py-2 text-[11px] text-ap-brand">{PHASE_LABEL[phase]}</div>
 
             {/* Log */}
             {lines.length > 0 && (
-              <div className="flex-1 overflow-y-auto px-6 pb-4 font-mono text-[11px] text-text-2 leading-relaxed space-y-0.5 max-h-64">
+              <div className="flex-1 overflow-y-auto px-6 pb-4 font-mono text-[11px] text-ap-ink-2 leading-relaxed space-y-0.5 max-h-64">
                 {lines.map((l, i) => (
-                  <div key={i} className={l.includes("HANDOFF_COMPLETE") ? "text-pos font-semibold" : ""}>{l}</div>
+                  <div key={i} className={l.includes("HANDOFF_COMPLETE") ? "text-ap-up font-semibold" : ""}>{l}</div>
                 ))}
               </div>
             )}
 
             {phase === "killing" && (
-              <div className="px-6 py-4 text-center text-text-3 text-sm">창을 닫으셔도 됩니다.</div>
+              <div className="px-6 py-4 text-center text-ap-ink-3 text-sm">창을 닫으셔도 됩니다.</div>
             )}
           </div>
         </div>
@@ -101,7 +101,7 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
         <button
           onClick={handleClick}
           disabled={phase !== "idle"}
-          title="종료"className="w-7 h-7 flex items-center justify-center text-neg/60 hover:text-neg hover:bg-neg/10 rounded transition-colors bg-transparent border-0 cursor-pointer disabled:opacity-30 mx-auto">
+          title="종료"className="w-7 h-7 flex items-center justify-center text-ap-down/60 hover:text-ap-down hover:bg-ap-down/10 rounded transition-colors bg-transparent border-0 cursor-pointer disabled:opacity-30 mx-auto">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <circle cx="7" cy="7" r="5.5" />
             <line x1="7" y1="3" x2="7" y2="7" />
@@ -112,7 +112,7 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
         <button
           onClick={handleClick}
           disabled={phase !== "idle"}
-          className="w-full py-2 rounded border border-neg/30 text-neg/70 text-[11px] font-medium hover:bg-neg/8 hover:text-neg hover:border-neg/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent">
+          className="w-full py-2 rounded border border-ap-down/30 text-ap-down/70 text-[11px] font-medium hover:bg-ap-down/8 hover:text-ap-down hover:border-ap-down/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent">
           {phase === "idle" ? "⏹ 종료" : "종료 중..."}
         </button>
       )}
