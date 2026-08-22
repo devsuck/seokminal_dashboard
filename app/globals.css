@@ -61,6 +61,28 @@
   --animate-ticker:      ticker 22s linear infinite;
   --animate-count:       count-in 0.5s ease-out both;
   --animate-blink:       blink 1.2s steps(1) infinite;
+
+  /* ── Autopilot 라이트 토큰 (ap-) ── additive, 위 다크 토큰과 별개 네임스페이스.
+     CommandRail + /hud + /agents 전용. 13개 미전환 라우트는 위 다크 토큰만 계속 사용. */
+  --color-ap-bg:       #FAFAFB;
+  --color-ap-surface:  #FFFFFF;
+  --color-ap-line:     #E5E7EB;
+  --color-ap-ink-1:    #111827;
+  --color-ap-ink-2:    #6B7280;
+  --color-ap-ink-3:    #9CA3AF;
+  --color-ap-brand:    #FF9F0A;
+  --color-ap-up:       #059669;
+  --color-ap-down:     #DC2626;
+  --color-ap-caution:  #D97706;
+  --color-ap-note:     #2563EB;
+
+  --radius-ap-sm: 8px;
+  --radius-ap-md: 12px;
+  --radius-ap-lg: 16px;
+  --radius-ap-xl: 20px;
+
+  --shadow-ap-sm: 0 1px 3px rgba(0,0,0,.06);
+  --shadow-ap-md: 0 4px 12px rgba(0,0,0,.08);
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────── */
