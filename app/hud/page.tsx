@@ -22,6 +22,59 @@ import { FreshnessBar } from "@/components/ui/FreshnessBar";
 import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
 import { displayLevel } from "@/lib/agent-level";
 import { toast } from "@/lib/toast";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import PortfolioTab from "@/components/hud/PortfolioTab";
+import LabTab from "@/components/hud/LabTab";
+import ExecutionTab from "@/components/hud/ExecutionTab";
+import TasksTab from "@/components/hud/TasksTab";
+
+type TabKey = "home" | "portfolio" | "lab" | "execution" | "tasks";
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "home", label: "HOME" },
+  { key: "portfolio", label: "AI 자본" },
+  { key: "lab", label: "AI LAB" },
+  { key: "execution", label: "집행 콘솔" },
+  { key: "tasks", label: "페이퍼 모니터" },
+];
+
+function HudInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const paramTab = searchParams.get("tab");
+  const tab: TabKey = TABS.some((t) => t.key === paramTab) ? (paramTab as TabKey) : "home";
+  const setTab = (k: TabKey) => router.push(k === "home" ? "/hud" : `/hud?tab=${k}`);
+
+  return (
+    <div className="min-h-full">
+      <div className="flex gap-1 border-b border-border px-5 pt-3 overflow-x-auto">
+        {TABS.map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
+              tab === t.key
+                ? "border-accent text-accent bg-accent/10"
+                : "border-transparent text-text-2 hover:text-text-1"
+            }`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "home" && <HomeTab />}
+      {tab === "portfolio" && <PortfolioTab />}
+      {tab === "lab" && <LabTab />}
+      {tab === "execution" && <ExecutionTab />}
+      {tab === "tasks" && <TasksTab />}
+    </div>
+  );
+}
+
+export default function HudShell() {
+  return (
+    <Suspense fallback={null}>
+      <HudInner />
+    </Suspense>
+  );
+}
 
 /* HUD 홈 — 미니멀 재설계.
    질문 하나에 답하는 페이지: "지금 뭐가 돌고 있고, 문제 없나?"
@@ -164,7 +217,7 @@ function UnitCard({ u, onRestart, restarting }: {
   );
 }
 
-export default function HudPage() {
+function HomeTab() {
   const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
