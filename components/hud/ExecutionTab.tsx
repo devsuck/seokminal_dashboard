@@ -63,7 +63,7 @@ export default function ExecutionTab() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
       {/* ARM 판정 — 이 페이지의 답. 최상단에 크게 */}
-      <div className={`hud-frame rounded-lg p-4 border ${
+      <div className={`rounded-lg p-4 border ${
         armDecision === "GO" ? "border-ap-up/50 bg-ap-up/5" :
         armDecision === "KILL" ? "border-ap-down/50 bg-ap-down/5" : "border-ap-caution/30 bg-ap-caution/5"}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -102,7 +102,7 @@ export default function ExecutionTab() {
       </div>
 
       {/* 엣지 생존 (OOS vs envelope) */}
-      <div className={`hud-frame rounded-lg border p-4 ${
+      <div className={`rounded-lg border p-4 ${
         edge.tone === "pos" ? "border-ap-up/40 bg-ap-up/5" : edge.tone === "neg" ? "border-ap-down/40 bg-ap-down/5" : "border-hud/20 bg-ap-surface"}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
           <div className="text-sm font-semibold text-ap-ink-1 uppercase tracking-wider">엣지 생존 모니터</div>

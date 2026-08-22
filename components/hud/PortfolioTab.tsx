@@ -117,7 +117,7 @@ export default function PortfolioTab() {
       {/* 연구 트랙 — 페이퍼 돈길 (라이브 배분과 별개, 실캐피탈 0) */}
       {bot && (
         <Link href="/lab/execution"
-          className="hud-frame flex items-center gap-3 bg-ap-surface border border-ap-brand/25 rounded-lg px-4 py-2.5 no-underline hover:bg-ap-brand/5 transition-colors flex-wrap">
+          className="flex items-center gap-3 bg-ap-surface border border-ap-brand/25 rounded-lg px-4 py-2.5 no-underline hover:bg-ap-brand/5 transition-colors flex-wrap">
           <span className="text-[10px] uppercase tracking-wider text-ap-ink-3 shrink-0">연구 트랙 (페이퍼)</span>
           <span className="text-[11px] font-data text-ap-ink-1">buyback {bot.version}</span>
           <span className="text-[11px] font-data text-ap-ink-3">보유 {bot.open} · 청산 {bot.closed}</span>
@@ -291,7 +291,7 @@ function Summary({ label, val, num, decimals = 0, prefix = "", suffix = "", sign
   { label: string; val?: string; num?: number; decimals?: number; prefix?: string; suffix?: string; signed?: boolean; pos?: boolean }) {
   const c = pos === undefined ? "text-ap-ink-1" : pos ? "text-ap-up" : "text-ap-down";
   return (
-    <div className="hud-frame bg-ap-surface border border-ap-line rounded-lg px-3 py-2.5 text-center">
+    <div className="bg-ap-surface border border-ap-line rounded-lg px-3 py-2.5 text-center">
       <div className={`text-lg font-semibold font-data ${c}`}>
         {typeof num === "number"
           ? <AnimatedNumber value={num} decimals={decimals} prefix={prefix} suffix={suffix} signed={signed} />

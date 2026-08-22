@@ -109,7 +109,7 @@ export default function LabTab() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-5">
       {/* Header — 상태 + 컨트롤 컴팩트 스트립 (수치는 우측 StatsRow가 담당) */}
-      <div className="hud-frame flex items-center justify-between gap-4 flex-wrap rounded-lg border border-hud/20 bg-ap-surface px-4 py-3">
+      <div className="flex items-center justify-between gap-4 flex-wrap rounded-lg border border-hud/20 bg-ap-surface px-4 py-3">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-ap-ink-1 tracking-[0.15em] uppercase">AI LAB</h1>
