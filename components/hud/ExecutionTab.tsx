@@ -6,7 +6,7 @@ import {
   type ExecutionConsole, type ExecutionEdge, type PortfolioBook,
 } from "@/lib/api";
 import { LivePulse } from "@/components/Jarvis";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Card, CardHeader } from "@/components/ui/Card";
 
 /* 집행 콘솔 — 질문 하나: "지금 arm해도 되나?"
    ARM 판정(GO/WAIT/KILL)을 최상단에 크게. 그 판단 근거(엣지 생존·기대치·제약)가 아래로.
@@ -50,7 +50,7 @@ export default function ExecutionTab() {
     return () => { mounted = false; ctrl.abort(); };
   }, []);
 
-  if (err) return <div className="p-6 text-xs text-neg border border-neg/30 rounded m-6">오류: {err}</div>;
+  if (err) return <div className="p-6 text-xs text-ap-down border border-ap-down/30 rounded m-6">오류: {err}</div>;
   if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton h-20 rounded-lg" />)}</div>;
 
   const g = d.arm_gate, lr = d.live_readiness;
@@ -64,22 +64,22 @@ export default function ExecutionTab() {
     <div className="p-6 max-w-4xl mx-auto space-y-5">
       {/* ARM 판정 — 이 페이지의 답. 최상단에 크게 */}
       <div className={`hud-frame rounded-lg p-4 border ${
-        armDecision === "GO" ? "border-pos/50 bg-pos/5" :
-        armDecision === "KILL" ? "border-neg/50 bg-neg/5" : "border-warn/30 bg-warn/5"}`}>
+        armDecision === "GO" ? "border-ap-up/50 bg-ap-up/5" :
+        armDecision === "KILL" ? "border-ap-down/50 bg-ap-down/5" : "border-ap-caution/30 bg-ap-caution/5"}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-4">
             <span className={`font-data text-3xl font-semibold tracking-wider ${
-              armDecision === "GO" ? "text-pos" : armDecision === "KILL" ? "text-neg animate-blink" : "text-info"}`}>
+              armDecision === "GO" ? "text-ap-up" : armDecision === "KILL" ? "text-ap-down animate-blink" : "text-ap-note"}`}>
               {armDecision ?? "…"}
             </span>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-sm font-semibold text-text-1 uppercase tracking-wider">집행 콘솔 — 라이브 ARM 게이트</h1>
-                <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-pos/50 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
+                <h1 className="text-sm font-semibold text-ap-ink-1 uppercase tracking-wider">집행 콘솔 — 라이브 ARM 게이트</h1>
+                <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-ap-up/50 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
                   {g.armed ? "ARMED" : "DISARMED"}
                 </span>
               </div>
-              <div className="mt-0.5 font-data text-[11px] text-text-3">
+              <div className="mt-0.5 font-data text-[11px] text-ap-ink-3">
                 {d.strategy_id} · 동결 {d.frozen_at} · arm은 사람만
               </div>
             </div>
@@ -92,20 +92,20 @@ export default function ExecutionTab() {
           <Kv k="arm 자격" v={g.eligible ? "가능" : "불가"} tone={g.eligible ? "pos" : "neg"} />
         </div>
         {d.arm_decision && (
-          <div className="mt-2 text-[11px] text-text-3">
+          <div className="mt-2 text-[11px] text-ap-ink-3">
             사전등록 {d.arm_decision.version} · 첫 arm 상한 {(d.arm_decision.first_tranche_krw_max / 10_000).toLocaleString()}만원
             {d.arm_decision.reasons.length > 0 && <span> · {d.arm_decision.reasons.join(" · ")}</span>}
           </div>
         )}
-        {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-neg">차단 사유: {g.reasons.join(" · ")}</div>}
-        <div className="mt-3 text-[12px] text-warn border-t border-warn/20 pt-2 leading-relaxed">{g.human_action}</div>
+        {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-ap-down">차단 사유: {g.reasons.join(" · ")}</div>}
+        <div className="mt-3 text-[12px] text-ap-caution border-t border-ap-caution/20 pt-2 leading-relaxed">{g.human_action}</div>
       </div>
 
       {/* 엣지 생존 (OOS vs envelope) */}
       <div className={`hud-frame rounded-lg border p-4 ${
-        edge.tone === "pos" ? "border-pos/40 bg-pos/5" : edge.tone === "neg" ? "border-neg/40 bg-neg/5" : "border-hud/20 bg-panel"}`}>
+        edge.tone === "pos" ? "border-ap-up/40 bg-ap-up/5" : edge.tone === "neg" ? "border-ap-down/40 bg-ap-down/5" : "border-hud/20 bg-ap-surface"}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-          <div className="text-sm font-semibold text-text-1 uppercase tracking-wider">엣지 생존 모니터</div>
+          <div className="text-sm font-semibold text-ap-ink-1 uppercase tracking-wider">엣지 생존 모니터</div>
           <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
         </div>
         {warming || !ea ? (
@@ -122,24 +122,24 @@ export default function ExecutionTab() {
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {ea.oos.map(m => (
                   <span key={m.month} className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${
-                    m.in_envelope ? "border-pos/40 text-pos bg-pos/10" : "border-neg/40 text-neg bg-neg/10"}`}>
+                    m.in_envelope ? "border-ap-up/40 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
                     {m.month} {pct(m.median)}
                   </span>
                 ))}
               </div>
             )}
             {ea.event_level && (
-              <div className="mt-2 pt-2 border-t border-border/50 text-[11px] font-data text-text-3">
+              <div className="mt-2 pt-2 border-t border-ap-line/50 text-[11px] font-data text-ap-ink-3">
                 이벤트 레벨(조기 신호): OOS {ea.event_level.n_oos}건
                 {ea.event_level.powered ? (
                   <>
                     {" "}· median {pct(ea.event_level.oos_median)} vs in-sample {pct(ea.event_level.in_sample_median)}
                     {" "}· p_worse{" "}
                     <span className={`px-1 font-bold ${
-                      ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 ? "bg-neg/20 text-neg" : "bg-pos/20 text-pos"}`}>
+                      ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 ? "bg-ap-down/20 text-ap-down" : "bg-ap-up/20 text-ap-up"}`}>
                       {ea.event_level.p_worse ?? "—"}
                     </span>
-                    {ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 && <span className="text-neg"> ← 소멸 조기경보</span>}
+                    {ea.event_level.p_worse != null && ea.event_level.p_worse < 0.05 && <span className="text-ap-down"> ← 소멸 조기경보</span>}
                   </>
                 ) : (
                   <span> / {ea.event_level.min_events}건 필요 — 판단 보류(월 코호트보다 ~2개월 빠른 보조 신호)</span>
@@ -148,14 +148,14 @@ export default function ExecutionTab() {
             )}
           </>
         )}
-        <div className={`mt-2 text-[11px] leading-relaxed ${edge.tone === "neg" ? "text-neg" : edge.tone === "pos" ? "text-pos" : "text-text-3"}`}>
+        <div className={`mt-2 text-[11px] leading-relaxed ${edge.tone === "neg" ? "text-ap-down" : edge.tone === "pos" ? "text-ap-up" : "text-ap-ink-3"}`}>
           {edge.note}
         </div>
       </div>
 
       {/* 정직한 엣지 (기대치) */}
-      <Panel>
-        <PanelHeader>엣지 기대치 (정직)</PanelHeader>
+      <Card>
+        <CardHeader>엣지 기대치 (정직)</CardHeader>
         <div className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Kv k="중앙값(기대)" v={pct(d.edge.net_median)} tone={d.edge.net_median >= 0 ? "pos" : "neg"} />
@@ -163,22 +163,22 @@ export default function ExecutionTab() {
             <Kv k="trimmed10%" v={pct(d.edge.trimmed10)} />
             <Kv k="p(중앙값)" v={String(d.edge.p_median)} tone="pos" />
           </div>
-          <div className="mt-2 text-[11px] text-warn leading-relaxed">⚠ {d.edge.honest_note}</div>
+          <div className="mt-2 text-[11px] text-ap-caution leading-relaxed">⚠ {d.edge.honest_note}</div>
         </div>
-      </Panel>
+      </Card>
 
       {/* 생존자 포트폴리오 (돈=조합) */}
       {book && book.combined && (
-        <Panel>
+        <Card>
           {/* 북 상세 카드는 Lab Task 페이지에 있음 — /lab/portfolio는 백엔드 endpoint(페이지 아님) */}
-          <PanelHeader right={<a href="/lab/tasks" className="no-underline hover:underline">전체 →</a>}>
+          <CardHeader right={<a href="/lab/tasks" className="no-underline hover:underline">전체 →</a>}>
             생존자 포트폴리오 (무상관 조합)
-          </PanelHeader>
+          </CardHeader>
           <div className="p-4">
             <div className="flex flex-wrap gap-2 mb-2">
               {book.sleeves.map(s => (
-                <span key={s.name} className="text-[11px] px-2 py-1 rounded border border-border font-data text-text-2">
-                  {s.name} <span className="text-text-1">Sh {s.sharpe.toFixed(2)}</span> <span className="px-1 font-bold bg-neg/20 text-neg">MDD {pct(s.mdd, 0)}</span>
+                <span key={s.name} className="text-[11px] px-2 py-1 rounded border border-ap-line font-data text-ap-ink-2">
+                  {s.name} <span className="text-ap-ink-1">Sh {s.sharpe.toFixed(2)}</span> <span className="px-1 font-bold bg-ap-down/20 text-ap-down">MDD {pct(s.mdd, 0)}</span>
                 </span>
               ))}
             </div>
@@ -188,31 +188,31 @@ export default function ExecutionTab() {
               <Kv k="등가중 MDD" v={pct(book.combined.equal_weight.mdd, 0)} tone="neg" />
             </div>
           </div>
-        </Panel>
+        </Card>
       )}
 
       {/* 실전 준비 제약 */}
-      <Panel>
-        <PanelHeader>실전 준비 제약 (동결)</PanelHeader>
+      <Card>
+        <CardHeader>실전 준비 제약 (동결)</CardHeader>
         <div className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Kv k="월 수용력(소자본)" v={`${lr.monthly_capacity_eok}억`} />
             <Kv k="1일 지연 시" v={pct(lr.timing_delay_1d_pct / 100)} tone="neg" />
             <Kv k="분산" v={lr.diversification === "required" ? "필수" : lr.diversification} />
           </div>
-          <div className="mt-2 text-[11px] text-text-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
+          <div className="mt-2 text-[11px] text-ap-ink-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
         </div>
-      </Panel>
+      </Card>
 
     </div>
   );
 }
 
 function Kv({ k, v, tone }: { k: string; v: string; tone?: "pos" | "neg" | "warn" }) {
-  const c = tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : tone === "warn" ? "text-warn" : "text-text-1";
+  const c = tone === "pos" ? "text-ap-up" : tone === "neg" ? "text-ap-down" : tone === "warn" ? "text-ap-caution" : "text-ap-ink-1";
   return (
-    <div className="bg-panel-2 border border-border rounded px-2.5 py-1.5">
-      <div className="text-[10px] uppercase tracking-wider text-text-3">{k}</div>
+    <div className="bg-ap-bg border border-ap-line rounded px-2.5 py-1.5">
+      <div className="text-[10px] uppercase tracking-wider text-ap-ink-3">{k}</div>
       <div className={`font-data text-sm ${c}`}>{v}</div>
     </div>
   );
