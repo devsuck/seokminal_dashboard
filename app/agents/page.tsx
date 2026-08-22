@@ -27,7 +27,7 @@ import ContextTab from "@/components/agents/ContextTab";
 import { ArcReactor, type HudTone } from "@/components/Hud";
 import { displayLevel } from "@/lib/agent-level";
 import { Balances } from "@/components/AccountBalances";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Card, CardHeader } from "@/components/ui/Card";
 import { Button, SegmentedToggle } from "@/components/ui";
 import { TOKEN, CATEGORICAL, categoricalColor } from "@/lib/chart-colors";
 
@@ -136,16 +136,16 @@ function fmtMoney(v: number): string {
 }
 
 function pnlColor(v: number | null | undefined): string {
-  if (v == null) return "text-text-3";
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-2";
+  if (v == null) return "text-ap-ink-3";
+  return v > 0 ? "text-ap-up" : v < 0 ? "text-ap-down" : "text-ap-ink-2";
 }
 
 const DECISION_STYLE: Record<string, string> = {
-  BUY: "bg-pos/15 text-pos border-pos/40",
-  SELL: "bg-neg/15 text-neg border-neg/40",
-  WATCH: "bg-warn/10 text-warn border-warn/30",
-  HOLD: "bg-panel-2 text-text-3 border-border",
-  SKIP: "bg-panel-2 text-text-3 border-border",
+  BUY: "bg-ap-up/15 text-ap-up border-ap-up/40",
+  SELL: "bg-ap-down/15 text-ap-down border-ap-down/40",
+  WATCH: "bg-ap-caution/10 text-ap-caution border-ap-caution/30",
+  HOLD: "bg-ap-bg text-ap-ink-3 border-ap-line",
+  SKIP: "bg-ap-bg text-ap-ink-3 border-ap-line",
 };
 const DECISION_LABEL: Record<string, string> = {
   BUY: "매수",
@@ -158,30 +158,30 @@ const DECISION_LABEL: Record<string, string> = {
 function CycleCard({ c }: { c: AgentCycle }) {
   const pct = c.score != null && c.max_score ? Math.round((c.score / c.max_score) * 100) : null;
   return (
-    <div className="bg-panel border border-border rounded-lg p-3">
+    <div className="bg-ap-surface border border-ap-line rounded-lg p-3">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <span className="text-text-3 text-[10px] font-data">#{c.cycle}</span>
-          {c.symbol && <span className="text-text-1 text-xs font-data font-semibold">{c.symbol}</span>}
+          <span className="text-ap-ink-3 text-[10px] font-data">#{c.cycle}</span>
+          {c.symbol && <span className="text-ap-ink-1 text-xs font-data font-semibold">{c.symbol}</span>}
           <span className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${DECISION_STYLE[c.decision] ?? DECISION_STYLE.SKIP}`}>
             {DECISION_LABEL[c.decision] ?? c.decision}
           </span>
         </div>
-        <span className="text-text-3 text-[9px] font-data">{new Date(c.ts).toLocaleTimeString("ko-KR")}</span>
+        <span className="text-ap-ink-3 text-[9px] font-data">{new Date(c.ts).toLocaleTimeString("ko-KR")}</span>
       </div>
       {pct != null && (
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="h-1 flex-1 bg-panel-2 rounded-full overflow-hidden">
-            <div className="h-full bg-accent rounded-full" style={{ width: `${pct}%` }} />
+          <div className="h-1 flex-1 bg-ap-bg rounded-full overflow-hidden">
+            <div className="h-full bg-ap-brand rounded-full" style={{ width: `${pct}%` }} />
           </div>
-          <span className="text-text-2 text-[10px] font-data">{c.score}/{c.max_score}</span>
+          <span className="text-ap-ink-2 text-[10px] font-data">{c.score}/{c.max_score}</span>
         </div>
       )}
       {c.action && c.action !== "none" && (
-        <div className="text-[11px] text-accent font-data mb-0.5"> {c.action}</div>
+        <div className="text-[11px] text-ap-brand font-data mb-0.5"> {c.action}</div>
       )}
-      {c.note && <p className="text-text-2 text-[11px] leading-snug">{c.note}</p>}
-      <div className="flex items-center justify-between mt-1.5 text-[9px] text-text-3">
+      {c.note && <p className="text-ap-ink-2 text-[11px] leading-snug">{c.note}</p>}
+      <div className="flex items-center justify-between mt-1.5 text-[9px] text-ap-ink-3">
         {c.next_trigger && <span>트리거: {c.next_trigger}</span>}
         {c.cash_pct != null && <span className="font-data">현금 {c.cash_pct}%</span>}
       </div>
@@ -191,9 +191,9 @@ function CycleCard({ c }: { c: AgentCycle }) {
 
 function StatCard({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
-    <div className="bg-panel border border-border rounded-lg p-3">
-      <div className="text-text-3 text-[10px] uppercase tracking-wider">{label}</div>
-      <div className={`text-base font-data mt-1 ${cls ?? "text-text-1"}`}>{value}</div>
+    <div className="bg-ap-surface border border-ap-line rounded-lg p-3">
+      <div className="text-ap-ink-3 text-[10px] uppercase tracking-wider">{label}</div>
+      <div className={`text-base font-data mt-1 ${cls ?? "text-ap-ink-1"}`}>{value}</div>
     </div>
   );
 }
@@ -218,25 +218,25 @@ function PortfolioPie({ perf }: { perf: AgentPerformance }) {
   }).join(", ");
 
   return (
-    <div className="bg-panel border border-border rounded-lg p-3 flex items-center gap-4">
+    <div className="bg-ap-surface border border-ap-line rounded-lg p-3 flex items-center gap-4">
       <div className="relative shrink-0" style={{ width: "96px", height: "96px" }}>
         <div className="w-full h-full rounded-full" style={{ background: `conic-gradient(${stops})` }} />
-        <div className="absolute rounded-full bg-panel" style={{ inset: "26px" }} />
+        <div className="absolute rounded-full bg-ap-surface" style={{ inset: "26px" }} />
       </div>
       <div className="flex-1 min-w-0 space-y-0.5">
-        <p className="text-text-3 text-[10px] uppercase tracking-wider mb-1">포트폴리오 구성</p>
+        <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider mb-1">포트폴리오 구성</p>
         {slices.map(s => (
           <div key={s.label} className="flex items-center gap-1.5 text-[11px]">
             <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: s.color }} />
-            <span className="text-text-2 font-data truncate flex-1">{s.label}</span>
-            <span className="text-text-3 font-data">{((s.value / total) * 100).toFixed(0)}%</span>
+            <span className="text-ap-ink-2 font-data truncate flex-1">{s.label}</span>
+            <span className="text-ap-ink-3 font-data">{((s.value / total) * 100).toFixed(0)}%</span>
           </div>
         ))}
         {cashNegative && (
           <div className="flex items-center gap-1.5 text-[11px] pt-0.5">
-            <span className="w-2 h-2 rounded-sm shrink-0 bg-neg" />
-            <span className="text-neg font-data truncate flex-1">현금 마이너스</span>
-            <span className="text-neg font-data font-bold">{fmtMoney(perf.cash)}</span>
+            <span className="w-2 h-2 rounded-sm shrink-0 bg-ap-down" />
+            <span className="text-ap-down font-data truncate flex-1">현금 마이너스</span>
+            <span className="text-ap-down font-data font-bold">{fmtMoney(perf.cash)}</span>
           </div>
         )}
       </div>
@@ -245,7 +245,7 @@ function PortfolioPie({ perf }: { perf: AgentPerformance }) {
 }
 
 function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?: string }) {
-  if (!perf) return <p className="text-text-3 text-xs">성과 데이터 로딩 중…</p>;
+  if (!perf) return <p className="text-ap-ink-3 text-xs">성과 데이터 로딩 중…</p>;
   const sym = ccySym(ccy);
   const digits = ccy === "KRW" ? 0 : 2;
   const fmt = (v: number) => `${sym}${v.toLocaleString(undefined, { maximumFractionDigits: digits })}${ccy === "USDC" ? " USDC" : ""}`;
@@ -268,14 +268,14 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
       {(perf.open_positions.length > 0 || perf.cash > 0) && <PortfolioPie perf={perf} />}
 
       {/* Open positions */}
-      <Panel>
-        <PanelHeader>보유 포지션 ({perf.open_positions.length})</PanelHeader>
+      <Card>
+        <CardHeader>보유 포지션 ({perf.open_positions.length})</CardHeader>
         {perf.open_positions.length === 0 ? (
-          <p className="text-text-3 text-xs px-3 py-3">포지션 없음</p>
+          <p className="text-ap-ink-3 text-xs px-3 py-3">포지션 없음</p>
         ) : (
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-text-3 text-[10px] uppercase">
+              <tr className="text-ap-ink-3 text-[10px] uppercase">
                 <th className="text-left font-medium px-3 py-1.5">종목</th>
                 <th className="text-right font-medium px-3 py-1.5">수량</th>
                 <th className="text-right font-medium px-3 py-1.5">평단</th>
@@ -285,15 +285,15 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
             </thead>
             <tbody>
               {perf.open_positions.map(p => (
-                <tr key={p.symbol} className="border-t border-border/40 font-data">
-                  <td className="px-3 py-1.5 text-text-1">{p.symbol}</td>
-                  <td className="px-3 py-1.5 text-right text-text-2">{p.qty}</td>
-                  <td className="px-3 py-1.5 text-right text-text-2">${p.avg_price.toFixed(2)}</td>
-                  <td className="px-3 py-1.5 text-right text-text-2">{p.current_price != null ? `$${p.current_price.toFixed(2)}` : "—"}</td>
+                <tr key={p.symbol} className="border-t border-ap-line/40 font-data">
+                  <td className="px-3 py-1.5 text-ap-ink-1">{p.symbol}</td>
+                  <td className="px-3 py-1.5 text-right text-ap-ink-2">{p.qty}</td>
+                  <td className="px-3 py-1.5 text-right text-ap-ink-2">${p.avg_price.toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-right text-ap-ink-2">{p.current_price != null ? `$${p.current_price.toFixed(2)}` : "—"}</td>
                   <td className="px-3 py-1.5 text-right">
                     <span className={`px-1 font-bold ${
-                      p.unrealized_pnl == null ? "text-text-2" :
-                      p.unrealized_pnl > 0 ? "bg-pos/20 text-pos" : p.unrealized_pnl < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                      p.unrealized_pnl == null ? "text-ap-ink-2" :
+                      p.unrealized_pnl > 0 ? "bg-ap-up/20 text-ap-up" : p.unrealized_pnl < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>
                       {p.unrealized_pnl != null ? fmtMoney(p.unrealized_pnl) : "—"}
                     </span>
                   </td>
@@ -302,38 +302,38 @@ function Dashboard({ perf, ccy = "USD" }: { perf: AgentPerformance | null; ccy?:
             </tbody>
           </table>
         )}
-      </Panel>
+      </Card>
 
       {/* Trade log with reasons */}
-      <Panel>
-        <PanelHeader>매매 기록 ({perf.trades.length}) — 매수/매도 이유 포함</PanelHeader>
+      <Card>
+        <CardHeader>매매 기록 ({perf.trades.length}) — 매수/매도 이유 포함</CardHeader>
         {perf.trades.length === 0 ? (
-          <p className="text-text-3 text-xs px-3 py-3">거래 없음</p>
+          <p className="text-ap-ink-3 text-xs px-3 py-3">거래 없음</p>
         ) : (
-          <div className="divide-y divide-border/40">
+          <div className="divide-y divide-ap-line/40">
             {perf.trades.map((t, i) => (
               <div key={i} className="px-3 py-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${t.side === "buy" ? "bg-pos/15 text-pos border-pos/40" : "bg-neg/15 text-neg border-neg/40"}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${t.side === "buy" ? "bg-ap-up/15 text-ap-up border-ap-up/40" : "bg-ap-down/15 text-ap-down border-ap-down/40"}`}>
                       {t.side === "buy" ? "매수" : "매도"}
                     </span>
-                    <span className="text-text-1 text-xs font-data">{t.symbol}</span>
-                    <span className="text-text-3 text-[10px] font-data">{t.qty}주 @ ${t.price.toFixed(2)}</span>
+                    <span className="text-ap-ink-1 text-xs font-data">{t.symbol}</span>
+                    <span className="text-ap-ink-3 text-[10px] font-data">{t.qty}주 @ ${t.price.toFixed(2)}</span>
                   </div>
                   {t.realized_pnl != null && (
                     <span className={`text-[11px] font-data px-1 font-bold ${
-                      t.realized_pnl > 0 ? "bg-pos/20 text-pos" : t.realized_pnl < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                      t.realized_pnl > 0 ? "bg-ap-up/20 text-ap-up" : t.realized_pnl < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>
                       {fmtMoney(t.realized_pnl)}
                     </span>
                   )}
                 </div>
-                {t.reason && <p className="text-text-2 text-[11px] mt-1 leading-snug"> {t.reason}</p>}
+                {t.reason && <p className="text-ap-ink-2 text-[11px] mt-1 leading-snug"> {t.reason}</p>}
               </div>
             ))}
           </div>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }
@@ -357,7 +357,7 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
 
   if (agent.god_mode) {
     return (
-      <div className="bg-panel border rounded-lg p-3 flex items-center gap-1.5 animate-pulse-glow-purple"
+      <div className="bg-ap-surface border rounded-lg p-3 flex items-center gap-1.5 animate-pulse-glow-purple"
         style={{ borderColor: "rgba(168,85,247,0.4)" }}>
         <IconCrown className="purple-glow-lg" />
         <span className="text-[11px] font-semibold" style={{ color: CATEGORICAL[0] }}>God Mode 승급됨 — LIVE 집행 중</span>
@@ -379,8 +379,8 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
   }
 
   return (
-    <Panel>
-      <PanelHeader right={
+    <Card>
+      <CardHeader right={
         <button onClick={handlePromote} disabled={!check?.eligible || promoting}
           className="text-[11px] px-3 py-1.5 rounded font-medium disabled:opacity-40"
           style={{ background: check?.eligible ? CATEGORICAL[0] : undefined, color: check?.eligible ? TOKEN.bg : undefined }}>
@@ -388,24 +388,24 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
         </button>
       }>
         <IconCrown size={12} className="inline mr-1 -mt-0.5" />God Mode 승급 심사
-      </PanelHeader>
+      </CardHeader>
       <div className="p-3 space-y-2">
-        <p className="text-text-3 text-[10px]">최근 {check?.window_days ?? 30}일 실적 3조건 — 전부 통과해야 승급 가능</p>
-        {loading && <p className="text-text-3 text-[10px]">심사 중…</p>}
-        {error && <p className="text-neg text-[10px]">{error}</p>}
+        <p className="text-ap-ink-3 text-[10px]">최근 {check?.window_days ?? 30}일 실적 3조건 — 전부 통과해야 승급 가능</p>
+        {loading && <p className="text-ap-ink-3 text-[10px]">심사 중…</p>}
+        {error && <p className="text-ap-down text-[10px]">{error}</p>}
         {check && (
-          <div className="space-y-1 border-t border-border pt-2">
+          <div className="space-y-1 border-t border-ap-line pt-2">
             {check.conditions.map(c => (
               <div key={c.key} className="flex items-center gap-2 text-[11px]">
-                <span className={c.passed ? "text-pos" : "text-text-3"}>{c.passed ? "✓" : "✗"}</span>
-                <span className={c.passed ? "text-text-1" : "text-text-3"}>{c.label}</span>
-                <span className="text-text-3 text-[10px] ml-auto font-data">{c.detail}</span>
+                <span className={c.passed ? "text-ap-up" : "text-ap-ink-3"}>{c.passed ? "✓" : "✗"}</span>
+                <span className={c.passed ? "text-ap-ink-1" : "text-ap-ink-3"}>{c.label}</span>
+                <span className="text-ap-ink-3 text-[10px] ml-auto font-data">{c.detail}</span>
               </div>
             ))}
           </div>
         )}
       </div>
-    </Panel>
+    </Card>
   );
 }
 
@@ -413,7 +413,7 @@ function GodModePanel({ agent, onPromoted }: { agent: TradingAgent; onPromoted: 
 function Overview({ ov, onSelect }: { ov: AgentsOverview; onSelect: (id: string) => void }) {
   const maxAbs = Math.max(1, ...ov.agents.map(a => Math.abs(a.realized_pnl)));
   return (
-    <div className="bg-panel border border-border rounded-lg p-4 space-y-3">
+    <div className="bg-ap-surface border border-ap-line rounded-lg p-4 space-y-3">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatCard label="에이전트" value={`${ov.totals.count} (${ov.totals.running} 가동)`} />
         <StatCard label="총 배정" value={`$${ov.totals.alloc.toLocaleString()}`} />
@@ -422,22 +422,22 @@ function Overview({ ov, onSelect }: { ov: AgentsOverview; onSelect: (id: string)
       </div>
       {/* Per-agent realized PnL bars */}
       <div className="space-y-1">
-        <p className="text-text-3 text-[10px] uppercase tracking-wider">에이전트별 실현손익</p>
-        {ov.agents.length === 0 && <p className="text-text-3 text-xs">에이전트 없음</p>}
+        <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider">에이전트별 실현손익</p>
+        {ov.agents.length === 0 && <p className="text-ap-ink-3 text-xs">에이전트 없음</p>}
         {ov.agents.map(a => {
           const pct = Math.round((Math.abs(a.realized_pnl) / maxAbs) * 100);
           const pos = a.realized_pnl >= 0;
           return (
             <button key={a.id} onClick={() => onSelect(a.id)}
-              className="w-full flex items-center gap-2 text-left hover:bg-panel-2 rounded px-1 py-0.5">
-              <span className="w-24 truncate text-[11px] text-text-2 shrink-0">{a.name}</span>
-              <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${a.paper ? "text-text-3" : "bg-neg/15 text-neg"}`}>{a.paper ? "P" : "L"}</span>
-              <div className="flex-1 h-2.5 bg-panel-2 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${pos ? "bg-pos" : "bg-neg"}`} style={{ width: `${pct}%` }} />
+              className="w-full flex items-center gap-2 text-left hover:bg-ap-bg rounded px-1 py-0.5">
+              <span className="w-24 truncate text-[11px] text-ap-ink-2 shrink-0">{a.name}</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${a.paper ? "text-ap-ink-3" : "bg-ap-down/15 text-ap-down"}`}>{a.paper ? "P" : "L"}</span>
+              <div className="flex-1 h-2.5 bg-ap-bg rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${pos ? "bg-ap-up" : "bg-ap-down"}`} style={{ width: `${pct}%` }} />
               </div>
               <span className={`w-20 text-right text-[10px] font-data shrink-0 px-1 font-bold ${
-                a.realized_pnl > 0 ? "bg-pos/20 text-pos" : a.realized_pnl < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>{fmtMoney(a.realized_pnl)}</span>
-              <span className="w-14 text-right text-[9px] text-text-3 font-data shrink-0">{a.trades}건</span>
+                a.realized_pnl > 0 ? "bg-ap-up/20 text-ap-up" : a.realized_pnl < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>{fmtMoney(a.realized_pnl)}</span>
+              <span className="w-14 text-right text-[9px] text-ap-ink-3 font-data shrink-0">{a.trades}건</span>
             </button>
           );
         })}
@@ -617,10 +617,10 @@ export default function AgentsPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="mb-4">
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">자율형 AI 에이전트</h1>
-        <p className="text-text-3 text-sm mt-0.5">여러 AI 트레이딩 에이전트를 봇처럼 생성·관리합니다. 스윙(중장기)/데이트레이딩 타입, 각 사이클은 구조화 카드로 표시됩니다.</p>
+        <h1 className="text-ap-ink-1 text-lg font-semibold tracking-tight">자율형 AI 에이전트</h1>
+        <p className="text-ap-ink-3 text-sm mt-0.5">여러 AI 트레이딩 에이전트를 봇처럼 생성·관리합니다. 스윙(중장기)/데이트레이딩 타입, 각 사이클은 구조화 카드로 표시됩니다.</p>
       </div>
-      {error && <div className="text-neg text-xs bg-neg/10 border border-neg/30 rounded px-3 py-2">{error}</div>}
+      {error && <div className="text-ap-down text-xs bg-ap-down/10 border border-ap-down/30 rounded px-3 py-2">{error}</div>}
 
       {overview && overview.agents.length > 0 && (
         <Overview ov={overview} onSelect={setSelected} />
@@ -633,18 +633,18 @@ export default function AgentsPage() {
         <div className="space-y-3">
           <button onClick={() => setShowCreate(v => !v)}
             className={`w-full text-xs py-2 rounded border transition-colors ${
-              showCreate ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2 hover:border-text-3"}`}>
+              showCreate ? "border-ap-brand text-ap-brand bg-ap-brand/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-2 hover:border-ap-ink-3"}`}>
             {showCreate ? "− 생성 폼 닫기" : "+ 새 에이전트"}
           </button>
           {showCreate && (
-          <Panel>
-            <PanelHeader>새 에이전트</PanelHeader>
+          <Card>
+            <CardHeader>새 에이전트</CardHeader>
             <div className="p-3 space-y-2">
             <input
-              value={name} onChange={e => setName(e.target.value)} placeholder="이름 (예: 모멘텀 단타봇)"className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent"/>
+              value={name} onChange={e => setName(e.target.value)} placeholder="이름 (예: 모멘텀 단타봇)"className="w-full bg-ap-bg border border-ap-line rounded px-2.5 py-1.5 text-ap-ink-1 text-sm outline-none focus:border-ap-brand"/>
             {/* 투자 스타일 */}
             <div className="space-y-1">
-              <p className="text-text-3 text-[10px] uppercase tracking-wider">투자 스타일</p>
+              <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider">투자 스타일</p>
               <SegmentedToggle
                 value={style}
                 onChange={setStyle}
@@ -656,7 +656,7 @@ export default function AgentsPage() {
                   { k: "kr_macro",   label: "KR 거시전략",   color: TOKEN.neg, dot: "🔴" },
                 ] as { k: "autonomous" | "kr_macro"; label: string; color: string; dot: string }[]).map(({ k, label, color, dot }) => (
                   <button key={k} onClick={() => setStyle(k)}
-                    className={`text-xs py-1.5 rounded border transition-colors ${style === k ? "" : "border-border text-text-3 hover:text-text-2"}`}
+                    className={`text-xs py-1.5 rounded border transition-colors ${style === k ? "" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-2"}`}
                     style={style === k ? { borderColor: color, color, background: `${color}1a` } : {}}>
                     {style === k && `${dot} `}{label}
                   </button>
@@ -665,35 +665,35 @@ export default function AgentsPage() {
             </div>
             {/* 시장 */}
             <div className="space-y-1">
-              <p className="text-text-3 text-[10px] uppercase tracking-wider">시장</p>
+              <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider">시장</p>
               <div className="grid grid-cols-3 gap-2">
                 {(["KR", "US", "CRYPTO"] as Mkt[]).map(m => {
                   const ok = allowedMkts.includes(m);
                   return (
                     <button key={m} disabled={!ok} onClick={() => setMkt(m)}
                       className={`text-xs py-1.5 rounded border ${
-                        !ok ? "border-border/50 text-text-3/40 cursor-not-allowed": mkt === m ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-2"}`}>
+                        !ok ? "border-ap-line/50 text-ap-ink-3/40 cursor-not-allowed": mkt === m ? "border-ap-brand text-ap-brand bg-ap-brand/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-2"}`}>
                       {MKT_LABEL[m]}
                     </button>
                   );
                 })}
               </div>
               {style !== "daytrade" && (
-                <p className="text-text-3 text-[10px] leading-snug">스윙·장투는 주식만 (크립토는 단타).</p>
+                <p className="text-ap-ink-3 text-[10px] leading-snug">스윙·장투는 주식만 (크립토는 단타).</p>
               )}
             </div>
             {/* 배정 금액 (시장 통화 자동) */}
             <div className="space-y-1">
-              <p className="text-text-3 text-[10px] uppercase tracking-wider">배정 금액 · {ccy}</p>
+              <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider">배정 금액 · {ccy}</p>
               <div className="relative">
                 {ccySym(ccy) && (
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data pointer-events-none">{ccySym(ccy)}</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ap-ink-3 text-sm font-data pointer-events-none">{ccySym(ccy)}</span>
                 )}
                 <input
                   value={alloc} onChange={e => setAlloc(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"placeholder={mkt === "KR" ? "1000000" : mkt === "CRYPTO" ? "1000" : "10000"}
-                  className={`w-full bg-panel-2 border border-border rounded ${ccySym(ccy) ? "pl-8" : "pl-2.5"} pr-14 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent`}
+                  className={`w-full bg-ap-bg border border-ap-line rounded ${ccySym(ccy) ? "pl-8" : "pl-2.5"} pr-14 py-1.5 text-ap-ink-1 text-sm font-data outline-none focus:border-ap-brand`}
                 />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-3 text-[10px] font-data pointer-events-none">{ccy}</span>
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ap-ink-3 text-[10px] font-data pointer-events-none">{ccy}</span>
               </div>
             </div>
             {/* Paper / Live toggle */}
@@ -701,15 +701,15 @@ export default function AgentsPage() {
               value={paper}
               onChange={setPaper}
               options={[
-                { value: true, label: "PAPER 모의", activeClass: "border-pos text-pos bg-pos/10" },
-                { value: false, label: "LIVE 실거래", activeClass: "border-neg text-neg bg-neg/10" },
+                { value: true, label: "PAPER 모의", activeClass: "border-ap-up text-ap-up bg-ap-up/10" },
+                { value: false, label: "LIVE 실거래", activeClass: "border-ap-down text-ap-down bg-ap-down/10" },
               ]}
             />
             {!paper && (
-              <p className="text-neg text-[10px] leading-snug">⚠ 실제 자금 집행. 되돌릴 수 없음.</p>
+              <p className="text-ap-down text-[10px] leading-snug">⚠ 실제 자금 집행. 되돌릴 수 없음.</p>
             )}
             {mkt === "CRYPTO" && paper && (
-              <p className="text-text-3 text-[10px] leading-snug">
+              <p className="text-ap-ink-3 text-[10px] leading-snug">
                 ℹ 페이퍼는 크립토만 (테스트넷 TradFi 무거래). 주식·금·지수는 LIVE 필요.
               </p>
             )}
@@ -720,7 +720,7 @@ export default function AgentsPage() {
               </div>
             ) : (
               <div className="space-y-1">
-                <p className="text-text-3 text-[10px] uppercase tracking-wider">자율성 레벨</p>
+                <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider">자율성 레벨</p>
                 {[
                   { v: 2, label: "Lv2 · AI 전략가", desc: "백테스트 검증 후 매매 (추천)" },
                   { v: 3, label: "Lv3 · 자가학습", desc: "실적 분석 후 전략 자동 재편성 (페이퍼로 시작)" },
@@ -731,7 +731,7 @@ export default function AgentsPage() {
                     <button key={o.v} onClick={() => setAutonomy(o.v)}
                       className="w-full text-left text-[11px] px-2 py-1.5 rounded border transition-colors"
                       style={sel ? { borderColor: c.border, color: c.color, background: c.bg } : undefined}>
-                      <span className={sel ? "" : "text-text-3"}>
+                      <span className={sel ? "" : "text-ap-ink-3"}>
                         {o.label} <span className="opacity-60">— {o.desc}</span>
                       </span>
                     </button>
@@ -748,11 +748,11 @@ export default function AgentsPage() {
               {creating ? "생성 중…" : paper ? "에이전트 생성 (모의)" : "에이전트 생성 (실거래)"}
             </Button>
             </div>
-          </Panel>
+          </Card>
           )}
 
           <div className="space-y-2">
-            {agents.length === 0 && <p className="text-text-3 text-xs px-1">에이전트 없음. 위의 &ldquo;+ 새 에이전트&rdquo;로 생성하세요.</p>}
+            {agents.length === 0 && <p className="text-ap-ink-3 text-xs px-1">에이전트 없음. 위의 &ldquo;+ 새 에이전트&rdquo;로 생성하세요.</p>}
             {agents.map(a => {
               const lv = displayLevel(a);
               const cfg = lvCfg(lv);
@@ -762,46 +762,46 @@ export default function AgentsPage() {
               return (
               <div key={a.id}
                 onClick={() => setSelected(a.id)}
-                className={`bg-panel border rounded-lg p-3 cursor-pointer transition-colors ${selected === a.id ? "border-accent/50" : "border-border hover:border-text-3"}`}
+                className={`bg-ap-surface border rounded-lg p-3 cursor-pointer transition-colors ${selected === a.id ? "border-ap-brand/50" : "border-ap-line hover:border-ap-ink-3"}`}
                 style={selected === a.id ? { borderColor: cfg.color + "80" } : undefined}>
                 {isHighLv && (
                   <div className="flex items-center gap-3 mb-2">
                     <ArcReactor size={84} active={live} tone={tone} label={cfg.label} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-text-1 text-sm font-medium truncate">{a.name}</div>
+                      <div className="text-ap-ink-1 text-sm font-medium truncate">{a.name}</div>
                       <div className="text-[10px] mt-0.5 font-semibold" style={{ color: cfg.color }}>
                         {cfg.label} · {agentStyleLabel(a)}
                       </div>
                       {a.type === "kr_macro" && (
-                        <div className="text-[9px] text-text-3 mt-0.5">
+                        <div className="text-[9px] text-ap-ink-3 mt-0.5">
                           상황 → 영향 → 포트폴리오
                         </div>
                       )}
                     </div>
-                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${live ? "text-pos" : "text-text-3"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${live ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${live ? "text-ap-up" : "text-ap-ink-3"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${live ? "bg-ap-up animate-pulse" : "bg-ap-ink-3"}`} />
                       {live ? "가동" : "정지"}
                     </span>
                   </div>
                 )}
                 {!isHighLv && (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-text-1 text-sm font-medium truncate min-w-0">{a.name}</span>
-                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${live ? "text-pos" : "text-text-3"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${live ? "bg-pos animate-pulse" : "bg-text-3"}`} />
+                    <span className="text-ap-ink-1 text-sm font-medium truncate min-w-0">{a.name}</span>
+                    <span className={`flex items-center gap-1 text-[10px] shrink-0 ${live ? "text-ap-up" : "text-ap-ink-3"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${live ? "bg-ap-up animate-pulse" : "bg-ap-ink-3"}`} />
                       {live ? "가동" : "정지"}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-panel-2 text-text-2 border border-border">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-ap-bg text-ap-ink-2 border border-ap-line">
                     {agentStyleLabel(a)} · {agentMktLabel(a)}
                   </span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded border ${a.paper ? "bg-pos/10 text-pos border-pos/30" : "bg-neg/15 text-neg border-neg/40"}`}>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded border ${a.paper ? "bg-ap-up/10 text-ap-up border-ap-up/30" : "bg-ap-down/15 text-ap-down border-ap-down/40"}`}>
                     {a.paper ? "PAPER" : "● LIVE"}
                   </span>
                   {a.validated === false && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-warn/40 text-warn bg-warn/10"
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-ap-caution/40 text-ap-caution bg-ap-caution/10"
                       title={`${a.validation_reason ?? "registry 미등록"} — live 요청해도 페이퍼로 강제됨`}>
                       미검증
                     </span>
@@ -815,18 +815,18 @@ export default function AgentsPage() {
                     </span>
                   )}
                   {a.protected && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-accent/40 text-accent bg-accent/10" title="잠금 — 삭제하려면 이름 확인 필요"> 잠금</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-ap-brand/40 text-ap-brand bg-ap-brand/10" title="잠금 — 삭제하려면 이름 확인 필요"> 잠금</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-text-3 text-[10px] font-data">배정 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
+                  <span className="text-ap-ink-3 text-[10px] font-data">배정 {moneyCcy(a.account_alloc, agentCcy(a))}</span>
                   <div className="flex gap-1.5">
                     <button onClick={e => { e.stopPropagation(); toggle(a); }}
-                      className={`text-[10px] px-2 py-0.5 rounded border ${live ? "border-warn/40 text-warn bg-warn/10" : "border-pos/40 text-pos bg-pos/10"}`}>
+                      className={`text-[10px] px-2 py-0.5 rounded border ${live ? "border-ap-caution/40 text-ap-caution bg-ap-caution/10" : "border-ap-up/40 text-ap-up bg-ap-up/10"}`}>
                       {live ? "정지" : "시작"}
                     </button>
                     <button onClick={e => { e.stopPropagation(); onDelete(a); }}
-                      className={`text-[10px] px-2 py-0.5 rounded border ${a.protected ? "border-border text-text-3/60 hover:text-neg" : "border-border text-text-3 hover:text-neg hover:border-neg/40"}`}>
+                      className={`text-[10px] px-2 py-0.5 rounded border ${a.protected ? "border-ap-line text-ap-ink-3/60 hover:text-ap-down" : "border-ap-line text-ap-ink-3 hover:text-ap-down hover:border-ap-down/40"}`}>
                       {a.protected ? " 삭제" : "삭제"}
                     </button>
                   </div>
@@ -840,19 +840,19 @@ export default function AgentsPage() {
         {/* Right: selected agent dashboard / cycles */}
         <div className="space-y-3">
           {!selected ? (
-            <p className="text-text-3 text-xs">에이전트를 선택하세요.</p>
+            <p className="text-ap-ink-3 text-xs">에이전트를 선택하세요.</p>
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <div className="flex rounded overflow-hidden border border-border w-fit">
+                <div className="flex rounded overflow-hidden border border-ap-line w-fit">
                   {(["dashboard", "cycles", "context"] as const).map(t => (
                     <button key={t} onClick={() => setTab(t)}
-                      className={`px-4 py-1.5 text-xs font-medium ${tab === t ? "border-accent text-accent bg-accent/10" : "bg-panel-2 text-text-3 hover:bg-panel"}`}>
+                      className={`px-4 py-1.5 text-xs font-medium ${tab === t ? "border-ap-brand text-ap-brand bg-ap-brand/10" : "bg-ap-bg text-ap-ink-3 hover:bg-ap-surface"}`}>
                       {t === "dashboard" ? "대시보드" : t === "cycles" ? "사이클" : "컨텍스트"}
                     </button>
                   ))}
                 </div>
-                <span className="text-text-3 text-[10px] font-data">
+                <span className="text-ap-ink-3 text-[10px] font-data">
                   {agents.find(a => a.id === selected)?.name} · 5초 실시간
                 </span>
               </div>
@@ -868,52 +868,52 @@ export default function AgentsPage() {
                   })()}
 
                   {/* Strategy distillation — Lv3 자유탐색 → 검증된 규칙 전략 */}
-                  <Panel>
-                    <PanelHeader right={
+                  <Card>
+                    <CardHeader right={
                       <button onClick={handleDistill} disabled={distilling}
                         className="text-[11px] px-3 py-1.5 rounded font-medium disabled:opacity-40">
                         {distilling ? "증류 중… (~1분)" : "증류 실행"}
                       </button>
                     }>
                       전략 증류
-                    </PanelHeader>
+                    </CardHeader>
                     <div className="p-3 space-y-2">
-                      <p className="text-text-3 text-[10px]">거래로그 → 규칙 전략으로 증류 → 백테스트 검증</p>
+                      <p className="text-ap-ink-3 text-[10px]">거래로그 → 규칙 전략으로 증류 → 백테스트 검증</p>
                       {distill && (
-                        <div className="border-t border-border pt-2.5 space-y-1.5">
-                          <div className={`text-xs px-1 inline-block font-bold ${distill.validated ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                        <div className="border-t border-ap-line pt-2.5 space-y-1.5">
+                          <div className={`text-xs px-1 inline-block font-bold ${distill.validated ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                             {distill.validated ? " " : "⚠ "}{distill.verdict}
                           </div>
-                          <div className="text-[11px] font-data text-text-2 space-y-0.5">
+                          <div className="text-[11px] font-data text-ap-ink-2 space-y-0.5">
                             <div>전략: {distill.proposal.strategy} · {distill.proposal.instrument_id}</div>
                             <div>파라미터: {JSON.stringify(distill.proposal.params)}</div>
                             <div className="flex gap-3">
                               <span className={`px-1 font-bold ${
-                                distill.backtest.sharpe_ratio == null ? "text-text-2" :
-                                distill.backtest.sharpe_ratio > 0 ? "bg-pos/20 text-pos" : distill.backtest.sharpe_ratio < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                                distill.backtest.sharpe_ratio == null ? "text-ap-ink-2" :
+                                distill.backtest.sharpe_ratio > 0 ? "bg-ap-up/20 text-ap-up" : distill.backtest.sharpe_ratio < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>
                                 Sharpe {distill.backtest.sharpe_ratio?.toFixed(2) ?? "—"}
                               </span>
                               <span className={`px-1 font-bold ${
-                                distill.backtest.total_pnl_pct == null ? "text-text-2" :
-                                distill.backtest.total_pnl_pct > 0 ? "bg-pos/20 text-pos" : distill.backtest.total_pnl_pct < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>
+                                distill.backtest.total_pnl_pct == null ? "text-ap-ink-2" :
+                                distill.backtest.total_pnl_pct > 0 ? "bg-ap-up/20 text-ap-up" : distill.backtest.total_pnl_pct < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>
                                 수익 {distill.backtest.total_pnl_pct?.toFixed(2) ?? "—"}%
                               </span>
-                              <span className="text-text-3">승률 {distill.backtest.win_rate != null ? (distill.backtest.win_rate * 100).toFixed(0) + "%" : "—"}</span>
+                              <span className="text-ap-ink-3">승률 {distill.backtest.win_rate != null ? (distill.backtest.win_rate * 100).toFixed(0) + "%" : "—"}</span>
                             </div>
                           </div>
-                          {distill.proposal.rationale && <p className="text-text-3 text-[10px] leading-snug"> {distill.proposal.rationale}</p>}
-                          <p className="text-text-3 text-[9px]">거래 {distill.trades_analyzed}건 분석</p>
+                          {distill.proposal.rationale && <p className="text-ap-ink-3 text-[10px] leading-snug"> {distill.proposal.rationale}</p>}
+                          <p className="text-ap-ink-3 text-[9px]">거래 {distill.trades_analyzed}건 분석</p>
                         </div>
                       )}
                     </div>
-                  </Panel>
+                  </Card>
                 </div>
               )}
 
               {tab === "cycles" && (
                 <div>
                   {cycles.length === 0 && (
-                    <p className="text-text-3 text-xs">아직 사이클 기록 없음. 에이전트 시작 후 첫 사이클을 기다리세요.</p>
+                    <p className="text-ap-ink-3 text-xs">아직 사이클 기록 없음. 에이전트 시작 후 첫 사이클을 기다리세요.</p>
                   )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {[...cycles].reverse().map((c, i) => <CycleCard key={`${c.cycle}-${i}`} c={c} />)}
@@ -930,13 +930,13 @@ export default function AgentsPage() {
       {/* 잠긴 에이전트 삭제 확인 (이름 타이핑) */}
       {confirmDel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDel(null)}>
-          <div className="bg-panel border border-border rounded-lg p-5 w-[360px] space-y-3" onClick={e => e.stopPropagation()}>
-            <h3 className="text-text-1 font-semibold"> 잠긴 에이전트 삭제</h3>
-            <p className="text-text-2 text-sm leading-snug">
-              <span className="text-neg font-medium">{confirmDel.name}</span> 은(는) 잠금 상태입니다. 실수 방지를 위해 이름을 정확히 입력해야 삭제됩니다.
+          <div className="bg-ap-surface border border-ap-line rounded-lg p-5 w-[360px] space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-ap-ink-1 font-semibold"> 잠긴 에이전트 삭제</h3>
+            <p className="text-ap-ink-2 text-sm leading-snug">
+              <span className="text-ap-down font-medium">{confirmDel.name}</span> 은(는) 잠금 상태입니다. 실수 방지를 위해 이름을 정확히 입력해야 삭제됩니다.
             </p>
             <input value={confirmName} onChange={e => setConfirmName(e.target.value)} placeholder={confirmDel.name} autoFocus
-              className="w-full bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm outline-none focus:border-accent" />
+              className="w-full bg-ap-bg border border-ap-line rounded px-2.5 py-1.5 text-ap-ink-1 text-sm outline-none focus:border-ap-brand" />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setConfirmDel(null)}>취소</Button>
               <Button variant="sell" onClick={() => remove(confirmDel, confirmName)} disabled={confirmName !== confirmDel.name}>삭제</Button>
