@@ -537,11 +537,6 @@ export default function SearchPage() {
                                     inWl ? "border-border text-text-3 cursor-default" : "border-border text-text-3 hover:border-accent hover:text-accent"}`}>
                                   {inWl ? "✓ 관심종목" : "+ 관심종목"}
                                 </button>
-                                <button
-                                  onClick={() => router.push("/backtest")}
-                                  className="px-2 py-0.5 text-[10px] rounded border border-border text-text-3 hover:border-accent hover:text-accent transition-colors cursor-pointer">
-                                  → 백테스트
-                                </button>
                               </div>
                             </td>
                           </tr>

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { useRouter } from "next/navigation";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { EmptyState, LoadingState } from "@/components/ui";
 import {
@@ -51,7 +50,6 @@ function today(): string {
 }
 
 export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, isInWatchlist }: ChartTabProps) {
-  const router = useRouter();
   const [start] = useState(oneYearAgo);
   const [end] = useState(today);
   const [bars, setBars] = useState<BarOut[]>([]);
@@ -200,20 +198,6 @@ export function ChartTab({ symbol, indicators, setIndicators, onAddToWatchlist, 
               tf === t.id ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-accent hover:border-accent bg-panel-2"}`}
           >{t.label}</button>
         ))}
-        <span className="text-border text-xs ml-1">|</span>
-        <button
-          onClick={() => {
-            const params = new URLSearchParams({ instrument: symbol, start, end });
-            if (indicators.ema.on) {
-              params.set("strategy", "ema_cross");
-              params.set("fast", String(indicators.ema.fast));
-              params.set("slow", String(indicators.ema.slow));
-            }
-            router.push(`/backtest?${params.toString()}`);
-          }}
-          className="px-3 h-7 text-xs font-medium rounded border border-border text-text-2 hover:border-accent hover:text-accent bg-transparent cursor-pointer transition-colors"title="이 종목으로 백테스팅">
-          백테스트 →
-        </button>
         {onAddToWatchlist && (
           <button
             onClick={() => onAddToWatchlist(symbol)}
