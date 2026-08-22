@@ -396,7 +396,7 @@ function CurrentCard({ st }: { st: LabState | null }) {
   if (!h) {
     return (
       <Panel className="p-6 text-center">
-        <div className="text-text-2 text-sm">대기 중 — <span className="text-text-1 font-medium">▶ 다음 가설 검토</span>를 눌러 루프 시작.</div>
+        <div className="text-text-2 text-sm">대기 중 — 오토파일럿이 켜지면 큐의 가설부터 자동 실행.</div>
         <div className="text-text-3 text-xs mt-1">큐의 가설을 하나씩 자체생각→검토→집행→학습으로 돌린다.</div>
       </Panel>
     );
