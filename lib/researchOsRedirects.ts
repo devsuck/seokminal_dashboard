@@ -19,4 +19,24 @@ export const OLD_TO_NEW: Record<string, string> = {
   "/research-os/explain": "/research-os/governance?tab=explain",
   "/research-os/graph": "/research-os/governance?tab=graph",
   "/research-os/timeline": "/research-os/governance?tab=timeline",
+  // ── HUD 탭쉘 흡수(2026-08-22 가지치기) ──
+  "/lab": "/hud?tab=lab",
+  "/lab/execution": "/hud?tab=execution",
+  "/lab/tasks": "/hud?tab=tasks",
+  "/overview": "/hud?tab=portfolio",
+  "/auto-research": "/hud?tab=lab",
+  // ── Investment OS 흡수(이미 5탭 통합 완료, 리다이렉트만) ──
+  "/council/agents": "/investment-os?tab=risk",
+  "/council/decisions": "/investment-os?tab=risk",
+  "/council/logs": "/investment-os?tab=risk",
+  "/exec/monitor": "/investment-os?tab=ops",
+  "/exec/orders": "/investment-os?tab=ops",
+  "/portfolio-os/allocation": "/investment-os?tab=overview",
+  "/portfolio-os/positions": "/investment-os?tab=overview",
+  "/portfolio-os/risk": "/investment-os?tab=risk",
+  // ── 컨텍스트 드릴다운(/agents 흡수). agents 탭은 URL 동기화 안 하므로 쿼리 없이 이동 ──
+  "/calendar": "/agents",
+  "/insider": "/agents",
+  "/macro": "/agents",
+  "/news": "/agents",
 };
