@@ -23,6 +23,7 @@ import {
   type AccountBalances,
   type GodModeEligibility,
 } from "@/lib/api";
+import ContextTab from "@/components/agents/ContextTab";
 import { ArcReactor, type HudTone } from "@/components/Hud";
 import { displayLevel } from "@/lib/agent-level";
 import { Balances } from "@/components/AccountBalances";
@@ -452,7 +453,7 @@ export default function AgentsPage() {
   const [confirmName, setConfirmName] = useState("");
   const [cycles, setCycles] = useState<AgentCycle[]>([]);
   const [perf, setPerf] = useState<AgentPerformance | null>(null);
-  const [tab, setTab] = useState<"dashboard" | "cycles">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "cycles" | "context">("dashboard");
   const [distilling, setDistilling] = useState(false);
   const [distill, setDistill] = useState<DistillResult | null>(null);
   const [overview, setOverview] = useState<AgentsOverview | null>(null);
@@ -844,10 +845,10 @@ export default function AgentsPage() {
             <>
               <div className="flex items-center justify-between">
                 <div className="flex rounded overflow-hidden border border-border w-fit">
-                  {(["dashboard", "cycles"] as const).map(t => (
+                  {(["dashboard", "cycles", "context"] as const).map(t => (
                     <button key={t} onClick={() => setTab(t)}
                       className={`px-4 py-1.5 text-xs font-medium ${tab === t ? "border-accent text-accent bg-accent/10" : "bg-panel-2 text-text-3 hover:bg-panel"}`}>
-                      {t === "dashboard" ? "대시보드" : "사이클"}
+                      {t === "dashboard" ? "대시보드" : t === "cycles" ? "사이클" : "컨텍스트"}
                     </button>
                   ))}
                 </div>
@@ -919,6 +920,8 @@ export default function AgentsPage() {
                   </div>
                 </div>
               )}
+
+              {tab === "context" && <ContextTab />}
             </>
           )}
         </div>
