@@ -163,7 +163,6 @@ interface Unit {
 function violationHref(entity: string): string {
   if (entity.startsWith("agent:")) return "/agents";
   if (entity.includes("polymarket")) return "/polymarket";
-  if (entity.includes("buyback")) return "/buyback-doctor";
   if (entity.includes("copytrade")) return "/copytrade";
   if (entity.includes("dart")) return "/dart-auto";
   return "/lab";

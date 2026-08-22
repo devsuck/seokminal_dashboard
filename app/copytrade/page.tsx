@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   ApiError, getCopyTraders, getCopyPositions, mirrorCopyTrade,
   closeCopyPosition, copyAutoExit, getCopytradeBotStatus, setCopytradeBotConfig,
@@ -249,9 +248,7 @@ export default function CopyTradePage() {
                         {(isOpen ? t.holdings : t.holdings.slice(0, 3)).map(h => (
                           <div key={h.ticker} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              <Link href={`/market?symbol=${encodeURIComponent(h.ticker)}&date=${h.date}`}
-                                title="차트에서 매수 타이밍 보기"
-                                className="font-data text-accent font-semibold w-14 shrink-0 no-underline hover:underline">{h.ticker}</Link>
+                              <span className="font-data text-accent font-semibold w-14 shrink-0 no-underline hover:underline">{h.ticker}</span>
                               <span className="text-text-3 font-data text-[10px]">{h.date}</span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">

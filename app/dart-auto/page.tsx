@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   ApiError, getDartSignals, getDartPositions, mirrorDart,
   getDartBotStatus, setDartBotConfig,
@@ -242,7 +241,6 @@ export default function DartAutoPage() {
             {positions.length > 0 && bot && (
               <div className="px-4 py-2 bg-panel-2 border-b border-border text-[11px] text-text-2 leading-relaxed">
                 <span className="text-text-1 font-semibold">매도 정책:</span> 익절 {Math.round((bot.tp_pct ?? 0.15) * 100)}% / 손절 {Math.round((bot.sl_pct ?? 0.07) * 100)}% / 최대보유 {bot.max_hold_days ?? 20}일 충족 시 자동 매도.
-                종목 누르면 차트에서 매수 위치 확인.
               </div>
             )}
             {positions.length === 0 ? (
@@ -250,14 +248,12 @@ export default function DartAutoPage() {
             ) : (
               <div className="divide-y divide-border/50">
                 {positions.map(p => (
-                  <Link key={p.code} href={`/market?symbol=${encodeURIComponent(`${p.code}.XKRX`)}`}
-                    title="차트에서 매매 위치 보기"
+                  <div key={p.code}
                     className="px-4 py-2.5 flex items-center justify-between no-underline hover:bg-panel-2 transition-colors group">
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-text-1 text-sm font-semibold truncate group-hover:text-accent">{p.name || p.code}</span>
                         <span className="font-data text-text-3 text-[10px] shrink-0">{p.code}</span>
-                        <span className="text-text-3 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">차트 →</span>
                       </div>
                       <div className="text-text-3 text-[10px] font-data">{p.qty}주 · 평단 ₩{p.avg_price.toLocaleString()}</div>
                     </div>
@@ -265,7 +261,7 @@ export default function DartAutoPage() {
                       p.return_pct == null ? "text-text-3" : (p.return_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
                       {p.return_pct != null ? `${p.return_pct >= 0 ? "+" : ""}${p.return_pct.toFixed(2)}%` : "—"}
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

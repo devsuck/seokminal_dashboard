@@ -251,7 +251,7 @@ export default function PortfolioTab() {
                       <div className="text-[10px] uppercase tracking-wider text-text-3 mb-1">보유 포지션</div>
                       {p.open_positions.map((o, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px] font-data py-0.5">
-                          <Link href={`/market?symbol=${encodeURIComponent(o.symbol)}`} className="text-accent no-underline">{o.symbol}</Link>
+                          <span className="text-accent no-underline">{o.symbol}</span>
                           <span className="text-text-3">{o.qty}주 @ {o.avg_price}</span>
                           <span className={`px-1 font-bold ${(o.unrealized_pnl ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{won(o.unrealized_pnl)}</span>
                         </div>
@@ -266,7 +266,7 @@ export default function PortfolioTab() {
                         <div key={i} className="flex items-center gap-2 text-[11px] font-data">
                           <span className="text-text-3 w-24 shrink-0 truncate">{t.ts?.slice(5, 16) ?? "—"}</span>
                           <span className={`w-8 shrink-0 px-1 font-bold ${t.side === "buy" ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{t.side === "buy" ? "매수" : "매도"}</span>
-                          <Link href={`/market?symbol=${encodeURIComponent(t.symbol)}`} className="text-accent no-underline w-14 shrink-0 truncate">{t.symbol}</Link>
+                          <span className="text-accent no-underline w-14 shrink-0 truncate">{t.symbol}</span>
                           <span className="text-text-3">{t.qty}@{t.price}</span>
                           {t.realized_pnl !== null && <span className={`ml-auto px-1 font-bold ${t.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{won(t.realized_pnl)}</span>}
                         </div>

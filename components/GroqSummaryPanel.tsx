@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { getGroqSummary, type GroqStockPick } from "@/lib/api";
 import { Button } from "@/components/ui";
 
@@ -35,10 +34,8 @@ function SummaryLine({ line }: { line: string }) {
 
 function StockCard({ pick }: { pick: GroqStockPick }) {
   const isUp = pick.direction === "up";
-  const href = `/market?symbol=${pick.symbol}.NASDAQ`;
   return (
-    <Link
-      href={href}
+    <div
       className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition-colors no-underline group ${
         isUp
           ? "border-pos/30 bg-pos/5 hover:bg-pos/10": "border-neg/30 bg-neg/5 hover:bg-neg/10"}`}
@@ -52,7 +49,7 @@ function StockCard({ pick }: { pick: GroqStockPick }) {
       <span className="text-[9px] text-text-3 group-hover:text-accent transition-colors">
         차트 →
       </span>
-    </Link>
+    </div>
   );
 }
 
