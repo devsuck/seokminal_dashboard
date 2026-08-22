@@ -1,3 +1,35 @@
+## Phase 222 — Autopilot 라이트 리디자인 (2026-08-22) ✅ SHIPPED
+
+### 배경
+seokminal v2 2단계(리디자인). 스펙 `docs/superpowers/specs/2026-08-22-autopilot-light-redesign-design.md`, 플랜 `docs/superpowers/plans/2026-08-22-autopilot-light-redesign.md`(9태스크, SDD 실행). 유저 승인 후 취침 — 중간 확인 없이 끝까지 자율 실행.
+
+### 완료된 작업
+- `app/globals.css` `@theme`에 `ap-` 토큰 세트 추가(bg/surface/line/ink-1/2/3/brand/up/down/caution/note + radius/shadow) — 기존 다크 토큰(`--color-bg/panel/...`) 무수정, 13개 미전환 라우트 영향 없음
+- `components/ui/Card.tsx`(신규) — `Panel`/`PanelHeader`와 시그니처 동일한 병렬 프리미티브(`Card`/`CardHeader`), `Panel.tsx` 자체는 무수정
+- `CommandRail.tsx` 라이트 전환 — `.rail-ap` 스코프드 CSS 변수 오버라이드(`--c-*`→`--color-ap-*`)로 JSX 무변경 전환, `CommandPalette.tsx`도 자동 적용됨. `ShutdownButton.tsx`는 토큰명 직접 매핑
+- `/hud` 5탭(Home/Portfolio/Lab/Execution/Tasks) + `/agents` — `Panel`→`Card` 전량 스왑, 다크 토큰 클래스(`bg-panel`,`text-text-1` 등)를 `ap-` 토큰명으로 매핑
+- 최종 whole-branch 리뷰(opus)에서 잔여 결함 4건(페이지 배경 누락 2곳, `.scan-skeleton` 다크 누출, 하드코딩 accent 변수) 발견 → 컨솔리데이티드 픽스 1커밋으로 해결, 스코프드 재검토 clean
+
+### 변경된 파일
+`app/globals.css`, `components/ui/Card.tsx`(신규), `components/console/CommandRail.tsx`, `components/ShutdownButton.tsx`,
+`app/hud/page.tsx`, `components/hud/{PortfolioTab,LabTab,ExecutionTab,TasksTab}.tsx`, `app/agents/page.tsx`
+
+### 막힌 부분/결정사항 (rulings)
+- 플랜의 토큰명 매핑 규칙이 `{bg,text,border}-` 접두사만 명시하고 `divide-`를 누락 — 실결함(다크 라인 누출) 확인 후 `divide-`도 동일 매핑으로 규칙 확장, 즉시 수정 + 이후 태스크에 반영
+- `LivePulse`/`Kv`의 `tone="pos"` 등 prop 값은 `Jarvis.tsx`(스코프 밖)의 semantic enum 룩업 키라 미치환 유지
+- `--color-ap-brand` 라이트 배경 대비 정식 재검증(spec 명시 항목)은 개인용 단일 사용자 툴이라 이번 phase는 육안 확인으로 대체, 정식 감사는 후속 phase로 연기
+- 미사용 `ap-` radius/shadow 토큰 4개는 spec이 전체 세트 명시 요구 — 삭제 안 함
+- `app/agents/page.tsx`의 `lib/chart-colors.ts`/inline-style 사전 부채는 이번 diff가 도입한 게 아님(pre-existing) — 스코프 밖, 후속 phase 부채로 기록만
+- **의도적 전환기 불일치**: 13개 미전환 라우트(`portfolio`,`polymarket`,`copytrade` 등)는 "라이트 레일 + 다크 본문"으로 보임 — spec에 명시된 임시 상태, 후속 phase에서 나머지 라우트 전환 시 해소
+
+### 검증
+`npx tsc --noEmit` 통과, `npm test` 29 files/319 tests 전부 통과, `npm run build` 53+ 라우트 성공, 브라우저 육안확인(`/hud`,`/agents` 라이트 렌더링, `/portfolio` 레일만 라이트+본문 다크 확인).
+
+### 다음 할 일
+seokminal v2 3단계(PWA화) — 별도 스펙/플랜 필요. 이후 미전환 13개 라우트 라이트 전환(후속 phase), `--color-ap-brand` 정식 대비 감사.
+
+---
+
 ## Phase 221 — 대시보드 가지치기: 감시 전용 피벗 완료 (2026-08-22) ✅ SHIPPED
 
 ### 배경
