@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { fetchBarsForSymbol } from "@/lib/chart-bars";
 import { getSymbolName } from "@/lib/symbol-names";
 
@@ -113,14 +112,6 @@ export function WatchlistSidebar({
                     {pos ? "+" : ""}{price.changePct.toFixed(2)}%
                   </span>
                 )}
-              </div>
-              {/* Cross-nav CTAs */}
-              <div className="flex gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Link
-                  href="/backtest"onClick={e => e.stopPropagation()}
-                  className="text-[9px] text-text-3 hover:text-accent border border-border/60 rounded px-1.5 py-0.5 no-underline transition-colors">
-                  백테스트
-                </Link>
               </div>
             </div>
           );
