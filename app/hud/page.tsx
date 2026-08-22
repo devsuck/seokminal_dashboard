@@ -363,7 +363,7 @@ function HomeTab() {
 
   return (
     <div className="min-h-screen p-1 sm:p-1.5 font-data">
-      {/* 상단 상태 스트립 — 시계는 우측에 얹어 한 줄 절약 */}
+      {/* 시스템개요 — 시스템상태+정합성감시 병합, 시계는 우측에 얹어 한 줄 절약 */}
       <Card className="mb-1">
         <CardHeader right={<WorldClock now={now} />}>시스템개요</CardHeader>
         <div className="flex items-center gap-3 px-2 py-1 border-b border-ap-line">
@@ -498,6 +498,7 @@ function HomeTab() {
             size="sm"
             value={activityView}
             onChange={setActivityView}
+            inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
             options={[
               { value: "alerts", label: "알림", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
               { value: "log", label: "LAB 로그", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },

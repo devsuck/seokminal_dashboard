@@ -13,6 +13,8 @@ interface SegmentedToggleProps<T extends string | boolean> {
   value: T;
   onChange: (value: T) => void;
   size?: "sm" | "md";
+  /** Overrides INACTIVE_CLASS for every option (e.g. light-surface token set). */
+  inactiveClass?: string;
 }
 
 const SIZE_CLASS = {
@@ -20,7 +22,7 @@ const SIZE_CLASS = {
   md: "text-sm py-1.5",
 };
 
-export function SegmentedToggle<T extends string | boolean>({ options, value, onChange, size = "md" }: SegmentedToggleProps<T>) {
+export function SegmentedToggle<T extends string | boolean>({ options, value, onChange, size = "md", inactiveClass }: SegmentedToggleProps<T>) {
   return (
     <div className="flex gap-2">
       {options.map(opt => {
@@ -29,7 +31,7 @@ export function SegmentedToggle<T extends string | boolean>({ options, value, on
           <button
             key={String(opt.value)}
             onClick={() => onChange(opt.value)}
-            className={`flex-1 border font-medium font-data ${SIZE_CLASS[size]} ${active ? (opt.activeClass ?? DEFAULT_ACTIVE_CLASS) : INACTIVE_CLASS}`}
+            className={`flex-1 border font-medium font-data ${SIZE_CLASS[size]} ${active ? (opt.activeClass ?? DEFAULT_ACTIVE_CLASS) : (inactiveClass ?? INACTIVE_CLASS)}`}
           >
             {opt.label}
           </button>
