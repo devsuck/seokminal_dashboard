@@ -17,7 +17,7 @@ import {
 } from "@/lib/console-api";
 import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Card, CardHeader } from "@/components/ui/Card";
 import { FreshnessBar } from "@/components/ui/FreshnessBar";
 import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
 import { displayLevel } from "@/lib/agent-level";
@@ -47,13 +47,13 @@ function HudInner() {
 
   return (
     <div className="min-h-full">
-      <div className="flex gap-1 border-b border-border px-5 pt-3 overflow-x-auto">
+      <div className="flex gap-1 border-b border-ap-line px-5 pt-3 overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
               tab === t.key
-                ? "border-accent text-accent bg-accent/10"
-                : "border-transparent text-text-2 hover:text-text-1"
+                ? "border-ap-brand text-ap-brand bg-ap-brand/10"
+                : "border-transparent text-ap-ink-2 hover:text-ap-ink-1"
             }`}>
             {t.label}
           </button>
@@ -85,12 +85,12 @@ export default function HudShell() {
 
 type Tone = "pos" | "accent" | "info" | "neg" | "warn" | "text-3";
 const TONE: Record<Tone, { solid: string; text: string }> = {
-  pos:      { solid: "bg-pos",    text: "text-pos" },
-  accent:   { solid: "bg-accent", text: "text-accent" },
-  info:     { solid: "bg-info",   text: "text-info" },
-  neg:      { solid: "bg-neg",    text: "text-neg" },
-  warn:     { solid: "bg-warn",   text: "text-warn" },
-  "text-3": { solid: "bg-text-3", text: "text-text-3" },
+  pos:      { solid: "bg-ap-up",    text: "text-ap-up" },
+  accent:   { solid: "bg-ap-brand", text: "text-ap-brand" },
+  info:     { solid: "bg-ap-note",   text: "text-ap-note" },
+  neg:      { solid: "bg-ap-down",    text: "text-ap-down" },
+  warn:     { solid: "bg-ap-caution",   text: "text-ap-caution" },
+  "text-3": { solid: "bg-ap-ink-3", text: "text-ap-ink-3" },
 };
 
 function StatusDot({ tone, label }: { tone: Tone; label?: string }) {
@@ -116,9 +116,9 @@ function WorldClock({ now }: { now: Date }) {
     <div className="flex items-center justify-end gap-4 px-2 py-0.5">
       {WORLD_CITIES.map(c => (
         <span key={c.tz} className="inline-flex items-baseline gap-1">
-          <span className="text-text-3 text-[8px] uppercase tracking-widest">{c.label}</span>
+          <span className="text-ap-ink-3 text-[8px] uppercase tracking-widest">{c.label}</span>
           {/* SSR 시각과 클라이언트 시각은 1초 차이로 어긋남 — 시계는 하이드레이션 비교 대상 아님 */}
-          <span className="text-text-2 text-[10px] font-data tabular-nums" suppressHydrationWarning>
+          <span className="text-ap-ink-2 text-[10px] font-data tabular-nums" suppressHydrationWarning>
             {now.toLocaleTimeString("en-GB", { timeZone: c.tz, hour12: false })}
           </span>
         </span>
@@ -131,14 +131,14 @@ function WorldClock({ now }: { now: Date }) {
 function LadderStep({ label, value, state }: {
   label: string; value: string; state: "done" | "current" | "blocked" | "pending";
 }) {
-  const tone = state === "done" ? "text-pos" : state === "blocked" ? "text-neg"
-    : state === "current" ? "text-accent" : "text-text-3";
-  const bar = state === "done" ? "bg-pos" : state === "blocked" ? "bg-neg"
-    : state === "current" ? "bg-accent" : "bg-border";
+  const tone = state === "done" ? "text-ap-up" : state === "blocked" ? "text-ap-down"
+    : state === "current" ? "text-ap-brand" : "text-ap-ink-3";
+  const bar = state === "done" ? "bg-ap-up" : state === "blocked" ? "bg-ap-down"
+    : state === "current" ? "bg-ap-brand" : "bg-ap-line";
   return (
     <div className="flex-1 min-w-0 px-1.5 pb-1.5">
       <div className={`h-0.5 mb-1 ${bar}`} />
-      <p className="text-text-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
+      <p className="text-ap-ink-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
       <p className={`font-data text-xs font-bold truncate ${tone}`}>{value}</p>
     </div>
   );
@@ -185,21 +185,21 @@ function UnitCard({ u, onRestart, restarting }: {
   const statusText = v ? VERDICT_LABEL[v] : u.running ? "가동" : "정지";
   const statusCls = tone
     ? `${tone.bg} ${tone.text}${v === "dead" || v === "stuck" ? " animate-blink" : ""}`
-    : u.running ? "bg-pos/20 text-pos" : "bg-neg/10 text-text-3";
+    : u.running ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/10 text-ap-ink-3";
   return (
-    <div className={`flex items-center gap-2 border-b border-border px-2 py-1 transition-colors ${
-      broken ? "bg-neg/10" : v === "stale" ? "bg-warn/5" : u.running ? "bg-pos/5" : ""}`}>
+    <div className={`flex items-center gap-2 border-b border-ap-line px-2 py-1 transition-colors ${
+      broken ? "bg-ap-down/10" : v === "stale" ? "bg-ap-caution/5" : u.running ? "bg-ap-up/5" : ""}`}>
       <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80"
         title={u.fleet?.reason ?? undefined}>
         <StatusDot tone={v ? (v === "fresh" ? "pos" : v === "stale" ? "warn" : "neg") : u.running ? "pos" : "text-3"} />
-        <span className="text-[11px] font-data text-text-1 truncate flex-1">{u.name}</span>
+        <span className="text-[11px] font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
         {u.fleet && (
           <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
         )}
-        <span className={`text-[10px] font-data text-text-3 truncate text-right ${u.fleet ? "w-20" : "max-w-[45%]"}`}>{u.detail}</span>
+        <span className={`text-[10px] font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-20" : "max-w-[45%]"}`}>{u.detail}</span>
       </Link>
       <span className={`text-[8px] px-1 border font-data shrink-0 ${
-        u.kind === "AI" ? "border-accent/40 text-accent" : "border-border text-text-3"}`}>{u.kind}</span>
+        u.kind === "AI" ? "border-ap-brand/40 text-ap-brand" : "border-ap-line text-ap-ink-3"}`}>{u.kind}</span>
       <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
         {statusText}
       </span>
@@ -207,7 +207,7 @@ function UnitCard({ u, onRestart, restarting }: {
         <button
           onClick={() => onRestart?.(u.collectorKey!)}
           disabled={restarting}
-          className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 font-data font-bold shrink-0 hover:bg-neg/25 disabled:opacity-40"
+          className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 font-data font-bold shrink-0 hover:bg-ap-down/25 disabled:opacity-40"
         >
           {restarting ? "재시작중" : "재시작"}
         </button>
@@ -311,8 +311,8 @@ function HomeTab() {
   const paperMin = exec?.arm_gate?.min_paper_months ?? 6;
   const edgeLabel = edge?.status === "confirmed" ? "생존 확인" : edge?.status === "drifting" ? "이탈 경고"
     : edge?.status === "accumulating" ? "누적 중" : edge?.status === "no_oos_yet" ? "OOS 대기" : "워밍 중";
-  const edgeTone = edge?.status === "confirmed" ? "text-pos" : edge?.status === "drifting" ? "text-neg"
-    : edge?.status === "accumulating" ? "text-accent" : "text-info";
+  const edgeTone = edge?.status === "confirmed" ? "text-ap-up" : edge?.status === "drifting" ? "text-ap-down"
+    : edge?.status === "accumulating" ? "text-ap-brand" : "text-ap-note";
 
   // 전 유닛 로스터 — 트레이딩 AI + 시스템 봇
   const units: Unit[] = [];
@@ -362,33 +362,33 @@ function HomeTab() {
   return (
     <div className="min-h-screen p-1 sm:p-1.5 font-data">
       {/* 상단 상태 스트립 — 시계는 우측에 얹어 한 줄 절약 */}
-      <Panel className="mb-1">
-        <PanelHeader right={<WorldClock now={now} />}>시스템 상태</PanelHeader>
+      <Card className="mb-1">
+        <CardHeader right={<WorldClock now={now} />}>시스템 상태</CardHeader>
         <div className="flex items-center gap-3 px-2 py-1">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
             <Link href="/lab/execution"
               className={`no-underline text-[11px] px-2 py-0.5 border font-data font-bold tracking-wider ${
-                arm.decision === "GO" ? "border-pos/50 text-pos bg-pos/15" :
-                arm.decision === "KILL" ? "border-neg/50 text-neg bg-neg/15 animate-blink" :
-                "border-info/40 text-info bg-info/15"}`}>
+                arm.decision === "GO" ? "border-ap-up/50 text-ap-up bg-ap-up/15" :
+                arm.decision === "KILL" ? "border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink" :
+                "border-ap-note/40 text-ap-note bg-ap-note/15"}`}>
               ARM {arm.decision}
             </Link>
           )}
           {wd?.critical && (
-            <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 animate-blink font-data font-bold">감시견 경보</span>
+            <span className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">감시견 경보</span>
           )}
           {(health?.n_errors ?? 0) > 0 && (
-            <span className="text-[9px] px-1.5 py-0.5 border border-neg/50 text-neg bg-neg/15 animate-blink font-data font-bold">정합성 오류 {health!.n_errors}</span>
+            <span className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">정합성 오류 {health!.n_errors}</span>
           )}
         </div>
-      </Panel>
+      </Card>
 
       {/* 판단 필요 — 사람 결정 걸리는 것만. 0건이면 한 줄로 접힘 */}
-      <Panel className="mb-1">
-        <PanelHeader right={<span className="tabular-nums">{attentionItems.length}건</span>}>
+      <Card className="mb-1">
+        <CardHeader right={<span className="tabular-nums">{attentionItems.length}건</span>}>
           판단 필요
-        </PanelHeader>
+        </CardHeader>
         {attentionItems.length === 0 ? (
           <div className="px-2 py-1.5">
             <StatusDot tone="pos" label="판단 대기 항목 없음" />
@@ -396,38 +396,38 @@ function HomeTab() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2">
             {attentionItems.map((it) => (
-              <Link key={it.id} href={it.href} className="flex items-center gap-2 border-b border-border px-2 py-1 no-underline hover:opacity-80">
+              <Link key={it.id} href={it.href} className="flex items-center gap-2 border-b border-ap-line px-2 py-1 no-underline hover:opacity-80">
                 <StatusDot tone={it.tone === "neg" ? "neg" : it.tone === "warn" ? "warn" : "info"} />
-                <span className="text-[11px] font-data text-text-1 truncate flex-1">{it.label}</span>
-                <span className="text-[10px] font-data text-text-3 truncate">{it.detail}</span>
+                <span className="text-[11px] font-data text-ap-ink-1 truncate flex-1">{it.label}</span>
+                <span className="text-[10px] font-data text-ap-ink-3 truncate">{it.detail}</span>
               </Link>
             ))}
           </div>
         )}
-      </Panel>
+      </Card>
 
       {/* 유닛 로스터 — 전략(AI·봇)과 데이터 수집기는 고장 의미가 달라서 분리 */}
-      <Panel className="mb-1">
-        <PanelHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
+      <Card className="mb-1">
+        <CardHeader right={<span className="tabular-nums">{nRunning}/{units.length} 가동</span>}>
           유닛 로스터 · 전략
-        </PanelHeader>
+        </CardHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {units.map((u, i) => (
             <UnitCard key={`${u.name}-${i}`} u={u} />
           ))}
         </div>
-      </Panel>
+      </Card>
 
       {/* 수집기 함대 — 신선도 정도(바)까지 표시. 가동/정지 이진으로는 지연을 못 잡음 */}
-      <Panel className="mb-1">
-        <PanelHeader right={
-          <span className={`tabular-nums ${nDegraded > 0 ? "text-warn" : "text-pos"}`}>
+      <Card className="mb-1">
+        <CardHeader right={
+          <span className={`tabular-nums ${nDegraded > 0 ? "text-ap-caution" : "text-ap-up"}`}>
             {collectorUnits.length > 0 ? `정상 ${nHealthy}/${collectorUnits.length}` : "…"}
             {nDegraded > 0 ? ` · 이상 ${nDegraded}` : ""}
           </span>
         }>
           수집기 함대
-        </PanelHeader>
+        </CardHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {collectorUnits.map((u, i) => (
             <UnitCard
@@ -439,19 +439,19 @@ function HomeTab() {
           ))}
         </div>
         {collectorUnits.length === 0 && (
-          <div className="px-2 py-1.5 text-text-3 text-[11px]">수집기 상태 로딩 중…</div>
+          <div className="px-2 py-1.5 text-ap-ink-3 text-[11px]">수집기 상태 로딩 중…</div>
         )}
-      </Panel>
+      </Card>
 
       {/* 정합성 감시 — 봇·에이전트 회계 불변식(조용한 돈 버그 감지). /lab/health */}
-      <Panel className="mb-1">
-        <PanelHeader right={
-          <span className={`tabular-nums ${(health?.n_errors ?? 0) > 0 ? "text-neg" : health ? "text-pos" : "text-text-3"}`}>
+      <Card className="mb-1">
+        <CardHeader right={
+          <span className={`tabular-nums ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
             {health ? (health.ok ? "이상 없음" : `${health.n_errors} 오류 · ${health.n_violations} 위반`) : "…"}
           </span>
         }>
           정합성 감시
-        </PanelHeader>
+        </CardHeader>
         {health && health.violations.length === 0 && (
           <div className="px-2 py-1.5">
             <StatusDot tone="pos" label="봇·에이전트 회계 정합성 정상" />
@@ -463,30 +463,30 @@ function HomeTab() {
               <Link
                 key={i}
                 href={violationHref(v.entity)}
-                className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px] hover:bg-panel-2 transition-colors">
+                className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px] hover:bg-ap-bg transition-colors">
                 <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
-                <span className="text-text-3 shrink-0 w-32 truncate">{v.entity}</span>
-                <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-neg" : "text-warn"}`}>{v.code}</span>
-                <span className="text-text-2 truncate flex-1">{v.detail}</span>
-                <span className="text-text-3 shrink-0">→</span>
+                <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>
+                <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-ap-down" : "text-ap-caution"}`}>{v.code}</span>
+                <span className="text-ap-ink-2 truncate flex-1">{v.detail}</span>
+                <span className="text-ap-ink-3 shrink-0">→</span>
               </Link>
             ))}
           </div>
         )}
         {!health && (
-          <div className="px-2 py-1.5 text-text-3 text-[11px]">정합성 상태 로딩 중…</div>
+          <div className="px-2 py-1.5 text-ap-ink-3 text-[11px]">정합성 상태 로딩 중…</div>
         )}
-      </Panel>
+      </Card>
 
       {/* 계좌 + 돈길 핵심 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 items-start">
         {bal ? <Balances bal={bal} /> : (
-          <div className="bg-panel border border-border p-2 text-text-3 text-[11px]">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
+          <div className="bg-ap-surface border border-ap-line p-2 text-ap-ink-3 text-[11px]">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
         )}
-        <Panel>
-          <PanelHeader right={<Link href="/lab/execution" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
+        <Card>
+          <CardHeader right={<Link href="/lab/execution" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
             돈길
-          </PanelHeader>
+          </CardHeader>
           {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
           <div className="flex pt-1">
             <LadderStep label="1 엣지" value={edgeLabel}
@@ -500,68 +500,68 @@ function HomeTab() {
               state={jarvis?.live_execution === "blocked" ? "blocked"
                 : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
           </div>
-        </Panel>
+        </Card>
       </div>
 
       {/* 로그 + 최근 체결 + 알림 — 빈 공간 없이 실시간 활동 채움 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 items-start mt-1">
-        <Panel>
-          <PanelHeader right={<span className="tabular-nums">{alerts?.length ?? 0}건</span>}>
+        <Card>
+          <CardHeader right={<span className="tabular-nums">{alerts?.length ?? 0}건</span>}>
             최근 알림
-          </PanelHeader>
+          </CardHeader>
           <div className="max-h-64 overflow-y-auto">
             {(alerts ?? []).slice(0, 14).map((a, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
-                <span className="text-text-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
-                <span className="text-warn truncate flex-1">{a.rule_label}</span>
-                <span className="text-text-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
+              <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                <span className="text-ap-ink-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
+                <span className="text-ap-caution truncate flex-1">{a.rule_label}</span>
+                <span className="text-ap-ink-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
               </div>
             ))}
             {(alerts?.length ?? 0) === 0 && (
-              <div className="px-2 py-3 text-text-3 text-[11px]">알림 없음</div>
+              <div className="px-2 py-3 text-ap-ink-3 text-[11px]">알림 없음</div>
             )}
           </div>
-        </Panel>
-        <Panel>
-          <PanelHeader right={<span className="tabular-nums">{lab?.log?.length ?? 0}줄</span>}>
+        </Card>
+        <Card>
+          <CardHeader right={<span className="tabular-nums">{lab?.log?.length ?? 0}줄</span>}>
             AI LAB 로그
-          </PanelHeader>
+          </CardHeader>
           <div className="max-h-64 overflow-y-auto">
             {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
-                <span className="text-text-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
+              <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                <span className="text-ap-ink-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
                 <span className={`shrink-0 w-12 truncate ${
-                  l.level === "error" ? "text-neg" : l.level === "warn" ? "text-warn" : "text-text-3"}`}>{l.stage}</span>
-                <span className="text-text-2 truncate flex-1">{l.msg}</span>
+                  l.level === "error" ? "text-ap-down" : l.level === "warn" ? "text-ap-caution" : "text-ap-ink-3"}`}>{l.stage}</span>
+                <span className="text-ap-ink-2 truncate flex-1">{l.msg}</span>
               </div>
             ))}
             {(lab?.log?.length ?? 0) === 0 && (
-              <div className="px-2 py-3 text-text-3 text-[11px]">로그 없음</div>
+              <div className="px-2 py-3 text-ap-ink-3 text-[11px]">로그 없음</div>
             )}
           </div>
-        </Panel>
+        </Card>
 
-        <Panel>
-          <PanelHeader right={<span className="tabular-nums">{exec?.paper?.recent_closed?.length ?? 0}건</span>}>
+        <Card>
+          <CardHeader right={<span className="tabular-nums">{exec?.paper?.recent_closed?.length ?? 0}건</span>}>
             최근 페이퍼 체결
-          </PanelHeader>
+          </CardHeader>
           <div className="max-h-64 overflow-y-auto">
             {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
-              <div key={i} className="flex items-center gap-2 border-b border-border px-2 py-0.5 text-[10px]">
-                <span className="text-text-1 truncate flex-1">{t.corp}</span>
-                <span className="text-text-3 shrink-0 w-20 truncate">{t.entry_date}</span>
-                <span className="text-text-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
+              <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                <span className="text-ap-ink-1 truncate flex-1">{t.corp}</span>
+                <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.entry_date}</span>
+                <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
                 <span className={`shrink-0 w-14 text-right px-1 font-bold ${
-                  (t.pnl_pct ?? 0) > 0 ? "bg-pos/20 text-pos" : (t.pnl_pct ?? 0) < 0 ? "bg-neg/20 text-neg" : "text-text-3"}`}>
+                  (t.pnl_pct ?? 0) > 0 ? "bg-ap-up/20 text-ap-up" : (t.pnl_pct ?? 0) < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-3"}`}>
                   {t.pnl_pct != null ? `${t.pnl_pct.toFixed(2)}%` : "—"}
                 </span>
               </div>
             ))}
             {(exec?.paper?.recent_closed?.length ?? 0) === 0 && (
-              <div className="px-2 py-3 text-text-3 text-[11px]">체결 없음</div>
+              <div className="px-2 py-3 text-ap-ink-3 text-[11px]">체결 없음</div>
             )}
           </div>
-        </Panel>
+        </Card>
       </div>
     </div>
   );
