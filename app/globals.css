@@ -220,6 +220,14 @@
   animation: var(--animate-shimmer);
 }
 
+/* .scan-skeleton의 라이트 변형 — ExecutionTab 전용, AutoResearchPanel은 기존 .scan-skeleton 유지 */
+.scan-skeleton-ap {
+  background: linear-gradient(90deg,
+    var(--color-ap-bg) 25%, rgba(255,159,10,0.10) 50%, var(--color-ap-bg) 75%);
+  background-size: 220% 100%;
+  animation: var(--animate-shimmer);
+}
+
 /* faint moving scanline overlay for "live processing" panels */
 .scanline-host { position: relative; overflow: hidden; }
 .scanline-host::after {

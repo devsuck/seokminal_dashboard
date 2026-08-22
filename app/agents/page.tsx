@@ -615,7 +615,7 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 bg-ap-bg">
       <div className="mb-4">
         <h1 className="text-ap-ink-1 text-lg font-semibold tracking-tight">자율형 AI 에이전트</h1>
         <p className="text-ap-ink-3 text-sm mt-0.5">여러 AI 트레이딩 에이전트를 봇처럼 생성·관리합니다. 스윙(중장기)/데이트레이딩 타입, 각 사이클은 구조화 카드로 표시됩니다.</p>

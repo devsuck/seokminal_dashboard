@@ -46,7 +46,7 @@ function HudInner() {
   const setTab = (k: TabKey) => router.push(k === "home" ? "/hud" : `/hud?tab=${k}`);
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full bg-ap-bg">
       <div className="flex gap-1 border-b border-ap-line px-5 pt-3 overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}

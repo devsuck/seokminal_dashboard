@@ -51,7 +51,7 @@ export default function ExecutionTab() {
   }, []);
 
   if (err) return <div className="p-6 text-xs text-ap-down border border-ap-down/30 rounded m-6">오류: {err}</div>;
-  if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton h-20 rounded-lg" />)}</div>;
+  if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton-ap h-20 rounded-lg" />)}</div>;
 
   const g = d.arm_gate, lr = d.live_readiness;
   const warming = !ea || ea.status === "warming";
@@ -109,7 +109,7 @@ export default function ExecutionTab() {
           <LivePulse tone={edge.tone === "text-3" ? "text-3" : edge.tone} label={edge.label} />
         </div>
         {warming || !ea ? (
-          <div className="scan-skeleton h-14 rounded" />
+          <div className="scan-skeleton-ap h-14 rounded" />
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -115,7 +115,7 @@ export default function LabTab() {
             <h1 className="text-lg font-semibold text-ap-ink-1 tracking-[0.15em] uppercase">AI LAB</h1>
             <LivePulse tone={busy ? "accent" : (st?.autopilot ? "pos" : "text-3")} label={status.toUpperCase()} />
           </div>
-          <div className="mt-0.5 h-4 font-data text-[11px] text-hud/80">
+          <div className="mt-0.5 h-4 font-data text-[11px] text-ap-ink-2">
             {busy ? <ThinkingLine text="가설 검토 중 · 검정 · 레드팀 실행" />
                   : `자율 리서치 루프 · 자체생각→검토→집행→학습 · 스테이지 ${st?.stage ?? "—"}`}
           </div>
@@ -175,7 +175,7 @@ export default function LabTab() {
                 <div
                   className={`flex-1 rounded-md border px-3 py-3 transition-all duration-300 ${
                     active
-                      ? "border-ap-brand bg-ap-brand/10 shadow-[0_0_0_1px_var(--color-accent)]": done
+                      ? "border-ap-brand bg-ap-brand/10 shadow-[0_0_0_1px_var(--color-ap-brand)]": done
                       ? "border-ap-up/30 bg-ap-up/5": "border-ap-line bg-ap-bg"}`}
                 >
                   <div className="flex items-center gap-2">
