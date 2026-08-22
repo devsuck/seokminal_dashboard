@@ -28,19 +28,14 @@ const CONSOLE_GROUPS: RailGroup[] = [
   ] },
 ];
 
-// 레거시 트레이딩 터미널 그룹 — 기존 45페이지(기능 유지, 셸만 통합)
+// 레거시 트레이딩 터미널 그룹 — 감시 전용 피벗(2026-08) 이후 20라우트로 축소
 const TERMINAL_GROUPS: RailGroup[] = [
   { label: "마켓", items: [
-    // crypto/futures/forex/options/news/calendar는 /market이 탭으로 그대로 렌더하는
-    // 하위기능이라 최상위 nav에서 중복 노출하지 않음(진입은 /market 탭에서).
-    { href: "/market", label: "마켓" },
     { href: "/orderflow", label: "오더플로우" },
   ] },
   { label: "트레이딩 데스크", items: [
-    { href: "/overview", label: "AI 자본 개요" },
     { href: "/portfolio", label: "포트폴리오" },
-    { href: "/lab/execution", label: "체결 콘솔" },
-    { href: "/lab/tasks", label: "페이퍼 모니터" },
+    { href: "/infra", label: "공급망 그래프" },
   ] },
   { label: "봇 · 에이전트", items: [
     { href: "/agents", label: "에이전트" },
@@ -49,24 +44,6 @@ const TERMINAL_GROUPS: RailGroup[] = [
     { href: "/dart-auto", label: "DART 오토파일럿" },
     { href: "/copytrade", label: "카피트레이딩" },
     { href: "/polymarket", label: "Polymarket" },
-  ] },
-  { label: "리서치 랩", items: [
-    { href: "/lab", label: "AI 랩" },
-    // /auto-research 삭제: 코드 자체 주석이 "사이드바 은퇴, AI LAB에 흡수됨"이라 명시.
-    { href: "/macro", label: "매크로 랩" },
-    { href: "/infra", label: "공급망 그래프" },
-    { href: "/buyback-doctor", label: "자사주매입 분석" },
-    { href: "/insider", label: "내부자거래" },
-    { href: "/edges", label: "엣지 포트폴리오" },
-  ] },
-  { label: "검증 · 백테스트", items: [
-    { href: "/validation", label: "리서치 실험 로그" },
-    { href: "/backtest", label: "백테스트" },
-    { href: "/ict", label: "ICT 콤보" },
-    { href: "/event-study", label: "이벤트 분석" },
-    { href: "/signal", label: "스마트 시그널" },
-    { href: "/experiments", label: "실험" },
-    { href: "/data-quality", label: "데이터 품질" },
   ] },
 ];
 
