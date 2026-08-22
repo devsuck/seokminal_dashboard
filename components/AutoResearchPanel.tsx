@@ -93,7 +93,7 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
         </div>
       ) : (
         /* 독립 페이지 헤더 — 아크리액터 HUD */
-        <div className="hud-frame hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
+        <div className="hud-bg tech-grid scanline-host rounded-lg border border-hud/20 p-4 overflow-hidden">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-5">
               <ArcReactor size={132} active={busy}
@@ -199,7 +199,7 @@ export default function AutoResearchPanel({ embedded = false }: { embedded?: boo
 
 function Stat({ label, num, str, tone }: { label: string; num?: number; str?: string; tone?: "pos" }) {
   return (
-    <div className="hud-frame bg-panel border border-border rounded-lg px-3 py-2.5 text-center">
+    <div className="bg-panel border border-border rounded-lg px-3 py-2.5 text-center">
       <div className={`text-lg font-semibold font-data ${tone === "pos" ? "text-pos" : "text-text-1"}`}>
         {typeof num === "number" ? <AnimatedNumber value={num} decimals={0} /> : str}
       </div>
