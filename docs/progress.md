@@ -4,7 +4,7 @@
 seokminal v2 웹 오버홀 1단계(가지치기→리디자인→PWA). 대시보드 미래 역할 = 감시 전용(에이전트가 리서치/매매 다 함). 14-task SDD 플랜(`docs/superpowers/plans/2026-08-22-dashboard-pruning-monitoring-only.md`) 전체 실행 완료.
 
 ### 완료된 작업
-- `/hud`를 진짜 탭쉘로 전환(home/portfolio/lab/execution/tasks 5탭), lab/lab/execution/lab/tasks/overview/auto-research 5라우트 흡수(Task 1-7)
+- `/hud`를 진짜 탭쉘로 전환(home/portfolio/lab/execution/tasks 5탭), lab/lab-execution/lab-tasks/overview/auto-research 5라우트 흡수(Task 1-7)
 - `/lab`의 수동 "다음 가설 검토" 실행버튼 제거(감시전용 원칙, Task 4)
 - council/exec/portfolio-os 8라우트(council×3 + exec×2 + portfolio-os×3) → `/investment-os` 리다이렉트(콘텐츠 이미 STEP4-D로 통합되어 있었음, 신규 UI 불필요, Task 9, 8개 파일 개별 검증)
 - calendar/insider/macro/news 4라우트 → `/agents` ContextTab으로 흡수(전역 피드, 에이전트별 필터링은 안 함 — 후속 업그레이드 지점, Task 10-11)
