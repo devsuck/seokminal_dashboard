@@ -480,7 +480,7 @@ function VerdictFeed({ verdicts }: { verdicts: LabVerdict[] }) {
   return (
     <Card>
       <CardHeader>판정 피드 (세션)</CardHeader>
-      <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
+      <div className="max-h-[240px] overflow-y-auto divide-y divide-ap-line">
         {verdicts.length === 0 && <div className="px-4 py-3 text-xs text-ap-ink-3">아직 판정 없음</div>}
         {verdicts.map((v, i) => (
           <div key={`${v.id}-${i}`} className="px-4 py-2">
@@ -509,7 +509,7 @@ function QueueList({ queue, currentId }: { queue: LabHypothesis[]; currentId?: s
   return (
     <Card>
       <CardHeader>가설 큐 ({queue.length})</CardHeader>
-      <div className="max-h-[200px] overflow-y-auto divide-y divide-border">
+      <div className="max-h-[200px] overflow-y-auto divide-y divide-ap-line">
         {queue.length === 0 && <div className="px-4 py-3 text-xs text-ap-ink-3">큐 비어있음 (실행 시 재시드)</div>}
         {queue.map(h => (
           <div key={h.id} className={`px-4 py-2 flex items-center justify-between gap-2 ${h.id === currentId ? "bg-ap-brand/5" : ""}`}>
