@@ -69,19 +69,19 @@ export default function OrderflowPage() {
   }, []);
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="min-h-full bg-ap-bg p-6 space-y-4">
       <div className="mb-4">
-        <h1 className="text-text-1 text-lg font-semibold tracking-tight">오더플로우</h1>
+        <h1 className="text-ap-ink-1 text-lg font-semibold tracking-tight">오더플로우</h1>
       </div>
       <div className="flex items-center gap-4">
         <InstrumentSelect value={symbol} onChange={setSymbol} instruments={ORDERFLOW_SYMBOLS} />
-        <div className="flex border border-border rounded overflow-hidden">
+        <div className="flex border border-ap-line rounded-ap-sm overflow-hidden">
           {(["live", "replay"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
               className={`px-3 py-1 text-xs ${
-                viewMode === mode ? "border-accent text-accent bg-accent/10" : "text-text-2"
+                viewMode === mode ? "border-ap-brand text-ap-brand bg-ap-brand/10" : "text-ap-ink-2"
               }`}
               onClick={() => setViewMode(mode)}
             >
@@ -91,11 +91,11 @@ export default function OrderflowPage() {
         </div>
         {viewMode === "live" && <LivePulse tone={CONNECTION_TONE[connectionState]} label={CONNECTION_LABEL[connectionState]} />}
         {activeSymbols.length > 0 && (
-          <span className="text-text-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
+          <span className="text-ap-ink-3 text-xs">현재 수집 중: {activeSymbols.join(", ")}</span>
         )}
       </div>
       {viewMode === "live" && connectionState === "connecting" && footprint.length === 0 ? (
-        <LoadingState message="오더플로우 소켓 연결 중…" />
+        <LoadingState message="오더플로우 소켓 연결 중…" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
       ) : viewMode === "live" ? (
         <OrderflowChart
           symbol={symbol}

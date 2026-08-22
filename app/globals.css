@@ -88,15 +88,22 @@
 /* CommandRail 라이트 전환 — .console-shell이 정의한 --c-* 를 이 서브트리에서만
    ap- 값으로 로컬 오버라이드. CommandRail/CommandPalette의 JSX·로직은 무변경. */
 .rail-ap {
-  --c-bg:      var(--color-ap-bg);
-  --c-panel:   var(--color-ap-surface);
-  --c-panel-2: var(--color-ap-bg);
-  --c-border:  var(--color-ap-line);
-  --c-text-1:  var(--color-ap-ink-1);
-  --c-text-2:  var(--color-ap-ink-2);
-  --c-text-3:  var(--color-ap-ink-3);
-  --c-hud:     var(--color-ap-brand);
-  --c-warn:    var(--color-ap-caution);
+  --c-bg:       var(--color-ap-bg);
+  --c-panel:    var(--color-ap-surface);
+  --c-panel-2:  var(--color-ap-bg);
+  --c-panel-3:  var(--color-ap-line);
+  --c-border:   var(--color-ap-line);
+  --c-border-2: var(--color-ap-line);
+  --c-text-1:   var(--color-ap-ink-1);
+  --c-text-2:   var(--color-ap-ink-2);
+  --c-text-3:   var(--color-ap-ink-3);
+  --c-hud:      var(--color-ap-brand);
+  --c-blue:     var(--color-ap-note);
+  --c-emerald:  var(--color-ap-up);
+  --c-pos:      var(--color-ap-up);
+  --c-neg:      var(--color-ap-down);
+  --c-warn:     var(--color-ap-caution);
+  --c-info:     var(--color-ap-note);
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────── */

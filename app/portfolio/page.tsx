@@ -7,14 +7,14 @@ import {
   type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
   type OmsOrder, type VenuePnl,
 } from "@/lib/api";
-import { Panel as UiPanel, PanelHeader } from "@/components/ui/Panel";
+import { Card, CardHeader } from "@/components/ui/Card";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
-import { PageHeader } from "@/components/console/widgets";
-import { Panel, PanelHead } from "@/components/console/primitives";
-import { FinancialMetric, TerminalTable } from "@/components/terminal";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
+
+const AP_TEXT = "text-ap-ink-3";
+const AP_LEGEND = "text-ap-ink-3";
 
 type Tab = "accounts" | "orders" | "pnl" | "optimizer";
 
@@ -33,14 +33,14 @@ function fmt(v: number | null, ccy: string, compact = false): string {
 function ModeChip({ mode, paper }: { mode?: string | null; paper?: boolean }) {
   const isPaper = paper ?? mode?.includes("paper") ?? false;
   return (
-    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider ${isPaper ? "bg-warn/10 text-warn" : "bg-pos/10 text-pos"}`}>
+    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider ${isPaper ? "bg-ap-caution/10 text-ap-caution" : "bg-ap-up/10 text-ap-up"}`}>
       {isPaper ? "페이퍼" : "실계좌"}
     </span>
   );
 }
 
 function StatusDot({ ok }: { ok: boolean }) {
-  return <span className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-pos" : "bg-neg"}`} />;
+  return <span className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-ap-up" : "bg-ap-down"}`} />;
 }
 
 /** 원문 에러 → 사용자가 할 수 있는 조치. 매칭 안 되면 원문 앞 80자. */
@@ -66,33 +66,33 @@ function AccountCard({
   const [open, setOpen] = useState(false);
   const ok = !error && balance != null;
   return (
-    <div className="bg-panel border border-border rounded-xl overflow-hidden hover:border-text-3 transition-colors">
-      <button onClick={() => setOpen(v => !v)} className="w-full text-left hover:bg-panel-2 transition-colors">
+    <div className="bg-ap-surface border border-ap-line rounded-xl overflow-hidden hover:border-ap-ink-3 transition-colors">
+      <button onClick={() => setOpen(v => !v)} className="w-full text-left hover:bg-ap-bg transition-colors">
         <div className="flex items-center gap-3 px-4 py-3">
           <StatusDot ok={ok} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-text-1 text-sm font-semibold">{label}</span>
+              <span className="text-ap-ink-1 text-sm font-semibold">{label}</span>
               <ModeChip mode={mode} paper={paper} />
             </div>
             {error ? (
-              <p className="text-neg text-[10px] mt-0.5 truncate" title={error}>{errorHint(error)}</p>
+              <p className="text-ap-down text-[10px] mt-0.5 truncate" title={error}>{errorHint(error)}</p>
             ) : (
-              <p className="text-text-3 text-[10px] mt-0.5">{ccy}</p>
+              <p className="text-ap-ink-3 text-[10px] mt-0.5">{ccy}</p>
             )}
           </div>
           <div className="text-right shrink-0">
-            <p className={`text-lg font-mono font-bold ${ok ? "text-text-1" : "text-text-3"}`}>
+            <p className={`text-lg font-mono font-bold ${ok ? "text-ap-ink-1" : "text-ap-ink-3"}`}>
               {fmt(balance, ccy)}
             </p>
           </div>
           {children && (
-            <span className="text-text-3 text-xs ml-1">{open ? "▲" : "▼"}</span>
+            <span className="text-ap-ink-3 text-xs ml-1">{open ? "▲" : "▼"}</span>
           )}
         </div>
       </button>
       {open && children && (
-        <div className="border-t border-border px-4 py-3">
+        <div className="border-t border-ap-line px-4 py-3">
           {children}
         </div>
       )}
@@ -103,109 +103,84 @@ function AccountCard({
 // ── 알파카 포지션 인라인 ─────────────────────────────────────────────────────
 
 function AlpacaPositions({ positions }: { positions: AlpacaPosition[] }) {
-  if (positions.length === 0) return <p className="text-text-3 text-xs">포지션 없음</p>;
+  if (positions.length === 0) return <p className="text-ap-ink-3 text-xs">포지션 없음</p>;
   return (
-    <table className="w-full text-[11px]">
-      <thead>
-        <tr className="text-text-3 text-[10px] border-b border-border">
-          {["종목", "방향", "수량", "평단가", "현재가", "평가손익"].map(h => (
-            <th key={h} className="pb-1.5 text-left font-normal">{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {positions.map(p => (
-          <tr key={p.symbol} className="border-b border-border/30">
-            <td className="py-1 text-text-1 font-medium">{p.symbol}</td>
-            <td className="py-1">
-              <span className={`text-[9px] px-1 py-0.5 rounded ${p.side === "long" ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>
+    <div className="divide-y divide-ap-line/60 text-[11px]">
+      {positions.map(p => (
+        <div key={p.symbol} className="py-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-ap-ink-1 font-medium">{p.symbol}</span>
+              <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${p.side === "long" ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
                 {p.side.toUpperCase()}
               </span>
-            </td>
-            <td className="py-1 font-mono text-text-2">{p.qty}</td>
-            <td className="py-1 font-mono text-text-2">${p.avg_entry_price.toFixed(2)}</td>
-            <td className="py-1 font-mono text-text-2">${p.current_price.toFixed(2)}</td>
-            <td className={`py-1 font-mono px-1 font-bold ${p.unrealized_pl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+            </div>
+            <span className={`font-mono px-1 font-bold shrink-0 text-right ${p.unrealized_pl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
               {p.unrealized_pl >= 0 ? "+" : ""}${p.unrealized_pl.toFixed(2)}
-              <span className="text-text-3 ml-1 font-normal">({(p.unrealized_plpc * 100).toFixed(1)}%)</span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              <span className="text-ap-ink-3 ml-1 font-normal">({(p.unrealized_plpc * 100).toFixed(1)}%)</span>
+            </span>
+          </div>
+          <p className="text-ap-ink-3 font-mono mt-0.5">{p.qty}주 @ ${p.avg_entry_price.toFixed(2)} → ${p.current_price.toFixed(2)}</p>
+        </div>
+      ))}
+    </div>
   );
 }
 
 // ── Hyperliquid 포지션 인라인 ────────────────────────────────────────────────
 
 function HLPositions({ positions }: { positions: HLAssetPosition[] }) {
-  if (positions.length === 0) return <p className="text-text-3 text-xs">포지션 없음</p>;
+  if (positions.length === 0) return <p className="text-ap-ink-3 text-xs">포지션 없음</p>;
   return (
-    <table className="w-full text-[11px]">
-      <thead>
-        <tr className="text-text-3 text-[10px] border-b border-border">
-          {["코인", "방향", "수량", "진입가", "평가액", "미실현손익"].map(h => (
-            <th key={h} className="pb-1.5 text-left font-normal">{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {positions.map(p => {
-          const pos = p.position;
-          const szi = parseFloat(pos.szi);
-          const isLong = szi >= 0;
-          const pnl = parseFloat(pos.unrealizedPnl);
-          const roe = parseFloat(pos.returnOnEquity) * 100;
-          return (
-            <tr key={pos.coin} className="border-b border-border/30">
-              <td className="py-1 text-text-1 font-medium">{pos.coin}</td>
-              <td className="py-1">
-                <span className={`text-[9px] px-1 py-0.5 rounded ${isLong ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>
+    <div className="divide-y divide-ap-line/60 text-[11px]">
+      {positions.map(p => {
+        const pos = p.position;
+        const szi = parseFloat(pos.szi);
+        const isLong = szi >= 0;
+        const pnl = parseFloat(pos.unrealizedPnl);
+        const roe = parseFloat(pos.returnOnEquity) * 100;
+        return (
+          <div key={pos.coin} className="py-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-ap-ink-1 font-medium">{pos.coin}</span>
+                <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${isLong ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
                   {isLong ? "롱" : "숏"}
                 </span>
-              </td>
-              <td className="py-1 font-mono text-text-2">{Math.abs(szi)}</td>
-              <td className="py-1 font-mono text-text-2">{pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—"}</td>
-              <td className="py-1 font-mono text-text-2">${parseFloat(pos.positionValue).toFixed(2)}</td>
-              <td className={`py-1 font-mono px-1 font-bold ${pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+              </div>
+              <span className={`font-mono px-1 font-bold shrink-0 text-right ${pnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                 {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
-                <span className="text-text-3 ml-1 font-normal">({roe.toFixed(1)}%)</span>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                <span className="text-ap-ink-3 ml-1 font-normal">({roe.toFixed(1)}%)</span>
+              </span>
+            </div>
+            <p className="text-ap-ink-3 font-mono mt-0.5">
+              {Math.abs(szi)} @ {pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—"} · 평가액 ${parseFloat(pos.positionValue).toFixed(2)}
+            </p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 // ── KIS(한투) 보유종목 인라인 ─────────────────────────────────────────────────
 
 function KISHoldings({ holdings }: { holdings: KISHolding[] }) {
-  if (holdings.length === 0) return <p className="text-text-3 text-xs">보유 종목 없음</p>;
+  if (holdings.length === 0) return <p className="text-ap-ink-3 text-xs">보유 종목 없음</p>;
   return (
-    <table className="w-full text-[11px]">
-      <thead>
-        <tr className="text-text-3 text-[10px] border-b border-border">
-          {["종목", "수량", "평단가", "현재가", "평가손익"].map(h => (
-            <th key={h} className="pb-1.5 text-left font-normal">{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {holdings.map(h => (
-          <tr key={h.code} className="border-b border-border/30">
-            <td className="py-1 text-text-1 font-medium">{h.name}</td>
-            <td className="py-1 font-mono text-text-2">{h.qty}</td>
-            <td className="py-1 font-mono text-text-2">₩{h.avg_price.toLocaleString("ko-KR")}</td>
-            <td className="py-1 font-mono text-text-2">₩{h.current.toLocaleString("ko-KR")}</td>
-            <td className={`py-1 font-mono px-1 font-bold ${(h.return_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+    <div className="divide-y divide-ap-line/60 text-[11px]">
+      {holdings.map(h => (
+        <div key={h.code} className="py-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-ap-ink-1 font-medium min-w-0 truncate">{h.name}</span>
+            <span className={`font-mono px-1 font-bold shrink-0 text-right ${(h.return_pct ?? 0) >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
               {h.return_pct != null ? `${h.return_pct >= 0 ? "+" : ""}${h.return_pct.toFixed(1)}%` : "—"}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            </span>
+          </div>
+          <p className="text-ap-ink-3 font-mono mt-0.5">{h.qty}주 @ ₩{h.avg_price.toLocaleString("ko-KR")} → ₩{h.current.toLocaleString("ko-KR")}</p>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -214,40 +189,32 @@ function KISHoldings({ holdings }: { holdings: KISHolding[] }) {
 function LkgPaperDetail({ paper }: { paper: PaperState }) {
   const totalPnl = paper.closed.reduce((s, c) => s + c.pnl, 0);
   if (paper.positions.length === 0 && paper.closed.length === 0)
-    return <p className="text-text-3 text-xs">포지션 없음 — AI 업데이트 시 자동 진입</p>;
+    return <p className="text-ap-ink-3 text-xs">포지션 없음 — AI 업데이트 시 자동 진입</p>;
   return (
     <div className="space-y-3">
       {paper.positions.length > 0 && (
-        <table className="w-full text-[11px]">
-          <thead>
-            <tr className="text-text-3 text-[10px] border-b border-border">
-              {["종목", "방향", "진입가", "평가금액", "병목Δ"].map(h => (
-                <th key={h} className="pb-1.5 text-left font-normal">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paper.positions.map(p => (
-              <tr key={p.node_id} className="border-b border-border/30">
-                <td className="py-1 text-text-1 font-medium">{p.symbol}</td>
-                <td className="py-1">
-                  <span className={`text-[9px] px-1 py-0.5 rounded ${p.side === "BUY" ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>
+        <div className="divide-y divide-ap-line/60 text-[11px]">
+          {paper.positions.map(p => (
+            <div key={p.node_id} className="py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-ap-ink-1 font-medium">{p.symbol}</span>
+                  <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${p.side === "BUY" ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
                     {p.side}
                   </span>
-                </td>
-                <td className="py-1 font-mono text-text-2">${p.entry_price.toFixed(2)}</td>
-                <td className="py-1 font-mono text-text-2">${p.value.toLocaleString()}</td>
-                <td className={`py-1 font-mono px-1 font-bold ${p.score_delta > 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                </div>
+                <span className={`font-mono px-1 font-bold shrink-0 ${p.score_delta > 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                   {p.score_delta > 0 ? "+" : ""}{p.score_delta.toFixed(3)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+              </div>
+              <p className="text-ap-ink-3 font-mono mt-0.5">진입 ${p.entry_price.toFixed(2)} · 평가 ${p.value.toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
       )}
       {paper.closed.length > 0 && (
         <div className="pt-1">
-          <p className="text-text-3 text-[10px] mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
+          <p className="text-ap-ink-3 text-[10px] mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
         </div>
       )}
     </div>
@@ -260,13 +227,13 @@ function CcySection({ ccy, total, children }: { ccy: string; total: number | nul
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <span className="text-text-1 text-xs font-bold font-mono tracking-widest bg-panel-2 border border-border rounded px-2 py-1">
+        <span className="text-ap-ink-1 text-xs font-bold font-mono tracking-widest bg-ap-bg border border-ap-line rounded px-2 py-1">
           {ccy}
         </span>
         {total != null && (
-          <span className="text-accent text-base font-mono font-bold">{fmt(total, ccy)}</span>
+          <span className="text-ap-brand text-base font-mono font-bold">{fmt(total, ccy)}</span>
         )}
-        <div className="flex-1 h-px bg-border" />
+        <div className="flex-1 h-px bg-ap-line" />
       </div>
       <div className="space-y-2.5">{children}</div>
     </div>
@@ -276,6 +243,15 @@ function CcySection({ ccy, total, children }: { ccy: string; total: number | nul
 // ── Composition row (venue → currency 배분표, 표시만 · 실제 잔고 재사용) ──────
 
 interface CompositionRow { venue: string; ccy: string; balance: number; share: number }
+
+function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy: string }) {
+  return (
+    <div className="bg-ap-surface border border-ap-line rounded-xl p-3">
+      <p className="text-ap-ink-3 text-[10px] uppercase tracking-wide">{label}</p>
+      <p className="text-ap-ink-1 text-lg font-mono font-bold mt-1">{fmt(value, ccy)}</p>
+    </div>
+  );
+}
 
 // ── 계좌 현황 탭 ─────────────────────────────────────────────────────────────
 
@@ -352,7 +328,7 @@ function AccountsTab() {
 
   if (loading) return (
     <div className="py-12">
-      <LoadingState message="계좌 잔고 조회 중…" hint="브로커 6곳 순차 조회 — 5~10초 걸립니다" />
+      <LoadingState message="계좌 잔고 조회 중…" hint="브로커 6곳 순차 조회 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
     </div>
   );
 
@@ -360,10 +336,10 @@ function AccountsTab() {
     <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4 items-start">
       {/* LEFT — currency totals, quick nav */}
       <div className="space-y-3">
-        <FinancialMetric label="USD 합계" value={usdTotal} format="currency" precision={0} size="md" />
-        {krwTotal != null && <FinancialMetric label="KRW 합계" value={krwTotal} format="currency" precision={0} size="md" />}
-        {eurTotal != null && <FinancialMetric label="EUR 합계" value={eurTotal} format="currency" precision={0} size="md" />}
-        {usdcTotal != null && <FinancialMetric label="USDC 합계" value={usdcTotal} format="currency" precision={0} size="md" />}
+        <CcyTotalTile label="USD 합계" value={usdTotal} ccy="USD" />
+        {krwTotal != null && <CcyTotalTile label="KRW 합계" value={krwTotal} ccy="KRW" />}
+        {eurTotal != null && <CcyTotalTile label="EUR 합계" value={eurTotal} ccy="EUR" />}
+        {usdcTotal != null && <CcyTotalTile label="USDC 합계" value={usdcTotal} ccy="USDC" />}
       </div>
 
       {/* CENTER — account cards by currency, main workspace */}
@@ -395,7 +371,7 @@ function AccountsTab() {
             </AccountCard>
           ))}
           {krwAccounts.length === 0 && (
-            <p className="text-text-3 text-xs">{balancesPending ? "한투 잔고 조회 중… (최대 30초)" : "KRW 계좌 없음"}</p>
+            <p className="text-ap-ink-3 text-xs">{balancesPending ? "한투 잔고 조회 중… (최대 30초)" : "KRW 계좌 없음"}</p>
           )}
         </CcySection>
 
@@ -416,41 +392,38 @@ function AccountsTab() {
             </AccountCard>
           ))}
           {usdcAccounts.length === 0 && (
-            <p className="text-text-3 text-xs">{balancesPending ? "HL 잔고 조회 중…" : "Hyperliquid 계좌 없음"}</p>
+            <p className="text-ap-ink-3 text-xs">{balancesPending ? "HL 잔고 조회 중…" : "Hyperliquid 계좌 없음"}</p>
           )}
         </CcySection>
       </div>
 
       {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
-      <Panel>
-        <PanelHead kicker="구성" title="거래소별 분포" />
-        <div className="p-2">
+      <Card>
+        <CardHeader>거래소별 분포 <span className="text-ap-ink-3 text-[10px] font-normal">(구성)</span></CardHeader>
+        <div className="p-1">
           {compositionRows.length === 0 ? (
-            <p className="text-[var(--c-text-3)] text-xs p-2">연동 계좌 없음</p>
+            <p className="text-ap-ink-3 text-xs p-2">연동 계좌 없음</p>
           ) : (
-            <TerminalTable
-              dense
-              rows={compositionRows}
-              keyFn={(r) => `${r.venue}-${r.ccy}`}
-              defaultSort={{ key: "balance", dir: "desc" }}
-              columns={[
-                { key: "venue", label: "거래소" },
-                { key: "ccy", label: "통화" },
-                { key: "balance", label: "잔고", align: "r", sortable: true, render: (r) => fmt(r.balance, r.ccy, true) },
-                { key: "share", label: "비중", align: "r", sortable: true, render: (r) => (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Bar ratio={r.share} tone="bg-accent/70" />
-                    <span className="tabular-nums">{(r.share * 100).toFixed(1)}%</span>
+            <div className="divide-y divide-ap-line/60 text-[11px]">
+              {[...compositionRows].sort((a, b) => b.balance - a.balance).map(r => (
+                <div key={`${r.venue}-${r.ccy}`} className="flex items-center justify-between gap-2 px-2 py-1.5">
+                  <div className="min-w-0">
+                    <p className="text-ap-ink-1 truncate">{r.venue}</p>
+                    <p className="text-ap-ink-3">{r.ccy} · {fmt(r.balance, r.ccy, true)}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 shrink-0">
+                    <Bar ratio={r.share} tone="bg-ap-brand/70" trackClass="bg-ap-bg border-ap-line" />
+                    <span className="tabular-nums text-ap-ink-2">{(r.share * 100).toFixed(1)}%</span>
                   </span>
-                ) },
-              ]}
-            />
+                </div>
+              ))}
+            </div>
           )}
         </div>
-        <p className="px-3 pb-3 text-[10px] text-[var(--c-text-3)] leading-relaxed">
+        <p className="px-3 pb-3 text-[10px] text-ap-ink-3 leading-relaxed">
           통화 내 venue 잔고 구성비 · 손익 귀속(attribution)이 아닌 배분 현황 표시.
         </p>
-      </Panel>
+      </Card>
     </div>
   );
 }
@@ -471,11 +444,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  OPEN: "text-info bg-info/10 border-info/30",
-  PARTIALLY_FILLED: "text-warn bg-warn/10 border-warn/30",
-  FILLED: "text-pos bg-pos/10 border-pos/30",
-  CANCELLED: "text-text-3 bg-panel-2 border-border",
-  REJECTED: "text-neg bg-neg/10 border-neg/30",
+  OPEN: "text-ap-note bg-ap-note/10 border-ap-note/30",
+  PARTIALLY_FILLED: "text-ap-caution bg-ap-caution/10 border-ap-caution/30",
+  FILLED: "text-ap-up bg-ap-up/10 border-ap-up/30",
+  CANCELLED: "text-ap-ink-3 bg-ap-bg border-ap-line",
+  REJECTED: "text-ap-down bg-ap-down/10 border-ap-down/30",
 };
 
 function fmtTs(ts: string) {
@@ -511,35 +484,35 @@ function OrdersTab() {
 
   return (
     <div className="space-y-4 max-w-5xl">
-      <p className="text-text-3 text-sm">
+      <p className="text-ap-ink-3 text-sm">
         제출된 주문의 실시간 상태 · 부분체결 진행. 서버 프로세스 재시작 시 초기화됨(영구 기록은 <span className="font-data">/orders/audit</span>).
       </p>
 
-      <div className="flex gap-2 text-xs">
+      <div className="flex flex-wrap gap-2 text-xs">
         <SegmentedToggle
           value={venue}
           onChange={setVenue}
           size="sm"
           options={VENUES.map(v => ({ value: v, label: VENUE_LABEL[v] ?? v }))}
         />
-        <div className="w-px bg-border" />
-        <div className="flex gap-1">
+        <div className="w-px bg-ap-line" />
+        <div className="flex flex-wrap gap-1">
           {STATUSES.map(s => (
             <button key={s} onClick={() => setStatus(s)}
-              className={`px-2.5 py-1 rounded border ${status === s ? "border-accent text-accent bg-accent/10" : "border-border text-text-3 hover:text-text-1"}`}>
+              className={`px-2.5 py-1 rounded border ${status === s ? "border-ap-brand text-ap-brand bg-ap-brand/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-1"}`}>
               {STATUS_LABEL[s] ?? s}
             </button>
           ))}
         </div>
       </div>
 
-      {error ? <div className="text-neg text-sm bg-neg/10 border border-neg/30 rounded px-3 py-2">{error}</div>
-        : loading ? <LoadingState message="주문 상태 로딩 중…" />
-        : !orders || orders.length === 0 ? <EmptyState message="추적 중인 주문 없음" />
+      {error ? <div className="text-ap-down text-sm bg-ap-down/10 border border-ap-down/30 rounded px-3 py-2">{error}</div>
+        : loading ? <LoadingState message="주문 상태 로딩 중…" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
+        : !orders || orders.length === 0 ? <EmptyState message="추적 중인 주문 없음" textClass="text-ap-ink-3" />
         : (
-          <Panel>
-            <PanelHeader right={<span className="text-text-3">{orders.length}건</span>}>주문 목록</PanelHeader>
-            <div className="divide-y divide-border/50 text-sm">
+          <Card>
+            <CardHeader right={<span>{orders.length}건</span>}>주문 목록</CardHeader>
+            <div className="divide-y divide-ap-line/60 text-sm">
               {orders.map(o => {
                 const key = `${o.venue}:${o.order_id}`;
                 const total = o.filled + o.remaining;
@@ -548,29 +521,27 @@ function OrdersTab() {
                   <div key={key}>
                     <button
                       onClick={() => setExpanded(expanded === key ? null : key)}
-                      className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-panel-2"
+                      className="w-full px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-left hover:bg-ap-bg"
                     >
-                      <span className="text-text-3 w-24 shrink-0 font-data">{o.venue}</span>
-                      <span className="text-text-1 w-28 shrink-0 font-data truncate">{o.order_id}</span>
+                      <span className="text-ap-ink-3 shrink-0 font-data">{o.venue}</span>
+                      <span className="text-ap-ink-1 shrink-0 font-data truncate max-w-[8rem]">{o.order_id}</span>
                       <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
                         {STATUS_LABEL[o.status] ?? o.status}
                       </span>
-                      <div className="flex-1 h-1.5 bg-panel-2 rounded-full overflow-hidden">
-                        <div className="h-full bg-accent rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="flex-1 min-w-[80px] flex items-center gap-2">
+                        <Bar ratio={pct / 100} tone="bg-ap-brand" width="flex-1" trackClass="bg-ap-bg border-ap-line" />
+                        <span className="text-ap-ink-3 font-data shrink-0">{o.filled}/{total} ({pct}%)</span>
                       </div>
-                      <span className="text-text-3 font-data w-28 text-right shrink-0">
-                        {o.filled}/{total} ({pct}%)
-                      </span>
-                      <span className="text-text-3 font-data w-40 text-right shrink-0">{fmtTs(o.updated_ts)}</span>
+                      <span className="text-ap-ink-3 font-data shrink-0">{fmtTs(o.updated_ts)}</span>
                     </button>
                     {expanded === key && (
-                      <div className="px-4 pb-3 pl-[7.5rem]">
-                        <div className="text-text-3 text-[11px] mb-1">체결 이력 ({o.history.length}건)</div>
+                      <div className="px-4 pb-3 pl-8">
+                        <div className="text-ap-ink-3 text-[11px] mb-1">체결 이력 ({o.history.length}건)</div>
                         <div className="space-y-1">
                           {o.history.map((h, i) => (
-                            <div key={i} className="flex gap-3 font-data text-[11px] text-text-3">
-                              <span className="w-40 shrink-0">{fmtTs(h.ts)}</span>
-                              <span className={`w-28 shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
+                            <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-[11px] text-ap-ink-3">
+                              <span className="shrink-0">{fmtTs(h.ts)}</span>
+                              <span className={`shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
                               <span>{h.filled}/{h.filled + h.remaining}</span>
                             </div>
                           ))}
@@ -581,7 +552,7 @@ function OrdersTab() {
                 );
               })}
             </div>
-          </Panel>
+          </Card>
         )}
     </div>
   );
@@ -595,7 +566,7 @@ function fmtPnl(v: number) {
 }
 
 function pnlColor(v: number) {
-  return v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-text-3";
+  return v > 0 ? "text-ap-up" : v < 0 ? "text-ap-down" : "text-ap-ink-3";
 }
 
 function VenueCard({ v }: { v: VenuePnl }) {
@@ -614,45 +585,45 @@ function VenueCard({ v }: { v: VenuePnl }) {
   })();
 
   return (
-    <Panel>
-      <PanelHeader right={<span className="text-text-3">체결 {v.trades.length}건</span>}>{v.venue}</PanelHeader>
-      <div className="p-4 grid grid-cols-3 gap-4 text-sm border-b border-border/50">
+    <Card>
+      <CardHeader right={<span>체결 {v.trades.length}건</span>}>{v.venue}</CardHeader>
+      <div className="p-4 grid grid-cols-3 gap-4 text-sm border-b border-ap-line/60">
         <div>
-          <div className="text-text-3 text-xs mb-0.5">총 실현손익</div>
+          <div className="text-ap-ink-3 text-xs mb-0.5">총 실현손익</div>
           <div className={`font-data text-base ${pnlColor(v.gross_realized_pnl)}`}>{fmtPnl(v.gross_realized_pnl)}</div>
         </div>
         <div>
-          <div className="text-text-3 text-xs mb-0.5">수수료(설정값, 추정)</div>
-          <div className="font-data text-base text-text-2">-{v.fees.toFixed(2)}</div>
+          <div className="text-ap-ink-3 text-xs mb-0.5">수수료(설정값, 추정)</div>
+          <div className="font-data text-base text-ap-ink-2">-{v.fees.toFixed(2)}</div>
         </div>
         <div>
-          <div className="text-text-3 text-xs mb-0.5">순 실현손익</div>
+          <div className="text-ap-ink-3 text-xs mb-0.5">순 실현손익</div>
           <div className={`font-data text-base font-semibold ${pnlColor(v.net_realized_pnl)}`}>{fmtPnl(v.net_realized_pnl)}</div>
         </div>
       </div>
 
       {v.unpriced_fills > 0 && (
-        <div className="px-4 py-2 text-xs text-warn bg-warn/10 border-b border-warn/30">
+        <div className="px-4 py-2 text-xs text-ap-caution bg-ap-caution/10 border-b border-ap-caution/30">
           체결가 미확인 주문 {v.unpriced_fills}건 — 손익 계산에서 제외됨
         </div>
       )}
 
       {pnlCurve.length > 0 && (
-        <div className="p-3 border-b border-border/50">
-          <ChartFrame title="누적 실현손익 추이" caption="체결 원장 누적합(총액, 수수료 전)">
+        <div className="p-3 border-b border-ap-line/60">
+          <ChartFrame title="누적 실현손익 추이" caption="체결 원장 누적합(총액, 수수료 전)" textClass={AP_TEXT} legendTextClass={AP_LEGEND}>
             <TimeSeries series={pnlCurve} height={160} yFormat={(x) => x.toFixed(0)} />
           </ChartFrame>
         </div>
       )}
 
       {v.open_positions.length > 0 && (
-        <div className="px-4 py-3 border-b border-border/50">
-          <div className="text-text-3 text-xs mb-1.5">보유 포지션</div>
+        <div className="px-4 py-3 border-b border-ap-line/60">
+          <div className="text-ap-ink-3 text-xs mb-1.5">보유 포지션</div>
           <div className="space-y-1 text-sm font-data">
             {v.open_positions.map(p => (
-              <div key={p.symbol} className="flex gap-3 text-text-1">
+              <div key={p.symbol} className="flex gap-3 text-ap-ink-1">
                 <span className="w-24 shrink-0">{p.symbol}</span>
-                <span className="text-text-3">{p.qty} @ {p.avg_price}</span>
+                <span className="text-ap-ink-3">{p.qty} @ {p.avg_price}</span>
               </div>
             ))}
           </div>
@@ -660,27 +631,27 @@ function VenueCard({ v }: { v: VenuePnl }) {
       )}
 
       {v.trades.length > 0 && (
-        <div className="divide-y divide-border/50 text-sm">
+        <div className="divide-y divide-ap-line/60 text-sm">
           {v.trades.map((t, i) => (
-            <div key={i} className="px-4 py-2 flex items-center gap-3">
-              <span className="text-text-3 w-40 shrink-0 font-data">{fmtTs(t.ts)}</span>
-              <span className="text-text-1 w-24 shrink-0 font-data">{t.symbol}</span>
-              <span className={`w-12 shrink-0 font-data ${t.side === "buy" ? "text-pos" : "text-neg"}`}>{t.side}</span>
-              <span className="text-text-3 font-data w-20 shrink-0">{t.qty}주</span>
-              <span className="text-text-1 font-data w-24 shrink-0">
+            <div key={i} className="px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-ap-ink-3 shrink-0 font-data">{fmtTs(t.ts)}</span>
+              <span className="text-ap-ink-1 shrink-0 font-data">{t.symbol}</span>
+              <span className={`shrink-0 font-data ${t.side === "buy" ? "text-ap-up" : "text-ap-down"}`}>{t.side}</span>
+              <span className="text-ap-ink-3 font-data shrink-0">{t.qty}주</span>
+              <span className="text-ap-ink-1 font-data shrink-0">
                 {t.price}
                 {t.price_source === "estimated" && (
-                  <span className="ml-1 text-[10px] text-warn" title="브로커 체결가 미제공 — 주문가로 추정">추정</span>
+                  <span className="ml-1 text-[10px] text-ap-caution" title="브로커 체결가 미제공 — 주문가로 추정">추정</span>
                 )}
               </span>
-              <span className={`font-data flex-1 text-right ${t.realized_pnl == null ? "text-text-3" : pnlColor(t.realized_pnl)}`}>
+              <span className={`font-data flex-1 text-right ${t.realized_pnl == null ? "text-ap-ink-3" : pnlColor(t.realized_pnl)}`}>
                 {t.realized_pnl == null ? "—" : fmtPnl(t.realized_pnl)}
               </span>
             </div>
           ))}
         </div>
       )}
-    </Panel>
+    </Card>
   );
 }
 
@@ -707,14 +678,14 @@ function PnlTab() {
 
   return (
     <div className="space-y-4 max-w-5xl">
-      <p className="text-text-3 text-sm">
-        OMS 체결 기록 FIFO 매칭. KR 체결가는 브로커가 제공 안 해서 주문가로 추정 표시(<span className="text-warn">추정</span> 배지).
+      <p className="text-ap-ink-3 text-sm">
+        OMS 체결 기록 FIFO 매칭. KR 체결가는 브로커가 제공 안 해서 주문가로 추정 표시(<span className="text-ap-caution">추정</span> 배지).
         수수료는 실 브로커 커미션이 아니라 설정한 bps 추정값(<span className="font-data">PNL_FEE_BPS_*</span> 환경변수, 기본 0).
       </p>
 
-      {error ? <div className="text-neg text-sm bg-neg/10 border border-neg/30 rounded px-3 py-2">{error}</div>
-        : loading ? <LoadingState message="손익 계산 중…" />
-        : !venues || venues.length === 0 ? <EmptyState message="체결된 주문 없음" />
+      {error ? <div className="text-ap-down text-sm bg-ap-down/10 border border-ap-down/30 rounded px-3 py-2">{error}</div>
+        : loading ? <LoadingState message="손익 계산 중…" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
+        : !venues || venues.length === 0 ? <EmptyState message="체결된 주문 없음" textClass="text-ap-ink-3" />
         : <div className="space-y-4">{venues.map(v => <VenueCard key={v.venue} v={v} />)}</div>}
     </div>
   );
@@ -726,21 +697,24 @@ export default function PortfolioPage() {
   const [tab, setTab] = useState<Tab>("accounts");
 
   return (
-    <div className="min-h-full">
-      <PageHeader kicker="계좌현황 · 주문 · 손익" title="포트폴리오"
-        right={
-          <SegmentedToggle
-            value={tab}
-            onChange={setTab}
-            size="sm"
-            options={[
-              { value: "accounts", label: "계좌 현황" },
-              { value: "orders", label: "주문" },
-              { value: "pnl", label: "손익" },
-              { value: "optimizer", label: "최적화 도구" },
-            ]}
-          />
-        } />
+    <div className="min-h-full bg-ap-bg">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 flex-wrap px-5 py-3 border-b border-ap-line bg-ap-bg/85 backdrop-blur">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-ap-ink-3 text-[9px] font-semibold tracking-[0.24em] uppercase">계좌현황 · 주문 · 손익</span>
+          <span className="text-ap-ink-1 text-[13px] font-semibold tracking-wide">포트폴리오</span>
+        </div>
+        <SegmentedToggle
+          value={tab}
+          onChange={setTab}
+          size="sm"
+          options={[
+            { value: "accounts", label: "계좌 현황" },
+            { value: "orders", label: "주문" },
+            { value: "pnl", label: "손익" },
+            { value: "optimizer", label: "최적화 도구" },
+          ]}
+        />
+      </header>
 
       <div className="p-5">
         {tab === "accounts" && <AccountsTab />}
@@ -749,17 +723,17 @@ export default function PortfolioPage() {
 
         {tab === "optimizer" && (
           <div className="max-w-2xl mx-auto">
-            <UiPanel className="mb-4">
-              <PanelHeader>교육용 · 실전 배분 아님</PanelHeader>
+            <Card className="mb-4">
+              <CardHeader>교육용 · 실전 배분 아님</CardHeader>
               <div className="p-4">
-                <p className="text-text-2 text-xs leading-relaxed">
+                <p className="text-ap-ink-2 text-xs leading-relaxed">
                   마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
                   실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
                 </p>
               </div>
-            </UiPanel>
+            </Card>
             <a href="/portfolio/optimizer"
-              className="block text-center py-3 border border-border rounded-xl text-text-3 text-sm hover:text-text-2 hover:border-text-3 transition-colors">
+              className="block text-center py-3 border border-ap-line rounded-xl text-ap-ink-3 text-sm hover:text-ap-ink-2 hover:border-ap-ink-3 transition-colors">
               최적화 도구 열기 →
             </a>
           </div>

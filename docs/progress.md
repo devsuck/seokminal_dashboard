@@ -1,3 +1,97 @@
+## Phase 226 — 콘솔 라우트 6개 ap- 전환 (CSS 변수 스코프 확장) (2026-08-23) ✅ SHIPPED (커밋 대기)
+
+### 배경
+Phase 225 완료 후 유저 질문 "디자인 토큰이 좀 디자인이 다른데. 통일을 해야할 것 같은데" → grep 조사로 원인이 `(console)` 라우트그룹의 6개 라이브 페이지(CommandRail에서 실제 링크되는 것만: `quant/validation`, `research-os/{pipeline,validation,chat,governance}`, `investment-os`)가 여전히 다크 테마임을 특정, 보고. 유저 재질문 "그러면 이거 지금 앱화 된거라고 말하고싶은거야?"에 미완료 항목 정직하게 나열. 유저 지시: "6개 콘솔 라우트도 ap- 전환해줘".
+
+### 완료된 작업
+- **접근 방식 전환**: 기존 9라우트는 하드코딩 Tailwind 클래스(`bg-panel` 등)라 파일별 find/replace가 필요했지만, 이번 6라우트 + 공유 컴포넌트(`components/console/primitives.tsx`, `widgets.tsx`)는 전부 `var(--c-*)` CSS 커스텀 프로퍼티만 사용(하드코딩 Tailwind 색상 클래스 0건, grep 확인) — 페이지/컴포넌트 JSX를 전혀 건드리지 않고 CSS 변수 스코프 확장만으로 전환 가능하다고 판단
+- `app/globals.css`의 `.rail-ap` 스코프 블록 확장: 기존엔 `--c-bg/panel/panel-2/border/text-1/2/3/hud/warn`만 라이트로 리매핑했는데 `--c-panel-3`(Meter 트랙 배경), `--c-border-2`, `--c-blue`, `--c-emerald`, `--c-pos`, `--c-neg`, `--c-info` 7개 변수 추가 매핑. `--c-pos`→`--color-ap-up`, `--c-neg`→`--color-ap-down`, `--c-blue`/`--c-info`→`--color-ap-note`, `--c-emerald`→`--color-ap-up`(다크 팔레트에서 emerald==pos가 동일 hex였던 관계를 그대로 유지)
+- `app/(console)/layout.tsx` 수정: 기존엔 `<>{children}</>` pass-through였던 걸 `<div className="rail-ap min-h-full bg-[var(--c-bg)]">{children}</div>`로 변경 — `(console)` 라우트그룹 전체(6개 라이브 라우트 + CommandRail에 안 걸린 22개 레거시/고아 페이지, investment-os 5탭 통합 이전의 잔재)에 스코프 적용. `bg-[var(--c-bg)]` 명시 배경 페인트가 핵심: `.console-shell`이 자기 스코프의 `--c-bg`(하드코딩 다크 hex)로 그라디언트 배경을 직접 페인트하기 때문에, 자식 요소의 `.rail-ap` 변수 오버라이드만으로는 그 배경까지 안 가려짐(CSS 커스텀 프로퍼티는 하위로만 캐스케이드) — 각 페이지 루트가 자체 불투명 배경이 없어 이 파란 배경을 페이지 콘텐츠 뒤로 그대로 비쳐 보이는 문제였음
+- 파일 수정은 위 2개뿐 — 6개 페이지 파일, `primitives.tsx`, `widgets.tsx` 전부 무수정
+
+### 변경된 파일
+`app/globals.css`, `app/(console)/layout.tsx`
+
+### 막힌 부분/결정사항 (rulings)
+- **범위 판단**: 유저가 말한 "6개"는 CommandRail에 실제 링크된 라이브 라우트만 지칭(나머지 22개는 investment-os 5탭 통합 이전 레거시/고아 페이지, `docs/step4/dashboard_migration_map.md` 참고). 하지만 스코프를 `(console)` 레이아웃 전체에 건 건 의도적 — 어차피 순수 CSS 변수 리매핑이라 22개 고아 페이지까지 같이 밝아져도 리스크 0(JSX 무변경, 아무도 안 쓰는 페이지라 회귀 여지 없음), 파일 단위로 쪼개서 6개만 스코프 걸 마땅한 지점이 없었음(각 페이지 개별 wrapper 없음)
+- **오탐 조사**: `app/hud/page.tsx`(Phase 222/223에서 이미 "전환 완료" 표시됨)가 다크 전용 `components/terminal/ResearchStatus.tsx`를 쓰고 있어 다크 누출 아닌가 의심했으나, grep 재확인 결과 실제 사용처 없음(첫 grep이 `AutoResearchStatus`라는 무관한 타입명에 대한 오탐이었음) — `components/terminal/*` 전체가 죽은 코드(소비처 0)로 확인, 조치 불필요
+- `.c-panel-2` 클래스가 `research-os/pipeline/page.tsx:724`에서 쓰이는데 `globals.css`에 정의가 없는 기존 버그 발견 — 이번 스코프 밖, 미수정(원래도 스타일 미적용 상태였을 것, 이번 작업으로 악화 안 됨)
+
+### 검증
+`npx tsc --noEmit` 클린, `npm test` 29 files / 319 tests 전부 통과(수정 전과 동일). 브라우저 육안 확인 6/6 완료(데스크톱 폭): `investment-os`, `research-os/pipeline`, `research-os/chat`, `research-os/validation`, `research-os/governance`, `quant/validation` — 전부 배경·패널·텍스트·뱃지(pos 초록/neg 빨강/warn 주황/info 파랑)가 ap- 라이트 톤으로 정상 렌더, 다크 배경 비침 없음, CommandRail과 시각적으로 통일됨 확인. 각 페이지에 뜨는 `백엔드 연결 실패: Failed to fetch`는 API 서버(uvicorn) 미기동으로 인한 기존 현상(회귀 아님).
+
+### 다음 할 일
+- 커밋 대기 — Phase 224~226 미커밋분 전부 번들 예정, 유저 확인 필요
+- 아이폰 실기기 또는 DevTools 디바이스 모드로 전체 라우트 최종 확인 여전히 미완(Phase 225부터 이어지는 이슈)
+- `.env.local` 터널 URL, `next.config.ts` `allowedDevOrigins` 하드코딩 — 여전히 미해결
+- `.c-panel-2` 미정의 클래스 버그(`research-os/pipeline/page.tsx:724`) — 우선순위 낮음, 필요시 후속 조치
+- 이번 건으로 다크 테마 라우트는 전부 소진(라이브 라우트 기준) — "앱화" 관점에서 남은 건 실기기 모바일 검증 + 커밋뿐
+
+---
+
+## Phase 225 — 잔여 9라우트 라이트 전환 + 모바일 하단 탭바 (2026-08-22) ✅ SHIPPED (커밋 대기)
+
+### 배경
+유저 지시: "다른 페이지들(다트,카피트레이,리스크가드 등) 전부 작업 안되어있네. 작업해주고. 그리고 아이폰으로 볼 때에는(해당 해상도에서는) 하단 바처럼 기존 앱 UI에 충실하게 해줘." Phase 222~224로 `/hud`·`/agents`·`/polymarket`만 전환된 상태 — 남은 9라우트 일괄 전환 + 아이폰 폭 네이티브 탭바 패턴 신규 구축. 브레인스토밍 게이트 생략, 7개 fork subagent 병렬 디스패치로 직접 실행.
+
+### 완료된 작업
+- **9라우트 ap- 전환**(fork 7개 병렬, 파일당 1~2개 담당): `copytrade`, `dart-auto`, `infra`, `mlb`, `orderflow`, `performance`, `portfolio`, `risk-guard`, `vrp` — Phase 222 확립한 매핑 그대로(`bg-panel`→`bg-ap-surface`, `text-text-*`→`text-ap-ink-*`, `Panel/PanelHeader`→`Card/CardHeader` 등)
+- `risk-guard/page.tsx`는 공유 다크 HUD 프리미티브(`components/console/primitives.tsx`/`widgets.tsx`, 미전환 콘솔 페이지들과 공유)를 건드리지 않기 위해 페이지 자체를 `Card`/`CardHeader`/`Bar`/`EmptyState`/`LoadingState`로 직접 재작성
+- **모바일 하단 탭바 신규 구축**: `CommandRail.tsx`를 `hidden md:flex`로 데스크톱 전용 전환(구식 JS 기반 접기 로직 삭제), `ALL_GROUPS` export, 신규 `BottomTabBar.tsx`(md:hidden, 홈/오더플로우/포트폴리오/에이전트 4탭 고정 + "더보기" 시트로 전체 라우트) 신규 작성, `app/layout.tsx`에 마운트 + `<main>` `pb-14 md:pb-0`
+- `EdgeReportCard.tsx`(mlb+performance fork가 단일 소비처(`app/mlb/page.tsx`)로 지목, 후속 조치로 컨트롤러 직접 전환) — `Panel/PanelHeader`→`Card/CardHeader`, 전 테이블·뱃지·BH-FDR 섹션 ap- 토큰화. `Heatmap.tsx`/`NullDistribution.tsx`는 `TOKEN.*` 전용이라 무수정 유지(차트 색상 예외 규칙)
+
+### 변경된 파일
+`app/{copytrade,dart-auto,infra,mlb,orderflow,performance,portfolio,risk-guard,vrp}/page.tsx`, `components/console/CommandRail.tsx`, `components/console/BottomTabBar.tsx`(신규), `app/layout.tsx`, `components/charts/EdgeReportCard.tsx`
+
+### 막힌 부분/결정사항 (rulings)
+- **버그 발견·수정(커밋 전)**: fork가 재작성한 `BottomTabBar.tsx`가 `var(--c-panel)`/`var(--c-border)`/`var(--c-text-3)`를 `.rail-ap` 스코프 없이 직접 사용 — 이 변수들은 `.rail-ap` 클래스 안에서만 라이트 값으로 리매핑되고 밖에서는 다크 베이스값(`--c-panel: #0A0F16` 등)으로 해석됨. `<nav>`와 "더보기" 시트 backdrop `<div>`에 `rail-ap` 클래스 추가해 수정 — 브라우저 검증 전에 diff 리뷰로 선제 발견
+- 공유 콘솔 프리미티브(`primitives.tsx`/`widgets.tsx`) 자체를 ap-화하는 건 이번 스코프 밖으로 명시 배제 — 아직 다크인 콘솔 페이지들이 있어 건드리면 그쪽이 깨짐. 후속 phase 후보로만 기록
+- **모바일 실측 불가**: `resize_window`(390x844)·`window.resizeTo()` 둘 다 시도했으나 `window.innerWidth`가 계속 데스크톱 폭(1300)으로 나와 실제 뷰포트가 안 바뀜 — 이 환경(Chrome MCP 확장) 자체 한계로 재확인(Phase 224에서도 동일 현상). 코드 레벨 검증(`hidden md:flex`/`md:hidden`, 768px 브레이크포인트가 기존 코드베이스 컨벤션과 일치)으로 대체, 아이폰 실기기/DevTools 수동 확인은 유저 몫으로 남김
+- `/copytrade`·`/dart-auto`·`/orderflow`·`/performance`·`/risk-guard`·`/vrp`에서 보이는 `TypeError: Failed to fetch`는 백엔드(uvicorn) 미기동으로 인한 기존 현상 — 이번 전환으로 생긴 회귀 아님(콘솔 확인 결과 JS 에러/워닝 없음, 순수 네트워크 실패)
+
+### 검증
+`npx tsc --noEmit` 클린, `npm test` 29 files / 319 tests 전부 통과. `grep` 스윕으로 9개 전환 파일 전부 잔여 다크 토큰·`Panel`/`PanelHeader` import 없음 확인, `w-16`류 고정폭 오버플로 버그 재발 없음 확인. 브라우저 육안 확인 9/9 완료(전부 데스크톱 폭, 라이트 테마 정상·다크 토큰 누출 없음) — `read_console_messages`로 JS 에러/워닝 없음 확인.
+- **재검증 라운드(같은 세션, fork 완료 후 최종 확인)**: `tsc`/`npm test` 재실행 동일 결과(클린/319 통과). `resize_window` 재시도 재실패 확인(`innerWidth` 여전히 1300 고정, 환경 한계 재확인) → CSS 강제 오버라이드(`.console-rail{display:none}`+`nav.rail-ap{display:flex}`)로 모바일 상태 시뮬레이션해 `portfolio`/`infra`/`orderflow` 3곳 스크린샷 확인: `CommandRail` 정상 숨김, `BottomTabBar` 라이트 테마로 정상 렌더(4탭+더보기, active 탭 하이라이트 정상), 다크 토큰 누출 없음. `document.body.scrollWidth === document.documentElement.clientWidth`(1300=1300)로 3페이지 전부 가로 오버플로 없음 확인. 단, 이 시뮬레이션은 네비만 강제 전환한 것이라 실제 768px 이하에서의 페이지 콘텐츠 리플로우(그리드·테이블 등)까지 검증한 건 아님 — 진짜 좁은 뷰포트 리플로우 확인은 여전히 실기기/DevTools 몫.
+
+### 다음 할 일
+- 커밋 대기 — Phase 224(polymarket) 미커밋분과 함께 번들 예정, 유저 확인 필요
+- 아이폰 실기기 또는 Chrome DevTools 디바이스 모드로 `BottomTabBar` 실제 렌더링 최종 확인 필요(코드 검증만 완료, 실측 미완)
+- `.env.local` 터널 URL(Phase 224부터 이어지는 이슈), `next.config.ts` `allowedDevOrigins` 하드코딩 — 여전히 미해결
+- 공유 콘솔 프리미티브(`primitives.tsx`/`widgets.tsx`) ap- 화는 아직 미착수 — 필요해지면 후속 phase
+
+---
+
+## Phase 224 — /polymarket 라이트 미니멀 전환 (2026-08-22) ✅ SHIPPED (커밋 대기)
+
+### 배경
+Phase 222/223 후속. "결국 모바일로 본다"가 최종 목표라 유저가 명시적으로 브레인스토밍 게이트 생략하고 바로 실행 지시 — Autopilot 앱 UI를 참고해 `/polymarket`(다각화 배스킷 봇 + 샤프월렛 컨버전스 봇 + 고래 리더보드)을 라이트 `ap-` 토큰 + 모바일 안전 레이아웃으로 전면 재작성.
+
+### 완료된 작업
+- `app/polymarket/page.tsx` 전면 재작성 — `Panel`/`PanelHeader`→`Card`/`CardHeader`, 레거시 다크 토큰 전량 `ap-` 매핑, 얇은 상태바 3~4개를 `Card` 1개 내부 `border-t border-ap-line` 섹션으로 통합
+- `<table>` 3곳(다각화봇 포지션·샤프월렛 포지션·고래 리더보드) 전부 `divide-y` 스택 리스트로 전환 — `app/agents/page.tsx` 트레이드로그 선례 따름, 가로 스크롤 없이 전 너비에서 렌더
+- 공유 컴포넌트에 override prop 추가(`SegmentedToggle.inactiveClass` 선례 따름, 기본값 불변이라 미전환 라우트 무영향): `EmptyState.textClass`, `LoadingState`/`Spinner`(`textClass`/`spinnerClass`), `ChartFrame`(`textClass`/`legendTextClass`), `Bar.trackClass`, `FreshnessBar.trackClass`(패스스루)
+- `BarChart.tsx`는 polymarket 단독 소비 확인(grep) 후 오버라이드 prop 없이 직접 `ap-` 전환
+- 토스트 알림 모바일 오버플로 수정(`left-4 sm:left-auto`)
+- **버그 발견·수정**: 고래 리더보드 스택 리스트의 거래량 열(`w-16 text-right`)이 `$1,835,428,000`류 큰 값에 비해 고정폭이 너무 좁아 페이지 전체 가로 스크롤 유발 — 브라우저 실측(가로 스크롤해서 우측 잘린 값 확인)으로 발견, `w-16` 제거로 자연폭 사용하게 수정
+
+### 변경된 파일
+`app/polymarket/page.tsx`, `components/ui/EmptyState.tsx`, `components/ui/LoadingState.tsx`, `components/charts/ChartFrame.tsx`, `components/ui/Bar.tsx`, `components/ui/FreshnessBar.tsx`, `components/charts/BarChart.tsx`
+
+### 막힌 부분/결정사항 (rulings)
+- `lib/chart-colors.ts`의 `TOKEN.*` 리터럴 hex와 `lib/edge-labels.ts`의 `pos`/`neg`/`warn`은 스코프 밖 유지 — `TOKEN`은 앱 전역 ~20개 차트 컴포넌트 공유(이미 전환된 `agents/page.tsx`도 그대로 씀), `edge-labels`는 미전환 `/edges` 라우트와 공유하며 테마 중립 토큰이라 안전
+- PNL 추이 차트(`TimeSeries`, lightweight-charts 위젯)는 자체 다크 캔버스 유지 — 위 `TOKEN` 예외와 동일 사유, 버그 아님
+- `.env.local`의 `NEXT_PUBLIC_API_URL`이 임시 Cloudflare 터널 URL로 남아있음, `next.config.ts`의 `allowedDevOrigins`도 특정 터널 호스트네임 하드코딩 — 이번 phase 스코프 밖이라 미수정, 터널 재시작하면 다시 깨짐(다음 세션에서 확인 필요)
+
+### 검증
+`npx tsc --noEmit` 클린, `npm test` 29 files / 319 tests 전부 통과. 브라우저 육안 확인: 전체 페이지 스크롤 통과(전략·수집기 현황 / 다각화 배스킷 봇 / PNL 차트 / 보유 포지션 / 봇 실행 로그 / 샤프월렛 컨버전스 봇 / 고래 리더보드) — 라이트 테마 정상, 다크 토큰 누출 없음, 가로 스크롤 버그 수정 후 재확인 완료. 콘솔 에러/워닝 없음.
+
+### 다음 할 일
+- 아직 커밋 안 함 — 유저 확인 후 `main`에 직접 커밋 예정(이전 세션의 미커밋 변경분 `CommandRail.tsx` 모바일 collapse fix, `next.config.ts` `allowedDevOrigins` 추가도 함께 번들 예정)
+- 미전환 나머지 라우트(`portfolio`, `copytrade` 등) 라이트 전환은 다음 phase 대상 — 아직 유저 지시 없음
+- `.env.local` 터널 URL 원복 여부(`http://127.0.0.1:8000`으로) 유저 확인 필요
+
+---
+
 ## Phase 223 — 미니멀 밀도 리디자인 + PWA화 (2026-08-22) ✅ SHIPPED
 
 ### 배경

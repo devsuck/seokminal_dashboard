@@ -7,15 +7,15 @@ import {
   type TraderCard, type CopyPosition,
 } from "@/lib/api";
 import { EmptyState, LoadingState, Button } from "@/components/ui";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Card, CardHeader } from "@/components/ui/Card";
 
 const NOTIONAL_KEY = "copytrade-notional";
 const TOTAL_BUDGET_KEY = "copytrade-total-budget";
 
 // 이름 → 안정적 색상 (아바타 배경)
 const AVATAR_COLORS = [
-  "bg-info/20 text-info", "bg-pos/20 text-pos", "bg-accent/20 text-accent",
-  "bg-warn/20 text-warn", "bg-neg/20 text-neg",
+  "bg-ap-note/20 text-ap-note", "bg-ap-up/20 text-ap-up", "bg-ap-brand/20 text-ap-brand",
+  "bg-ap-caution/20 text-ap-caution", "bg-ap-down/20 text-ap-down",
 ];
 function colorFor(name: string): string {
   let h = 0;
@@ -167,42 +167,42 @@ export default function CopyTradePage() {
     );
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 bg-ap-bg min-h-full">
       <div>
-        <h1 className="text-text-1 text-lg font-semibold">카피트레이드 오토파일럿</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          의회·내부자의 <span className="text-text-2">공개 매수</span>를 매수자별로 묶어 트랙레코드 표시. 거래일 종가로 진입했다 가정한 현재 수익률. 팔로우하면 그 포트폴리오를 <span className="text-warn">페이퍼</span>로 복제. <span className="text-text-3">(공시 지연 有 — 검증용)</span>
+        <h1 className="text-ap-ink-1 text-lg font-semibold">카피트레이드 오토파일럿</h1>
+        <p className="text-ap-ink-3 text-sm mt-0.5">
+          의회·내부자의 <span className="text-ap-ink-2">공개 매수</span>를 매수자별로 묶어 트랙레코드 표시. 거래일 종가로 진입했다 가정한 현재 수익률. 팔로우하면 그 포트폴리오를 <span className="text-ap-caution">페이퍼</span>로 복제. <span className="text-ap-ink-3">(공시 지연 有 — 검증용)</span>
         </p>
       </div>
 
-      <div className="flex items-center gap-3 bg-panel border border-border rounded-lg px-4 py-3 flex-wrap">
-        <label className="text-text-3 text-xs">총 팔로우 예산</label>
+      <div className="flex items-center gap-3 bg-ap-surface border border-ap-line rounded-lg px-4 py-3 flex-wrap">
+        <label className="text-ap-ink-3 text-xs">총 팔로우 예산</label>
         <div className="relative">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">$</span>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ap-ink-3 text-sm font-data">$</span>
           <input value={totalBudget}
             onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setTotalBudget(v); localStorage.setItem(TOTAL_BUDGET_KEY, v); }}
-            inputMode="decimal" className="w-28 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+            inputMode="decimal" className="w-28 bg-ap-bg border border-ap-line rounded pl-6 pr-2.5 py-1.5 text-ap-ink-1 text-sm font-data outline-none focus:border-ap-brand" />
         </div>
-        <span className="text-text-3 text-[11px]">팔로우 = 이 총액을 보유 종목 수로 나눠 각각 페이퍼 매수 (종목 수와 무관하게 총액 고정)</span>
+        <span className="text-ap-ink-3 text-[11px]">팔로우 = 이 총액을 보유 종목 수로 나눠 각각 페이퍼 매수 (종목 수와 무관하게 총액 고정)</span>
 
         <div className="flex items-center gap-1.5">
-          <label className="text-text-3 text-xs">개별 미러 금액</label>
+          <label className="text-ap-ink-3 text-xs">개별 미러 금액</label>
           <div className="relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-3 text-sm font-data">$</span>
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ap-ink-3 text-sm font-data">$</span>
             <input value={notional}
               onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setNotional(v); localStorage.setItem(NOTIONAL_KEY, v); }}
-              inputMode="decimal" className="w-24 bg-panel-2 border border-border rounded pl-6 pr-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+              inputMode="decimal" className="w-24 bg-ap-bg border border-ap-line rounded pl-6 pr-2.5 py-1.5 text-ap-ink-1 text-sm font-data outline-none focus:border-ap-brand" />
           </div>
         </div>
 
         <div className="flex items-center gap-2 ml-auto flex-wrap">
           {/* 이름 검색 */}
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름 검색 (예: Pelosi)"className="w-44 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-xs outline-none focus:border-accent" />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="이름 검색 (예: Pelosi)"className="w-44 bg-ap-bg border border-ap-line rounded px-2.5 py-1.5 text-ap-ink-1 text-xs outline-none focus:border-ap-brand" />
           {/* 정렬 */}
-          <div className="flex rounded overflow-hidden border border-border">
+          <div className="flex rounded overflow-hidden border border-ap-line">
             {([["return", "수익률순"], ["recent", "최신순"]] as const).map(([v, label]) => (
               <button key={v} onClick={() => setSortBy(v)}
-                className={`px-3 py-1.5 text-xs ${sortBy === v ? "bg-accent/15 text-accent" : "bg-panel-2 text-text-3 hover:text-text-2"}`}>
+                className={`px-3 py-1.5 text-xs ${sortBy === v ? "bg-ap-brand/15 text-ap-brand" : "bg-ap-bg text-ap-ink-3 hover:text-ap-ink-2"}`}>
                 {label}
               </button>
             ))}
@@ -213,33 +213,33 @@ export default function CopyTradePage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
         {/* 트레이더 카드 그리드 */}
         <div>
-          {error ? <EmptyState message="트레이더 로드 실패" hint={error} />
-            : loading ? <LoadingState message="수익률 계산 중… (거래일 종가 조회)" />
-            : traders.length === 0 ? <EmptyState message="트레이더 없음" />
-            : shown.length === 0 ? <EmptyState message="검색 결과 없음" hint={`"${query}"`} />
+          {error ? <EmptyState message="트레이더 로드 실패" hint={error} textClass="text-ap-ink-3" />
+            : loading ? <LoadingState message="수익률 계산 중… (거래일 종가 조회)" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
+            : traders.length === 0 ? <EmptyState message="트레이더 없음" textClass="text-ap-ink-3" />
+            : shown.length === 0 ? <EmptyState message="검색 결과 없음" hint={`"${query}"`} textClass="text-ap-ink-3" />
             : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {shown.map(t => {
                   const key = t.source + t.name;
                   const isOpen = expanded === key;
                   return (
-                    <div key={key} className="bg-panel border border-border rounded-lg p-4">
+                    <div key={key} className="bg-ap-surface border border-ap-line rounded-lg p-4">
                       <div className="flex items-start gap-3">
                         <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-semibold font-data shrink-0 ${colorFor(t.name)}`}>
                           {t.initials}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-text-1 text-sm font-medium truncate">{t.name}</span>
-                            <span className="text-[9px] px-1 py-0.5 rounded border border-border text-text-3 shrink-0">
+                            <span className="text-ap-ink-1 text-sm font-medium truncate">{t.name}</span>
+                            <span className="text-[9px] px-1 py-0.5 rounded border border-ap-line text-ap-ink-3 shrink-0">
                               {t.source === "congress" ? " 의회" : " 내부자"}
                             </span>
                           </div>
-                          <div className="text-text-3 text-[11px] truncate">{t.role ?? "—"}</div>
+                          <div className="text-ap-ink-3 text-[11px] truncate">{t.role ?? "—"}</div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className={`inline-block text-lg font-data font-bold leading-none px-1 rounded ${t.avg_return_pct == null ? "text-text-3" : t.avg_return_pct > 0 ? "bg-pos/20 text-pos" : t.avg_return_pct < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>{retStr(t.avg_return_pct)}</div>
-                          <div className="text-text-3 text-[10px] mt-0.5">{t.num_buys}종목</div>
+                          <div className={`inline-block text-lg font-data font-bold leading-none px-1 rounded ${t.avg_return_pct == null ? "text-ap-ink-3" : t.avg_return_pct > 0 ? "bg-ap-up/20 text-ap-up" : t.avg_return_pct < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>{retStr(t.avg_return_pct)}</div>
+                          <div className="text-ap-ink-3 text-[10px] mt-0.5">{t.num_buys}종목</div>
                         </div>
                       </div>
 
@@ -248,13 +248,13 @@ export default function CopyTradePage() {
                         {(isOpen ? t.holdings : t.holdings.slice(0, 3)).map(h => (
                           <div key={h.ticker} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-data text-accent font-semibold w-14 shrink-0 no-underline hover:underline">{h.ticker}</span>
-                              <span className="text-text-3 font-data text-[10px]">{h.date}</span>
+                              <span className="font-data text-ap-brand font-semibold shrink-0 no-underline hover:underline">{h.ticker}</span>
+                              <span className="text-ap-ink-3 font-data text-[10px]">{h.date}</span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className={`font-data px-1 font-bold ${h.return_pct == null ? "text-text-3" : h.return_pct > 0 ? "bg-pos/20 text-pos" : h.return_pct < 0 ? "bg-neg/20 text-neg" : "text-text-2"}`}>{retStr(h.return_pct)}</span>
+                              <span className={`font-data px-1 font-bold ${h.return_pct == null ? "text-ap-ink-3" : h.return_pct > 0 ? "bg-ap-up/20 text-ap-up" : h.return_pct < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-2"}`}>{retStr(h.return_pct)}</span>
                               <button onClick={() => mirrorOne(h.ticker)} disabled={busy === h.ticker}
-                                className="text-[10px] px-1.5 py-0.5 rounded border border-border text-text-3 hover:text-pos hover:border-pos/40 disabled:opacity-40">
+                                className="text-[10px] px-1.5 py-0.5 rounded border border-ap-line text-ap-ink-3 hover:text-ap-up hover:border-ap-up/40 disabled:opacity-40">
                                 미러
                               </button>
                             </div>
@@ -262,7 +262,7 @@ export default function CopyTradePage() {
                         ))}
                         {t.holdings.length > 3 && (
                           <button onClick={() => setExpanded(isOpen ? null : key)}
-                            className="text-text-3 text-[10px] hover:text-text-2">
+                            className="text-ap-ink-3 text-[10px] hover:text-ap-ink-2">
                             {isOpen ? "접기" : `+${t.holdings.length - 3}개 더`}
                           </button>
                         )}
@@ -279,66 +279,66 @@ export default function CopyTradePage() {
         </div>
 
         {/* 내 페이퍼 포트폴리오 */}
-        <Panel className="h-fit">
-          <PanelHeader right={
-            <span className={totalPl >= 0 ? "text-pos" : "text-neg"}>
+        <Card className="h-fit">
+          <CardHeader right={
+            <span className={totalPl >= 0 ? "text-ap-up" : "text-ap-down"}>
               {totalPl >= 0 ? "+" : ""}${totalPl.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           }>
             내 페이퍼 포트폴리오
-          </PanelHeader>
+          </CardHeader>
           {/* 자동청산 규칙 — TP/SL 넘으면 자동 매도, 예산 회수 */}
-          <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 flex-wrap">
+          <div className="px-4 py-2.5 border-b border-ap-line flex items-center gap-2 flex-wrap">
             <button onClick={toggleAutoExit}
               title="서버 상시 루프 — 브라우저를 닫아도 계속 동작"
-              className={`text-[11px] px-2.5 py-1 rounded border ${autoExit ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
+              className={`text-[11px] px-2.5 py-1 rounded border ${autoExit ? "border-ap-up text-ap-up bg-ap-up/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-2"}`}>
               {autoExit ? "● 자동청산 ON (서버)" : "자동청산 OFF"}
             </button>
-            <label className="text-text-3 text-[10px]">익절%</label>
+            <label className="text-ap-ink-3 text-[10px]">익절%</label>
             <input value={tpPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setTpPct(v); }}
               onBlur={e => saveTpSl({ tp: e.target.value })}
-              inputMode="decimal" className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 text-xs font-data outline-none focus:border-accent" />
-            <label className="text-text-3 text-[10px]">손절%</label>
+              inputMode="decimal" className="w-12 bg-ap-bg border border-ap-line rounded px-1.5 py-1 text-ap-ink-1 text-xs font-data outline-none focus:border-ap-brand" />
+            <label className="text-ap-ink-3 text-[10px]">손절%</label>
             <input value={slPct} onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setSlPct(v); }}
               onBlur={e => saveTpSl({ sl: e.target.value })}
-              inputMode="decimal" className="w-12 bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 text-xs font-data outline-none focus:border-accent" />
-            {botLastRun && <span className="text-text-3 text-[10px]" title={botLastRun}>마지막 실행 {new Date(botLastRun).toLocaleTimeString()}</span>}
+              inputMode="decimal" className="w-12 bg-ap-bg border border-ap-line rounded px-1.5 py-1 text-ap-ink-1 text-xs font-data outline-none focus:border-ap-brand" />
+            {botLastRun && <span className="text-ap-ink-3 text-[10px]" title={botLastRun}>마지막 실행 {new Date(botLastRun).toLocaleTimeString()}</span>}
             <button onClick={runAutoExit}
-              className="text-[10px] px-2 py-1 rounded border border-border text-text-3 hover:text-accent hover:border-accent ml-auto">
+              className="text-[10px] px-2 py-1 rounded border border-ap-line text-ap-ink-3 hover:text-ap-brand hover:border-ap-brand ml-auto">
               지금 적용
             </button>
           </div>
           {positions.length === 0 ? (
-            <div className="p-6"><EmptyState message="보유 없음" hint="트레이더를 팔로우하면 여기 표시" /></div>
+            <div className="p-6"><EmptyState message="보유 없음" hint="트레이더를 팔로우하면 여기 표시" textClass="text-ap-ink-3" /></div>
           ) : (
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-ap-line/60">
               {positions.map(p => (
                 <div key={p.ticker} className="px-4 py-2.5 flex items-center justify-between gap-2">
                   <div>
-                    <div className="font-data text-text-1 text-sm font-semibold">{p.ticker}</div>
-                    <div className="text-text-3 text-[10px] font-data">{p.qty.toFixed(4)}주 · 평단 ${p.avg_price.toFixed(2)}</div>
+                    <div className="font-data text-ap-ink-1 text-sm font-semibold">{p.ticker}</div>
+                    <div className="text-ap-ink-3 text-[10px] font-data">{p.qty.toFixed(4)}주 · 평단 ${p.avg_price.toFixed(2)}</div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-data text-sm px-1 font-bold ${p.unrealized_pl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                    <div className={`font-data text-sm px-1 font-bold ${p.unrealized_pl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                       {p.unrealized_pl >= 0 ? "+" : ""}${p.unrealized_pl.toFixed(2)}
                     </div>
-                    <div className={`text-[10px] font-data px-1 font-bold ${p.unrealized_plpc >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                    <div className={`text-[10px] font-data px-1 font-bold ${p.unrealized_plpc >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                       {p.unrealized_plpc >= 0 ? "+" : ""}{p.unrealized_plpc.toFixed(2)}%
                     </div>
                   </div>
                   <button onClick={() => closeOne(p.ticker)} disabled={busy === `close:${p.ticker}`}
-                    className="text-[10px] px-2 py-1 rounded border border-neg/30 text-neg hover:bg-neg/10 disabled:opacity-40 shrink-0">
+                    className="text-[10px] px-2 py-1 rounded border border-ap-down/30 text-ap-down hover:bg-ap-down/10 disabled:opacity-40 shrink-0">
                     청산
                   </button>
                 </div>
               ))}
             </div>
           )}
-        </Panel>
+        </Card>
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-panel border border-border rounded-lg px-4 py-2.5 text-sm text-text-1 shadow-lg z-50">
+        <div className="fixed bottom-6 left-4 sm:left-auto right-6 bg-ap-surface border border-ap-line rounded-ap-lg px-4 py-2.5 text-sm text-ap-ink-1 shadow-ap-md z-50">
           {toast}
         </div>
       )}

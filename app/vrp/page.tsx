@@ -6,7 +6,7 @@ import {
   type VrpBotStatus,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
-import { Panel, PanelHeader } from "@/components/ui/Panel";
+import { Card, CardHeader } from "@/components/ui/Card";
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
@@ -69,32 +69,32 @@ export default function VrpPage() {
   const on = bot?.enabled ?? false;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="min-h-full bg-ap-bg p-6 space-y-4">
       <div>
-        <h1 className="text-text-1 text-lg font-semibold">VRP 아이언 콘도어 옵션 봇</h1>
-        <p className="text-text-3 text-sm mt-0.5">
-          IV(내재변동성)가 RV(실현변동성)보다 구조적으로 비쌀 때 <span className="text-pos">아이언 콘도어</span>(숏 스트랭글 + 보호용 윙)로 프리미엄을 판다.
-          IB API는 포지션별 마진을 조회할 수 없어 <span className="text-warn">네이키드 숏은 쓰지 않고</span>, 윙 폭에서 크레딧을 뺀 최대손실을 사전 계산해 리스크 게이트를 건다. <span className="text-warn">Paper 전용</span> — 15분 지연 시세.
+        <h1 className="text-ap-ink-1 text-lg font-semibold">VRP 아이언 콘도어 옵션 봇</h1>
+        <p className="text-ap-ink-3 text-sm mt-0.5">
+          IV(내재변동성)가 RV(실현변동성)보다 구조적으로 비쌀 때 <span className="text-ap-up">아이언 콘도어</span>(숏 스트랭글 + 보호용 윙)로 프리미엄을 판다.
+          IB API는 포지션별 마진을 조회할 수 없어 <span className="text-ap-caution">네이키드 숏은 쓰지 않고</span>, 윙 폭에서 크레딧을 뺀 최대손실을 사전 계산해 리스크 게이트를 건다. <span className="text-ap-caution">Paper 전용</span> — 15분 지연 시세.
         </p>
       </div>
 
-      <div className="bg-panel border border-border rounded-lg px-4 py-3 flex items-center gap-3 flex-wrap">
+      <div className="bg-ap-surface border border-ap-line rounded-lg px-4 py-3 flex items-center gap-3 flex-wrap">
         <button onClick={toggleBot}
-          className={`text-sm font-medium px-4 py-1.5 rounded border ${on ? "border-pos text-pos bg-pos/10" : "border-border text-text-3 hover:text-text-2"}`}>
+          className={`text-sm font-medium px-4 py-1.5 rounded border ${on ? "border-ap-up text-ap-up bg-ap-up/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-2"}`}>
           {on ? "● 서버 자동봇 ON" : "서버 자동봇 OFF"}
         </button>
         <div className="flex items-center gap-1.5">
-          <label className="text-text-3 text-xs">감시 종목</label>
+          <label className="text-ap-ink-3 text-xs">감시 종목</label>
           <input value={symbols} onChange={e => setSymbols(e.target.value)} onBlur={saveSymbols}
             placeholder="SPY, QQQ"
-            className="w-40 bg-panel-2 border border-border rounded px-2.5 py-1.5 text-text-1 text-sm font-data outline-none focus:border-accent" />
+            className="w-40 bg-ap-bg border border-ap-line rounded px-2.5 py-1.5 text-ap-ink-1 text-sm font-data outline-none focus:border-ap-brand" />
         </div>
         <button onClick={runNow} disabled={busy}
-          className="text-xs px-3 py-1.5 rounded border border-border text-text-3 hover:text-accent disabled:opacity-40">
+          className="text-xs px-3 py-1.5 rounded border border-ap-line text-ap-ink-3 hover:text-ap-brand disabled:opacity-40">
           {busy ? "실행중…" : "지금 실행"}
         </button>
         {bot && (
-          <div className="flex items-center gap-3 text-[11px] text-text-3 ml-auto flex-wrap">
+          <div className="flex items-center gap-3 text-[11px] text-ap-ink-3 ml-auto flex-wrap">
             <span>마지막 실행 {fmtTime(bot.last_run)}</span>
             <span>주기 {Math.round(bot.interval_sec / 60)}분</span>
           </div>
@@ -102,17 +102,17 @@ export default function VrpPage() {
       </div>
 
       {bot && (
-        <div className="bg-panel border border-border rounded-lg px-4 py-2.5 flex items-center gap-3 flex-wrap text-[11px]">
-          <span className="text-text-3">누적 최대손실 예약 <span className="text-text-1 font-data">${Math.round(bot.spent).toLocaleString()}</span></span>
-          <span className={`font-data px-1 font-bold ${bot.realized_pnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+        <div className="bg-ap-surface border border-ap-line rounded-lg px-4 py-2.5 flex items-center gap-3 flex-wrap text-[11px]">
+          <span className="text-ap-ink-3">누적 최대손실 예약 <span className="text-ap-ink-1 font-data">${Math.round(bot.spent).toLocaleString()}</span></span>
+          <span className={`font-data px-1 font-bold ${bot.realized_pnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
             실현손익 {bot.realized_pnl >= 0 ? "+" : ""}${bot.realized_pnl.toLocaleString()}
           </span>
         </div>
       )}
 
       {bot && (
-        <div className="bg-panel border border-border rounded-lg px-4 py-3 flex items-center gap-3 flex-wrap text-[11px]">
-          <span className="text-text-2 font-semibold shrink-0">진입/청산 규칙</span>
+        <div className="bg-ap-surface border border-ap-line rounded-lg px-4 py-3 flex items-center gap-3 flex-wrap text-[11px]">
+          <span className="text-ap-ink-2 font-semibold shrink-0">진입/청산 규칙</span>
           {[
             { key: "target_dte_min", label: "최소 DTE", val: bot.target_dte_min, w: "w-12" },
             { key: "target_dte_max", label: "최대 DTE", val: bot.target_dte_max, w: "w-12" },
@@ -126,69 +126,63 @@ export default function VrpPage() {
             { key: "contracts", label: "계약수", val: bot.contracts, w: "w-12" },
           ].map(f => (
             <span key={f.key} className="flex items-center gap-1">
-              <label className="text-text-3">{f.label}</label>
+              <label className="text-ap-ink-3">{f.label}</label>
               <input defaultValue={f.step ? f.val.toFixed(2) : Math.round(f.val)} inputMode="decimal"
                 onBlur={e => {
                   const raw = parseFloat(e.target.value);
                   if (Number.isNaN(raw)) return;
                   saveField(f.key, f.pct ? raw / 100 : raw);
                 }}
-                className={`${f.w} bg-panel-2 border border-border rounded px-1.5 py-1 text-text-1 font-data outline-none focus:border-accent`} />
+                className={`${f.w} bg-ap-bg border border-ap-line rounded px-1.5 py-1 text-ap-ink-1 font-data outline-none focus:border-ap-brand`} />
             </span>
           ))}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
-        <Panel>
-          <PanelHeader right={<span>{bot?.positions.length ?? 0}건</span>}>보유 콘도어</PanelHeader>
-          {error ? <div className="p-2"><EmptyState message="상태 로드 실패" hint={error} /></div>
-            : loading ? <LoadingState message="VRP 봇 상태 로딩 중…" />
-            : !bot || bot.positions.length === 0 ? <EmptyState message="보유 포지션 없음" hint="VRP 조건 충족 시 자동 진입" />
+        <Card>
+          <CardHeader right={<span>{bot?.positions.length ?? 0}건</span>}>보유 콘도어</CardHeader>
+          {error ? <div className="p-2"><EmptyState message="상태 로드 실패" hint={error} textClass="text-ap-ink-3" /></div>
+            : loading ? <LoadingState message="VRP 봇 상태 로딩 중…" textClass="text-ap-ink-3" />
+            : !bot || bot.positions.length === 0 ? <EmptyState message="보유 포지션 없음" hint="VRP 조건 충족 시 자동 진입" textClass="text-ap-ink-3" />
             : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-text-3 text-[11px] border-b border-border">
-                    <th className="text-left font-medium px-3 py-2">종목</th>
-                    <th className="text-left font-medium px-3 py-2">만기</th>
-                    <th className="text-left font-medium px-3 py-2">레그</th>
-                    <th className="text-right font-medium px-3 py-2">크레딧</th>
-                    <th className="text-right font-medium px-3 py-2">최대손실</th>
-                    <th className="text-right font-medium px-3 py-2">진입VRP%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bot.positions.map((p, i) => (
-                    <tr key={`${p.symbol}:${p.expiry}:${i}`} className="border-b border-border/50 hover:bg-panel-2">
-                      <td className="px-3 py-2 text-text-1 font-data">{p.symbol}</td>
-                      <td className="px-3 py-2 text-text-3 font-data text-xs">{p.expiry}</td>
-                      <td className="px-3 py-2 text-text-3 text-[10px] font-data">
+              <div className="divide-y divide-ap-line/60">
+                {bot.positions.map((p, i) => (
+                  <div key={`${p.symbol}:${p.expiry}:${i}`} className="px-3 py-2.5 text-sm flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-ap-ink-1 font-data font-semibold">{p.symbol}</span>
+                        <span className="text-ap-ink-3 font-data text-xs">{p.expiry}</span>
+                      </div>
+                      <div className="text-ap-ink-3 text-[10px] font-data mt-0.5 truncate">
                         {p.legs.map(l => `${l.side === "BUY" ? "+" : "-"}${l.strike}${l.right}`).join(" ")}
-                      </td>
-                      <td className="px-3 py-2 text-right text-pos font-data">${p.credit_received.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right text-neg font-data">${p.max_loss.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right text-text-2 font-data">{p.entry_vrp_pct.toFixed(0)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 font-data text-xs space-y-0.5">
+                      <div className="text-ap-up">+${p.credit_received.toLocaleString()}</div>
+                      <div className="text-ap-down">−${p.max_loss.toLocaleString()}</div>
+                      <div className="text-ap-ink-2">{p.entry_vrp_pct.toFixed(0)}%</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-        </Panel>
+        </Card>
 
-        <Panel>
-          <PanelHeader>봇 실행 로그</PanelHeader>
+        <Card>
+          <CardHeader>봇 실행 로그</CardHeader>
           {!bot || bot.log.length === 0 ? (
-            <div className="p-5"><EmptyState message="로그 없음" hint="봇이 진입/청산하면 기록됨" /></div>
+            <div className="p-5"><EmptyState message="로그 없음" hint="봇이 진입/청산하면 기록됨" textClass="text-ap-ink-3" /></div>
           ) : (
-            <div className="divide-y divide-border/50 max-h-[420px] overflow-y-auto">
+            <div className="divide-y divide-ap-line/60 max-h-[420px] overflow-y-auto">
               {bot.log.map((l, i) => (
                 <div key={i} className="px-4 py-2 text-xs flex items-start gap-2">
-                  <span className="text-text-3 font-data text-[10px] shrink-0 w-16">{fmtTime(l.ts as string)}</span>
-                  <span className="min-w-0 text-text-3">
-                    {l.kind === "entry" ? <span className="text-pos">진입 {String(l.symbol)} 크레딧 ${Number(l.credit_received ?? 0).toLocaleString()}</span>
-                      : l.kind === "exit" ? <span className="text-info">청산 {String(l.symbol)} ({String(l.reason ?? "")}) 손익 ${Number(l.pnl ?? 0).toLocaleString()}</span>
-                      : l.kind === "risk_block" ? <span className="text-warn">리스크 차단 — {String(l.msg ?? "")}</span>
-                      : l.kind === "entry_fail" || l.kind === "exit_fail" || l.kind === "unwind_fail" ? <span className="text-neg">실패 ({l.kind}) — {String(l.msg ?? "")}</span>
+                  <span className="text-ap-ink-3 font-data text-[10px] shrink-0 w-16">{fmtTime(l.ts as string)}</span>
+                  <span className="min-w-0 text-ap-ink-3">
+                    {l.kind === "entry" ? <span className="text-ap-up">진입 {String(l.symbol)} 크레딧 ${Number(l.credit_received ?? 0).toLocaleString()}</span>
+                      : l.kind === "exit" ? <span className="text-ap-note">청산 {String(l.symbol)} ({String(l.reason ?? "")}) 손익 ${Number(l.pnl ?? 0).toLocaleString()}</span>
+                      : l.kind === "risk_block" ? <span className="text-ap-caution">리스크 차단 — {String(l.msg ?? "")}</span>
+                      : l.kind === "entry_fail" || l.kind === "exit_fail" || l.kind === "unwind_fail" ? <span className="text-ap-down">실패 ({l.kind}) — {String(l.msg ?? "")}</span>
                       : l.kind === "config" ? "설정 변경"
                       : String(l.kind)}
                   </span>
@@ -196,11 +190,11 @@ export default function VrpPage() {
               ))}
             </div>
           )}
-        </Panel>
+        </Card>
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-panel border border-border rounded-lg px-4 py-2.5 text-sm text-text-1 shadow-lg z-50">
+        <div className="fixed bottom-6 left-4 sm:left-auto right-4 sm:right-6 bg-ap-surface border border-ap-line rounded-lg px-4 py-2.5 text-sm text-ap-ink-1 shadow-lg z-50">
           {toast}
         </div>
       )}

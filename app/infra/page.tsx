@@ -297,39 +297,39 @@ export default function InfraGraphPage() {
     .sort((a, b) => b.bottleneck_score - a.bottleneck_score) ?? [];
 
   return (
-    <div className="flex flex-col h-full bg-bg overflow-hidden">
+    <div className="flex flex-col h-full bg-ap-bg overflow-hidden">
       {/* 헤더 */}
-      <div className="shrink-0 px-5 py-3 border-b border-border flex items-center justify-between">
+      <div className="shrink-0 px-5 py-3 border-b border-ap-line flex items-center justify-between">
         <div>
-          <h1 className="text-text-1 font-semibold text-sm">
-            <span className="text-accent">살아있는</span> 지식 그래프
-            <span className="text-text-3 text-xs ml-2 font-normal">AI 인프라 공급망 · 자동 업데이트</span>
+          <h1 className="text-ap-ink-1 font-semibold text-sm">
+            <span className="text-ap-brand">살아있는</span> 지식 그래프
+            <span className="text-ap-ink-3 text-xs ml-2 font-normal">AI 인프라 공급망 · 자동 업데이트</span>
           </h1>
-          {lastUpdate && <p className="text-text-3 text-[10px] mt-0.5">마지막 업데이트: {lastUpdate} · 업데이트 #{graph?.meta.update_count ?? 0}</p>}
+          {lastUpdate && <p className="text-ap-ink-3 text-[10px] mt-0.5">마지막 업데이트: {lastUpdate} · 업데이트 #{graph?.meta.update_count ?? 0}</p>}
         </div>
         <div className="flex items-center gap-2">
           {/* AI 업데이트 버튼 */}
           <div className="relative">
             <button onClick={() => setShowLog(v => !v)}
-              className="text-[11px] px-2 py-1 rounded border border-border text-text-3 hover:text-text-1 flex items-center gap-1">
+              className="text-[11px] px-2 py-1 rounded border border-ap-line text-ap-ink-3 hover:text-ap-ink-1 flex items-center gap-1">
               로그 {updateStatus ? `#${updateStatus.update_count}` : ""}
               {showLog ? " ▲" : " ▼"}
             </button>
             {showLog && updateStatus && (
-              <div className="fixed right-4 top-[52px] z-50 w-80 bg-panel border border-border rounded-lg shadow-xl p-3 text-[11px] space-y-1.5">
+              <div className="fixed right-4 top-[52px] z-50 w-80 bg-ap-surface border border-ap-line rounded-lg shadow-xl p-3 text-[11px] space-y-1.5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-text-3 uppercase tracking-wider text-[10px]">업데이트 로그</span>
-                  <span className={`text-[10px] ${updateStatus.running ? "text-warn animate-pulse" : "text-text-3"}`}>
+                  <span className="text-ap-ink-3 uppercase tracking-wider text-[10px]">업데이트 로그</span>
+                  <span className={`text-[10px] ${updateStatus.running ? "text-ap-caution animate-pulse" : "text-ap-ink-3"}`}>
                     {updateStatus.running ? "🤖 AI 분석 중…" : "대기"}
                   </span>
                 </div>
                 {updateStatus.recent_log.length === 0 && (
-                  <p className="text-text-3">아직 AI 업데이트 없음.</p>
+                  <p className="text-ap-ink-3">아직 AI 업데이트 없음.</p>
                 )}
                 {updateStatus.recent_log.map((l, i) => (
-                  <div key={i} className="border-b border-border pb-1.5">
-                    <p className="text-text-3 text-[9px]">{new Date(l.ts).toLocaleString("ko-KR")}</p>
-                    <p className="text-text-2">{l.summary}</p>
+                  <div key={i} className="border-b border-ap-line pb-1.5">
+                    <p className="text-ap-ink-3 text-[9px]">{new Date(l.ts).toLocaleString("ko-KR")}</p>
+                    <p className="text-ap-ink-2">{l.summary}</p>
                   </div>
                 ))}
               </div>
@@ -338,32 +338,32 @@ export default function InfraGraphPage() {
           <button
             onClick={handleAiUpdate}
             disabled={aiUpdating || updateStatus?.running}
-            className="text-[11px] px-3 py-1 rounded border border-info/40 text-info hover:bg-info/10 disabled:opacity-40 flex items-center gap-1">
+            className="text-[11px] px-3 py-1 rounded border border-ap-note/40 text-ap-note hover:bg-ap-note/10 disabled:opacity-40 flex items-center gap-1">
             {(aiUpdating || updateStatus?.running) ? (
-              <><span className="w-1.5 h-1.5 rounded-full bg-info animate-pulse" />AI 분석 중…</>
+              <><span className="w-1.5 h-1.5 rounded-full bg-ap-note animate-pulse" />AI 분석 중…</>
             ) : "🤖 AI 업데이트"}
           </button>
           <button onClick={handleReset} disabled={resetting}
-            className="text-[11px] px-3 py-1 rounded border border-border text-text-3 hover:text-text-1 hover:border-text-3 disabled:opacity-40">
+            className="text-[11px] px-3 py-1 rounded border border-ap-line text-ap-ink-3 hover:text-ap-ink-1 hover:border-ap-ink-3 disabled:opacity-40">
             {resetting ? "초기화 중…" : "시드 초기화"}
           </button>
-          <div className="w-2 h-2 rounded-full bg-pos animate-pulse" title="라이브" />
+          <div className="w-2 h-2 rounded-full bg-ap-up animate-pulse" title="라이브" />
         </div>
       </div>
 
       <div className="flex flex-1 min-h-0">
         {/* 좌측 필터 + 병목 랭킹 */}
-        <div className="w-52 shrink-0 border-r border-border flex flex-col overflow-y-auto">
+        <div className="w-52 shrink-0 border-r border-ap-line flex flex-col overflow-y-auto">
           {/* 섹터 필터 */}
-          <div className="p-3 border-b border-border">
-            <p className="text-text-3 text-[10px] uppercase tracking-wider mb-2">섹터 필터</p>
+          <div className="p-3 border-b border-ap-line">
+            <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider mb-2">섹터 필터</p>
             <button onClick={() => setFilterSector(null)}
-              className={`w-full text-left text-[11px] px-2 py-1 rounded mb-1 ${!filterSector ? "bg-accent/15 text-accent" : "text-text-3 hover:text-text-2"}`}>
+              className={`w-full text-left text-[11px] px-2 py-1 rounded mb-1 ${!filterSector ? "bg-ap-brand/15 text-ap-brand" : "text-ap-ink-3 hover:text-ap-ink-2"}`}>
               전체 보기
             </button>
             {sectors.map(s => (
               <button key={s} onClick={() => setFilterSector(s === filterSector ? null : s)}
-                className={`w-full text-left text-[11px] px-2 py-1 rounded flex items-center gap-2 ${filterSector === s ? "bg-panel-2 text-text-1" : "text-text-3 hover:text-text-2"}`}>
+                className={`w-full text-left text-[11px] px-2 py-1 rounded flex items-center gap-2 ${filterSector === s ? "bg-ap-bg text-ap-ink-1" : "text-ap-ink-3 hover:text-ap-ink-2"}`}>
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: sectorColor(s) }} />
                 {SECTOR_LABEL[s] ?? s}
               </button>
@@ -372,15 +372,15 @@ export default function InfraGraphPage() {
 
           {/* 병목 TOP 랭킹 */}
           <div className="p-3 flex-1">
-            <p className="text-text-3 text-[10px] uppercase tracking-wider mb-2">병목 TOP</p>
+            <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider mb-2">병목 TOP</p>
             {bottleneckNodes.slice(0, 8).map(n => (
               <button key={n.id} onClick={() => setSelected(prev => prev?.id === n.id ? null : n)}
-                className={`w-full text-left mb-1.5 px-2 py-1.5 rounded border text-[11px] transition-colors ${selected?.id === n.id ? "border-accent/50 bg-accent/5" : "border-border hover:border-text-3"}`}>
+                className={`w-full text-left mb-1.5 px-2 py-1.5 rounded border text-[11px] transition-colors ${selected?.id === n.id ? "border-ap-brand/50 bg-ap-brand/5" : "border-ap-line hover:border-ap-ink-3"}`}>
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-text-1 font-medium truncate">{n.label}</span>
-                  <span className="text-neg font-data text-[10px] shrink-0">{(n.bottleneck_score * 100).toFixed(0)}</span>
+                  <span className="text-ap-ink-1 font-medium truncate">{n.label}</span>
+                  <span className="text-ap-down font-data text-[10px] shrink-0">{(n.bottleneck_score * 100).toFixed(0)}</span>
                 </div>
-                <div className="h-1 mt-1 rounded-full bg-panel-2 overflow-hidden">
+                <div className="h-1 mt-1 rounded-full bg-ap-bg overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${n.bottleneck_score * 100}%`, background: n.bottleneck_score > 0.85 ? TOKEN.neg : n.bottleneck_score > 0.7 ? TOKEN.accent : TOKEN.warn }} />
                 </div>
               </button>
@@ -391,39 +391,39 @@ export default function InfraGraphPage() {
         {/* 메인 그래프 캔버스 */}
         <div className="flex-1 relative min-w-0">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center text-text-3 text-sm">
+            <div className="absolute inset-0 flex items-center justify-center text-ap-ink-3 text-sm">
               그래프 로딩 중…
             </div>
           )}
           <svg ref={svgRef} className="w-full h-full" />
 
           {/* 범례 */}
-          <div className="absolute bottom-3 left-3 bg-panel/90 border border-border rounded-lg p-2.5 text-[10px] space-y-1">
-            <p className="text-text-3 uppercase tracking-wider mb-1.5">범례</p>
+          <div className="absolute bottom-3 left-3 bg-ap-surface/90 border border-ap-line rounded-lg p-2.5 text-[10px] space-y-1">
+            <p className="text-ap-ink-3 uppercase tracking-wider mb-1.5">범례</p>
             {Object.entries(SECTOR_LABEL).map(([s, l]) => (
               <div key={s} className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: sectorColor(s) }} />
-                <span className="text-text-3">{l}</span>
+                <span className="text-ap-ink-3">{l}</span>
               </div>
             ))}
-            <div className="border-t border-border pt-1 mt-1 space-y-0.5">
-              <div className="flex items-center gap-1.5"><span className="text-neg">─</span><span className="text-text-3">병목 엣지</span></div>
-              <div className="flex items-center gap-1.5"><span className="text-text-3">- -</span><span className="text-text-3">일반 엣지</span></div>
-              <div className="flex items-center gap-1.5"><span className="text-text-3">···</span><span className="text-text-3">경쟁 관계(무방향)</span></div>
-              <div className="flex items-center gap-1.5"><span className="text-text-3 font-data">원 크기</span><span className="text-text-3">= 병목 스코어</span></div>
+            <div className="border-t border-ap-line pt-1 mt-1 space-y-0.5">
+              <div className="flex items-center gap-1.5"><span className="text-ap-down">─</span><span className="text-ap-ink-3">병목 엣지</span></div>
+              <div className="flex items-center gap-1.5"><span className="text-ap-ink-3">- -</span><span className="text-ap-ink-3">일반 엣지</span></div>
+              <div className="flex items-center gap-1.5"><span className="text-ap-ink-3">···</span><span className="text-ap-ink-3">경쟁 관계(무방향)</span></div>
+              <div className="flex items-center gap-1.5"><span className="text-ap-ink-3 font-data">원 크기</span><span className="text-ap-ink-3">= 병목 스코어</span></div>
             </div>
           </div>
         </div>
 
         {/* 우측 노드 상세 패널 */}
         {selected && (
-          <div className="w-64 shrink-0 border-l border-border overflow-y-auto p-4 space-y-3">
+          <div className="w-64 shrink-0 border-l border-ap-line overflow-y-auto p-4 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-text-1 font-semibold text-sm">{selected.label}</h2>
-                <p className="text-text-3 text-[10px] mt-0.5">{selected.country} · {SECTOR_LABEL[selected.sector] ?? selected.sector}</p>
+                <h2 className="text-ap-ink-1 font-semibold text-sm">{selected.label}</h2>
+                <p className="text-ap-ink-3 text-[10px] mt-0.5">{selected.country} · {SECTOR_LABEL[selected.sector] ?? selected.sector}</p>
               </div>
-              <button onClick={() => setSelected(null)} className="text-text-3 hover:text-text-1 text-lg leading-none">×</button>
+              <button onClick={() => setSelected(null)} className="text-ap-ink-3 hover:text-ap-ink-1 text-lg leading-none">×</button>
             </div>
 
             {/* 데이터 출처/신뢰도 (#7) — AI 추정치 vs 확인된 사실 구분 */}
@@ -433,31 +433,31 @@ export default function InfraGraphPage() {
                   {SOURCE_LABEL[selected.source] ?? selected.source}
                 </span>
                 {selected.confidence != null && (
-                  <span className="text-text-3">신뢰도 {(selected.confidence * 100).toFixed(0)}%</span>
+                  <span className="text-ap-ink-3">신뢰도 {(selected.confidence * 100).toFixed(0)}%</span>
                 )}
               </div>
             )}
 
             {/* 재무/밸류에이션 (#1) */}
             {selected.financials && (
-              <div className="bg-panel-2 rounded p-2.5 text-[10px] space-y-1">
-                <p className="text-text-3 uppercase tracking-wider mb-1">밸류에이션</p>
+              <div className="bg-ap-bg rounded p-2.5 text-[10px] space-y-1">
+                <p className="text-ap-ink-3 uppercase tracking-wider mb-1">밸류에이션</p>
                 <div className="grid grid-cols-2 gap-1">
-                  <span className="text-text-3">시가총액</span>
-                  <span className="text-text-1 font-data text-right">
+                  <span className="text-ap-ink-3">시가총액</span>
+                  <span className="text-ap-ink-1 font-data text-right">
                     {selected.financials.market_cap_usd_m != null ? `$${(selected.financials.market_cap_usd_m / 1000).toFixed(1)}B` : "—"}
                   </span>
-                  <span className="text-text-3">포워드 PER</span>
-                  <span className="text-text-1 font-data text-right">
+                  <span className="text-ap-ink-3">포워드 PER</span>
+                  <span className="text-ap-ink-1 font-data text-right">
                     {selected.financials.pe_ttm != null ? selected.financials.pe_ttm.toFixed(1) : "—"}
                   </span>
-                  <span className="text-text-3">매출성장률(YoY)</span>
-                  <span className={`font-data text-right px-1 font-bold ${(selected.financials.revenue_growth_yoy_pct ?? 0) >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                  <span className="text-ap-ink-3">매출성장률(YoY)</span>
+                  <span className={`font-data text-right px-1 font-bold ${(selected.financials.revenue_growth_yoy_pct ?? 0) >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                     {selected.financials.revenue_growth_yoy_pct != null ? `${selected.financials.revenue_growth_yoy_pct.toFixed(1)}%` : "—"}
                   </span>
                 </div>
                 {selected.financials.as_of && (
-                  <p className="text-text-3 text-[9px] pt-0.5">기준: {new Date(selected.financials.as_of).toLocaleString("ko-KR")}</p>
+                  <p className="text-ap-ink-3 text-[9px] pt-0.5">기준: {new Date(selected.financials.as_of).toLocaleString("ko-KR")}</p>
                 )}
               </div>
             )}
@@ -465,12 +465,12 @@ export default function InfraGraphPage() {
             {/* 병목 스코어 */}
             <div>
               <div className="flex justify-between text-[10px] mb-1">
-                <span className="text-text-3">병목 스코어</span>
+                <span className="text-ap-ink-3">병목 스코어</span>
                 <span className="font-data" style={{ color: selected.bottleneck_score > 0.8 ? TOKEN.neg : selected.bottleneck_score > 0.6 ? TOKEN.accent : TOKEN.warn }}>
                   {(selected.bottleneck_score * 100).toFixed(0)} / 100
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-panel-2 overflow-hidden">
+              <div className="h-2 rounded-full bg-ap-bg overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{
                   width: `${selected.bottleneck_score * 100}%`,
                   background: selected.bottleneck_score > 0.8 ? TOKEN.neg : selected.bottleneck_score > 0.6 ? TOKEN.accent : TOKEN.warn,
@@ -489,10 +489,10 @@ export default function InfraGraphPage() {
                 return (
                   <div key={k}>
                     <div className="flex justify-between text-[10px] mb-0.5">
-                      <span className="text-text-3">{label}</span>
-                      <span className="font-data text-text-2">{(v * 100).toFixed(0)}%</span>
+                      <span className="text-ap-ink-3">{label}</span>
+                      <span className="font-data text-ap-ink-2">{(v * 100).toFixed(0)}%</span>
                     </div>
-                    <div className="h-1 rounded-full bg-panel-2 overflow-hidden">
+                    <div className="h-1 rounded-full bg-ap-bg overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${v * 100}%`, background: color }} />
                     </div>
                   </div>
@@ -502,16 +502,16 @@ export default function InfraGraphPage() {
 
             {/* 시계열 추세 (#2) — 병목 스코어 변화, 이벤트 시점은 update_log에서 확인 */}
             {history.length >= 2 && (
-              <div className="bg-panel-2 rounded p-2.5">
+              <div className="bg-ap-bg rounded p-2.5">
                 <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-text-3 uppercase tracking-wider">병목 스코어 추세</span>
-                  <span className="text-text-3">{history.length}개 스냅샷</span>
+                  <span className="text-ap-ink-3 uppercase tracking-wider">병목 스코어 추세</span>
+                  <span className="text-ap-ink-3">{history.length}개 스냅샷</span>
                 </div>
                 <Sparkline
                   values={history.map(h => h.bottleneck_score ?? 0)}
                   w={220} h={36} stretch stroke={TOKEN.neg} label="병목 스코어 추세"
                 />
-                <div className="flex justify-between text-[9px] text-text-3 mt-0.5">
+                <div className="flex justify-between text-[9px] text-ap-ink-3 mt-0.5">
                   <span>{new Date(history[0].ts).toLocaleDateString("ko-KR")}</span>
                   <span>{new Date(history[history.length - 1].ts).toLocaleDateString("ko-KR")}</span>
                 </div>
@@ -520,7 +520,7 @@ export default function InfraGraphPage() {
 
             {/* 분석 노트 */}
             {selected.note && (
-              <div className="bg-panel-2 rounded p-2.5 text-[11px] text-text-2 leading-relaxed">
+              <div className="bg-ap-bg rounded p-2.5 text-[11px] text-ap-ink-2 leading-relaxed">
                 {selected.note}
               </div>
             )}
@@ -531,7 +531,7 @@ export default function InfraGraphPage() {
               if (!related.length) return null;
               return (
                 <div>
-                  <p className="text-text-3 text-[10px] uppercase tracking-wider mb-1.5">연결 관계 ({related.length})</p>
+                  <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider mb-1.5">연결 관계 ({related.length})</p>
                   <div className="space-y-1">
                     {related.map((e, i) => {
                       const isCompetition = e.relation_category === "competition";
@@ -539,18 +539,18 @@ export default function InfraGraphPage() {
                       const otherId = isSource ? e.target : e.source;
                       const other = graph.nodes.find(n => n.id === otherId);
                       return (
-                        <div key={i} className={`text-[10px] px-2 py-1 rounded border ${isCompetition ? "border-border" : e.bottleneck ? "border-neg/30 bg-neg/5" : "border-border"}`}>
+                        <div key={i} className={`text-[10px] px-2 py-1 rounded border ${isCompetition ? "border-ap-line" : e.bottleneck ? "border-ap-down/30 bg-ap-down/5" : "border-ap-line"}`}>
                           <div>
-                            <span className="text-text-3">{isCompetition ? "↔" : isSource ? "→" : "←"}</span>
-                            <span className="text-text-2 ml-1">{other?.label ?? otherId}</span>
-                            <span className="text-text-3 ml-1">({RELATION_LABEL[e.relation] ?? e.relation})</span>
-                            {e.bottleneck && <span className="ml-1 text-neg">⚠</span>}
+                            <span className="text-ap-ink-3">{isCompetition ? "↔" : isSource ? "→" : "←"}</span>
+                            <span className="text-ap-ink-2 ml-1">{other?.label ?? otherId}</span>
+                            <span className="text-ap-ink-3 ml-1">({RELATION_LABEL[e.relation] ?? e.relation})</span>
+                            {e.bottleneck && <span className="ml-1 text-ap-down">⚠</span>}
                           </div>
                           {(e.dependency_pct != null || e.substitutable != null) && (
-                            <div className="text-text-3 mt-0.5 flex items-center gap-2">
+                            <div className="text-ap-ink-3 mt-0.5 flex items-center gap-2">
                               {e.dependency_pct != null && <span>의존도 {e.dependency_pct}%</span>}
                               {e.substitutable != null && (
-                                <span className={`px-1 font-bold ${e.substitutable ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                                <span className={`px-1 font-bold ${e.substitutable ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                                   {e.substitutable ? "대체 가능" : "대체 불가"}
                                 </span>
                               )}
@@ -573,102 +573,89 @@ export default function InfraGraphPage() {
             })()}
 
             {selected.last_updated && (
-              <p className="text-text-3 text-[9px]">업데이트: {new Date(selected.last_updated).toLocaleString("ko-KR")}</p>
+              <p className="text-ap-ink-3 text-[9px]">업데이트: {new Date(selected.last_updated).toLocaleString("ko-KR")}</p>
             )}
           </div>
         )}
       </div>
 
       {/* ── 페이퍼 트레이딩 패널 ────────────────────────────────────────── */}
-      <div className="shrink-0 border-t border-border bg-panel-2">
+      <div className="shrink-0 border-t border-ap-line bg-ap-bg">
         {/* 헤더 바 */}
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-border">
-          <span className="text-text-3 text-[10px] uppercase tracking-wider">페이퍼 트레이딩</span>
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-ap-line">
+          <span className="text-ap-ink-3 text-[10px] uppercase tracking-wider">페이퍼 트레이딩</span>
           {paper && (
             <>
-              <span className="text-text-1 text-xs font-mono">
+              <span className="text-ap-ink-1 text-xs font-mono">
                 ${paper.capital.toLocaleString()} 원금
               </span>
-              <span className="text-text-2 text-xs font-mono">
-                현금 <span className="text-text-1">${paper.cash.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="text-ap-ink-2 text-xs font-mono">
+                현금 <span className="text-ap-ink-1">${paper.cash.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               </span>
               <span className="text-xs font-mono">
-                포지션 <span className="text-text-1">${paperPositionsValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                포지션 <span className="text-ap-ink-1">${paperPositionsValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               </span>
-              <span className={`text-xs font-mono px-1 font-bold ${paperPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+              <span className={`text-xs font-mono px-1 font-bold ${paperPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                 실현P&L {paperPnl >= 0 ? "+" : ""}${paperPnl.toFixed(2)}
               </span>
-              <span className={`text-xs font-mono px-1 font-bold ${paperUnrealizedPnl >= 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+              <span className={`text-xs font-mono px-1 font-bold ${paperUnrealizedPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                 미실현P&L {paperUnrealizedPnl >= 0 ? "+" : ""}${paperUnrealizedPnl.toFixed(2)}
               </span>
             </>
           )}
           <div className="ml-auto">
             <button onClick={handlePaperReset} disabled={paperResetting}
-              className="text-[10px] px-2 py-0.5 rounded border border-border text-text-3 hover:text-neg hover:border-neg disabled:opacity-40">
+              className="text-[10px] px-2 py-0.5 rounded border border-ap-line text-ap-ink-3 hover:text-ap-down hover:border-ap-down disabled:opacity-40">
               {paperResetting ? "초기화…" : "리셋"}
             </button>
           </div>
         </div>
 
-        {/* 포지션 테이블 */}
-        <div className="overflow-x-auto">
+        {/* 포지션 리스트 */}
+        <div>
           {!paper || paper.positions.length === 0 ? (
-            <p className="text-text-3 text-[11px] px-4 py-3">
+            <p className="text-ap-ink-3 text-[11px] px-4 py-3">
               {paper ? "활성 포지션 없음 — AI 업데이트 시 병목 변화가 감지되면 자동 진입합니다." : "로딩 중…"}
             </p>
           ) : (
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="text-text-3 text-[10px] border-b border-border">
-                  {["종목", "방향", "진입가", "수량", "평가금액", "병목Δ", "진입시간", ""].map(h => (
-                    <th key={h} className="px-3 py-1.5 text-left font-normal">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paper.positions.map((pos: PaperPosition) => (
-                  <tr key={pos.node_id} className="border-b border-border/50 hover:bg-panel">
-                    <td className="px-3 py-1.5">
-                      <span className="text-text-1 font-medium">{pos.symbol}</span>
-                      <span className="text-text-3 ml-1">{pos.name}</span>
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${pos.side === "BUY" ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>
-                        {pos.side}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 font-mono text-text-2">${pos.entry_price.toFixed(2)}</td>
-                    <td className="px-3 py-1.5 font-mono text-text-2">{pos.qty}</td>
-                    <td className="px-3 py-1.5 font-mono text-text-1">
+            <div className="divide-y divide-ap-line/60">
+              {paper.positions.map((pos: PaperPosition) => (
+                <div key={pos.node_id} className="px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] hover:bg-ap-surface">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0 ${pos.side === "BUY" ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
+                      {pos.side}
+                    </span>
+                    <span className="text-ap-ink-1 font-medium truncate">{pos.symbol}</span>
+                    <span className="text-ap-ink-3 truncate">{pos.name}</span>
+                  </div>
+                  <div className="ml-auto flex items-center gap-3 font-mono">
+                    <span className="text-ap-ink-2">${pos.entry_price.toFixed(2)}</span>
+                    <span className="text-ap-ink-2">×{pos.qty}</span>
+                    <span className="text-ap-ink-1">
                       ${(pos.market_value ?? pos.value).toLocaleString()}
                       {pos.unrealized_pnl !== undefined && (
-                        <span className={`ml-1 text-[9px] ${pos.unrealized_pnl >= 0 ? "text-pos" : "text-neg"}`}>
+                        <span className={`ml-1 text-[9px] ${pos.unrealized_pnl >= 0 ? "text-ap-up" : "text-ap-down"}`}>
                           ({pos.unrealized_pnl >= 0 ? "+" : ""}{pos.unrealized_pnl.toFixed(2)})
                         </span>
                       )}
-                    </td>
-                    <td className="px-3 py-1.5 font-mono">
-                      <span className={`px-1 font-bold ${pos.score_delta > 0 ? "bg-pos/20 text-pos" : "bg-neg/20 text-neg"}`}>
+                    </span>
+                  </div>
+                  <div className="w-full flex items-center justify-between gap-2 text-[9px] text-ap-ink-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-1 font-bold font-mono ${pos.score_delta > 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
                         {pos.score_delta > 0 ? "+" : ""}{pos.score_delta.toFixed(3)}
                       </span>
-                      <span className="text-text-3 ml-1 text-[9px]">
-                        {pos.entry_score.toFixed(2)}→{pos.current_score.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-text-3 text-[9px]">
-                      {new Date(pos.entry_time).toLocaleString("ko-KR")}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <button onClick={() => handleClosePosition(pos.node_id)}
-                        className="text-[10px] px-2 py-0.5 rounded border border-neg/30 text-neg hover:bg-neg/10">
-                        청산
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <span>{pos.entry_score.toFixed(2)}→{pos.current_score.toFixed(2)}</span>
+                      <span>{new Date(pos.entry_time).toLocaleString("ko-KR")}</span>
+                    </div>
+                    <button onClick={() => handleClosePosition(pos.node_id)}
+                      className="text-[10px] px-2 py-0.5 rounded border border-ap-down/30 text-ap-down hover:bg-ap-down/10 shrink-0">
+                      청산
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

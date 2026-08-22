@@ -22,8 +22,8 @@ export function BarChart({ items, valueFmt = (v) => v.toLocaleString(), barH = 1
         const pct = (Math.abs(it.value) / max) * 100;
         const color = it.color ?? (it.value >= 0 ? TOKEN.pos : TOKEN.neg);
         const labelEl = it.href
-          ? <a href={it.href} target="_blank" rel="noopener noreferrer" className="text-info hover:underline">{it.label}</a>
-          : <span className="text-text-2">{it.label}</span>;
+          ? <a href={it.href} target="_blank" rel="noopener noreferrer" className="text-ap-note hover:underline">{it.label}</a>
+          : <span className="text-ap-ink-2">{it.label}</span>;
         return (
           <div key={`${it.label}-${i}`} className="flex items-center gap-2 text-[11px] font-data" title={`${it.label}: ${valueFmt(it.value)}${it.sub ? " · " + it.sub : ""}`}>
             <span className="w-28 shrink-0 truncate">{labelEl}</span>
@@ -33,8 +33,8 @@ export function BarChart({ items, valueFmt = (v) => v.toLocaleString(), barH = 1
                 <rect x={0} y={2} width={pct} height={barH - 4} rx={1.5} fill={color} />
               </svg>
             </div>
-            <span className={`w-20 shrink-0 text-right tabular-nums ${it.value >= 0 ? "text-pos" : "text-neg"}`}>{valueFmt(it.value)}</span>
-            {it.sub && <span className="w-16 shrink-0 text-right text-text-3 tabular-nums">{it.sub}</span>}
+            <span className={`w-20 shrink-0 text-right tabular-nums ${it.value >= 0 ? "text-ap-up" : "text-ap-down"}`}>{valueFmt(it.value)}</span>
+            {it.sub && <span className="w-16 shrink-0 text-right text-ap-ink-3 tabular-nums">{it.sub}</span>}
           </div>
         );
       })}
