@@ -1,3 +1,51 @@
+## Phase 221 — 대시보드 가지치기: 감시 전용 피벗 완료 (2026-08-22) ✅ SHIPPED
+
+### 배경
+seokminal v2 웹 오버홀 1단계(가지치기→리디자인→PWA). 대시보드 미래 역할 = 감시 전용(에이전트가 리서치/매매 다 함). 14-task SDD 플랜(`docs/superpowers/plans/2026-08-22-dashboard-pruning-monitoring-only.md`) 전체 실행 완료.
+
+### 완료된 작업
+- `/hud`를 진짜 탭쉘로 전환(home/portfolio/lab/execution/tasks 5탭), lab/lab/execution/lab/tasks/overview/auto-research 5라우트 흡수(Task 1-7)
+- `/lab`의 수동 "다음 가설 검토" 실행버튼 제거(감시전용 원칙, Task 4)
+- council/exec/portfolio-os 8라우트(council×3 + exec×2 + portfolio-os×3) → `/investment-os` 리다이렉트(콘텐츠 이미 STEP4-D로 통합되어 있었음, 신규 UI 불필요, Task 9, 8개 파일 개별 검증)
+- calendar/insider/macro/news 4라우트 → `/agents` ContextTab으로 흡수(전역 피드, 에이전트별 필터링은 안 함 — 후속 업그레이드 지점, Task 10-11)
+- backtest(+heatmap)/ict/event-study/signal/experiments/data-quality/validation/crypto/forex/futures/options/market/buyback-doctor/edges/search/design-system 총 16라우트 CUT(Task 12에서 7개 dir, Task 13에서 9개 dir — 합 16 확인)
+- Task 12·13 실행 중 브리프의 `href="..."` 문자열 grep이 놓친 `router.push()`/템플릿 리터럴 기반 죽은 링크 추가 발견·제거: Task 12는 WatchlistSidebar CTA·ChartTab 툴바 버튼·search 스크리너 버튼(전부 삭제된 `/backtest`로 향함, 2라운드 픽스), Task 13은 9개 삭제 dir 밖의 5개 파일(dart-auto, copytrade, GroqSummaryPanel, hud/PortfolioTab ×2, hud `violationHref()`)에서 `/market`·`/buyback-doctor` 참조 6곳을 링크→평문(div/span) 전환 또는 분기 삭제
+- `lib/researchOsRedirects.ts`의 `OLD_TO_NEW` 맵 15→32키로 확장(단일 맵 재사용, 신규 파일 없음, Task 1)
+- CommandRail 네비: TERMINAL_GROUPS 5그룹→3그룹으로 축소(Task 8)
+
+### 변경된 파일
+`app/hud/page.tsx`, `components/hud/{PortfolioTab,LabTab,ExecutionTab,TasksTab}.tsx`(신규),
+`components/agents/ContextTab.tsx`(신규), `app/agents/page.tsx`, `lib/researchOsRedirects.ts`,
+`__tests__/researchOsRedirects.test.ts`, `components/console/CommandRail.tsx`,
+`components/market/{WatchlistSidebar,ChartTab}.tsx`, `app/search/page.tsx`,
+`app/dart-auto/page.tsx`, `app/copytrade/page.tsx`, `components/GroqSummaryPanel.tsx`,
++ merge/cut 대상 각 라우트의 `page.tsx`(스텁 교체 또는 삭제, 9개 디렉토리 통째 삭제 포함)
+
+### 검증
+- `npx tsc --noEmit` 통과, `npm test` 29 files / 319 tests 전부 통과, `npm run build` 성공(53 static route 생성).
+- `find app -name page.tsx | wc -l` = 51(최종). 개발서버 기동 후 18개 리다이렉트 경로 전수 curl 스모크 — 전부 307, 최종 목적지도 전부 200 확인.
+
+### 다음 할 일
+2단계 리디자인(autopilot 스타일 비주얼), 3단계 PWA화 — 둘 다 별도 스펙/플랜 필요(이 plan 스코프 아님).
+
+### 막힌 부분/결정사항
+실행 중 발견된 플랜-preflight 미포착 충돌 5건을 컨트롤러가 그때그때 스코프를 좁혀 룰링:
+1. **Tasks 2-6 tsc 일시정지**: HudShell(Task2)이 아직 존재하지 않는 PortfolioTab/LabTab/ExecutionTab/TasksTab을 import하는 의도된 스캐폴딩 단계라 그 구간 tsc는 실패가 예상된 상태 — "매 task 끝 tsc 통과 필수" 글로벌 제약을 Task 2~5에 한해 한시 정지, Task 6에서 "전체 그린" 게이트로 전량 회수(리뷰 시 Task2~5는 "예상된 missing-import 에러 외 새 에러 없음"만 확인).
+2. **Task 11 스코프 확장(app/market/page.tsx)**: `market` 페이지가 NewsPage/CalendarPage를 컴포넌트로 embed 중이라 뉴스/캘린더 redirect-stub화 시 타입이 깨짐 → Task 11 스코프를 market/page.tsx 내부의 "뉴스"/"캘린더" venue 탭 2개(+관련 import/타입/렌더 라인)만 최소 제거로 한정 확장. market 자체는 Task 13에서 통째 삭제될 예정이라 임시 조치.
+3. **Task 12 round1 WatchlistSidebar 룰링**: `components/market/WatchlistSidebar.tsx`의 per-item "백테스트" CTA(→ 삭제 예정 `/backtest`, CommandRail 밖·7개 대상 dir 밖이라 브리프 grep 밖)를 Task 12 스코프에 포함해 통째 제거 — backtest는 후속 라우트 없는 순수 CUT이므로 죽은 진입점 제거가 원칙.
+4. **Task 12 round2 ChartTab+search 룰링**: 브리프의 `href=` 문자열 grep이 놓친 `router.push()` 기반 죽은 링크 2건(ChartTab.tsx 툴바 버튼, search/page.tsx 스크리너 버튼) 추가 제거 — ChartTab은 다른 용도가 없던 `useRouter` import까지 함께 정리, search는 다른 곳(라인 415)에서 router를 계속 써서 import는 유지.
+5. **Task 13의 5-file dead-link 룰링**: 9개 삭제 대상 dir 밖에서 `/market`·`/buyback-doctor`를 가리키던 죽은 링크 6곳(dart-auto, copytrade, GroqSummaryPanel, hud/PortfolioTab ×2, hud `violationHref()`)을 "내비게이션만 제거, 표시는 유지" 원칙으로 통일 처리(Link→div/span 전환, 또는 buyback 분기 삭제해 `/lab` 기본값으로 낙하).
+
+후속 정리 후보(minor, deferred — 블로커 아님):
+- LabTab 빈상태 문구가 삭제된 "▶ 다음 가설 검토" 버튼을 텍스트로 여전히 언급(Task 4)
+- GroupGlyph 아이콘 맵에 삭제된 그룹명("리서치 랩","검증·백테스트") 잔존, fallback 처리돼 런타임 무영향(Task 8)
+- FRED macro 패널이 검증 시점 DGS10 빈 응답("—") 반환 — 프론트 가드는 정상, 백엔드 데이터 상태 확인은 이 plan 스코프 밖(Task 10)
+- `components/market/`(17개 파일: MarketWorkspace, WatchlistSidebar, ChartTab, 인디케이터 차트 등) — 유일한 소비자였던 `app/market/page.tsx`가 삭제되며 전부 고아 코드화, 빌드/tsc 영향 없음(Task 13)
+- `app/(console)/intel/research-os/page.tsx`(nav 미연결 미사용 페이지로 보임) — 이번 스펙 범위 밖이라 손대지 않음, 후속 정리 후보로 기록만.
+- ContextTab은 에이전트별 티커 필터링 없이 전역 피드만 노출(YAGNI) — 필요해지면 `agentId`/`symbol` prop 추가.
+
+---
+
 ## Phase 217 — sharp_wallet_bot 청산루프 정합성버그 수정 + 다각화봇 note 정정 (2026-08-19) ✅ SHIPPED
 
 ### 배경
