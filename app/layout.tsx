@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { CommandRail } from "@/components/console/CommandRail";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { AlertPoller } from "@/components/AlertPoller";
+import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,6 +20,14 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "SEOKMINAL",
+  appleWebApp: {
+    title: "SEOKMINAL",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FF9F0A",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <AlertPoller />
         <ToastContainer />
+        <PwaRegister />
       </body>
     </html>
   );
