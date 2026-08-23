@@ -1,3 +1,27 @@
+## Phase 227 — 자산군 홈 재구조 (Project A: /agents·/risk-guard 정리 + 자산군축 재편) (2026-08-23) ✅ SHIPPED
+
+### 배경
+유저 지시: 대시보드를 도구/전략 단위 flat 네비게이션(14 라우트)에서 Autopilot류 앱처럼 자산군(국내주식/해외주식/코인/폴리마켓) 단위로 재편. "AI나 내 자금 매니저가 모든 기능들을 다 고려해서 썼으면 좋겠다"—기능 삭제 없이 정보구조만 재편. brainstorming 스킬로 아키텍처럴 분류 후 스펙(`docs/superpowers/specs/2026-08-23-asset-class-home-design.md`) → 플랜(`docs/superpowers/plans/2026-08-23-asset-class-home-design.md`) 작성. 유저가 "허락받지말고 진행시켜줘" 명시 후 4개 태스크 전부 inline 직접 실행(main 직접 커밋 컨벤션이라 subagent-driven-development의 worktree 세팅 생략).
+
+### 완료된 작업
+- **Task 1**: 죽은 `/agents` 라우트 삭제(`app/agents/page.tsx`) + 5곳 dangling reference 전부 `/hud`로 정리(`lib/researchOsRedirects.ts`, `components/AlertPoller.tsx`, `app/hud/page.tsx` violationHref, `lib/attention.ts`)
+- **Task 2**: `/risk-guard` 독립페이지 삭제 → `components/console/SettingsDrawer.tsx` 슬라이드오버 신규(킬스위치/MDD게이지/주문한도 로직 그대로 포팅). 전역 마운트 없이 `CommandRail`/`BottomTabBar` 각자 로컬 state로 트리거(⚙ 버튼)
+- **Task 3**: `app/portfolio/page.tsx`의 `AccountsTab()`을 통화축(USD/KRW/EUR/USDC)에서 자산군축(국내주식/해외주식/코인/폴리마켓)으로 재편. `CcySection`에 `label?` prop 추가, 신규 `PolymarketBots` 컴포넌트(`getDashboardPnlAll` 재사용, 신규 API 없음) 추가
+- **Task 4**: `components/hud/PortfolioTab.tsx` 전면 재작성 — 죽은 에이전트 중심 뷰 → 자산군 4타일 요약(합계+가중평균 수익률, `/portfolio`·`/polymarket` 링크)
+
+### 변경된 파일
+`app/agents/page.tsx`(삭제), `app/risk-guard/page.tsx`(삭제), `components/console/SettingsDrawer.tsx`(신규), `components/console/CommandRail.tsx`, `components/console/BottomTabBar.tsx`, `lib/researchOsRedirects.ts`, `components/AlertPoller.tsx`, `app/hud/page.tsx`, `lib/attention.ts`, `app/portfolio/page.tsx`, `components/hud/PortfolioTab.tsx`, `__tests__/researchOsRedirects.test.ts`, `tests/lib/attention.test.ts`
+
+### 검증
+`npx tsc --noEmit` 클린(태스크마다), `npm test` 29 files / 319 tests 전부 통과. 브라우저 실측: `/hud?tab=portfolio` 4타일(국내주식 ₩10.5M/해외주식 $110K +수익률/코인 1,180 USDC +44.6%/폴리마켓 -$1,620) 정상 렌더 + 클릭 이동 확인, `/portfolio` 좌측 타일·중앙 섹션 전부 국내주식→해외주식→코인→폴리마켓 순 확인 + 폴리마켓 카드(봇별 손익 breakdown + `/polymarket` 링크) 정상, `/agents` 404 확인, ⚙ 버튼→SettingsDrawer 열림(킬스위치 OFF/MDD -0.07%/주문한도 정상 표시) 확인. `백엔드 연결 실패`류 없음(uvicorn 가동 중이었음, 실 데이터로 검증).
+
+### 다음 할 일
+- 커밋 완료(4개 커밋: Task1+2 `bed0210`, Task3 `3a76ceb`, Task4 `ca6d2c0`) — push는 안 함, 유저 확인 시
+- 스펙에서 명시적으로 범위 밖으로 뺀 "Project B"(Research OS 내부 플로우 단순화)는 별도 스펙/플랜으로 착수 필요
+- `finishing-a-development-branch` 스킬 관련: 이 세션은 main 직접 작업(별도 브랜치/워크트리 없음)이라 표준 merge/PR 메뉴 해당 없음 — 그대로 종료
+
+---
+
 ## Phase 226 — 콘솔 라우트 6개 ap- 전환 (CSS 변수 스코프 확장) (2026-08-23) ✅ SHIPPED (커밋 대기)
 
 ### 배경
