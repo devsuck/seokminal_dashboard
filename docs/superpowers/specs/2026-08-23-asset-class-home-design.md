@@ -15,16 +15,17 @@
 
 이 매핑이 틀렸으면(특히 copytrade/vrp가 해외주식이 아니면) 구현 전 정정 필요.
 
+**정정 (2026-08-23, 플랜 작성 중 발견):** 초안은 `app/portfolio/page.tsx`를 그렙만으로 훑고 "홈에 흡수 후 삭제"로 잘못 판단했음. 전체 745줄 정독 결과 이 페이지는 계좌현황 탭 외에 **주문(OMS 실주문 추적) / 손익(실현PnL 차트) / 최적화(서브라우트 링크)** 3개 탭을 더 갖고 있고, 이건 유저가 말한 불만("국내/해외/코인/폴리마켓 별로 안 나뉨")과 무관한 진짜 기능임. 삭제하면 관련 없는 기능을 날리는 것 → **`/portfolio` 라우트는 유지**, 계좌현황 탭만 통화축 → 자산군축으로 재편. 아래 §1~§3, §6은 정정된 버전.
+
 ## 변경 사항
 
-### 1. `/hud` PORTFOLIO 탭 전면 교체
-`components/hud/PortfolioTab.tsx`를 에이전트 중심 → 자산군 4섹션으로 재작성. 각 섹션: 헤더(합계 평가액 + 수익률, 접힘 기본) → 펼치면 종목별 상세 + 연결 전략봹 상태 한 줄(예: "dart-auto: 가동중, 오늘 +1.2%"). 데이터 fetch는 기존 `app/portfolio/page.tsx`가 이미 하던 것(KIS/HL/Alpaca 잔고 API) + `app/polymarket/page.tsx`가 하던 봇 상태 API를 그대로 재사용.
+### 1. `app/portfolio/page.tsx` 계좌현황(`AccountsTab`) 탭만 재편
+현재 `CcySection`(USD/KRW/EUR/USDC 통화별)으로 묶는 걸 국내주식(KIS)/해외주식(Alpaca)/코인(HL)/폴리마켓(신규 카드) 4섹션으로 바꾼다. 국내주식·해외주식·코인 3섹션은 기존 `KISHoldings`/`AlpacaPositions`/`HLPositions` 인라인 컴포넌트를 그대로 재사용(통화 그룹 대신 자산군 그룹으로 배치만 변경 — 데이터 fetch 로직은 안 건드림). 폴리마켓 섹션은 신규: `getBuybackBot`(whale, `BuybackBot`), `getSharpWalletBotStatus`(`SharpWalletBotStatus`) 두 봇의 `realized_pnl` 합산 카드 + "`/polymarket`에서 자세히" 링크. 주문/손익/최적화 3개 탭은 무변경.
 
-### 2. 보유종목 컴포넌트 공용화
-`app/portfolio/page.tsx`의 `KISHoldings`, Hyperliquid 포지션 인라인, Alpaca 포지션 인라인을 `components/portfolio/`(신규 디렉토리)로 옮겨 `PortfolioTab.tsx`와 (삭제 전까지는) `app/portfolio/page.tsx` 양쪽에서 재사용 가능하게 한다. 최종적으로 `app/portfolio/page.tsx`는 삭제되므로 이 컴포넌트들의 유일한 소비자는 `PortfolioTab.tsx`가 된다.
+### 2. `/hud` PORTFOLIO 탭 → 요약 카드로 축소(전면교체 아님)
+`components/hud/PortfolioTab.tsx`를 에이전트 중심(`listAgents`/`getAgentPerformance`) → 자산군 4타일 요약으로 재작성. 각 타일: 자산군명 + 합계 평가액 + 수익률, 클릭 시 국내/해외/코인은 `/portfolio`(계좌현황 탭)로, 폴리마켓은 `/polymarket`으로 이동. 상세 종목 리스트는 여기 안 넣음(그건 `/portfolio`가 이미 함) — 중복 데이터 fetch 로직 피하려고 §1에서 쓰는 것과 같은 API 재사용, 타일은 합계만 계산.
 
-### 3. `/portfolio` 라우트 삭제 → 리다이렉트 스텁
-기존 컨벤션(`lib/researchOsRedirects.ts`의 `OLD_TO_NEW` 맵 + `redirect()` 스텁 페이지) 그대로 따른다. `OLD_TO_NEW["/portfolio"] = "/hud?tab=portfolio"` 추가.
+### 3. (삭제됨 — `/portfolio` 유지로 리다이렉트 불필요)
 
 ### 4. `/agents` 라우트 삭제
 콘텐츠가 이미 죽어있고(에이전트 미가동), 자산별 AI 에이전틱 트레이딩이 향후 대체 예정이라 완전 삭제. 외부 진입 링크 없음(grep 확인 완료, 유일한 참조는 `PortfolioTab.tsx:150`이며 이 파일 자체가 이번 재작성 대상이라 자동 제거됨). 리다이렉트 스텁 불필요.
@@ -33,22 +34,22 @@
 새 컴포넌트 `components/console/SettingsDrawer.tsx` 신설. `app/risk-guard/page.tsx`의 로직(킬스위치 토글, `RiskStatus` 표시, 30초 폴링)을 그대로 이식하되 페이지가 아닌 우측 슬라이드 드로어로. CommandRail(데스크탑)과 BottomTabBar(모바일) 양쪽에 ⚙ 아이콘 트리거 추가. URL 라우트 없음(모달성 UI라 북마크 대상 아님) — 리다이렉트 스텁도 불필요, 그냥 라우트 제거.
 
 ### 6. 나브 정리
-**CommandRail** — "트레이딩 데스크" 그룹에서 포트폴리오 항목 제거(홈에 흡수). "봇·에이전트" 그룹에서 에이전트/리스크가드 항목 제거, 남는 항목(성과/DART오토파일럿/카피트레이딩/Polymarket)은 전략 상세 딥링크로 유지 — 홈 섹션의 "자세히 보기" 링크가 여기로 연결.
+**CommandRail** — "트레이딩 데스크" 그룹의 포트폴리오 항목은 유지(라우트 안 죽으므로). "봇·에이전트" 그룹에서 에이전트/리스크가드 항목만 제거, 남는 항목(성과/DART오토파일럿/카피트레이딩/Polymarket)은 전략 상세 딥링크로 유지.
 
-**BottomTabBar** — `PRIMARY_TABS`를 `[홈, 오더플로우, Research OS(→/research-os/pipeline), 더보기]`로 교체(기존 `[홈, 오더플로우, 포트폴리오, 에이전트]`에서 포트폴리오·에이전트 자리를 Research OS + 설정 아이콘으로 대체 — 유저가 리서치를 primary 노출로 원함).
+**BottomTabBar** — `PRIMARY_TABS`를 `[홈, 오더플로우, 포트폴리오, Research OS(→/research-os/pipeline)]`로 교체(기존 `[홈, 오더플로우, 포트폴리오, 에이전트]`에서 에이전트 자리만 Research OS로 대체 — 포트폴리오는 유지, 유저가 리서치를 primary 노출로 원함). 설정(⚙, 리스크가드 이식)은 "더보기" 시트에 추가.
 
 ## 터치 파일
 
-- 재작성: `components/hud/PortfolioTab.tsx`
-- 신규: `components/portfolio/KISHoldings.tsx`, `components/portfolio/HLPositions.tsx`, `components/portfolio/AlpacaPositions.tsx` (기존 `app/portfolio/page.tsx`에서 추출)
-- 신규: `components/console/SettingsDrawer.tsx`
-- 삭제 후 리다이렉트 스텁: `app/portfolio/page.tsx`
+- 재작성: `components/hud/PortfolioTab.tsx` (에이전트 중심 → 자산군 4타일 요약)
+- 수정: `app/portfolio/page.tsx`의 `AccountsTab()`만 (통화축 → 자산군축, 폴리마켓 카드 추가) — 주문/손익/최적화 탭 무변경
+- 신규: `components/console/SettingsDrawer.tsx` (`app/risk-guard/page.tsx` 로직 이식)
 - 완전 삭제: `app/agents/page.tsx`, `app/risk-guard/page.tsx`
-- 수정: `lib/researchOsRedirects.ts`(`/portfolio` 항목 추가), `components/console/CommandRail.tsx`, `components/console/BottomTabBar.tsx`
+- 수정: `components/console/CommandRail.tsx`(에이전트/리스크가드 항목만 제거), `components/console/BottomTabBar.tsx`(에이전트→Research OS 교체, 설정 아이콘은 더보기 시트에)
+- `lib/researchOsRedirects.ts`: `/portfolio` 항목 불필요(라우트 유지). `/agents`도 외부 링크 없어 스텁 불필요(기존 스펙 판단 유효).
 
 ## 에러 처리 / 테스트
 
-기존 패턴 그대로: AbortController abort→create→assign ref→fetch→catch AbortError→finally guard→unmount cleanup (CLAUDE.md 컨벤션). 각 자산군 섹션은 독립적으로 로딩/에러 상태 가짐 — 한 벤더(예: KIS) API 실패해도 다른 섹션은 정상 렌더. `npx tsc --noEmit` + `npm test` 통과 필수. 브라우저로 `/hud`, `/hud?tab=portfolio`, 삭제된 `/portfolio`(리다이렉트 확인), `/agents`(404 또는 존재 안 함 확인) 스팟체크.
+기존 패턴 그대로: AbortController abort→create→assign ref→fetch→catch AbortError→finally guard→unmount cleanup (CLAUDE.md 컨벤션). 각 자산군 섹션은 독립적으로 로딩/에러 상태 가짐 — 한 벤더(예: KIS) API 실패해도 다른 섹션은 정상 렌더. `npx tsc --noEmit` + `npm test` 통과 필수. 브라우저로 `/hud`(4타일 요약), `/portfolio`(계좌현황 자산군 재편 + 주문/손익/최적화 탭 정상 동작 확인), `/agents`(존재 안 함 확인) 스팟체크.
 
 ## 스코프 밖 (Project B로 분리)
 
