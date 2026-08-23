@@ -28,7 +28,7 @@ describe("deriveAttentionItems", () => {
       pipeline: null, risk: { by_status: { ALLOW: 10, BLOCK: 2 } }, investmentOs: null, autoResearch: null,
     });
     expect(items).toContainEqual({
-      id: "risk-block", label: "리스크 차단 이벤트", detail: "2건", href: "/risk-guard", tone: "neg",
+      id: "risk-block", label: "리스크 차단 이벤트", detail: "2건", href: "/hud", tone: "neg",
     });
   });
 

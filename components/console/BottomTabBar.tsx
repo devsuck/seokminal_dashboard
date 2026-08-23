@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ALL_GROUPS } from "./CommandRail";
+import { SettingsDrawer } from "./SettingsDrawer";
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -13,7 +14,7 @@ const PRIMARY_TABS = [
   { href: "/hud", label: "홈" },
   { href: "/orderflow", label: "오더플로우" },
   { href: "/portfolio", label: "포트폴리오" },
-  { href: "/agents", label: "에이전트" },
+  { href: "/research-os/pipeline", label: "Research OS" },
 ];
 
 function TabIcon({ href, active }: { href: string; active: boolean }) {
@@ -26,8 +27,8 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
       return <svg {...props}><polyline points="1,11 4.5,6 7,8.5 10,4 14.5,8" /><line x1="1" y1="14" x2="15" y2="14" /></svg>;
     case "/portfolio":
       return <svg {...props}><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></svg>;
-    case "/agents":
-      return <svg {...props}><rect x="3" y="5" width="10" height="7" rx="2" /><circle cx="6" cy="8.5" r="1" fill={stroke} stroke="none" /><circle cx="10" cy="8.5" r="1" fill={stroke} stroke="none" /><path d="M8 2v3M6 2h4" /></svg>;
+    case "/research-os/pipeline":
+      return <svg {...props}><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></svg>;
     default:
       return null;
   }
@@ -50,6 +51,7 @@ function MoreIcon({ active }: { active: boolean }) {
 export function BottomTabBar() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const inPrimary = PRIMARY_TABS.some((t) => isActivePath(pathname, t.href));
   const moreActive = moreOpen || !inPrimary;
 
@@ -80,6 +82,10 @@ export function BottomTabBar() {
               <span className="text-[13px] font-semibold text-[var(--c-text-1)]">전체 메뉴</span>
               <button onClick={() => setMoreOpen(false)} className="text-[var(--c-text-3)] text-xs border-0 bg-transparent cursor-pointer px-2 py-1">닫기</button>
             </div>
+            <button onClick={() => { setMoreOpen(false); setSettingsOpen(true); }}
+              className="flex items-center h-10 px-4 w-full text-left border-0 border-b border-[var(--c-border)] bg-transparent cursor-pointer text-[13px] text-[var(--c-text-2)] active:bg-[var(--c-panel-2)]">
+              ⚙ 설정 · 리스크 가드
+            </button>
             {ALL_GROUPS.map((g) => (
               <div key={g.label} className="py-2">
                 <div className="px-4 pb-1 text-[9.5px] font-semibold tracking-[0.2em] uppercase text-[var(--c-text-3)]">{g.label}</div>
@@ -94,6 +100,8 @@ export function BottomTabBar() {
           </div>
         </div>
       )}
+
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

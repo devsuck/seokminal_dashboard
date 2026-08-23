@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ShutdownButton } from "@/components/ShutdownButton";
 import { CommandPalette } from "@/components/console/CommandPalette";
+import { SettingsDrawer } from "@/components/console/SettingsDrawer";
 
 // ── IA ──────────────────────────────────────────────────────────────
 export interface RailItem { href: string; label: string }
@@ -38,9 +39,7 @@ const TERMINAL_GROUPS: RailGroup[] = [
     { href: "/infra", label: "공급망 그래프" },
   ] },
   { label: "봇 · 에이전트", items: [
-    { href: "/agents", label: "에이전트" },
     { href: "/performance", label: "성과" },
-    { href: "/risk-guard", label: "리스크 가드" },
     { href: "/dart-auto", label: "DART 오토파일럿" },
     { href: "/copytrade", label: "카피트레이딩" },
     { href: "/polymarket", label: "Polymarket" },
@@ -87,6 +86,7 @@ export function CommandRail() {
   const [open, setOpen] = useState(true);
   const [operatorMode, setOperatorMode] = useState(true);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const groupIsActive = (g: RailGroup) => g.items.some((it) => isActive(it.href));
 
@@ -179,6 +179,7 @@ export function CommandRail() {
     });
 
   return (
+    <>
     <nav className={`rail-ap console-rail hidden md:flex relative flex-col shrink-0 h-full border-r border-[var(--c-border)] bg-[var(--c-panel)] transition-[width] duration-200 ${open ? "w-60" : "w-14"}`}>
       {/* Brand */}
       <Link href="/hud" className="flex items-center gap-2.5 h-14 px-3.5 border-b border-[var(--c-border)] no-underline select-none shrink-0">
@@ -235,6 +236,10 @@ export function CommandRail() {
           className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[10px] tracking-wide">
           {open ? (operatorMode ? "전체보기" : "간단히 보기") : (operatorMode ? "전체" : "간단")}
         </button>
+        <button onClick={() => setSettingsOpen(true)}
+          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[10px] tracking-wide">
+          {open ? "⚙ 설정" : "⚙"}
+        </button>
         <button onClick={() => setOpen((v) => !v)}
           className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "" : "rotate-180"}`}>
@@ -243,5 +248,7 @@ export function CommandRail() {
         </button>
       </div>
     </nav>
+    <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    </>
   );
 }

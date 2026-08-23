@@ -34,9 +34,9 @@ export const OLD_TO_NEW: Record<string, string> = {
   "/portfolio-os/allocation": "/investment-os?tab=overview",
   "/portfolio-os/positions": "/investment-os?tab=overview",
   "/portfolio-os/risk": "/investment-os?tab=risk",
-  // ── 컨텍스트 드릴다운(/agents 흡수). agents 탭은 URL 동기화 안 하므로 쿼리 없이 이동 ──
-  "/calendar": "/agents",
-  "/insider": "/agents",
-  "/macro": "/agents",
-  "/news": "/agents",
+  // ── 컨텍스트 드릴다운(옛 /agents 흡수, 지금은 /agents 자체가 없어져 /hud로) ──
+  "/calendar": "/hud",
+  "/insider": "/hud",
+  "/macro": "/hud",
+  "/news": "/hud",
 };

@@ -36,10 +36,10 @@ describe("OLD_TO_NEW redirect map", () => {
       "/portfolio-os/allocation": "/investment-os?tab=overview",
       "/portfolio-os/positions": "/investment-os?tab=overview",
       "/portfolio-os/risk": "/investment-os?tab=risk",
-      "/calendar": "/agents",
-      "/insider": "/agents",
-      "/macro": "/agents",
-      "/news": "/agents",
+      "/calendar": "/hud",
+      "/insider": "/hud",
+      "/macro": "/hud",
+      "/news": "/hud",
     };
     expect(OLD_TO_NEW).toEqual(expected);
   });
@@ -47,7 +47,7 @@ describe("OLD_TO_NEW redirect map", () => {
   it("every target route starts with a known shell path", () => {
     const shells = [
       "/research-os/pipeline?tab=", "/research-os/validation?tab=", "/research-os/governance?tab=",
-      "/hud?tab=", "/investment-os?tab=", "/agents",
+      "/hud", "/investment-os?tab=",
     ];
     for (const target of Object.values(OLD_TO_NEW)) {
       expect(shells.some((s) => target.startsWith(s))).toBe(true);

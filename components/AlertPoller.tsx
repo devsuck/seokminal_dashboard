@@ -10,7 +10,7 @@ function linkFor(botId: string): { href: string; label: string } {
   if (botId.startsWith("insider-convergence")) return { href: "/insider?tab=convergence", label: "내부자 컨버전스" };
   if (botId.startsWith("polymarket")) return { href: "/polymarket", label: "폴리마켓 대시보드" };
   if (botId.startsWith("mlb")) return { href: "/mlb", label: "MLB 대시보드" };
-  return { href: "/agents", label: "에이전트 목록" };
+  return { href: "/hud", label: "홈" };
 }
 
 function sendPushNotification(title: string, body: string) {
