@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
   getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts, getVrpBotStatus,
-  restartCollector, getLabHealth, getFleet,
+  getLabHealth, getFleet,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
   type AccountBalances, type TriggeredAlert, type VrpBotStatus, type CollectorKey,
@@ -22,22 +22,42 @@ import { SegmentedToggle } from "@/components/ui/SegmentedToggle";
 import { FreshnessBar } from "@/components/ui/FreshnessBar";
 import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
 import { displayLevel } from "@/lib/agent-level";
-import { toast } from "@/lib/toast";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PortfolioTab from "@/components/hud/PortfolioTab";
-import LabTab from "@/components/hud/LabTab";
 import ExecutionTab from "@/components/hud/ExecutionTab";
 import TasksTab from "@/components/hud/TasksTab";
 
-type TabKey = "home" | "portfolio" | "lab" | "execution" | "tasks";
+/* AI LAB 탭은 Research OS 파이프라인(/research-os/pipeline?tab=lab)으로 이동 —
+   내부 워크플로/에이전트/브레인 하위탭과 성격이 같아 거기서 한 곳에 모아 보여줌.
+   집행콘솔·페이퍼모니터는 "운영" 한 탭 안에서 토글로 묶어 HOME 상단 탭 수를 줄임. */
+type TabKey = "home" | "portfolio" | "ops";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "home", label: "HOME" },
-  { key: "portfolio", label: "AI 자본" },
-  { key: "lab", label: "AI LAB" },
-  { key: "execution", label: "집행 콘솔" },
-  { key: "tasks", label: "페이퍼 모니터" },
+  { key: "portfolio", label: "자산" },
+  { key: "ops", label: "운영" },
 ];
+
+function OpsTab() {
+  const [view, setView] = useState<"execution" | "tasks">("execution");
+  return (
+    <div>
+      <div className="px-4 sm:px-6 pt-4">
+        <SegmentedToggle
+          size="sm"
+          value={view}
+          onChange={setView}
+          inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
+          options={[
+            { value: "execution", label: "집행 콘솔", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+            { value: "tasks", label: "페이퍼 모니터", activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+          ]}
+        />
+      </div>
+      {view === "execution" ? <ExecutionTab /> : <TasksTab />}
+    </div>
+  );
+}
 
 function HudInner() {
   const router = useRouter();
@@ -62,9 +82,7 @@ function HudInner() {
       </div>
       {tab === "home" && <HomeTab />}
       {tab === "portfolio" && <PortfolioTab />}
-      {tab === "lab" && <LabTab />}
-      {tab === "execution" && <ExecutionTab />}
-      {tab === "tasks" && <TasksTab />}
+      {tab === "ops" && <OpsTab />}
     </div>
   );
 }
@@ -175,11 +193,8 @@ function formatAge(ageSec: number | null): string {
   return `${Math.floor(ageSec / 3600)}시간 전`;
 }
 
-function UnitCard({ u, onRestart, restarting }: {
-  u: Unit; onRestart?: (key: CollectorKey) => void; restarting?: boolean;
-}) {
+function UnitCard({ u }: { u: Unit }) {
   const v = u.fleet?.verdict;
-  // 재시작 버튼은 프로세스가 실제로 문제일 때만(멈춤·죽음). 지연은 임계 문제일 수 있어 제외.
   const broken = v === "dead" || v === "stuck" || (!!u.collectorKey && !u.fleet && !u.running);
   const tone = v ? VERDICT_TONE[v] : null;
   const statusText = v ? VERDICT_LABEL[v] : u.running ? "가동" : "정지";
@@ -203,15 +218,6 @@ function UnitCard({ u, onRestart, restarting }: {
       <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
         {statusText}
       </span>
-      {broken && u.collectorKey && (
-        <button
-          onClick={() => onRestart?.(u.collectorKey!)}
-          disabled={restarting}
-          className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 font-data font-bold shrink-0 hover:bg-ap-down/25 disabled:opacity-40"
-        >
-          {restarting ? "재시작중" : "재시작"}
-        </button>
-      )}
     </div>
   );
 }
@@ -220,26 +226,8 @@ function HomeTab() {
   const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
-  const [restarting, setRestarting] = useState<Partial<Record<CollectorKey, boolean>>>({});
   const [activityView, setActivityView] = useState<"alerts" | "log" | "trades">("alerts");
   const abortRef = useRef<AbortController | null>(null);
-
-  async function handleRestart(key: CollectorKey) {
-    setRestarting((r) => ({ ...r, [key]: true }));
-    try {
-      await restartCollector(key);
-      toast.show(`${key} 재시작 완료`, "success");
-      const [sys, fleet] = await Promise.all([
-        getLabStatus().catch(() => null),
-        getFleet().catch(() => null),
-      ]);
-      setF((prev) => ({ ...prev, sys: sys ?? prev.sys, fleet: fleet ?? prev.fleet }));
-    } catch (e) {
-      toast.show(`${key} 재시작 실패: ${e instanceof Error ? e.message : String(e)}`, "error");
-    } finally {
-      setRestarting((r) => ({ ...r, [key]: false }));
-    }
-  }
 
   useEffect(() => {
     let mounted = true;
@@ -438,22 +426,15 @@ function HomeTab() {
             <UnitCard key={`${u.name}-${i}`} u={u} />
           ))}
         </div>
-        <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3 border-t border-ap-line">
-          수집기{nDegraded > 0 && <span className="text-ap-caution normal-case"> · 이상 {nDegraded}</span>}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2">
-          {collectorUnits.map((u, i) => (
-            <UnitCard
-              key={`${u.name}-${i}`}
-              u={u}
-              onRestart={handleRestart}
-              restarting={u.collectorKey ? !!restarting[u.collectorKey] : false}
-            />
-          ))}
-        </div>
-        {collectorUnits.length === 0 && (
-          <div className="px-2 py-1.5 text-ap-ink-3 text-[11px]">수집기 상태 로딩 중…</div>
-        )}
+        <Link href="/lab/fleet"
+          className="flex items-center gap-2 border-t border-ap-line px-2 py-1.5 no-underline hover:bg-ap-bg transition-colors">
+          <StatusDot tone={collectorUnits.length === 0 ? "text-3" : nDegraded > 0 ? "warn" : "pos"} />
+          <span className="text-[11px] font-data text-ap-ink-1">
+            수집기 {collectorUnits.length === 0 ? "로딩 중…" : `${nHealthy}/${collectorUnits.length} 정상`}
+            {nDegraded > 0 && <span className="text-ap-caution"> · 이상 {nDegraded}</span>}
+          </span>
+          <span className="ml-auto text-[10px] text-ap-ink-3">설정에서 확인 →</span>
+        </Link>
       </Card>
 
       {/* 계좌 + 돈길 핵심 */}

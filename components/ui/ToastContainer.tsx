@@ -26,11 +26,11 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] right-2 left-2 sm:left-auto sm:bottom-4 sm:right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
       {toasts.map(t => (
         <div
           key={t.id}
-          className={`flex items-start gap-2.5 px-4 py-3 rounded-lg border shadow-xl text-sm max-w-[340px] pointer-events-auto ${TYPE_STYLES[t.type]}`}
+          className={`flex items-start gap-2.5 px-4 py-3 rounded-lg border shadow-xl text-sm w-full sm:w-auto sm:max-w-[340px] pointer-events-auto ${TYPE_STYLES[t.type]}`}
         >
           <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${TYPE_DOT[t.type]}`} />
           <div className="flex-1 leading-snug min-w-0">

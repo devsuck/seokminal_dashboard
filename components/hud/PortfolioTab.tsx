@@ -9,6 +9,7 @@ import {
   type DashboardBotRow,
 } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
+import { BarChart, type BarItem } from "@/components/charts/BarChart";
 
 /* 자산군 4타일 요약(국내주식/해외주식/코인/폴리마켓) — 에이전트 전부 미가동 상태라
    에이전트 중심 뷰(listAgents) 대신 실제 보유자산 기준으로 재작성. 상세 종목 리스트는
@@ -154,12 +155,23 @@ export default function PortfolioTab() {
     { label: "폴리마켓", value: polymarketTotal, ccy: "USD", returnPct: null, href: "/polymarket" },
   ];
 
+  // 통화 단위 다른 잔고(KRW/USD/USDC)는 합산 불가 — 수익률(%)만 자산군 비교 차트로
+  const returnBars: BarItem[] = tiles
+    .filter(t => t.returnPct != null)
+    .map(t => ({ label: t.label, value: t.returnPct as number, href: t.href }));
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
       <h1 className="text-xl font-semibold text-ap-ink-1 tracking-wide">총 포트폴리오</h1>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {tiles.map(t => <AssetTile key={t.label} data={t} />)}
       </div>
+      {returnBars.length > 0 && (
+        <div className="bg-ap-surface border border-ap-line rounded-xl p-4">
+          <p className="text-ap-ink-3 text-[10px] uppercase tracking-wide mb-2">자산군별 수익률</p>
+          <BarChart items={returnBars} valueFmt={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`} />
+        </div>
+      )}
     </div>
   );
 }

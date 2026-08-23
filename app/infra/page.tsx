@@ -352,8 +352,8 @@ export default function InfraGraphPage() {
       </div>
 
       <div className="flex flex-1 min-h-0">
-        {/* 좌측 필터 + 병목 랭킹 */}
-        <div className="w-52 shrink-0 border-r border-ap-line flex flex-col overflow-y-auto">
+        {/* 좌측 필터 + 병목 랭킹 — 모바일은 숨김(그래프 우선), md+ 부터 노출 */}
+        <div className="hidden w-52 shrink-0 border-r border-ap-line md:flex md:flex-col overflow-y-auto">
           {/* 섹터 필터 */}
           <div className="p-3 border-b border-ap-line">
             <p className="text-ap-ink-3 text-[10px] uppercase tracking-wider mb-2">섹터 필터</p>
@@ -415,9 +415,9 @@ export default function InfraGraphPage() {
           </div>
         </div>
 
-        {/* 우측 노드 상세 패널 */}
+        {/* 우측 노드 상세 패널 — 모바일은 하단 시트로, md+ 부터 사이드 패널 */}
         {selected && (
-          <div className="w-64 shrink-0 border-l border-ap-line overflow-y-auto p-4 space-y-3">
+          <div className="fixed inset-x-0 bottom-0 z-40 max-h-[70vh] rounded-t-xl border-t border-ap-line bg-ap-surface overflow-y-auto p-4 space-y-3 md:static md:z-auto md:max-h-none md:w-64 md:shrink-0 md:rounded-none md:border-l md:border-t-0 md:bg-transparent">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-ap-ink-1 font-semibold text-sm">{selected.label}</h2>

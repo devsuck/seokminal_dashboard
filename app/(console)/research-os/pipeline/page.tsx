@@ -13,10 +13,16 @@ import {
   getCockpit, type CockpitResp,
   getOperatingConsole, type OperatingConsoleResp,
 } from "@/lib/console-api";
+import LabTab from "@/components/hud/LabTab";
 
-type TabKey = "workflow" | "discovery" | "strategy-generation" | "strategy-lab" | "agents" | "brain" | "cockpit" | "console";
-const TABS: { key: TabKey; label: string }[] = [
+type TabKey = "workflow" | "lab" | "discovery" | "strategy-generation" | "strategy-lab" | "agents" | "brain" | "cockpit" | "console";
+// 핵심 2개만 기본 노출, 나머지 6개는 "고급" 토글 뒤로 — 8(+AI LAB)개 플랫 탭이 한눈에 너무
+// 세분화돼 보인다는 피드백(2026-08-23)에 따라 블랙박스 취급: 평소엔 개요만, 상세는 펼쳐서.
+const CORE_TABS: { key: TabKey; label: string }[] = [
   { key: "workflow", label: "워크플로우" },
+  { key: "lab", label: "AI LAB" },
+];
+const ADVANCED_TABS: { key: TabKey; label: string }[] = [
   { key: "discovery", label: "자율 발굴" },
   { key: "strategy-generation", label: "전략 후보 생성" },
   { key: "strategy-lab", label: "전략 랩" },
@@ -25,6 +31,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "cockpit", label: "경영진 콕핏" },
   { key: "console", label: "운영 콘솔" },
 ];
+const TABS: { key: TabKey; label: string }[] = [...CORE_TABS, ...ADVANCED_TABS];
 
 const num = (n: number | undefined | null, d = 0) =>
   (n == null ? "—" : n.toLocaleString(undefined, { maximumFractionDigits: d }));
@@ -35,11 +42,27 @@ function PipelineInner() {
   const paramTab = searchParams.get("tab");
   const tab: TabKey = TABS.some((t) => t.key === paramTab) ? (paramTab as TabKey) : "workflow";
   const setTab = (k: TabKey) => router.push(`/research-os/pipeline?tab=${k}`);
+  const isAdvancedTab = ADVANCED_TABS.some((t) => t.key === tab);
+  const [showAdvanced, setShowAdvanced] = useState(isAdvancedTab);
 
   return (
     <div className="min-h-full">
-      <div className="flex gap-1 border-b border-[var(--c-border)] px-5 pt-3 overflow-x-auto">
-        {TABS.map((t) => (
+      <div className="flex items-center gap-1 border-b border-[var(--c-border)] px-5 pt-3 overflow-x-auto">
+        {CORE_TABS.map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
+              tab === t.key
+                ? "border-[var(--c-hud)] text-[var(--c-hud)] bg-[var(--c-hud)]/10"
+                : "border-transparent text-[var(--c-text-2)] hover:text-[var(--c-text-1)]"
+            }`}>
+            {t.label}
+          </button>
+        ))}
+        <button onClick={() => setShowAdvanced((v) => !v)}
+          className="px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 border-transparent text-[var(--c-text-3)] hover:text-[var(--c-text-2)] cursor-pointer whitespace-nowrap ml-1">
+          고급 {showAdvanced ? "▲" : "▾"}
+        </button>
+        {showAdvanced && ADVANCED_TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
               tab === t.key
@@ -51,6 +74,7 @@ function PipelineInner() {
         ))}
       </div>
       {tab === "workflow" && <WorkflowTab />}
+      {tab === "lab" && <LabTab />}
       {tab === "discovery" && <DiscoveryTab />}
       {tab === "strategy-generation" && <StrategyGenerationTab />}
       {tab === "strategy-lab" && <StrategyLabTab />}
