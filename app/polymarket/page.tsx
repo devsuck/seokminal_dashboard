@@ -5,9 +5,10 @@ import {
   ApiError, getPolymarketBotStatus, setPolymarketBotConfig, runPolymarketBotNow,
   getPolymarketLeaderboard, getFleet, getEdges, getSharpWalletBotStatus,
   setSharpWalletBotConfig, runSharpWalletBotNow,
+  getPolymarketAiBotStatus, setPolymarketAiBotConfig, runPolymarketAiBotNow,
   type PolymarketBotStatus, type PolymarketLeaderboard,
   type FleetResponse, type FleetCollector, type EdgesResponse, type EdgeMetaRow,
-  type SharpWalletBotStatus,
+  type SharpWalletBotStatus, type PolymarketAiBotStatus,
 } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -55,6 +56,8 @@ export default function PolymarketPage() {
   const [edges, setEdges] = useState<EdgesResponse | null>(null);
   const [swBot, setSwBot] = useState<SharpWalletBotStatus | null>(null);
   const [swBusy, setSwBusy] = useState(false);
+  const [aiBot, setAiBot] = useState<PolymarketAiBotStatus | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
   const bCtrl = useRef<AbortController | null>(null);
 
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2800); }
@@ -91,6 +94,7 @@ export default function PolymarketPage() {
       getFleet(ctrl.signal).then(d => { if (mounted) setFleet(d); }).catch(() => {});
       getEdges(ctrl.signal).then(d => { if (mounted) setEdges(d); }).catch(() => {});
       getSharpWalletBotStatus(ctrl.signal).then(d => { if (mounted) setSwBot(d); }).catch(() => {});
+      getPolymarketAiBotStatus(ctrl.signal).then(d => { if (mounted) setAiBot(d); }).catch(() => {});
     };
     load();
     const iv = setInterval(load, 30_000);
@@ -140,6 +144,21 @@ export default function PolymarketPage() {
     finally { setSwBusy(false); }
   }
 
+  async function toggleAiBot() {
+    try {
+      await setPolymarketAiBotConfig({ enabled: !(aiBot?.enabled ?? false) });
+      flash(aiBot?.enabled ? "AI판단 봇 OFF" : "AI판단 봇 ON");
+      getPolymarketAiBotStatus().then(setAiBot).catch(() => {});
+    } catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+  }
+
+  async function runAiBotNow() {
+    setAiBusy(true);
+    try { await runPolymarketAiBotNow(); flash("AI판단 봇 실행 완료"); getPolymarketAiBotStatus().then(setAiBot).catch(() => {}); }
+    catch (e) { flash(`실패: ${e instanceof ApiError ? e.message : String(e)}`); }
+    finally { setAiBusy(false); }
+  }
+
   const on = bot?.enabled ?? false;
 
   // 실현손익 누적 곡선 — resolve 로그(창)로 최근 추이, 마지막 점을 총 realized_pnl에 앵커
@@ -170,6 +189,22 @@ export default function PolymarketPage() {
     const totalVisible = exits.reduce((s, r) => s + r.pnl, 0);
     let running = swBot.realized_pnl - totalVisible;
     const points = exits.map(r => { running += r.pnl; return { time: r.t, value: Math.round(running * 100) / 100 }; });
+    const last = points[points.length - 1].value;
+    return [{ label: "누적 실현손익", color: last >= 0 ? TOKEN.pos : TOKEN.neg, points }];
+  })();
+
+  // AI 판단 봇 — 실현손익 누적 곡선(resolve 로그 기반)
+  const aiPnlSeries: TSSeries[] = (() => {
+    if (!aiBot) return [];
+    const resolves = aiBot.log
+      .filter(l => l.kind === "resolve" && typeof l.pnl === "number")
+      .map(l => ({ t: Math.floor(new Date(l.ts).getTime() / 1000), pnl: l.pnl as number }))
+      .filter(r => Number.isFinite(r.t))
+      .sort((a, b) => a.t - b.t);
+    if (resolves.length === 0) return [];
+    const totalVisible = resolves.reduce((s, r) => s + r.pnl, 0);
+    let running = aiBot.realized_pnl - totalVisible;
+    const points = resolves.map(r => { running += r.pnl; return { time: r.t, value: Math.round(running * 100) / 100 }; });
     const last = points[points.length - 1].value;
     return [{ label: "누적 실현손익", color: last >= 0 ? TOKEN.pos : TOKEN.neg, points }];
   })();
@@ -209,6 +244,20 @@ export default function PolymarketPage() {
               </div>
               <span className="text-ap-ink-3 tabular-nums shrink-0 font-data">
                 {swBot.last_run ? `${swBot.realized_pnl >= 0 ? "+" : ""}$${swBot.realized_pnl.toLocaleString()}` : "이력 없음"}
+              </span>
+            </a>
+          )}
+          {aiBot && (
+            <a href="#ai-judgment-bot" className="flex items-center justify-between gap-2 border border-ap-line rounded-lg px-2.5 py-2 text-xs hover:bg-ap-bg">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 font-data ${aiBot.enabled ? "border-ap-up/40 text-ap-up bg-ap-up/10" : "border-ap-line text-ap-ink-3 bg-ap-bg"}`}>
+                  {aiBot.enabled ? "ON" : "OFF"}
+                </span>
+                <span className="text-ap-ink-2 truncate">AI 판단(Tavily+Groq) paper 집행봇</span>
+                <span className="text-ap-ink-3 hidden sm:inline shrink-0">→ 상세</span>
+              </div>
+              <span className="text-ap-ink-3 tabular-nums shrink-0 font-data">
+                {aiBot.last_run ? `${aiBot.realized_pnl >= 0 ? "+" : ""}$${aiBot.realized_pnl.toLocaleString()}` : "이력 없음"}
               </span>
             </a>
           )}
@@ -478,6 +527,104 @@ export default function PolymarketPage() {
           </div>
 
           <p className="text-ap-ink-3 text-[10px] px-1">{swBot.note}</p>
+        </div>
+      )}
+
+      {/* AI 판단(Tavily 검색+Groq) paper 집행봇 — 가격구조 기반 다각화/샤프월렛 봇과 완전 독립 예산·포지션 */}
+      {aiBot && (
+        <div id="ai-judgment-bot" className="space-y-4 scroll-mt-4">
+          <Card>
+            <CardHeader right={<span>{fmtTime(aiBot.last_run)} · {Math.round(aiBot.interval_sec / 60) || aiBot.interval_sec}{aiBot.interval_sec >= 60 ? "분" : "초"} 주기</span>}>
+              AI 판단(Tavily+Groq) paper 집행봇
+            </CardHeader>
+            <div className="p-3 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={toggleAiBot}
+                  className={`text-sm font-medium px-4 py-1.5 rounded-lg border ${aiBot.enabled ? "border-ap-up text-ap-up bg-ap-up/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-2"}`}>
+                  {aiBot.enabled ? "● 서버 자동봇 ON" : "서버 자동봇 OFF"}
+                </button>
+                <button onClick={runAiBotNow} disabled={aiBusy}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-ap-line text-ap-ink-3 hover:text-ap-brand disabled:opacity-40">
+                  {aiBusy ? "실행중…" : "지금 실행"}
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-[11px] border-t border-ap-line pt-3">
+                <span className="text-ap-ink-3">지출 <span className="text-ap-ink-1 font-data">${Math.round(aiBot.spent).toLocaleString()}</span>/${Math.round(aiBot.budget).toLocaleString()}</span>
+                <span className={`font-data px-1.5 py-0.5 rounded font-bold ${aiBot.remaining < 1 ? "bg-ap-down/15 text-ap-down" : "bg-ap-up/15 text-ap-up"}`}>잔여 ${Math.round(aiBot.remaining).toLocaleString()}</span>
+                <span className={`font-data px-1.5 py-0.5 rounded font-bold ${aiBot.realized_pnl >= 0 ? "bg-ap-up/15 text-ap-up" : "bg-ap-down/15 text-ap-down"}`}>실현손익 {aiBot.realized_pnl >= 0 ? "+" : ""}${aiBot.realized_pnl.toLocaleString()}</span>
+                <span className="text-ap-ink-3 ml-auto">min_edge {aiBot.min_edge} · 일일 콜캡 {aiBot.max_new_calls_per_day}</span>
+              </div>
+            </div>
+          </Card>
+
+          {aiPnlSeries.length > 0 && (
+            <Card>
+              <CardHeader right={<span>최근 정산 {aiPnlSeries[0].points.length}건</span>}>
+                실현손익 추이
+              </CardHeader>
+              <div className="p-2">
+                <ChartFrame textClass={AP_TEXT} legendTextClass={AP_LEGEND} caption="Tavily 검색 grounding + Groq 판단(yes_prob) vs 시장가 edge · 페이퍼 · N=20~30건 정산 전까지 결론 안 냄">
+                  <TimeSeries series={aiPnlSeries} height={200} yFormat={(v) => `$${v.toFixed(0)}`} />
+                </ChartFrame>
+              </div>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+            <Card>
+              <CardHeader right={<span>{aiBot.positions.length}건</span>}>보유 포지션</CardHeader>
+              {aiBot.positions.length === 0 ? (
+                <div className="p-3"><EmptyState message="보유 포지션 없음" hint="AI 판단 yes_prob vs 시장가 괴리가 min_edge 넘을 때 자동 진입" textClass="text-ap-ink-3" /></div>
+              ) : (
+                <div className="divide-y divide-ap-line/60 max-h-[420px] overflow-y-auto">
+                  {aiBot.positions.map((p, i) => (
+                    <div key={`${p.condition_id}:${i}`} className="px-3 py-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-ap-ink-1 text-xs truncate" title={p.question}>{p.question}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 font-data ${p.side === "YES" ? "border-ap-up/40 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
+                          {p.side}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-ap-ink-3 font-data mt-1">
+                        <span>진입 {p.entry_price.toFixed(2)}</span>
+                        <span>·</span>
+                        <span>AI {p.ai_yes_prob.toFixed(2)}</span>
+                        <span>·</span>
+                        <span className={p.edge >= 0 ? "text-ap-up" : "text-ap-down"}>edge {p.edge >= 0 ? "+" : ""}{p.edge.toFixed(2)}</span>
+                        <span>·</span>
+                        <span className="text-ap-ink-1 font-bold">${p.usd.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <CardHeader>봇 실행 로그</CardHeader>
+              {aiBot.log.length === 0 ? (
+                <div className="p-3"><EmptyState message="로그 없음" hint="봇이 진입/정산하면 기록됨" textClass="text-ap-ink-3" /></div>
+              ) : (
+                <div className="divide-y divide-ap-line/60 max-h-[420px] overflow-y-auto">
+                  {aiBot.log.map((l, i) => (
+                    <div key={i} className="px-3 py-2 text-xs flex items-start gap-2">
+                      <span className="text-ap-ink-3 font-data text-[10px] shrink-0 w-16">{fmtTime(l.ts as string)}</span>
+                      <span className="min-w-0 text-ap-ink-3">
+                        {l.kind === "entry" ? <span className="text-ap-up">진입 {String(l.side)} @{Number(l.entry_price ?? 0).toFixed(2)} ${Number(l.usd ?? 0).toLocaleString()}</span>
+                          : l.kind === "resolve" ? <span className={`px-1 rounded font-bold ${Number(l.pnl ?? 0) >= 0 ? "bg-ap-up/15 text-ap-up" : "bg-ap-down/15 text-ap-down"}`}>정산 손익 ${Number(l.pnl ?? 0).toLocaleString()}</span>
+                          : l.kind === "scan_fail" ? <span className="text-ap-down">스캔 실패 — {String(l.msg ?? "")}</span>
+                          : l.kind === "kill" ? <span className="text-ap-down">킬스위치 — {String(l.msg ?? "")}</span>
+                          : l.kind === "config" ? "설정 변경"
+                          : String(l.kind)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          <p className="text-ap-ink-3 text-[10px] px-1">{aiBot.note}</p>
         </div>
       )}
 
