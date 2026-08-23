@@ -1,3 +1,45 @@
+## Phase 228 — Polymarket 예산 상향 + HOME 정보구조 재편 (Bucket A+B) (2026-08-23) ✅ SHIPPED
+
+### 배경
+Phase 227(Project A) 완료 직후, 유저가 "'분산 목적 paper 전용'으로 설계됨(코드 주석 명시) 이거 삭제해. 업그레이드해서 페이퍼 올리고 실제로 파보자고 결론 났잖아. … 수집기 카드는 설정에서 잘 돌아가는지 확인할 수 있게만 해주고. 홈페이지를 좀 다르게 디자인해야할 것 같음. b도 설계 잡고 진행해줘. 근데 나 잘거라서 너가 알아서 다 끝내줘"라고 지시하고 취침 — 승인 루프 없이 전부 자율 실행.
+
+**⚠️ 중요 — 내가 내린 안전 해석(다음 세션이 확인 필요)**: "실제로 파보자"를 라이브(실거래) 집행 능력 구축으로 확대 해석하지 않았음. `polymarket_bot.py` 라우터는 여전히 `/status`·`/config`·`/run-now`·`/leaderboard`뿐이고 실거래 집행 경로가 코드에 없음(Phase 227 이전부터 확인됨) — 유저가 잠들어 실거래 여부를 확인할 수 없는 상태에서 되돌리기 어려운 결정을 임의로 확장하지 않는 게 맞다고 판단, "페이퍼 예산/한도 상향 + 페이퍼를 진지하게 계속" 으로만 좁혀 실행함. 유저가 아침에 실거래 집행 로직 자체를 원했던 거라면 이 판단이 undershoot임 — 확인 필요.
+
+### 완료된 작업 (Polymarket)
+- `api_server/polymarket_bot.py` — docstring에서 "무엣지/분산목적만" 프레이밍 삭제(라이브 집행 경로 없다는 사실은 정직하게 유지), `_DEFAULT` budget/per_market_usd/max_positions을 500/20/20 → 2000/40/50으로 상향
+- 라이브 런타임 설정(`data/polymarket_bot.json`)도 `POST /polymarket/config`로 동일하게 갱신 완료(기존 `spent`/`realized_pnl`/`positions`는 그대로 보존) — 백엔드(uvicorn, PID 36087, `--reload` 없음) 가동 중 상태에서 반영
+
+### 완료된 작업 (HOME 재편 — Bucket A: 4개 소품목)
+- 모바일 하단탭바(`BottomTabBar.tsx`)에서 오더플로우 제거(AI 내부용 정보라 사람이 모바일에서 볼 이유 없음) — "더보기" 시트로는 계속 접근 가능
+- 토스트(`ToastContainer.tsx`)가 모바일 하단탭바를 가리던 문제 수정 — `bottom-4 right-4` 고정값을 하단탭바 높이(`h-14`)+세이프에어리아만큼 띄우고, 모바일에서는 폭을 뷰포트에 맞게(`w-full`) 조정, `sm:` 이상은 기존 데스크톱 위치·폭 유지
+- `app/infra/page.tsx` 공급망 그래프 좌측 필터 패널(`w-52`)·우측 노드상세 패널(`w-64`) 반응형화 — 필터는 모바일에서 `hidden`(그래프 우선), 노드상세는 모바일에서 하단 시트(`fixed inset-x-0 bottom-0`)로, `md:` 이상은 기존 사이드패널 레이아웃 그대로
+- `components/hud/PortfolioTab.tsx`에 자산군별 수익률 바차트 추가(`BarChart` 재사용) — 통화 단위가 다른 4개 자산군(KRW/USD/USDC) 잔고는 그대로 합산하면 왜곡이라 %만 비교
+
+### 완료된 작업 (HOME 재편 — Bucket B: 아키텍처)
+- HOME(`app/hud/page.tsx`) 탭 5개(HOME/AI 자본/AI LAB/집행 콘솔/페이퍼 모니터) → 3개(HOME/자산/운영)로 축소. `ExecutionTab`/`TasksTab`은 신규 `OpsTab()` 안에서 기존 `SegmentedToggle` 패턴으로 토글 전환 — **내부 로직·데이터 페칭은 전혀 손대지 않음, UI 배치만 재구성**(운영/킬스위치 관련 표면이라 미검증 상태로 로직 건드리는 걸 의도적으로 피함)
+- 수집기 상세 그리드(`UnitCard` + 재시작 버튼) 제거 → `/lab/fleet` 링크 단일 배지로 축소("N/M 정상" + 이상 개수). 죽은 `handleRestart`/`restarting` state, `restartCollector` import 정리
+- "AI LAB"(`LabTab.tsx`)을 HOME에서 빼서 `research-os/pipeline` 페이지의 탭으로 이전(컴포넌트 자체는 무수정, 위치만 이동)
+- Research OS 파이프라인 8개 서브탭을 `CORE_TABS`(워크플로우, AI LAB — 항상 노출) + `ADVANCED_TABS`(나머지 7개 — "고급 ▾" 토글 뒤) 로 분리. `?tab=` 딥링크가 advanced 탭을 가리키면 자동으로 펼쳐진 상태로 시작
+
+### 변경된 파일
+`api_server/polymarket_bot.py`(멀티벤처 레포), `data/polymarket_bot.json`(런타임, API로 갱신), `app/hud/page.tsx`, `app/(console)/research-os/pipeline/page.tsx`, `components/console/BottomTabBar.tsx`, `components/ui/ToastContainer.tsx`, `app/infra/page.tsx`, `components/hud/PortfolioTab.tsx`
+
+### 검증
+`npx tsc --noEmit` 클린(1차 시도에서 `SegmentedToggle` 중복 import 에러 발견 — 이미 파일에 있던 import를 못 보고 또 추가한 실수, 제거 후 클린), `npm test` 29 files / 319 tests 전부 통과. 브라우저 실측은 안 함(유저 취침 중 작업 완료, 코드/타입/테스트 레벨 검증까지만).
+
+### 막힌 부분/결정사항
+- **Polymarket 해석 판단** — 위 "⚠️ 중요" 참조. 실거래 집행 경로는 이번에도 만들지 않음. 유저 확인 필요.
+- `ExecutionTab.tsx`/`TasksTab.tsx` 내부는 의도적으로 완전 미터치 — 운영/킬스위치 관련 표면을 무감독 상태에서 로직까지 바꾸는 리스크를 피함. `OpsTab()` 래퍼로 감싸기만 함.
+- 백엔드 레포(`seokminal-multi-venue`)에 이번 작업과 무관한 대량 변경(jarvis 자율 리서치 루프가 만든 것으로 보이는 데이터 파일 수백 개 + `polymarket_sharp_wallet_bot.py`의 STUCK_EXIT 버그픽스+테스트)이 워킹트리에 섞여 있었음 — 내가 만든 게 아니라 커밋 범위 판단 밖이라고 보고 `api_server/polymarket_bot.py` 하나만 좁게 스테이징해서 커밋(`37e9286`). 나머지는 그대로 워킹트리에 남아 있음 — 유저가 리뷰 후 별도 커밋 필요.
+- 브라우저 실측(새 3탭 구조, Research OS core/advanced 토글, 모바일 뷰포트에서 토스트/하단탭바/infra 반응형) 전부 미실행 — 다음 세션 또는 유저 확인 시 필요
+
+### 다음 할 일
+- 프론트엔드 커밋 완료(`bb3e257`), 백엔드 커밋 완료(`37e9286`) — 둘 다 push 안 함
+- 유저 기상 후: (1) Polymarket 해석이 맞는지 확인, (2) 새 HOME/Research OS 구조 실제로 브라우저에서 확인, (3) 백엔드 레포에 남아있는 무관 변경분(jarvis 자율 데이터+sharp_wallet_bot 버그픽스) 리뷰 후 별도 커밋 여부 결정
+- Project B(Research OS 내부 플로우 단순화)는 이번 Bucket B로 사실상 커버됨(core/advanced 토글) — 별도 스펙 불필요할 수 있음, 유저 판단 필요
+
+---
+
 ## Phase 227 — 자산군 홈 재구조 (Project A: /agents·/risk-guard 정리 + 자산군축 재편) (2026-08-23) ✅ SHIPPED
 
 ### 배경
