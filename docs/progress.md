@@ -1,3 +1,36 @@
+## Phase 229 — Polymarket AI 판단 봇(side="ai") 신규 sibling 봇 (2026-08-23) ✅ SHIPPED
+
+### 배경
+Phase 228 직후 유저가 "폴리마켓 봇 폴 선택 로직 뭐냐" → "AI cli나 네이버 검색 넣어서 판단시킬 수 있나" 질문 → "설계 잡아서 진행해줘"로 architectural 브레인스토밍 개시. 클리어링 질문에서 Groq(무료 LLM)+Tavily(검색 grounding) 조합, 기존 `polymarket_bot`/`polymarket_sharp_wallet_bot`과 완전 독립된 셋째 sibling 봇(`side="ai"`)으로 확정. 이후 Tavily 무료티어 소모량 질문에 답하며 틱당(5)+일일(30) 이중 콜캡 제안 → 유저가 승인하며 실제 Tavily API 키 제공("tvly-dev-... 반영해줘"). 곧이어 "플랜부터 구현까지 다 작업해줘. 나 잘거라서" — 승인 게이트 전부 생략하고 스펙→플랜→구현→테스트→커밋까지 완전 자율 실행 지시.
+
+### 완료된 작업 (백엔드, `seokminal-multi-venue` 레포)
+- `research/polymarket_ai_judgment/judge.py` 신규 — Tavily 검색 + Groq(`llama-3.3-70b-versatile`) 판단, `condition_id`+질문해시 캐시, 틱당/일일 이중 호출예산. **`entity_tags.py`와 의도적으로 다른 지점**: 판단 실패(검색/LLM 실패, JSON 파싱 실패, 범위밖 yes_prob)는 캐시에 저장 안 함 — 오판단이 곧장 paper 자본 배분으로 이어지므로 실패는 캐시 미스로 남겨 다음 틱 자연 재시도되게 함
+- `api_server/polymarket_ai_bot.py` 신규 — `polymarket_bot.py`와 동일 골격(config/tick/start_loop/status), 후보 필터(`_scan_candidates`)도 동일 기준 재사용. 사이드/진입 여부만 AI 판단 yes_prob vs 시장가 괴리(edge)로 결정, `min_edge` 미만이면 패스. 예산/포지션 전부 독립, v1 paper 전용
+- `api_server/main.py` — 라우터(`/polymarket-ai-bot`, 프리픽스 충돌 없음 확인) 등록, `dashboard/pnl/all` 집계 편입, 부팅 시 `start_loop()` 호출
+- `pyproject.toml`에 `tavily-python>=0.5` 추가, `.env`에 `TAVILY_API_KEY` 추가(gitignored, 커밋 안 됨)
+- 테스트: `tests/test_polymarket_ai_judgment_judge.py`(18개) + `tests/test_polymarket_ai_bot.py`(14개), 전부 통과. 전체 백엔드 suite 2318 passed 회귀 없음
+
+### 완료된 작업 (프론트엔드, `seokminal-dashboard` 레포)
+- `lib/api.ts` — `PolymarketAiPosition`/`PolymarketAiBotStatus`/`PolymarketAiBotConfig` 타입 + `getPolymarketAiBotStatus`/`setPolymarketAiBotConfig`/`runPolymarketAiBotNow` 함수, `polymarket-sharp-wallet-bot` API 패턴 그대로 재사용
+- `app/polymarket/page.tsx` — 샤프월렛 봇 섹션과 동일 구조로 새 카드 섹션(`#ai-judgment-bot`) 추가: 토글/지금실행/지출·잔여·실현손익 배지, PnL 누적곡선(resolve 로그 기반), 포지션(entry_price/ai_yes_prob/edge/usd 노출)+로그(entry/resolve/scan_fail/kill/config) 2열 그리드. 상단 전체현황 카드에 앵커 링크 행 추가
+- 검증: `npx tsc --noEmit` 클린(2회), `npm test` 29 files / 319 tests 전부 통과, dev 서버(`localhost:3000/polymarket`) curl로 200/에러없음 확인
+
+### 변경된 파일
+**멀티벤처**: `research/polymarket_ai_judgment/{__init__.py,judge.py}`(신규), `api_server/polymarket_ai_bot.py`(신규), `api_server/main.py`, `pyproject.toml`, `.env`(미커밋), `tests/test_polymarket_ai_judgment_judge.py`(신규), `tests/test_polymarket_ai_bot.py`(신규), `docs/superpowers/specs/2026-08-23-polymarket-ai-judgment-bot-design.md`(신규), `docs/superpowers/plans/2026-08-23-polymarket-ai-judgment-bot.md`(신규)
+**대시보드**: `lib/api.ts`, `app/polymarket/page.tsx`, 본 `docs/progress.md`
+
+### 막힌 부분/결정사항
+- 유저 취침 중 전 과정(스펙 승인 이후 플랜~구현~테스트~커밋) 승인 게이트 없이 자율 진행 — 명시적 지시("플랜부터 구현까지 다 작업해줘. 나 잘거라서")에 따른 것
+- 브라우저 실측(토글 클릭, 실행 버튼, 포지션/로그 렌더링 실제 확인)은 안 함 — dev 서버 200 응답과 tsc/vitest 레벨 검증까지만. 다음 세션에서 유저가 직접 켜보고 확인 필요
+- v1은 `enabled: false`로 배포됨(기본값) — 유저가 직접 켜야 실제 판단/진입 시작. 예산 $2000, min_edge 0.05, 틱당 5콜/일일 30콜 캡
+
+### 다음 할 일
+- 백엔드 3개 커밋(`47fa448`, `8d11187`, `193ef75`), 프론트 2개 커밋(`0852f09`, `833986e`) — 둘 다 push 안 함
+- 유저 기상 후: (1) `/polymarket` 페이지에서 새 카드 브라우저로 직접 확인, (2) 봇 켤지/예산·min_edge 조정 여부 판단, (3) N=20~30건 정산 전까지는 결론(승률/엣지 유효성) 안 냄 — 최소 표본 쌓일 때까지 관찰만
+- Phase 228에서 남겨둔 백엔드 워킹트리 무관 변경분(jarvis 자율 데이터+sharp_wallet_bot 버그픽스) 리뷰는 여전히 미해결 — 이번 세션에서도 손대지 않음
+
+---
+
 ## Phase 228 — Polymarket 예산 상향 + HOME 정보구조 재편 (Bucket A+B) (2026-08-23) ✅ SHIPPED
 
 ### 배경
