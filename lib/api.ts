@@ -3521,6 +3521,42 @@ export async function runSharpWalletBotNow(): Promise<Record<string, unknown>> {
   return handleResponse(r);
 }
 
+// ── Polymarket AI 판단(Tavily 검색+Groq) paper 집행 봇 — 가격구조 봇들과 독립 ────────
+export interface PolymarketAiPosition {
+  condition_id: string; question: string; event_id: string; side: string;
+  entry_price: number; usd: number; shares: number; end_date: string; entry_ts: string;
+  ai_yes_prob: number; edge: number;
+}
+export interface PolymarketAiBotStatus {
+  enabled: boolean; interval_sec: number; budget: number; per_market_usd: number;
+  max_positions: number; min_liquidity: number; min_price: number; max_price: number;
+  min_days_to_resolution: number; max_days_to_resolution: number; min_edge: number;
+  max_new_calls_per_tick: number; max_new_calls_per_day: number;
+  spent: number; realized_pnl: number; remaining: number;
+  positions: PolymarketAiPosition[]; last_run: string | null;
+  log: PolymarketBotLog[]; note: string;
+}
+export interface PolymarketAiBotConfig {
+  enabled?: boolean; interval_sec?: number; budget?: number; per_market_usd?: number;
+  max_positions?: number; min_liquidity?: number; min_price?: number; max_price?: number;
+  min_days_to_resolution?: number; max_days_to_resolution?: number; min_edge?: number;
+  max_new_calls_per_tick?: number; max_new_calls_per_day?: number; reset_spent?: boolean;
+}
+export async function getPolymarketAiBotStatus(signal?: AbortSignal): Promise<PolymarketAiBotStatus> {
+  const r = await fetch(`${API_URL}/polymarket-ai-bot/status`, { signal });
+  return handleResponse<PolymarketAiBotStatus>(r);
+}
+export async function setPolymarketAiBotConfig(cfg: PolymarketAiBotConfig): Promise<{ ok: boolean }> {
+  const r = await fetch(`${API_URL}/polymarket-ai-bot/config`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg),
+  });
+  return handleResponse(r);
+}
+export async function runPolymarketAiBotNow(): Promise<Record<string, unknown>> {
+  const r = await fetch(`${API_URL}/polymarket-ai-bot/run-now`, { method: "POST" });
+  return handleResponse(r);
+}
+
 export interface PolymarketLeaderEntry {
   rank: number; proxyWallet: string; pnl: number; vol: number;
 }
