@@ -28,10 +28,19 @@
 ### 3. (삭제됨 — `/portfolio` 유지로 리다이렉트 불필요)
 
 ### 4. `/agents` 라우트 삭제
-콘텐츠가 이미 죽어있고(에이전트 미가동), 자산별 AI 에이전틱 트레이딩이 향후 대체 예정이라 완전 삭제. 외부 진입 링크 없음(grep 확인 완료, 유일한 참조는 `PortfolioTab.tsx:150`이며 이 파일 자체가 이번 재작성 대상이라 자동 제거됨). 리다이렉트 스텁 불필요.
+콘텐츠가 이미 죽어있고(에이전트 미가동), 자산별 AI 에이전틱 트레이딩이 향후 대체 예정이라 완전 삭제.
+
+**정정 (2026-08-23, 플랜 작성 중 재발견):** "외부 진입 링크 없음"은 `PortfolioTab.tsx`만 grep한 결과였고 틀렸음. 전체 grep 결과 `/agents`를 가리키는 곳이 4곳 더 있음:
+- `lib/researchOsRedirects.ts`의 `/calendar`, `/insider`, `/macro`, `/news` 4개 키 — 이미 죽은 구 라우트들의 리다이렉트 타겟이 `/agents`. `/agents` 삭제하면 이 4개 스텁이 404로 감.
+- `components/AlertPoller.tsx:13`의 `linkFor()` 기본 분기(알 수 없는 botId → 에이전트 목록).
+- `app/hud/page.tsx:165`의 `violationHref()` — `entity.startsWith("agent:")` 케이스.
+
+처리: 위 4개 리다이렉트 타겟을 `/agents` → `/hud`로 교체. `AlertPoller.tsx` 기본 분기도 `/hud`로. `violationHref()`의 `agent:` 특수 케이스는 그냥 삭제(원래도 있던 default `return "/lab"`로 자연스럽게 떨어짐 — 코드 한 줄 삭제로 끝). 리다이렉트 스텁 자체는 여전히 불필요(`/agents`로 들어오는 북마크가 없다는 원래 판단은 유효 — 문제는 `/agents`가 다른 것들의 리다이렉트 *타겟*이었다는 점).
 
 ### 5. `/risk-guard` 라우트 삭제 → 설정 드로어로 축소
-새 컴포넌트 `components/console/SettingsDrawer.tsx` 신설. `app/risk-guard/page.tsx`의 로직(킬스위치 토글, `RiskStatus` 표시, 30초 폴링)을 그대로 이식하되 페이지가 아닌 우측 슬라이드 드로어로. CommandRail(데스크탑)과 BottomTabBar(모바일) 양쪽에 ⚙ 아이콘 트리거 추가. URL 라우트 없음(모달성 UI라 북마크 대상 아님) — 리다이렉트 스텁도 불필요, 그냥 라우트 제거.
+새 컴포넌트 `components/console/SettingsDrawer.tsx` 신설. `app/risk-guard/page.tsx`의 로직(킬스위치 토글, `RiskStatus` 표시, 30초 폴링)을 그대로 이식하되 페이지가 아닌 우측 슬라이드 드로어로. `app/layout.tsx`에 전역 마운트(CommandRail/BottomTabBar와 같은 레벨) — 페이지 상관없이 어디서든 열 수 있게. CommandRail 푸터와 BottomTabBar "더보기" 시트 양쪽에 ⚙ 트리거 추가. URL 라우트 없음(모달성 UI라 북마크 대상 아님) — 리다이렉트 스텁 불필요, 그냥 라우트 제거.
+
+**정정(같은 grep에서 발견):** `lib/attention.ts`가 "리스크 차단 이벤트" 알림 카드의 href로 `/risk-guard`를 씀(`tests/lib/attention.test.ts`도 이 값 검증). 라우트 사라지면 이 링크도 죽음 — href를 `/hud`로 바꾼다(설정 드로어가 전역 마운트라 어느 페이지서든 ⚙로 접근 가능하니 홈으로 보내는 걸로 충분, 쿼리파라미터로 드로어 자동 오픈까지는 이번 스코프에서 안 함 — YAGNI).
 
 ### 6. 나브 정리
 **CommandRail** — "트레이딩 데스크" 그룹의 포트폴리오 항목은 유지(라우트 안 죽으므로). "봇·에이전트" 그룹에서 에이전트/리스크가드 항목만 제거, 남는 항목(성과/DART오토파일럿/카피트레이딩/Polymarket)은 전략 상세 딥링크로 유지.
@@ -44,8 +53,10 @@
 - 수정: `app/portfolio/page.tsx`의 `AccountsTab()`만 (통화축 → 자산군축, 폴리마켓 카드 추가) — 주문/손익/최적화 탭 무변경
 - 신규: `components/console/SettingsDrawer.tsx` (`app/risk-guard/page.tsx` 로직 이식)
 - 완전 삭제: `app/agents/page.tsx`, `app/risk-guard/page.tsx`
-- 수정: `components/console/CommandRail.tsx`(에이전트/리스크가드 항목만 제거), `components/console/BottomTabBar.tsx`(에이전트→Research OS 교체, 설정 아이콘은 더보기 시트에)
-- `lib/researchOsRedirects.ts`: `/portfolio` 항목 불필요(라우트 유지). `/agents`도 외부 링크 없어 스텁 불필요(기존 스펙 판단 유효).
+- 수정: `components/console/CommandRail.tsx`(에이전트/리스크가드 항목 제거 + ⚙ 트리거 추가), `components/console/BottomTabBar.tsx`(에이전트→Research OS 교체, 더보기 시트에 ⚙ 트리거 추가)
+- 수정: `app/layout.tsx` (`SettingsDrawer` 전역 마운트)
+- 수정(죽는 `/agents` 링크 정리): `lib/researchOsRedirects.ts`(calendar/insider/macro/news 4개 키의 타겟을 `/agents`→`/hud`), `components/AlertPoller.tsx`(기본 분기 href `/agents`→`/hud`), `app/hud/page.tsx`(`violationHref()`의 `agent:` 특수 케이스 삭제), `lib/attention.ts`(리스크 알림 href `/risk-guard`→`/hud`)
+- 수정(테스트, 위 변경 따라감): `__tests__/researchOsRedirects.test.ts`, `tests/lib/commandRailGroups.test.ts`, `tests/lib/attention.test.ts`
 
 ## 에러 처리 / 테스트
 
