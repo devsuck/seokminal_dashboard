@@ -1,3 +1,38 @@
+## Phase 230 — Polymarket 예측시장 트레이딩 기능 전체 삭제 (2026-08-25) ✅ SHIPPED
+
+### 배경
+Polymarket가 한국 IP를 지오블록(HTTP 451, 서버 실공인IP로 직접 curl 확인)하고 있음을 발견. 유저는 앞으로 2년+ 한국 상주 확정(2026-10-19 입대 포함) — 접속 재개 가능성 없음. Phase 229의 `polymarket_ai_bot`을 포함해 페이퍼봇 3개(`polymarket_bot`/`polymarket_sharp_wallet_bot`/`polymarket_ai_bot`)와 관련 리서치 스캐너들이 크래시루프/자동재시작으로 서버에 실질적 부하를 주고 있어 "오케이 진행해" 승인 받아 전면 삭제 진행.
+
+### 완료된 작업 (백엔드, `seokminal-multi-venue` 레포, 커밋 `c985dac`)
+- 페이퍼봇 3개(`api_server/polymarket_bot.py`, `polymarket_sharp_wallet_bot.py`, `polymarket_ai_bot.py`), 리서치 스크립트 ~19개(`research/run_polymarket_*.py`, `research/run_mlb_specialist_*.py` 등), 가설 정의 4개(`research/hypotheses/polymarket_*.py`, `mlb_specialist_consensus.py`), 리서치 서브패키지 7개(`polymarket_arb`, `polymarket_event_divergence`, `polymarket_market_implication`, `polymarket_sharp_wallet`, `polymarket_tick`, `polymarket_ai_judgment`, `mlb_specialist`) 전부 삭제
+- 관련 테스트 ~52개, 런타임/컬렉터 데이터(`research/data/polymarket_*`, `mlb_specialist/`, `edge_history/polymarket_*` 등) 삭제
+- 공유 인프라 12개 파일(`api_server/main.py`, `lab_api.py`, `invariants.py`, `fleet_health.py`, `research/hypothesis_registry.py`, `research/validation/cost_model.py`, `pyproject.toml` 등)은 폴리마켓 결합 부분만 수술적 제거, 제네릭 로직 보존
+- `api_server/lab_api.py`의 `COLLECTOR_SESSIONS`를 4개(`hl_orderflow_tick`/`cross_venue_skew_tick`/`options_uoa`/`convergence_legs`)로 정리
+- 검증: `pytest tests/ -q` 1924 passed 회귀 없음. 서버 재기동 후 `/polymarket/status` 404, `/lab/fleet` 컬렉터 4개 정확 매치, `/lab/health` 0 violations 확인. 재기동 전 구프로세스가 계속 쓰던 `research/data/edge_history/*.jsonl` 4개 stale 파일도 재기동 후 재생성 안 됨을 확인해 삭제 완료
+
+### 완료된 작업 (프론트엔드, `seokminal-dashboard` 레포, 커밋 `5644c61`)
+- `app/polymarket/page.tsx`(679줄), `app/mlb/page.tsx`(118줄, 원래 스코프 밖이었으나 grep으로 발견해 같이 제거) 전체 삭제
+- `lib/api.ts` — Polymarket 봇 타입/함수 전부(~110줄: `PolymarketPosition`, `PolymarketBotStatus`, `SharpWalletBotStatus`, `PolymarketAiBotStatus` 등 11개 인터페이스 + `getPolymarketBotStatus` 등 10개 함수), `LabStatus.processes`를 4개 컬렉터로 재동기화, `CollectorKey` 타입 갱신
+- `lib/collectors.ts` — `COLLECTOR_META` 12→4 엔트리로 재작성(백엔드 `COLLECTOR_SESSIONS`와 1:1 일치)
+- `app/portfolio/page.tsx`, `components/hud/PortfolioTab.tsx` — `PolymarketBots` 컴포넌트/state/fetch/타일 제거(포트폴리오 3타일: 국내주식/해외주식/코인)
+- `app/hud/page.tsx`, `components/AlertPoller.tsx`, `components/console/CommandRail.tsx` — nav 링크/알림 라우팅 항목 제거
+- 검증: `npx tsc --noEmit` 클린, `npm test` 29 files/319 tests 전부 통과, dev 서버 curl로 `/polymarket`·`/mlb` 404, `/portfolio`·`/hud` 200 확인
+
+### 변경된 파일
+**멀티벤처**: 252 files changed(38 insertions, 114432 deletions) — 위 목록 전체
+**대시보드**: `app/{polymarket,mlb}/page.tsx`(삭제), `app/hud/page.tsx`, `app/portfolio/page.tsx`, `components/{AlertPoller,console/CommandRail,hud/PortfolioTab}.tsx`, `lib/{api,collectors,edge-labels}.ts`
+
+### 막힌 부분/결정사항
+- 부활 필요시(해외 이주 등) git 히스토리에서 복구 가능 — 별도 아카이브 안 만듦
+- 두 레포 모두 로컬 커밋만 완료, **push 안 함** — 유저 확인 필요
+- 프론트 레포의 기존 무관 변경분(`next.config.ts` 수정, `logs/` untracked)은 이번 커밋에서 의도적으로 제외 — 이 작업과 무관, 손대지 않음
+
+### 다음 할 일
+- 유저에게 두 레포 커밋 push 여부 확인
+- (선택) `next.config.ts`/`logs/`가 뭔지 확인 후 별도 처리 필요한지 판단
+
+---
+
 ## Phase 229 — Polymarket AI 판단 봇(side="ai") 신규 sibling 봇 (2026-08-23) ✅ SHIPPED
 
 ### 배경
