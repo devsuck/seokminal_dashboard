@@ -132,7 +132,7 @@ const WORLD_CITIES: { label: string; tz: string }[] = [
 /** 참고 정보라 한 줄로 눌러둠 — 상단 픽셀은 조치가 필요한 상태 표시에 양보. */
 function WorldClock({ now }: { now: Date }) {
   return (
-    <div className="flex items-center justify-end gap-4 px-2 py-0.5">
+    <div className="hidden sm:flex items-center justify-end gap-4 px-2 py-0.5">
       {WORLD_CITIES.map(c => (
         <span key={c.tz} className="inline-flex items-baseline gap-1">
           <span className="text-ap-ink-3 text-[8px] uppercase tracking-widest">{c.label}</span>

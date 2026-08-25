@@ -166,12 +166,12 @@ export default function LabTab() {
 
       {/* Stage flow */}
       <Card className="p-4">
-        <div className="flex items-stretch gap-2">
+        <div className="flex items-stretch gap-2 overflow-x-auto">
           {STAGES.map((sg, i) => {
             const active = st?.stage === sg.key;
             const done = st && STAGES.findIndex(x => x.key === st.stage) > i;
             return (
-              <div key={sg.key} className="flex-1 flex items-center gap-2">
+              <div key={sg.key} className="flex-1 flex items-center gap-2 min-w-[92px]">
                 <div
                   className={`flex-1 rounded-md border px-3 py-3 transition-all duration-300 ${
                     active
@@ -183,7 +183,7 @@ export default function LabTab() {
                       {active && <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-70 animate-ping" />}
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
                     </span>
-                    <span className={`text-sm font-semibold ${active ? "text-ap-brand" : done ? "text-ap-up" : "text-ap-ink-2"}`}>{sg.label}</span>
+                    <span className={`text-sm font-semibold whitespace-nowrap ${active ? "text-ap-brand" : done ? "text-ap-up" : "text-ap-ink-2"}`}>{sg.label}</span>
                   </div>
                   <div className="text-[10px] uppercase tracking-widest text-ap-ink-3 mt-1 font-data">{sg.sub}</div>
                   {active && (
@@ -459,13 +459,13 @@ function LiveLog({ log, endRef }: { log: LabLogLine[]; endRef: React.RefObject<H
 function StatsRow({ st }: { st: LabState | null }) {
   const s = st?.stats ?? { processed: 0, edges: 0, rejects: 0, blocked: 0, pending: 0 };
   const item = (label: string, val: number, color: string) => (
-    <div className="bg-ap-surface border border-ap-line rounded-lg px-3 py-2 text-center">
+    <div className="bg-ap-surface border border-ap-line rounded-lg px-1.5 py-2 text-center">
       <div className={`text-lg font-semibold font-data ${color}`}>{val}</div>
-      <div className="text-[10px] uppercase tracking-wider text-ap-ink-3">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-ap-ink-3 break-keep">{label}</div>
     </div>
   );
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
       {item("검토", s.processed, "text-ap-ink-1")}
       {item("엣지", s.edges, "text-ap-up")}
       {item("기각", s.rejects, "text-ap-down")}

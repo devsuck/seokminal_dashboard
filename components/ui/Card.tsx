@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 export function CardHeader({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 bg-ap-surface border-b border-ap-line px-3 py-2">
-      <span className="text-ap-ink-1 text-[13px] font-semibold">{children}</span>
-      {right && <span className="text-ap-ink-2 text-[11px] font-data">{right}</span>}
+      <span className="text-ap-ink-1 text-[13px] font-semibold shrink-0 whitespace-nowrap">{children}</span>
+      {right && <span className="text-ap-ink-2 text-[11px] font-data min-w-0 truncate">{right}</span>}
     </div>
   );
 }
