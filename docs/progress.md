@@ -1,3 +1,41 @@
+## Phase 231 — 모바일 뷰포트 개발 전체 스윕 (2026-08-25) ✅ SHIPPED
+
+### 배경
+유저 "나 밥먹고 올테니까 에이전틱 트레이딩 플랫폼 모바일 위한 개발 다 해놔줘 나머지할 것도 너가 판단해서 해줘" — 오프라인 위임, 승인 게이트 없이 자율 진행. 모바일 개발 스코프 = `BottomTabBar`의 3개 primary 탭(`/hud`, `/portfolio`, `/research-os/pipeline`) + "더보기" 시트로 도달 가능한 나머지 페이지.
+
+### 발견 및 수정
+- **치명 버그(모바일/데스크탑 공통)**: `.env.local`의 `NEXT_PUBLIC_API_URL`이 죽은 Cloudflare quick tunnel URL(2026-08-23 세팅, 백엔드 터널 프로세스 미기동)을 가리키고 있어 `/research-os/pipeline` 전체가 "백엔드 연결 실패"로 데이터 로딩 자체가 안 되고 있었음. `read_network_requests`로 진단(터널 호스트로 503, `localhost:8000` 요청 0건). `localhost:8000`으로 되돌리고 프론트 dev 서버 재기동으로 해결. 터널 URL은 주석으로 보존(재사용 시 `cloudflared tunnel --url http://localhost:8000`로 백엔드도 같이 터널링 필요 — [[project_cloudflare_quick_tunnel]] 3파일 동기화 규칙 재확인)
+- **CardHeader CJK 줄바꿈 버그**(공유 컴포넌트, `components/ui/Card.tsx`): 좁은 화면에서 타이틀이 음절 단위로 깨짐 → `shrink-0 whitespace-nowrap`(제목) + `min-w-0 truncate`(우측 슬롯). ~20개 페이지에 영향
+- `app/hud/page.tsx` — `WorldClock`(4개 도시 시계)이 CardHeader 타이틀을 밀어내던 원인이라 모바일에서 `hidden sm:flex`로 숨김
+- `components/hud/LabTab.tsx`(AI LAB 탭, `/research-os/pipeline?tab=lab`) — 4단계 파이프라인 스테퍼가 모바일에서 라벨 음절 단위로 깨지고 4번째 박스가 화면 밖으로 밀려 도달 불가 → `overflow-x-auto` + `min-w-[92px]` + `whitespace-nowrap`. `StatsRow`(grid-cols-5 통계 5칸)의 "배치대기" 라벨도 동일 증상 → `break-keep`(음절 단위 강제줄바꿈 방지, whitespace-nowrap과 달리 오버플로 없이 단어 단위 줄바꿈) + 패딩 축소로 해결
+- `components/ShutdownButton.tsx` — 종료 모달 고정폭 `w-[520px]`이 390px 뷰포트에서 잘림 → `w-[92vw] max-w-[520px]`
+- `components/orderflow/OrderflowChart.tsx`(`/orderflow`, 더보기 접근 가능) — 차트+오더북(480px)+테이프(176px)+시그널패널(288px) flex 행이 모바일에서 페이지 레이아웃 자체를 깨던 문제 → 행에 `overflow-x-auto` 추가, 가로 스크롤로 전환(TradeLogTable과 동일 기존 패턴)
+
+### 검토 후 문제없음 판정(수정 안 함)
+- `TradeTab.tsx` 주문확인 모달(`w-[320px]`) — 390px 뷰포트에 이미 여유 있게 들어감
+- `SettingsDrawer.tsx` — 이미 `w-full max-w-[420px]`로 반응형
+- `TradeLogTable.tsx` — 이미 `overflow-x-auto` + `min-w-[640px]` 올바른 패턴
+- `FundingPanel.tsx`(`grid-cols-4`) — OrderflowChart 내부 고정폭 `w-72`(288px) 사이드바 안이라 뷰포트와 무관하게 항상 같은 폭. 모바일 특이 이슈 아님
+- `MarketWorkspace.tsx`(`w-[340px]`) — grep 결과 어느 라우트에서도 import 안 되는 죽은 코드. 영향 없음, 삭제 여부는 유저 판단 필요(손 안 댐)
+
+### 검증
+- `npx tsc --noEmit` 클린(2회)
+- `npm test` 29 files / 319 tests 전부 통과(2회)
+- Chrome MCP `<iframe>` 주입 기법(390px 폭, `resize_window` 툴이 이 환경에서 실효과 없어 우회)으로 `/hud`, `/portfolio`, `/research-os/pipeline`(워크플로우+AI LAB 탭) 390px 뷰포트 실측 확인
+
+### 변경된 파일
+`components/ui/Card.tsx`, `app/hud/page.tsx`, `components/hud/LabTab.tsx`, `components/ShutdownButton.tsx`, `components/orderflow/OrderflowChart.tsx`, `.env.local`(gitignored, 미커밋 — 로컬 개발용 revert)
+
+### 커밋/푸시
+`0bcf1b1`(CardHeader/WorldClock/LabTab 1차), `2ffb9e3`(ShutdownButton/OrderflowChart 2차) — 둘 다 origin/main에 푸시 완료(오프라인 위임 + 기존 승인 전례에 따라 자율 진행)
+
+### 다음 할 일
+- `next.config.ts`의 tunnel URL(2026-08-25 갱신분, 미커밋 상태로 working tree에 남아있음)과 `logs/`(untracked, dev 서버 nohup 로그) — 이번 작업과 무관, 손 안 댐. 유저가 폰 테스트 재개할 때 `.env.local`/`next.config.ts`/백엔드 `CORS_ORIGINS` 3파일 동기화 다시 필요
+- `MarketWorkspace.tsx` 죽은 코드 삭제 여부 유저 판단 필요
+- "더보기" 시트의 나머지 페이지(마켓/성과/DART오토파일럿/카피트레이딩/공급망그래프 등) 시간 관계상 전수 실측은 안 함 — 정적 grep 감사 기반 flagged 항목만 처리
+
+---
+
 ## Phase 230 — Polymarket 예측시장 트레이딩 기능 전체 삭제 (2026-08-25) ✅ SHIPPED
 
 ### 배경
