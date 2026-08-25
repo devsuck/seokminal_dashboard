@@ -1,3 +1,46 @@
+## Phase 232 — "마켓 퀄리티" PWA급 완성도 3서브시스템 (터치/제스처, 실 Web Push, QA) (2026-08-25) ✅ SHIPPED
+
+### 배경
+"마켓 올라가도 될 정도의 퀄리티로 만들어줘" 지시 → AskUserQuestion으로 PWA급 완성도(네이티브 앱스토어 심사 아님) 확정. 4서브시스템으로 분해: ① PWA 설치/오프라인(이미 `1be06c6`에서 완료 확인, 이번 세션 재작업 없음) ② 터치/제스처 ③ 실 Web Push(로컬 알림 한계 극복) ④ QA. 사용자 "다 해줘, 나 밖이라 들어가서 확인" — 오프라인 위임으로 진행.
+
+### 완료된 작업 — ② 터치/제스처
+- 44px(iOS HIG) 미달 터치타겟 3건 수정: `TradeTab.tsx` 수량 스테퍼(±버튼 8×8→11×11, 실거래 경로), `BottomTabBar.tsx`/`SettingsDrawer.tsx` 닫기 버튼(min-h-11 min-w-11)
+- `BottomTabBar.tsx` "더보기" 시트에 스와이프-다운 닫기 추가(`onTouchStart`/`onTouchEnd` 임계값 80px, `style={{}}` 금지 규칙 때문에 실시간 드래그 트랜스폼 대신 단순 threshold 판정만)
+- 검토 후 스킵: 탭 간 스와이프 제스처(불필요한 복잡도/오조작 리스크로 판단, 명시적 버튼 탭으로 충분), `NoteBlockRenderer`/dart-auto 페이지 터치타겟(모바일 네비 도달 불가/저우선순위로 후순위)
+
+### 완료된 작업 — ③ 실 Web Push
+- 기존 `AlertPoller.tsx`의 "푸시"는 브라우저 `Notification` API라 탭이 열려있어야만 동작하는 한계 확인(진짜 백그라운드 푸시 아님) → 오해 소지 있던 함수명 `sendPushNotification`→`showLocalNotification`으로 정정
+- `public/sw.js`에 `push`/`notificationclick` 핸들러 추가(백엔드가 보낸 payload로 `showNotification`, 클릭 시 기존 탭 포커스 또는 새 탭)
+- `lib/api.ts`에 `getVapidPublicKey`/`subscribePush`/`unsubscribePush` 추가
+- `AlertPoller.tsx`에 `subscribeToPush()` 추가 — 알림 권한 승인 시 `PushManager.subscribe()`로 실제 구독 생성 후 백엔드(`seokminal-multi-venue`, 별도 커밋 — 해당 리포 `docs/progress.md` 참고) 등록
+- 백엔드 쪽(VAPID 키, 구독 저장, `/push/*` 엔드포인트, alert 트리거 연동)은 `seokminal-multi-venue`에서 별도 처리 완료
+
+### 완료된 작업 — ④ QA
+- API 재기동 후 `scripts/restart_api.sh` 정상 확인(첫 부팅 ~5초 소요, 정상 범위)
+- Chrome MCP로 390px/375px 뷰포트 `/hud` 재확인, "더보기" 시트 스와이프-닫기 UI 확인, 콘솔 에러 없음
+- `manifest.webmanifest`(아이콘 3개), service worker(`activated` 상태) 정상 로드 확인
+- **실제 Web Push 구독 end-to-end 확인**: 알림 권한 승인 → `pushManager.getSubscription()`으로 FCM 엔드포인트(`fcm.googleapis.com/...`) 구독 실제 생성 확인. 백엔드 `/push/subscribe`(POST/DELETE)·`/push/vapid-public-key` curl로도 별도 확인.
+
+### 검증
+- `npx tsc --noEmit` 클린, `npm test` 29 files/319 tests 전부 통과(터치/제스처, Web Push 프론트 각 커밋 전)
+
+### 변경된 파일
+- `components/market/TradeTab.tsx`, `components/console/BottomTabBar.tsx`, `components/console/SettingsDrawer.tsx`
+- `components/AlertPoller.tsx`, `lib/api.ts`, `public/sw.js`
+
+### 커밋
+- `d8ed22d` fix: 모바일 터치타겟 44px 미달 3건 보정 + 더보기 시트 스와이프-닫기 추가
+- `852b75a` feat: 실 Web Push 구독 플로우 추가 (sw.js push 핸들러, VAPID 구독)
+
+### 다음 할 일
+- 실기기(iOS Safari 홈화면 추가 후, Android Chrome) 푸시 알림 실제 수신은 에이전트가 검증 불가 — 사용자가 폰에서 직접 확인 필요
+- **`seokminal-multi-venue`에 `lv6_notify.py`(Telegram) 완성돼 있으나 미배선 발견** — 토큰/챗ID `.env`에 실값 존재, 리포 전체 콜사이트 0건. 값싸고 효과 큰 후속작업이지만 주문 리스크 체크 경로(`risk_guard.py`)/체결경로에 배선하는 건 사용자 부재 중 자율판단 범위 밖이라 판단해 스킵 — 사용자 검토 필요(상세는 백엔드 리포 progress.md)
+
+### 막힌 부분/결정사항
+- 없음(PWA 서브시스템 ①은 이미 완료 상태라 재작업 skip, 나머지 3개 전부 완료)
+
+---
+
 ## Phase 231 — 모바일 뷰포트 개발 전체 스윕 (2026-08-25) ✅ SHIPPED
 
 ### 배경
