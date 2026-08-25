@@ -11,3 +11,29 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", () => {
   // no-op: 브라우저 기본 네트워크 요청 그대로 통과
 });
+
+self.addEventListener("push", (event) => {
+  let payload = { title: "SEOKMINAL", body: "" };
+  try {
+    if (event.data) payload = event.data.json();
+  } catch {
+    payload.body = event.data ? event.data.text() : "";
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "SEOKMINAL", {
+      body: payload.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      if (clients.length > 0) return clients[0].focus();
+      return self.clients.openWindow("/");
+    })
+  );
+});

@@ -2033,6 +2033,41 @@ export async function getTriggeredAlerts(
   return data.triggered;
 }
 
+// ── Web Push ──────────────────────────────────────────────────
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+export async function getVapidPublicKey(signal?: AbortSignal): Promise<string | null> {
+  const r = await fetch(`${API_URL}/push/vapid-public-key`, { signal });
+  if (!r.ok) throw new Error(r.statusText);
+  const data: { public_key: string | null } = await r.json();
+  return data.public_key;
+}
+
+export async function subscribePush(
+  sub: PushSubscriptionPayload,
+  signal?: AbortSignal,
+): Promise<void> {
+  const r = await fetch(`${API_URL}/push/subscribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sub),
+    signal,
+  });
+  if (!r.ok && r.status !== 204) throw new Error(r.statusText);
+}
+
+export async function unsubscribePush(endpoint: string, signal?: AbortSignal): Promise<void> {
+  const r = await fetch(`${API_URL}/push/subscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+    method: "DELETE",
+    signal,
+  });
+  if (!r.ok && r.status !== 204) throw new Error(r.statusText);
+}
+
 // ── Walk-Forward ──────────────────────────────────────────────────────────────
 
 export interface WalkForwardWindow {
