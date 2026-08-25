@@ -1,4 +1,4 @@
-/** 엣지 졸업 등급·검증 상태의 단일 라벨 출처. /edges·/polymarket이 같은 말을 쓰게 함. */
+/** 엣지 졸업 등급·검증 상태의 단일 라벨 출처. /edges·/lab이 같은 말을 쓰게 함. */
 
 export function gradeStyle(s: string): string {
   if (s === "graduated") return "border-pos/50 text-pos bg-pos/10";

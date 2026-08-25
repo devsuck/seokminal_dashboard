@@ -4,14 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings,
-  getDashboardPnlAll,
   type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
-  type DashboardBotRow,
 } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
 import { BarChart, type BarItem } from "@/components/charts/BarChart";
 
-/* 자산군 4타일 요약(국내주식/해외주식/코인/폴리마켓) — 에이전트 전부 미가동 상태라
+/* 자산군 3타일 요약(국내주식/해외주식/코인) — 에이전트 전부 미가동 상태라
    에이전트 중심 뷰(listAgents) 대신 실제 보유자산 기준으로 재작성. 상세 종목 리스트는
    여기 안 넣음(그건 /portfolio가 이미 함) — 타일은 합계·수익률만. */
 
@@ -65,7 +63,6 @@ export default function PortfolioTab() {
   const [paper, setPaper] = useState<PaperState | null>(null);
   const [hlPositions, setHlPositions] = useState<HLAssetPosition[]>([]);
   const [usdcTotal, setUsdcTotal] = useState<number | null>(null);
-  const [polymarketBots, setPolymarketBots] = useState<DashboardBotRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -78,8 +75,7 @@ export default function PortfolioTab() {
       getKisHoldings(true),
       getKisHoldings(false),
       getAccountBalances(),
-      getDashboardPnlAll(),
-    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes, kisMockRes, kisLiveRes, balRes, pnlRes]) => {
+    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes, kisMockRes, kisLiveRes, balRes]) => {
       if (acctRes.status === "fulfilled") setAlpacaAcct(acctRes.value);
       if (posRes.status === "fulfilled") setAlpacaPositions(posRes.value);
       if (paperRes.status === "fulfilled") setPaper(paperRes.value);
@@ -103,10 +99,6 @@ export default function PortfolioTab() {
         const usdcAccounts = balRes.value.accounts.filter(a => a.ccy === "USDC");
         setUsdcTotal(usdcAccounts.every(a => a.balance == null) ? null
           : usdcAccounts.reduce((s, a) => s + (a.balance ?? 0), 0));
-      }
-
-      if (pnlRes.status === "fulfilled") {
-        setPolymarketBots(pnlRes.value.bots.filter(b => b.id.startsWith("polymarket")));
       }
 
       setLoading(false);
@@ -144,15 +136,10 @@ export default function PortfolioTab() {
     })),
   );
 
-  const polymarketTotal = polymarketBots.length > 0
-    ? polymarketBots.reduce((s, b) => s + (b.realized_pnl ?? 0), 0)
-    : null;
-
   const tiles: AssetTileData[] = [
     { label: "국내주식", value: krwTotal, ccy: "KRW", returnPct: krwReturn, href: "/portfolio" },
     { label: "해외주식", value: usdValue, ccy: "USD", returnPct: usdReturn, href: "/portfolio" },
     { label: "코인", value: usdcTotal, ccy: "USDC", returnPct: hlReturn, href: "/portfolio" },
-    { label: "폴리마켓", value: polymarketTotal, ccy: "USD", returnPct: null, href: "/polymarket" },
   ];
 
   // 통화 단위 다른 잔고(KRW/USD/USDC)는 합산 불가 — 수익률(%)만 자산군 비교 차트로

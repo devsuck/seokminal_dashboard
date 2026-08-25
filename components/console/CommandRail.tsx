@@ -42,7 +42,6 @@ const TERMINAL_GROUPS: RailGroup[] = [
     { href: "/performance", label: "성과" },
     { href: "/dart-auto", label: "DART 오토파일럿" },
     { href: "/copytrade", label: "카피트레이딩" },
-    { href: "/polymarket", label: "Polymarket" },
   ] },
 ];
 

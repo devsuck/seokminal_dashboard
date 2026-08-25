@@ -180,7 +180,6 @@ interface Unit {
 
 /** 정합성 위반 엔티티 → 조사할 페이지. 모르는 엔티티는 랩 개요로. */
 function violationHref(entity: string): string {
-  if (entity.includes("polymarket")) return "/polymarket";
   if (entity.includes("copytrade")) return "/copytrade";
   if (entity.includes("dart")) return "/dart-auto";
   return "/lab";

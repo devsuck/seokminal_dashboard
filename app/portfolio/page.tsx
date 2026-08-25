@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
 import {
   getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings,
-  getOmsOrders, getRealizedPnl, getDashboardPnlAll, ApiError,
+  getOmsOrders, getRealizedPnl, ApiError,
   type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
-  type OmsOrder, type VenuePnl, type DashboardBotRow,
+  type OmsOrder, type VenuePnl,
 } from "@/lib/api";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
@@ -255,39 +254,6 @@ function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy
   );
 }
 
-// ── 폴리마켓 봇 카드 (getDashboardPnlAll의 bots 배열 재사용, 별도 API 없음) ──────
-
-function PolymarketBots({ bots }: { bots: DashboardBotRow[] }) {
-  const total = bots.length > 0 ? bots.reduce((s, b) => s + (b.realized_pnl ?? 0), 0) : null;
-  return (
-    <div className="bg-ap-surface border border-ap-line rounded-xl overflow-hidden">
-      <div className="px-4 py-3 flex items-center justify-between gap-3">
-        <span className="text-ap-ink-1 text-sm font-semibold">폴리마켓 봇 실현손익</span>
-        <span className={`font-mono text-sm font-bold px-1 ${total != null && total >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
-          {total != null ? `${total >= 0 ? "+" : "-"}$${Math.abs(total).toFixed(2)}` : "—"}
-        </span>
-      </div>
-      {bots.length > 0 ? (
-        <div className="divide-y divide-ap-line/60 text-[11px] px-4 pb-2">
-          {bots.map(b => (
-            <div key={b.id} className="py-1.5 flex items-center justify-between gap-2">
-              <span className="text-ap-ink-2">{b.name}</span>
-              <span className={`font-mono px-1 font-bold ${b.realized_pnl == null ? "text-ap-ink-3" : b.realized_pnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
-                {b.realized_pnl == null ? "—" : `${b.realized_pnl >= 0 ? "+" : "-"}$${Math.abs(b.realized_pnl).toFixed(2)}`}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-ap-ink-3 text-xs px-4 pb-3">봇 데이터 없음</p>
-      )}
-      <Link href="/polymarket" className="block text-center py-2 border-t border-ap-line text-ap-ink-3 text-xs hover:text-ap-ink-2 no-underline">
-        /polymarket에서 자세히 →
-      </Link>
-    </div>
-  );
-}
-
 // ── 계좌 현황 탭 ─────────────────────────────────────────────────────────────
 
 function AccountsTab() {
@@ -299,27 +265,24 @@ function AccountsTab() {
   const [hlMainnetPositions, setHlMainnetPositions] = useState<HLAssetPosition[]>([]);
   const [kisMockHoldings, setKisMockHoldings] = useState<KISHolding[]>([]);
   const [kisLiveHoldings, setKisLiveHoldings] = useState<KISHolding[]>([]);
-  const [polymarketBots, setPolymarketBots] = useState<DashboardBotRow[]>([]);
   const [loading, setLoading] = useState(true);
   // 느린 balances(KIS 최대 30초)가 도착 전까지 "계좌 없음" 오표시 방지
   const [balancesPending, setBalancesPending] = useState(true);
 
   const load = useCallback(() => {
-    // Fast: Alpaca + LKG paper + Polymarket bots — show UI immediately
+    // Fast: Alpaca + LKG paper — show UI immediately
     Promise.allSettled([
       getAlpacaAccount(),
       getAlpacaPositions(),
       getPaperState(),
       getHLPositions(true),
       getHLPositions(false),
-      getDashboardPnlAll(),
-    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes, pnlRes]) => {
+    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes]) => {
       if (acctRes.status === "fulfilled") setAlpacaAcct(acctRes.value);
       if (posRes.status === "fulfilled") setAlpacaPositions(posRes.value);
       if (paperRes.status === "fulfilled") setPaper(paperRes.value);
       if (hlTestRes.status === "fulfilled") setHlTestnetPositions(hlTestRes.value.asset_positions);
       if (hlMainRes.status === "fulfilled") setHlMainnetPositions(hlMainRes.value.asset_positions);
-      if (pnlRes.status === "fulfilled") setPolymarketBots(pnlRes.value.bots.filter(b => b.id.startsWith("polymarket")));
       setLoading(false);
     });
     // Slow: full balances (KIS can take 30s+) — abort after 20s
@@ -364,10 +327,6 @@ function AccountsTab() {
     ...usdcAccounts.filter(a => a.balance != null).map(a => ({ venue: a.label, ccy: "USDC", balance: a.balance as number, share: usdcTotal ? (a.balance as number) / usdcTotal : 0 })),
   ];
 
-  const polymarketTotal = polymarketBots.length > 0
-    ? polymarketBots.reduce((s, b) => s + (b.realized_pnl ?? 0), 0)
-    : null;
-
   if (loading) return (
     <div className="py-12">
       <LoadingState message="계좌 잔고 조회 중…" hint="브로커 6곳 순차 조회 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
@@ -382,7 +341,6 @@ function AccountsTab() {
         <CcyTotalTile label="해외주식 합계" value={usdTotal} ccy="USD" />
         {eurTotal != null && <CcyTotalTile label="해외주식 합계 (EUR)" value={eurTotal} ccy="EUR" />}
         {usdcTotal != null && <CcyTotalTile label="코인 합계" value={usdcTotal} ccy="USDC" />}
-        {polymarketTotal != null && <CcyTotalTile label="폴리마켓 합계" value={polymarketTotal} ccy="USD" />}
       </div>
 
       {/* CENTER — 자산군별 계좌 카드, main workspace */}
@@ -438,14 +396,6 @@ function AccountsTab() {
             <p className="text-ap-ink-3 text-xs">{balancesPending ? "HL 잔고 조회 중…" : "Hyperliquid 계좌 없음"}</p>
           )}
         </CcySection>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="text-ap-ink-1 text-sm font-semibold">폴리마켓</span>
-            <div className="flex-1 h-px bg-ap-line" />
-          </div>
-          <PolymarketBots bots={polymarketBots} />
-        </div>
       </div>
 
       {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
