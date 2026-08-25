@@ -223,12 +223,8 @@
 | ~~OMS 레이어~~ ✅ Phase 176 (상태머신+부분체결 추적, `/orders/oms` + `/orders` UI) | Backend+Frontend | ✅ |
 | ~~실시간 포지션·PnL 대시보드~~ ✅ Phase 177 (OMS 체결 FIFO 매칭 `/pnl/realized`, KR은 체결가 미제공이라 주문가 추정+배지, 수수료는 bps 추정값) | Backend+Frontend | ✅ |
 
-### Polymarket 구조적 엣지 봇 (2026-07-07 착수, Phase 148)
-| 항목 | 내용 | 상태 |
-|---|---|---|
-| Layer 1 | YES+NO 합가격 무위험차익 — 라이브 수집(`research/run_polymarket_arb_scan.py`, tmux `polymarket-arb`, 맥북 상시) | 🟡 라이브 수집 중 (~2주) |
-| Layer 2 | 마켓메이킹(호가 스프레드 캡처) | 보류 — Layer1 검증 후 판단 |
-| Layer 3 | 모델 기반 EV 배팅(자체 확률 모델 vs 시장가) | 보류 — Layer1 검증 후 판단 |
+### ~~Polymarket 구조적 엣지 봇~~ (2026-07-07 착수 Phase 148 → 2026-08-25 전면삭제 Phase 230)
+Polymarket가 한국 IP 지오블록(HTTP 451 확인) + 유저 2년+ 한국 상주 확정(2026-10-19 입대 포함)으로 관련 봇 3개(`polymarket_bot`/`polymarket_sharp_wallet_bot`/`polymarket_ai_bot`)·리서치 스캐너·가설 전부 삭제. 상세: `seokminal-dashboard/docs/progress.md` Phase 230. git 히스토리에서 복구 가능.
 
 ### 자산 한정(narrow-universe) 전략 트랙 — 1차 시도 REJECT (2026-07-07, Phase 149)
 - 문제의식: 현재 autoresearch/Jarvis는 전 종목 광역 탐색으로 엣지/알파를 찾음 — 특정 자산군(금/원자재, 비트코인 등) 한정 탐색이 오히려 엣지 발견에 유리할 수 있다는 가설
