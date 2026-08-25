@@ -3109,6 +3109,20 @@ export async function getExecutionEdge(signal?: AbortSignal): Promise<ExecutionE
   const r = await fetch(`${API_URL}/lab/execution/edge`, { signal });
   return handleResponse<ExecutionEdge>(r);
 }
+// arm 대기중 3전략(buyback/tsmom/tom) 진행률 — 한 화면
+export interface ExecutionReadinessRow {
+  strategy_id: string; registry_id: string; status: string; frozen_at: string;
+  paper_months: number; min_paper_months: number; months_remaining: number;
+  edge_status: string; oos_months: number | null; oos_in_envelope: number | null; need_months: number | null;
+  decision: "GO" | "WAIT" | "KILL"; reasons: string[];
+}
+export interface ExecutionReadiness {
+  strategies: ExecutionReadinessRow[]; min_paper_months: number; first_tranche_krw_max: number;
+}
+export async function getExecutionReadiness(signal?: AbortSignal): Promise<ExecutionReadiness> {
+  const r = await fetch(`${API_URL}/lab/execution/readiness`, { signal });
+  return handleResponse<ExecutionReadiness>(r);
+}
 
 // ── Buyback 손실 진단 + 청산룰 시뮬 ──
 export interface BuybackLoser {

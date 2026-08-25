@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  getExecutionConsole, getExecutionEdge, getLabPortfolio,
-  type ExecutionConsole, type ExecutionEdge, type PortfolioBook,
+  getExecutionConsole, getExecutionEdge, getLabPortfolio, getExecutionReadiness,
+  type ExecutionConsole, type ExecutionEdge, type PortfolioBook, type ExecutionReadiness,
 } from "@/lib/api";
 import { LivePulse } from "@/components/Jarvis";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -30,6 +30,7 @@ export default function ExecutionTab() {
   const [d, setD] = useState<ExecutionConsole | null>(null);
   const [ea, setEa] = useState<ExecutionEdge | null>(null);
   const [book, setBook] = useState<PortfolioBook | null>(null);
+  const [readiness, setReadiness] = useState<ExecutionReadiness | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -46,6 +47,9 @@ export default function ExecutionTab() {
       .catch(() => { /* 엣지 카드만 로딩 유지 */ });
     getLabPortfolio(ctrl.signal)
       .then(b => { if (mounted) setBook(b); })
+      .catch(() => { /* 선택적 */ });
+    getExecutionReadiness(ctrl.signal)
+      .then(r => { if (mounted) setReadiness(r); })
       .catch(() => { /* 선택적 */ });
     return () => { mounted = false; ctrl.abort(); };
   }, []);
@@ -100,6 +104,40 @@ export default function ExecutionTab() {
         {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-ap-down">차단 사유: {g.reasons.join(" · ")}</div>}
         <div className="mt-3 text-[12px] text-ap-caution border-t border-ap-caution/20 pt-2 leading-relaxed">{g.human_action}</div>
       </div>
+
+      {/* 3전략 arm 진행률 — buyback/tsmom/tom 한 화면 */}
+      {readiness && (
+        <Card>
+          <CardHeader>arm 대기중 전략 {readiness.strategies.length}개 — 페이퍼 시계 진행률</CardHeader>
+          <div className="p-4 grid gap-2 sm:grid-cols-3">
+            {readiness.strategies.map(s => (
+              <div key={s.registry_id} className={`rounded border p-3 ${
+                s.decision === "GO" ? "border-ap-up/50 bg-ap-up/5" :
+                s.decision === "KILL" ? "border-ap-down/50 bg-ap-down/5" : "border-ap-line bg-ap-bg"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-data text-[11px] text-ap-ink-2 truncate">{s.strategy_id}</span>
+                  <span className={`font-data text-xs font-bold ${
+                    s.decision === "GO" ? "text-ap-up" : s.decision === "KILL" ? "text-ap-down" : "text-ap-caution"}`}>
+                    {s.decision}
+                  </span>
+                </div>
+                <div className="mt-1.5 text-[10px] font-data text-ap-ink-3">
+                  페이퍼 {s.paper_months}mo / 최소 {s.min_paper_months}mo
+                  {s.months_remaining > 0 && <span> · 잔여 {s.months_remaining}mo</span>}
+                </div>
+                <div className="mt-1 text-[10px]">
+                  <span className={`px-1.5 py-0.5 rounded border ${
+                    (EDGE[s.edge_status] ?? EDGE.unavailable).tone === "pos" ? "border-ap-up/40 text-ap-up" :
+                    (EDGE[s.edge_status] ?? EDGE.unavailable).tone === "neg" ? "border-ap-down/40 text-ap-down" :
+                    "border-ap-line text-ap-ink-3"}`}>
+                    {(EDGE[s.edge_status] ?? EDGE.unavailable).label}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* 엣지 생존 (OOS vs envelope) */}
       <div className={`rounded-lg border p-4 ${
