@@ -574,7 +574,7 @@ export function OrderflowChart({
         vwapPeriod={vwapPeriod}
         onVwapPeriodChange={setVwapPeriod}
       />
-      <div className="flex" ref={rowRef}>
+      <div className="flex overflow-x-auto" ref={rowRef}>
         <div className="flex-1 min-w-0">
           <CandlestickChart
             bars={bars}

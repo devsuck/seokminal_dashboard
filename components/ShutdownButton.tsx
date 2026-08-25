@@ -59,7 +59,7 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
       {/* Modal */}
       {phase !== "idle" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-ap-surface border border-ap-line rounded-2xl w-[520px] max-h-[80vh] flex flex-col shadow-2xl">
+          <div className="bg-ap-surface border border-ap-line rounded-2xl w-[92vw] max-w-[520px] max-h-[80vh] flex flex-col shadow-2xl">
             {/* Header */}
             <div className="px-6 py-4 border-b border-ap-line flex items-center gap-3">
               {phase === "done" || phase === "killing" ? (
