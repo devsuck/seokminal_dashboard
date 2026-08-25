@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
-  getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts, getVrpBotStatus,
+  getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts,
   getLabHealth, getFleet,
   type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
   type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
-  type AccountBalances, type TriggeredAlert, type VrpBotStatus, type CollectorKey,
+  type AccountBalances, type TriggeredAlert, type CollectorKey,
   type LabHealth, type FleetResponse,
 } from "@/lib/api";
 import {
@@ -28,8 +28,7 @@ import PortfolioTab from "@/components/hud/PortfolioTab";
 import ExecutionTab from "@/components/hud/ExecutionTab";
 import TasksTab from "@/components/hud/TasksTab";
 
-/* AI LAB 탭은 Research OS 파이프라인(/research-os/pipeline?tab=lab)으로 이동 —
-   내부 워크플로/에이전트/브레인 하위탭과 성격이 같아 거기서 한 곳에 모아 보여줌.
+/* AI LAB 통제판(구 /lab, /research-os/pipeline)은 read-only 리뉴얼(2026-08-25)에서 삭제 —
    집행콘솔·페이퍼모니터는 "운영" 한 탭 안에서 토글로 묶어 HOME 상단 탭 수를 줄임. */
 type TabKey = "home" | "portfolio" | "ops";
 const TABS: { key: TabKey; label: string }[] = [
@@ -100,7 +99,7 @@ export default function HudShell() {
    1) 상단 스트립: 시스템 상태 + ARM 판정 + 시계
    2) 유닛 로스터(메인): N/M 가동 + 유닛별 가동/정지 카드
    3) 계좌 잔액 + 돈길 핵심 3줄
-   상세 수치는 각 전용 페이지(/lab, /auto-research, /lab/execution)로 위임. */
+   상세 수치는 각 전용 페이지(/auto-research, /hud?tab=ops)로 위임. */
 
 type Tone = "pos" | "accent" | "info" | "neg" | "warn" | "text-3";
 const TONE: Record<Tone, { solid: string; text: string }> = {
@@ -167,7 +166,7 @@ interface Feed {
   lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
   bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
   exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
-  vrp: VrpBotStatus | null; health: LabHealth | null; fleet: FleetResponse | null;
+  health: LabHealth | null; fleet: FleetResponse | null;
   pipeline: ConsolePipeline | null; risk: RiskResp | null; ios: InvestmentOsResp | null;
 }
 
@@ -178,11 +177,9 @@ interface Unit {
   fleet?: { verdict: Verdict; ageSec: number | null; staleAfterS: number; reason: string };
 }
 
-/** 정합성 위반 엔티티 → 조사할 페이지. 모르는 엔티티는 랩 개요로. */
-function violationHref(entity: string): string {
-  if (entity.includes("copytrade")) return "/copytrade";
-  if (entity.includes("dart")) return "/dart-auto";
-  return "/lab";
+/** 정합성 위반 엔티티 → 조사할 페이지. 모르는 엔티티는 포트폴리오로. */
+function violationHref(): string {
+  return "/portfolio";
 }
 
 function formatAge(ageSec: number | null): string {
@@ -222,7 +219,7 @@ function UnitCard({ u }: { u: Unit }) {
 }
 
 function HomeTab() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, vrp: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
+  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const [now, setNow] = useState(new Date());
   const [activityView, setActivityView] = useState<"alerts" | "log" | "trades">("alerts");
@@ -234,7 +231,7 @@ function HomeTab() {
       abortRef.current?.abort();
       const c = new AbortController();
       abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, vrp, health, fleet] = await Promise.all([
+      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, health, fleet] = await Promise.all([
         getLabState(c.signal).catch(() => null),
         getJarvisStatus(c.signal).catch(() => null),
         getAutoResearch(c.signal).catch(() => null),
@@ -244,11 +241,10 @@ function HomeTab() {
         getExecutionConsole(c.signal).catch(() => null),
         getExecutionEdge(c.signal).catch(() => null),  // read_only 캐시 — 서버 계산 없음
         getTriggeredAlerts(c.signal).catch(() => null),
-        getVrpBotStatus(c.signal).catch(() => null),
         getLabHealth(c.signal).catch(() => null),  // 봇·에이전트 정합성 불변식
         getFleet(c.signal).catch(() => null),      // 수집기 신선도 판정(fresh/stale/stuck/dead)
       ]);
-      if (mounted && !c.signal.aborted) setF((prev) => ({ ...prev, lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, vrp, health, fleet }));
+      if (mounted && !c.signal.aborted) setF((prev) => ({ ...prev, lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, health, fleet }));
     }
     load();
     const iv = setInterval(load, 4000);
@@ -289,7 +285,7 @@ function HomeTab() {
     return () => clearInterval(t);
   }, []);
 
-  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, vrp, health, fleet, pipeline, risk, ios } = f;
+  const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, health, fleet, pipeline, risk, ios } = f;
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -309,11 +305,11 @@ function HomeTab() {
     detail: `${a.market} · ${a.paper ? "페이퍼" : "라이브"} · Lv${displayLevel(a)}`,
     href: "/overview",
   }));
-  units.push({ kind: "BOT", name: "AI LAB 엔진", running: active, detail: `stage ${lab?.stage ?? "—"}`, href: "/lab" });
+  units.push({ kind: "BOT", name: "AI LAB 엔진", running: active, detail: `stage ${lab?.stage ?? "—"}`, href: "/investment-os" });
   units.push({ kind: "BOT", name: "Auto-Research", running: busy, detail: `검증 ${ar?.n_tested ?? 0} · 후보 ${ar?.n_candidates ?? 0}`, href: "/auto-research" });
-  units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: `보유 ${bot?.open ?? 0}`, href: "/lab/tasks" });
-  if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "사용" : "꺼짐", href: "/dart-auto" });
-  if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} 틱`, href: "/lab" });
+  units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: `보유 ${bot?.open ?? 0}`, href: "/portfolio" });
+  if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "사용" : "꺼짐", href: "/portfolio" });
+  if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} 틱`, href: "/investment-os" });
   // 수집기는 /lab/fleet이 단일 출처 — 서버에 수집기가 추가되면 여기 손 안 대도 자동 반영.
   const collectorUnits: Unit[] = (fleet?.collectors ?? []).map(c => {
     const meta = collectorMeta(c.key);
@@ -324,17 +320,6 @@ function HomeTab() {
       fleet: { verdict: c.verdict, ageSec: c.age_sec, staleAfterS: c.stale_after_s, reason: c.reason },
     };
   });
-  if (vrp) {
-    const lastLog = vrp.log?.[0];
-    // log는 실패/진입/청산 등 이벤트가 있을 때만 기록됨 — 조용히 성공한(포지션 미진입) tick은
-    // 로그를 안 남기므로, log[0]가 last_run보다 훨씬 과거(다른 tick)면 이미 해소된 옛 에러임.
-    const lastLogIsCurrent = !!(lastLog?.ts && vrp.last_run &&
-      Math.abs(new Date(vrp.last_run).getTime() - new Date(lastLog.ts).getTime()) < 90_000);
-    const vrpDetail = lastLog?.kind === "scan_fail" && lastLogIsCurrent ? `⚠ ${String(lastLog.msg ?? "실패")}`
-      : vrp.last_run ? `마지막 스캔 ${vrp.last_run.slice(11, 19)}` : "스캔 대기";
-    units.push({ kind: "BOT", name: "VRP 아이언콘도어", running: vrp.enabled, detail: vrpDetail, href: "/vrp" });
-  }
-
   const attentionItems = deriveAttentionItems({
     pipeline: pipeline ? { proposals: pipeline.proposals } : null,
     risk: risk ? { by_status: risk.by_status } : null,
@@ -355,7 +340,7 @@ function HomeTab() {
         <div className="flex items-center gap-3 px-2 py-1 border-b border-ap-line">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
-            <Link href="/lab/execution"
+            <Link href="/hud?tab=ops"
               className={`no-underline text-[11px] px-2 py-0.5 border font-data font-bold tracking-wider ${
                 arm.decision === "GO" ? "border-ap-up/50 text-ap-up bg-ap-up/15" :
                 arm.decision === "KILL" ? "border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink" :
@@ -375,7 +360,7 @@ function HomeTab() {
             {health.violations.map((v, i) => (
               <Link
                 key={i}
-                href={violationHref(v.entity)}
+                href={violationHref()}
                 className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px] hover:bg-ap-bg transition-colors">
                 <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
                 <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>
@@ -425,7 +410,7 @@ function HomeTab() {
             <UnitCard key={`${u.name}-${i}`} u={u} />
           ))}
         </div>
-        <Link href="/lab/fleet"
+        <Link href="/hud"
           className="flex items-center gap-2 border-t border-ap-line px-2 py-1.5 no-underline hover:bg-ap-bg transition-colors">
           <StatusDot tone={collectorUnits.length === 0 ? "text-3" : nDegraded > 0 ? "warn" : "pos"} />
           <span className="text-[11px] font-data text-ap-ink-1">
@@ -442,7 +427,7 @@ function HomeTab() {
           <div className="bg-ap-surface border border-ap-line p-2 text-ap-ink-3 text-[11px]">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
         )}
         <Card>
-          <CardHeader right={<Link href="/lab/execution" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
+          <CardHeader right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
             돈길
           </CardHeader>
           {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}

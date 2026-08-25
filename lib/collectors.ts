@@ -2,14 +2,14 @@ import type { CollectorKey } from "@/lib/api";
 
 /** 수집기 키 → 한글 라벨 + 조사할 페이지. 서버 COLLECTOR_SESSIONS와 1:1. */
 export const COLLECTOR_META: Record<CollectorKey, { label: string; href: string }> = {
-  hl_orderflow_tick: { label: "HL 오더플로우 틱 수집기", href: "/orderflow" },
-  cross_venue_skew_tick: { label: "크로스벤뉴 스큐 수집기", href: "/orderflow" },
+  hl_orderflow_tick: { label: "HL 오더플로우 틱 수집기", href: "/hud" },
+  cross_venue_skew_tick: { label: "크로스벤뉴 스큐 수집기", href: "/hud" },
   options_uoa: { label: "옵션 UOA 수집기", href: "/insider" },
-  convergence_legs: { label: "컨버전스 레그 수집기", href: "/lab" },
+  convergence_legs: { label: "컨버전스 레그 수집기", href: "/hud" },
 };
 
 export function collectorMeta(key: string): { label: string; href: string } {
-  return COLLECTOR_META[key as CollectorKey] ?? { label: key, href: "/lab" };
+  return COLLECTOR_META[key as CollectorKey] ?? { label: key, href: "/hud" };
 }
 
 export type Verdict = "fresh" | "stale" | "stuck" | "dead";

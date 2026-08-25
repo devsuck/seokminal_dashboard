@@ -3,7 +3,7 @@
 **마지막 업데이트:** 2026-07-20  
 **스택:** Next.js 16, React 19, TypeScript, TailwindCSS 4, lightweight-charts v5, D3 v7
 
-> 🧭 **알파/에이전트 진화 로드맵은 별도:** [`agentic-roadmap.md`](agentic-roadmap.md) — Lv1 룰봇 → Lv2 검증플랫폼(현재) → Lv3 자율리서치 → Lv4/5. 안전모델·검증표준·단계 게이팅. 이 파일(기능 로드맵)과 축이 다름.
+> 🧭 **알파/에이전트 진화 로드맵은 별도:** [`agentic-roadmap.md`](agentic-roadmap.md) — Lv1 룰봇 → Lv2 검증플랫폼 → Lv3 자율리서치 → Lv4/5. 안전모델·검증표준·단계 게이팅. 이 파일(기능 로드맵)과 축이 다름. **"(현재)" 마커는 2026-07-02 스냅샷이라 제거함 — 최신 상태는 그 파일 상단 배너 참조.**
 
 ---
 

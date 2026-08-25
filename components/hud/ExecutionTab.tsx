@@ -170,8 +170,7 @@ export default function ExecutionTab() {
       {/* 생존자 포트폴리오 (돈=조합) */}
       {book && book.combined && (
         <Card>
-          {/* 북 상세 카드는 Lab Task 페이지에 있음 — /lab/portfolio는 백엔드 endpoint(페이지 아님) */}
-          <CardHeader right={<a href="/lab/tasks" className="no-underline hover:underline">전체 →</a>}>
+          <CardHeader right={<a href="/hud?tab=ops" className="no-underline hover:underline">전체 →</a>}>
             생존자 포트폴리오 (무상관 조합)
           </CardHeader>
           <div className="p-4">

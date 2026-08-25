@@ -1,3 +1,52 @@
+## Phase 233 — Read-only 리뉴얼: 조작면 전삭제, 결정+결과 뷰만 남김 (2026-08-25) ✅ SHIPPED
+
+### 배경
+유저 "브로커식 다 조작하는 대시보드 원하지 않음, AI 에이전트 결정+근거 및 결과(포지션/PnL)만 보이는 read-only 뷰로" — "프론트에는 다 지워도 돼". `/orderflow`는 별도로 논의 후 컷 확정: 검증 안 된 마켓 마이크로구조 정보라 진짜 검증된 결정근거 옆에 두면 거짓 등가성 시사. 백엔드(`seokminal-multi-venue`)는 손 안 댐, 이번 세션은 `seokminal-dashboard/` 전용 fork 실행.
+
+### 남긴 것 (read-only 결정+결과 뷰)
+`/hud`(ARM GO/WAIT/KILL 결정+근거, 조작탭 제거), `/investment-os`(5탭), `/research-os/governance`, `/research-os/validation`, `/research-os/chat`(읽기전용 AI 리서치 질의, 코드주석에 "READ ONLY · 분석/회상만, 결정/집행 없음" 명시 확인 후 존치), `/portfolio`(주문취소/청산 버튼만 제거, 표시는 유지), `/performance`, `/(console)/quant/validation`(순수 표시, 존치)
+
+### 지운 것
+- 진짜 조작 페이지: `/copytrade`, `/dart-auto`, `/vrp`, `/infra`
+- 죽은 리다이렉트 스텁: `/lab`+서브루트, `/macro`, `/news`
+- `/orderflow` 전체(전용 컴포넌트/훅/lib/테스트 포함) — 공유 컴포넌트(`InstrumentSelect`, `LivePulse`)는 존치
+- `/research-os/pipeline`(판단콜: 실제 "AI LAB" 조작판넬이 여기 있었음 — `sessionAction()`으로 세션 생성/제어 POST 발견, 컷) + 여기로 먹이던 리다이렉트 스텁 8개(`workflow`/`discovery`/`strategy-generation`/`strategy-lab`/`agents`/`brain`/`cockpit`/`console`)
+- `lib/api.ts`: 오더플로우/펀딩/GEX, DART+카피트레이딩, Living Knowledge Graph, VRP, **죽은 ICT 백테스트 블록**(`getIctSymbols`/`runIctBacktest`/`getIctEvents` — 참조 컴포넌트 `components/ict/IctChart.tsx`도 어느 페이지에서도 import 안 되는 완전 죽은 코드였음, 같이 삭제) 전 블록 제거. `getPaperState`류는 `/portfolio`가 쓰고 있어 존치, mutation 함수(`resetPaperState`/`closePaperPosition`)만 제거
+
+### 판단콜(애매했던 것)
+- `research-os/pipeline` CUT, `research-os/chat` KEEP, `quant/validation` KEEP — 위 사유
+- VRP는 단순 링크 재배선이 아니라 완전 제거(옵션은 활성 거래소 범위 밖 — [[project_active_venue_scope]])
+
+### 정리한 dangling 참조
+- `lib/researchOsRedirects.ts`: 삭제된 페이지로 먹이던 항목 전부 제거(pipeline 8개+lab 3개+macro/news), `/auto-research` 타깃을 존재하지 않는 `?tab=lab`에서 `/hud`로 수정
+- `lib/collectors.ts`: `/orderflow`·`/lab` 하드코딩 href를 `/hud`/`/insider`로 교체
+- `app/hud/page.tsx`: VRP 유닛카드/fetch/import 제거, `violationHref()`를 컷된 페이지 분기 없이 `/portfolio` 고정으로 단순화, 죽은 `/lab/*` href 4곳 수정
+- `components/console/CommandRail.tsx`: pipeline 메뉴항목, "마켓"(오더플로우only) 그룹, `/infra`/`/dart-auto`/`/copytrade` 항목 제거
+- `components/console/BottomTabBar.tsx`: primary 탭의 `/research-os/pipeline` → `/investment-os`로 교체(아이콘 케이스 포함), 오더플로우 관련 stale 주석 제거
+- `components/hud/ExecutionTab.tsx`: 죽은 `/lab/tasks` 링크를 `/hud?tab=ops`로 수정
+- `__tests__/researchOsRedirects.test.ts`: 삭제된 리다이렉트 항목 기대값 갱신(32→19개)
+
+### 검증
+- `npx tsc --noEmit` 클린
+- `npm test` 24 files / 163 tests 전부 통과
+- `npm run dev`(기존 3000 포트 프로세스 재사용) — 남긴 라우트 10개 전부 200, 지운 라우트 7개 전부 404 확인
+
+### 변경된 파일
+`app/hud/page.tsx`, `lib/api.ts`, `lib/researchOsRedirects.ts`, `lib/collectors.ts`, `components/console/CommandRail.tsx`, `components/console/BottomTabBar.tsx`, `components/hud/ExecutionTab.tsx`, `__tests__/researchOsRedirects.test.ts` + 삭제된 페이지/컴포넌트/훅/lib/테스트 다수(`app/copytrade`, `app/dart-auto`, `app/vrp`, `app/infra`, `app/lab`+서브, `app/macro`, `app/news`, `app/orderflow`, `app/(console)/research-os/{pipeline,agents,brain,cockpit,console,discovery,strategy-generation,strategy-lab,workflow}`, `components/orderflow/*`, `components/ict/IctChart.tsx`, `hooks/useOrderflowSocket.ts`, `hooks/useGexSnapshot.ts`, `hooks/useFundingSnapshot.ts`, `hooks/useOrderbookReplay.ts`, `lib/orderflow-data.ts`, `lib/orderflow-chart-coords.ts`, `tests/lib/orderflow-*.test.ts`, `tests/lib/api-hl-funding.test.ts`, `tests/lib/api-options-flow.test.ts`)
+
+### 커밋
+- 미커밋 — git으로 staged(`git rm`/edit) 상태, 유저 리뷰 후 커밋 판단 필요
+
+### 다음 할 일
+- 변경사항 리뷰 후 커밋
+- `tests/lib/commandRailGroups.test.ts`의 `/research-os/pipeline` 항목은 자체 로컬 fixture라 안 깨지지만 라벨이 현재 실제 라우트와 불일치 — 원하면 나중에 정리
+- `docs/orderflow-journal*.md/csv`, `docs/superpowers/plans|specs/*orderflow*` 같은 과거 기록 문서는 손 안 댐(히스토리 아카이브, 스코프 밖)
+
+### 막힌 부분/결정사항
+- 없음
+
+---
+
 ## Phase 232 — "마켓 퀄리티" PWA급 완성도 3서브시스템 (터치/제스처, 실 Web Push, QA) (2026-08-25) ✅ SHIPPED
 
 ### 배경

@@ -14,12 +14,13 @@ export interface RailGroup { label: string; items: RailItem[] }
 // 콘솔(거버넌스 OS) 그룹 — 신규 라우트. Phase 132 집행전환 최종목표의 메인 레이어라
 // TERMINAL_GROUPS(레거시)보다 위계상 상위 — 항상 먼저 렌더.
 // Research OS 4-shell 통합(2026-08-21): 옛 15개 research-os 라우트는 pipeline/validation/
-// governance 3개 탭-셸 페이지(+ 손대지 않은 chat)로 합쳐짐. 옛 URL은 파일이 리다이렉트
-// 스텁으로 재작성돼 307로 새 ?tab= 경로로 넘어감(lib/researchOsRedirects.ts 참고).
-// 옛 라우트는 CommandPalette 검색에서는 여전히 찾을 수 있음 — 여기 visible nav에는 없음.
+// governance 3개 탭-셸 페이지(+ 손대지 않은 chat)로 합쳐짐. read-only 리뉴얼(2026-08-25)에서
+// pipeline(AI LAB 통제판)은 통째로 삭제 — validation/governance/chat만 남음.
+// 옛 URL은 파일이 리다이렉트 스텁으로 재작성돼 307로 새 ?tab= 경로로 넘어감
+// (lib/researchOsRedirects.ts 참고). 옛 라우트는 CommandPalette 검색에서는 여전히
+// 찾을 수 있음 — 여기 visible nav에는 없음.
 const CONSOLE_GROUPS: RailGroup[] = [
   { label: "Research OS", items: [
-    { href: "/research-os/pipeline", label: "파이프라인" },
     { href: "/research-os/validation", label: "검증·실전준비" },
     { href: "/research-os/governance", label: "거버넌스" },
     { href: "/research-os/chat", label: "어시스턴트" },
@@ -29,19 +30,13 @@ const CONSOLE_GROUPS: RailGroup[] = [
   ] },
 ];
 
-// 레거시 트레이딩 터미널 그룹 — 감시 전용 피벗(2026-08) 이후 20라우트로 축소
+// 레거시 트레이딩 터미널 그룹 — read-only 리뉴얼(2026-08-25)로 수동 제어 라우트 전량 삭제
 const TERMINAL_GROUPS: RailGroup[] = [
-  { label: "마켓", items: [
-    { href: "/orderflow", label: "오더플로우" },
-  ] },
   { label: "트레이딩 데스크", items: [
     { href: "/portfolio", label: "포트폴리오" },
-    { href: "/infra", label: "공급망 그래프" },
   ] },
   { label: "봇 · 에이전트", items: [
     { href: "/performance", label: "성과" },
-    { href: "/dart-auto", label: "DART 오토파일럿" },
-    { href: "/copytrade", label: "카피트레이딩" },
   ] },
 ];
 
@@ -67,7 +62,6 @@ function Diamond() {
 function GroupGlyph({ label }: { label: string }) {
   const g: Record<string, React.ReactNode> = {
     "Research OS": <><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></>,
-    "마켓": <><polyline points="1,11 4.5,6 7,8.5 10,4 14.5,8" /><line x1="1" y1="14" x2="15" y2="14" /></>,
     "트레이딩 데스크": <><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></>,
     "봇 · 에이전트": <><rect x="3" y="5" width="10" height="7" rx="2" /><circle cx="6" cy="8.5" r="1" fill="currentColor" stroke="none" /><circle cx="10" cy="8.5" r="1" fill="currentColor" stroke="none" /><path d="M8 2v3M6 2h4" /></>,
     "리서치 랩": <><path d="M2 12 Q5 4 8 8 Q11 12 14 4" /><circle cx="14" cy="4" r="1.3" /></>,

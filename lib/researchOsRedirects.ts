@@ -1,12 +1,4 @@
 export const OLD_TO_NEW: Record<string, string> = {
-  "/research-os/workflow": "/research-os/pipeline?tab=workflow",
-  "/research-os/discovery": "/research-os/pipeline?tab=discovery",
-  "/research-os/strategy-generation": "/research-os/pipeline?tab=strategy-generation",
-  "/research-os/strategy-lab": "/research-os/pipeline?tab=strategy-lab",
-  "/research-os/agents": "/research-os/pipeline?tab=agents",
-  "/research-os/brain": "/research-os/pipeline?tab=brain",
-  "/research-os/cockpit": "/research-os/pipeline?tab=cockpit",
-  "/research-os/console": "/research-os/pipeline?tab=console",
   // 자기 자신으로 매핑(의도적) — /research-os/validation은 이미 이 shell 페이지이고 기본
   // 탭이 "validation"이라 이 항목은 현재 어떤 리다이렉트 스텁에서도 쓰이지 않음(Task 5가
   // 일부러 이 경로만 스텁을 생성하지 않음, shell이 자기 자신으로 무한 리다이렉트되는 걸 피하려고).
@@ -20,11 +12,10 @@ export const OLD_TO_NEW: Record<string, string> = {
   "/research-os/graph": "/research-os/governance?tab=graph",
   "/research-os/timeline": "/research-os/governance?tab=timeline",
   // ── HUD 탭쉘 흡수(2026-08-22 가지치기) ──
-  "/lab": "/hud?tab=lab",
-  "/lab/execution": "/hud?tab=execution",
-  "/lab/tasks": "/hud?tab=tasks",
   "/overview": "/hud?tab=portfolio",
-  "/auto-research": "/hud?tab=lab",
+  // AI LAB 통제판(구 /lab, /research-os/pipeline) 자체를 read-only 리뉴얼(2026-08-25)에서
+  // 삭제 — "lab" 탭은 더 이상 존재하지 않아 홈으로.
+  "/auto-research": "/hud",
   // ── Investment OS 흡수(이미 5탭 통합 완료, 리다이렉트만) ──
   "/council/agents": "/investment-os?tab=risk",
   "/council/decisions": "/investment-os?tab=risk",
@@ -37,6 +28,4 @@ export const OLD_TO_NEW: Record<string, string> = {
   // ── 컨텍스트 드릴다운(옛 /agents 흡수, 지금은 /agents 자체가 없어져 /hud로) ──
   "/calendar": "/hud",
   "/insider": "/hud",
-  "/macro": "/hud",
-  "/news": "/hud",
 };

@@ -10,12 +10,10 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-// 오더플로우는 AI 내부용 정보(사람이 모바일에서 볼 이유 없음, 2026-08-23 피드백) —
-// 기본 탭에서 빼고 "더보기" 시트(ALL_GROUPS "마켓" 그룹)로만 남겨둠.
 const PRIMARY_TABS = [
   { href: "/hud", label: "홈" },
   { href: "/portfolio", label: "포트폴리오" },
-  { href: "/research-os/pipeline", label: "Research OS" },
+  { href: "/investment-os", label: "Research OS" },
 ];
 
 function TabIcon({ href, active }: { href: string; active: boolean }) {
@@ -26,7 +24,7 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
       return <svg {...props}><circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" /></svg>;
     case "/portfolio":
       return <svg {...props}><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></svg>;
-    case "/research-os/pipeline":
+    case "/investment-os":
       return <svg {...props}><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></svg>;
     default:
       return null;
