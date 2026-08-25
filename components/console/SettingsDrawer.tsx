@@ -60,7 +60,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
       <div className="relative w-full max-w-[420px] h-full bg-ap-bg border-l border-ap-line overflow-y-auto p-5 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-ap-ink-1 text-lg font-semibold tracking-tight">설정 · 리스크 가드</h2>
-          <button onClick={onClose} className="text-ap-ink-3 text-xs border-0 bg-transparent cursor-pointer px-2 py-1">닫기</button>
+          <button onClick={onClose} className="text-ap-ink-3 text-xs border-0 bg-transparent cursor-pointer min-h-11 min-w-11 px-3 flex items-center justify-center">닫기</button>
         </div>
 
         {loading ? (

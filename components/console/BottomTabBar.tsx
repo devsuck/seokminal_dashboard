@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ALL_GROUPS } from "./CommandRail";
 import { SettingsDrawer } from "./SettingsDrawer";
 
@@ -51,6 +51,7 @@ export function BottomTabBar() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const swipeStartY = useRef<number | null>(null);
   const inPrimary = PRIMARY_TABS.some((t) => isActivePath(pathname, t.href));
   const moreActive = moreOpen || !inPrimary;
 
@@ -76,10 +77,15 @@ export function BottomTabBar() {
       {moreOpen && (
         <div className="rail-ap fixed inset-0 bg-black/60 z-50 flex md:hidden items-end"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setMoreOpen(false); }}>
-          <div className="w-full max-h-[70vh] overflow-y-auto bg-[var(--c-panel)] border-t border-[var(--c-border)] rounded-t-xl pb-[env(safe-area-inset-bottom)]">
+          <div className="w-full max-h-[70vh] overflow-y-auto bg-[var(--c-panel)] border-t border-[var(--c-border)] rounded-t-xl pb-[env(safe-area-inset-bottom)]"
+            onTouchStart={(e) => { swipeStartY.current = e.touches[0].clientY; }}
+            onTouchEnd={(e) => {
+              if (swipeStartY.current !== null && e.changedTouches[0].clientY - swipeStartY.current > 80) setMoreOpen(false);
+              swipeStartY.current = null;
+            }}>
             <div className="sticky top-0 flex items-center justify-between px-4 h-11 border-b border-[var(--c-border)] bg-[var(--c-panel)]">
               <span className="text-[13px] font-semibold text-[var(--c-text-1)]">전체 메뉴</span>
-              <button onClick={() => setMoreOpen(false)} className="text-[var(--c-text-3)] text-xs border-0 bg-transparent cursor-pointer px-2 py-1">닫기</button>
+              <button onClick={() => setMoreOpen(false)} className="text-[var(--c-text-3)] text-xs border-0 bg-transparent cursor-pointer min-h-11 min-w-11 px-3 flex items-center justify-center">닫기</button>
             </div>
             <button onClick={() => { setMoreOpen(false); setSettingsOpen(true); }}
               className="flex items-center h-10 px-4 w-full text-left border-0 border-b border-[var(--c-border)] bg-transparent cursor-pointer text-[13px] text-[var(--c-text-2)] active:bg-[var(--c-panel-2)]">

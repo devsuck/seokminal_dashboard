@@ -170,10 +170,10 @@ export function TradeTab({ symbol }: { symbol: string }) {
           <div>
             <label className="text-text-3 text-xs">수량</label>
             <div className="flex items-center gap-2 mt-1">
-              <Button variant="outline" size="sm" onClick={() => stepQty(-1)} className="w-8 h-8 shrink-0 !px-0">−</Button>
+              <Button variant="outline" size="sm" onClick={() => stepQty(-1)} className="w-11 h-11 shrink-0 !px-0">−</Button>
               <input value={qty} onChange={e => setQty(e.target.value.replace(isCrypto ? /[^0-9.]/g : /[^0-9]/g, ""))} inputMode={isCrypto ? "decimal" : "numeric"}
                 className="flex-1 min-w-0 bg-panel-2 border border-border px-2.5 py-1.5 text-text-1 text-sm font-data text-center outline-none focus:border-accent" />
-              <Button variant="outline" size="sm" onClick={() => stepQty(1)} className="w-8 h-8 shrink-0 !px-0">+</Button>
+              <Button variant="outline" size="sm" onClick={() => stepQty(1)} className="w-11 h-11 shrink-0 !px-0">+</Button>
             </div>
             <div className="flex gap-1.5 mt-2">
               {qtyPresets.map(p => (
