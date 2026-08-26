@@ -1,3 +1,59 @@
+## Phase 237 — Constitution v2 Phase 3: forward-cohort-only 전략 졸업 기준 (2026-08-27) ✅ SHIPPED
+
+### 배경
+Constitution v2 6단계 스펙 중 Phase 3. 유저 지시("완성단계까지, 허락 맡지마") 계속 적용 — 컨펌 없이 자율진행.
+목표: `jarvis/execution/arm_criteria.py`(v1, FROZEN)가 edge provider의 `oos_months`/`oos_in_envelope` 정수를 무조건 신뢰하는 구조라, provider 버그나 `since=` 실수로 동결일 이전 달/불리한 달이 조용히 빠져도 검증할 방법이 없던 갭을 막음.
+
+### 변경 (`seokminal-multi-venue/`)
+- `jarvis/execution/arm_criteria_v2.py` 신규(v1처럼 등록 후 동결) — GO/WAIT/KILL **값**은 그대로 v1에 위임하되, 판정 전 `edge["oos"]` 리스트를 독립 재검증: ①모든 항목에 `"month"` 태그 필수 ②모든 month가 `cohort_start`(전략 최초 동결일) 이후 ③`cohort_start`부터 지금까지 "완결된" 달이 빠짐없이 정확히 일치(달력 갭/초과 = cherry-picking 의심 → WAIT). 검증 실패는 무조건 WAIT, GO는 절대 기본값 아님
+- `jarvis/execution/edge_providers.py` — `EDGE_PROVIDER_COHORT_START` 레지스트리(전략별 cohort_start 조회) 신규 추가, `edge_go()`가 v1 대신 v2 경유하도록 전환. cohort_start는 **동적 콜러블**(각 config 모듈의 `FROZEN_AT`을 호출 시점에 fresh import)로 구현 — 문자열로 박아두면 기존 테스트의 `FROZEN_AT` monkeypatch와 따로 놀아 검증이 어긋나는 걸 구현 중 자체 발견, 커밋 전 수정
+- `tests/test_arm_criteria_v2.py` 신규(11개) — oos 없음/월 태그 없음/cohort_start 이전/달력 갭·초과 → 전부 WAIT, 유효 cohort → v1 GO/WAIT/KILL로 정확히 위임 확인. `tests/test_edge_providers.py` — v2 전환으로 깨진 GO-path 픽스처(`_GOOD_EDGE`/`_BAD_EDGE`)에 달력 정합 `"oos"` 리스트 추가해 재정비 + forward-cohort 미검증 시나리오 테스트 추가
+
+### 검증
+`pytest tests/ -q`: **1945 passed, 0 failed**
+
+### 커밋
+`d89fa7f` — "Constitution v2 Phase 3: forward-cohort-only strategy graduation"(4 files)
+
+### 다음 할 일
+- Phase 4: `execution/allocator.py`(결정적, core tsmom+regime+vol-targeting, satellite 30% 캡, proposal-only + `POST /steward/approve/{proposal_id}`)
+- Phase 5: `ops/steward.py`(토큰 갱신/헬스체크/드리프트/푸시알림/LLM 토큰 캡)
+- Phase 6: `api_server/routers/brief.py` `GET /brief`
+
+### 막힌 부분/결정사항
+- 없음 — 전 구간 자율 진행(유저 지시)
+
+---
+
+## Phase 236 — Constitution v2 Phase 2: 데드맨 스위치 (2026-08-27) ✅ SHIPPED
+
+### 배경
+Constitution v2 6단계 스펙 중 Phase 2. 유저 지시("완성단계까지, 허락 맡지마") 계속 적용.
+목표: 사람이 `DEADMAN_DAYS`(기본 7일) 이상 응답 없으면 신규 진입(BUY)만 자동 차단 — "무응답 = 아무 것도 안 함" 원칙의 구현체. 청산(매도)은 항상 허용, 헌법 축 그대로 유지.
+
+### 변경 (`seokminal-multi-venue/`)
+- `jarvis/execution/deadman.py` 신규 — 파일 영속 heartbeat(`jarvis._state/deadman_heartbeat.json`), fail-safe 기본값(heartbeat 한 번도 없음 = 만료 취급 = 진입 차단). 서버 재시작이 heartbeat를 자동 갱신하지 않음(재시작마다 타이머 리셋되면 안전장치 무력화) — 사람이 직접(또는 Phase 5 steward가 건강확인 후) 갱신해야 함
+- `jarvis/execution/broker_bridge.py`의 `_gate()`에 데드맨 체크 추가 — `live_execution_enabled()` 다음, `risk_guard.validate_order()` 이전. BUY만 체크, `route_close()`는 이 모듈 미참조(매도 항상 허용 유지, Phase 1 기존 주석과 정합)
+- `api_server/routers/steward.py` 신규 — `POST /steward/heartbeat`(갱신), `GET /steward/heartbeat`(상태 조회)
+- `tests/test_deadman.py`(9개, AST 기반 `route_close`가 deadman 미참조 회귀가드 포함) + `tests/test_steward_heartbeat.py`(1개) 신규
+
+### 테스트로 드러난 회귀 2건 + 수정
+새 데드맨 게이트가 heartbeat 없이 BUY를 내던 기존 테스트 6개를 차단 → `test_broker_bridge.py`에 autouse fixture(`_deadman_not_expired`), `test_condition_tick.py`에 monkeypatch 1줄 추가(근본원인 수정, 게이트 완화 아님)
+
+### 검증
+`pytest tests/ -q`: **1932 passed, 0 failed**
+
+### 커밋
+`8fe9c7d` — "Constitution v2 Phase 2: deadman switch"(8 files)
+
+### 다음 할 일
+- Phase 3: forward-cohort-only 졸업 기준 (Phase 237로 이어서 완료)
+
+### 막힌 부분/결정사항
+- 없음 — 전 구간 자율 진행(유저 지시)
+
+---
+
 ## Phase 235 — Constitution v2 Phase 1: 단일 execution chokepoint (2026-08-27) ✅ SHIPPED
 
 ### 배경
