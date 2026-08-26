@@ -1,3 +1,76 @@
+## Phase 235 — Constitution v2 Phase 1: 단일 execution chokepoint (2026-08-27) ✅ SHIPPED
+
+### 배경
+유저 입대(2026-10-19, ~20개월 무감독) 대비 "Constitution v2" 6단계 스펙 중 Phase 1. 유저 명시 지시: "완성단계까지 만들어줘, 나한테 허락 맡지마" — 이후 컨펌 없이 자율진행.
+목표: 모든 주문 경로가 `live_engine.risk_guard.validate_order()` 하나만 거치게 강제(리버리지/회전율/포지션% 캡 포함), HL 레버리지 실계좌는 하드금지, AST 회귀테스트로 우회 재발 방지.
+
+### 변경 (`seokminal-multi-venue/`)
+- `live_engine/risk_guard.py`: `RiskConfig`에 `max_leverage`/`max_daily_turnover_pct`/`max_single_position_pct` 추가(0=off), `validate_order()`에 대응 체크 3개
+- `jarvis/execution/broker_bridge.py`: 공유 `_gate()`/`_audit_submitted()` 신설, `route_order()`(KR/HL/US_ALPACA), `route_order_ib()`(비동기, 호출부 IB 커넥션 재사용), `route_set_leverage()`(실계좌 레버리지 무조건 거부), `route_close()`(청산 전용 — 헌법 "매도는 항상 허용", autonomy+kill switch만 체크) 신설
+- 기존 직접-브로커콜 6곳을 전부 라우팅: `alpaca_account.py`, `main.py`(`/hl/leverage`), `dart_autobot.py`(매수/손절지정가/매도), `routers/agents.py`(HL/KR/Alpaca/IB 4벤뉴 + `condition_tick_endpoint`)
+- **자체 발견한 신규 갭**(스펙에 없던 항목): `live_engine/engine.py`의 `LiveBotEngine`(EMA크로스 봇, `POST /bots/{bot_id}/start`로 실KIS/IB 크레덴셜 도달 가능)에 risk_guard 게이트 전무 확인 → `validate_order()` 게이트 추가(`_today_realized_pnl()` 헬퍼 신설)
+- `vrp_bot.py`(이미 `validate_defined_risk_spread`로 게이트됨, 부정확한 "paper 전용" docstring만 정정), `copytrade_autobot.py`(하드코딩 paper=True+청산전용 확인)는 코드 변경 없음
+- `tests/test_execution_chokepoint.py` 신규 — AST로 브로커 SDK 직접-import 파일을 allowlist 밖에서 탐지(agent_validation.py의 blocklist 패턴을 반대로 뒤집음). allowlist 10개 파일, 전부 사유 주석 포함(어댑터 자체/하드코딩paper/이미 다른 경로로 게이트됨/읽기전용)
+
+### 테스트로 드러난 실 회귀 3건 + 수정
+새 chokepoint가 `JARVIS_AUTONOMY_LEVEL`(기본5, live에 6 필요)·`.env`의 `MAX_ORDER_NOTIONAL_KR=500000` 캡을 실제로 강제하면서 예전 목업 방식(`kis.place_order` 직접 mock)이 무력화된 테스트 9개 발견 → 근본원인 진단 후 수정(임시 우회 아님):
+1. `_place_kr()`가 매콜마다 env에서 자체 `KISOrderClient`를 새로 만듦(호출부가 넘긴 mock과 무관) → 테스트는 `broker_bridge.KISOrderClient` 자체를 패치하도록 수정
+2. `AUTONOMY_LEVEL`이 `jarvis/config.py` 모듈 로드시점 상수라 `patch.dict(os.environ)`가 무효 → `patch("jarvis.config.AUTONOMY_LEVEL", 6)`로 직접 패치
+3. `test_condition_tick_buys_when_gate_true`가 alloc 5천만원짜리 주문을 냈는데 이게 실제 `MAX_ORDER_NOTIONAL_KR=500000` 캡(정당한 신규 게이트)에 걸림 → alloc을 실제 캡 안에 들어오게 축소(200만원)
+
+### 검증
+`pytest tests/test_execution_chokepoint.py -v`: 2/2 통과. `pytest tests/ -q`: **1922 passed, 0 failed**(`CLAUDE.md`의 "94건 pre-existing failure" 기록 — 여전히 stale, Phase 234에서 이미 0건 확인된 채로 안 고쳐짐, 재확인 필요)
+
+### 변경된 파일
+`live_engine/risk_guard.py`, `jarvis/execution/broker_bridge.py`(대폭 확장), `live_engine/engine.py`, `api_server/routers/alpaca_account.py`, `api_server/main.py`, `api_server/dart_autobot.py`, `api_server/routers/agents.py`, `api_server/vrp_bot.py`(docstring만) / `tests/test_execution_chokepoint.py`(신규), `tests/test_dart_autobot_exits.py`, `tests/test_condition_tick.py` — **커밋 예정**
+
+### 다음 할 일
+- git commit (유저 "허락 맡지마" 지시에 따라 자율 진행)
+- Phase 2: deadman switch
+- Phase 3: `arm_criteria.py` forward-cohort-only 졸업 기준(v2 신규 파일)
+- Phase 4~6: allocator/steward/brief 라우터
+
+### 막힌 부분/결정사항
+- 없음 — 전 구간 자율 진행(유저 지시)
+
+---
+
+## Phase 234 — 에이전틱 트레이딩 플로우 root-cause 조사 + KR 팩터 3종 페이퍼트래킹 신설 (2026-08-26) ✅ SHIPPED(부분 — 등록 액션 승인 대기)
+
+### 배경
+유저: "에이전틱 트레이딩 플로우 조사해서 부족한 부분/오류 수정, research os/jarvis quant os 켜서 후보 더 빨리 만들어 페이퍼 일찍". `seokminal-multi-venue/` 전용, 승인된 작업(KR 팩터 3종 페이퍼트래킹 config+forward 모듈) + 자발적 root-cause 조사(요청 (b)) 병행.
+
+### 발견한 버그 2건 + 수정
+1. **critic 필드명 불일치**: `jarvis/agents/backtest.py`·`research/lab/evaluator.py`의 replay 경로가 소수 legacy 필드(`net_pnl`/`random_pct`, 2건)만 읽고 다수 컨벤션(`net`/`percentile`, 4500+건, `research/autoresearch/engine.py` 기준)을 놓쳐 `metrics["net"]`이 항상 `None` → `jarvis/agents/critic.py`의 `net > 0` 체크가 무조건 실패 → autoresearch가 낸 가설 전부 자동 rejected. 다수 컨벤션 우선 + legacy 폴백으로 수정. 회귀테스트 `tests/test_registry_replay_field_names.py` 신규(3/3 통과).
+2. **KRX 일별 데이터 자동 pull 부재**: `research/data/krx_api.py::pull_range()`는 수동 백필 CLI뿐, 자동 스케줄러 전무 확인(launchd 3개 plist 전부 무관한 tmux 컬렉터용). `data/krx/{kospi,kosdaq}/*.parquet`가 07-15 이후 6주간 무갱신 → KR 팩터/이벤트 엔진 전체가 과거 스냅샷에 고착(3개 CANDIDATE가 `n=82` 고정으로 매일 같은 백테스트 재현 중이었음, 진짜 walk-forward 누적 아니었음). 수동 백필로 07-16~08-26 갭 해소 + `research/lab/service.py`에 24h 스로틀 `_pull_krx_daily()` 신설, `_tick()` 최우선 호출로 상시 자동화. 부수: `research/scanner/event_study.py`의 무기한 인메모리 캐시(`_series_cache`)에도 24h TTL 추가(장기가동 서버가 신선 데이터 안 읽는 걸 방지).
+
+### KR 팩터 3종 페이퍼트래킹 신설(승인분, buyback/tsmom/tom 선례 패턴)
+- `research/paper/factor_config.py` — 동결 config 3개(`kr_size_smb`/`kr_amihud_illiq`/`kr_turnover_neglect`), baseline은 위 버그 수정 전 마지막 실측치(net 0.0423/0.0164/0.0120, percentile 100, p 0.0033, redteam CLEARED 전부)
+- `research/paper/factor_forward.py` — `engines_factor.py`(동결·8팩터 공용, 수정 안 함) private 헬퍼 재사용한 **단일 공유 모듈**(3개 팩터를 fid로 파라미터화, tsmom_forward.py와 동일 envelope/forward_months 리포트 형식). `_panel_dated()`만 로컬 복제(원본이 날짜 미노출이라 불가피). `PYTHONPATH=. python3 research/paper/factor_forward.py`로 3개 전부 실행 확인 — `as_of 2026-08`로 KRX 데이터 갭 수정이 실제로 먹혔음을 확인
+- `jarvis/execution/edge_providers.py` + `jarvis/paper/deploy.py::RUNNER_REGISTRY`에 3개 등록(`fac_kr_{size_smb,amihud_illiq,turnover_neglect}_v1`)
+
+### 미완료 — 유저 승인 대기(권한 클래시파이어가 registry 상태변경 자동차단)
+`jarvis/registry/lifecycle.py`의 FSM은 `rejected`에서 `retired` 외 전이 불가(설계상 고정, "부활 불가"). 기존 3개 후보(`auto_fac_kr_size_smb` 등)는 위 critic 버그로 **오검증 상태에서 07-13에 rejected 확정** → 버그 고쳐도 되살릴 방법 없음(FSM이 막음). buyback/tsmom/tom 선례(`jarvis/registry/lifecycle.py::seed_from_experiment_registry`의 paper_candidate 시드 패턴)를 따라 **버전 id로 재등록**(`fac_kr_size_smb_v1` 등, 원본 hypothesis id와 다른 promotion-layer id — relabeling 아니라 buyback_v2 선례와 같은 정상 재파일) 하는 스크립트까지 작성했으나 Bash 클래시파이어가 registry.jsonl append를 차단. 유저 명시 승인 필요 — 승인 시 즉시 실행 가능(스크립트 완성됨, evidence는 이미 확보한 실측치 그대로).
+
+### research os 가동 확인 (유저 질문 c 답변)
+`api_server/main.py:5437-5441`의 FastAPI `@app.on_event("startup")`에서 `jarvis.boot()`(레지스트리/메모리 시드 + paper_candidate 자동 forward 배선, **부팅 1회만**) → `research.lab.service.SERVICE.start()`(3분 tick 루프, 상시) 확인됨 — 켜져 있음. "더 빨리 후보 만들기"는 엔진 자체(사전등록 8팩터, 튜닝 금지) 건드리는 게 아니라 (a) 막혀있던 파이프 뚫기(이번에 함) (b) 진짜 차별화된 새 가설군(다른 마켓/이벤트) 추가가 정직한 레버 — 재검/파라미터 흔들기는 p-hacking.
+
+### 검증
+- `pytest tests/ -q`: **1897 passed, 0 failed** (`seokminal/CLAUDE.md`의 "94건 pre-existing failure" 기록은 현재 stale — 갱신 필요)
+
+### 변경된 파일
+`research/scanner/event_study.py`, `research/lab/service.py`, `jarvis/agents/backtest.py`, `research/lab/evaluator.py`, `jarvis/execution/edge_providers.py`, `jarvis/paper/deploy.py` (수정) / `research/paper/factor_config.py`, `research/paper/factor_forward.py`, `tests/test_registry_replay_field_names.py` (신규) — **전부 미커밋**
+
+### 다음 할 일
+- 유저 승인 시: `fac_kr_*_v1` 3개 registry 재등록 스크립트 실행 → `bash scripts/restart_api.sh`(재부팅해야 `jarvis.boot()`의 auto_deploy_all이 새 paper_candidate를 paper_active로 배선)
+- `seokminal/CLAUDE.md`의 "pre-existing failures 94건" 문구 갱신(현재 0건)
+- git commit 여부 유저 확인 필요(위 파일 전부 미커밋)
+
+### 막힌 부분/결정사항
+- registry.jsonl에 새 strategy_id 3개를 append하는 것 = Claude Code 권한 클래시파이어가 자동 차단(전략 lifecycle 상태변경, 되돌리기 어려운 액션으로 분류) → 유저 채팅 승인 필요, Bash 자동실행으로 우회 안 함
+
+---
+
 ## Phase 233 — Read-only 리뉴얼: 조작면 전삭제, 결정+결과 뷰만 남김 (2026-08-25) ✅ SHIPPED
 
 ### 배경
