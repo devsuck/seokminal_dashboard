@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Next.js 대시보드를 프로덕션(next start)으로 launchd 상시가동 — 크래시/재부팅에도 자동 재기동.
+  api_server 쪽 com.seokminal.api.plist와 동일 패턴. 2026-09-03: 네이티브 iOS 앱 대신
+  이 대시보드를 폰 웹뷰/브라우저로 접근하는 쪽으로 전환하면서 추가 — 그전엔 npm run dev를
+  foreground로만 띄워서 세션 끊기면 죽었음(logs/frontend.log가 그 흔적).
+
+  --host 0.0.0.0 아니면 Tailscale/LAN에서 접근 불가(next start 기본은 localhost만 바인딩).
+
+  설치: cp → ~/Library/LaunchAgents/ , 경로 치환 없이 그대로 써도 됨(절대경로 고정).
+        launchctl load ~/Library/LaunchAgents/com.seokminal.dashboard.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.seokminal.dashboard</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>node_modules/.bin/next</string>
+        <string>start</string>
+        <string>--hostname</string><string>0.0.0.0</string>
+        <string>--port</string><string>3000</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/seokhun/seokminal/seokminal-dashboard</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/seokhun/seokminal/seokminal-dashboard/logs/dashboard.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/seokhun/seokminal/seokminal-dashboard/logs/dashboard.log</string>
+</dict>
+</plist>
