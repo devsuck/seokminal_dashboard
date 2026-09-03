@@ -1,3 +1,59 @@
+## Phase 238 — 무인기간 원격 접근을 iOS 네이티브 앱 대신 웹뷰로 전환 (2026-09-03) ✅ SHIPPED
+
+### 배경
+군복무로 몇 달간 자리 비움. 원래 계획은 iOS 네이티브 리모컨 앱(`ios-remote/`)이었는데,
+빌드→기기설치→(폰 잠금 등)→유저가 스크린샷 찍어줘야 확인되는 구조라 무인 기간엔 버그가
+나도 Claude가 스스로 못 고침(`-999 cancelled` 콜드런치 버그 잡는 데도 몇 차례 왕복 필요했음).
+유저가 "네이티브 앱 하면 개발 품질 떨어지냐" 질문 → 코드 품질이 아니라 **검증 루프** 문제라고
+답변(웹이면 Chrome 자동화로 직접 클릭/콘솔/네트워크 확인 가능, 네이티브는 못 함) → "웹뷰로
+전환하자"로 결정. `docs/superpowers/specs/2026-09-02-portfolio-multi-broker-design.md`/
+`docs/superpowers/plans/2026-09-02-portfolio-multi-broker.md`의 Task 1~4(백엔드: HL/KIS
+실계좌 프로바이더, 집계기, 스냅샷 잡, `/portfolio/summary,history,trades` 엔드포인트)는 이미
+그 전에 구현·배포 완료된 상태(`f65ac53`~`3f24117`, multi-venue) — Task 5~7(iOS 네이티브
+`PortfolioView.swift` 등)만 이 전환으로 폐기.
+
+### 실제로 막고 있던 두 가지 (조사해서 찾음)
+기존 `app/hud`의 "자산" 탭(`components/hud/PortfolioTab.tsx`)이 이미 HL/KIS/Alpaca
+실잔고를 보여주고 있어 신규 화면을 만들 필요가 없었음(YAGNI) — 진짜 문제는 이게 폰에서
+실제로 열리지가 않았던 것:
+1. `.env.local`의 `NEXT_PUBLIC_API_URL=http://localhost:8000` 하드코딩 — Next.js public
+   env는 빌드타임에 문자열로 박히므로 폰에서 Tailscale IP로 열어도 API_URL은 그대로
+   localhost라 요청 자체가 안 나감. `lib/api.ts`엔 원래 `window.location.hostname` 자동감지
+   폴백이 있었는데 이 하드코딩이 죽이고 있었음 — 지워서 폴백 살림.
+2. `api_server`의 `_require_key_for_remote` 미들웨어(2026-09-02 추가, 127.0.0.1 아닌
+   요청엔 `X-Api-Key` 강제)에 대응하는 코드가 대시보드 쪽엔 전혀 없었음. `lib/api.ts` 안에서
+   직접 `fetch()` 호출하는 곳이 173곳이라 개별 수정 대신 **전역 `window.fetch`를 한 번
+   패치**해 API_URL로 나가는 요청에만 헤더 주입(root cause 지점 일괄 적용, iOS 앱의
+   `APIClient.swift`가 쓰던 것과 같은 키 재사용).
+3. 대시보드도 지금까지 `npm run dev`를 foreground로만 띄워서 세션 끊기면 죽는 상태였음
+   (`logs/frontend.log`가 그 흔적) — `scripts/deploy/launchd/com.seokminal.dashboard.plist`
+   신규(`com.seokminal.api.plist`와 동일 패턴, `next start --hostname 0.0.0.0`, KeepAlive)로
+   상시가동 전환, `~/Library/LaunchAgents/`에 설치+`launchctl load`.
+
+### 검증
+로컬(`:3000`)·Tailscale IP(`100.108.67.7:3000`) 둘 다 `curl` 200. Chrome 자동화로
+`http://localhost:3000/hud?tab=portfolio` 직접 열어 국내주식/해외주식/코인 실잔고 렌더링
+확인, `read_network_requests`로 `/hl/positions`, `/agents/accounts/kis-holdings` 등 9개
+API 호출 전부 200 확인.
+
+### 커밋
+`ae697f5`(seokminal-dashboard) — ".env.local 정리 + lib/api.ts 전역 fetch 패치 + dashboard
+launchd plist 신규"
+
+### 다음 할 일
+- 폰에서 실제로 `http://100.108.67.7:3000/hud?tab=portfolio` 열어서 최종 확인은 유저 몫
+  (Tailscale IP는 재등록 시 바뀔 수 있음 — 안 열리면 `tailscale ip -4`로 재확인).
+- `ios-remote/`는 git 버전관리 자체가 없음(관찰만 하고 아직 안 물어봄) — 웹뷰 전환했으니
+  네이티브 앱을 아예 걷어낼지, 유지만 하고 안 쓸지는 유저 판단.
+- `/portfolio/summary,history,trades`(멀티브로커 집계, live/paper 구분, 통합 equity curve)는
+  아직 `PortfolioTab.tsx`가 안 씀 — 지금은 브로커별 개별 엔드포인트만 씀. 필요해지면 다음 작업.
+
+### 막힌 부분/결정사항
+- `PortfolioTab.tsx`가 이미 핵심 니즈(잔고 조회)를 커버해서 새 페이지를 만들지 않기로 결정
+  — 만들 뻔했다가 기존 코드 먼저 읽고 스코프 줄임(YAGNI).
+
+---
+
 ## Phase 237 — Constitution v2 Phase 3: forward-cohort-only 전략 졸업 기준 (2026-08-27) ✅ SHIPPED
 
 ### 배경
