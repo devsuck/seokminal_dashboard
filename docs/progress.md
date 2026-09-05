@@ -1,3 +1,40 @@
+## Phase 240 — 추가 dead code/의존성 정리 + 로드맵 우선순위 확인 (2026-09-06) ✅ SHIPPED
+
+### 배경
+"그냥 할 수 있는 작업 다 해봐 나 자게" 후 Phase 239 마무리, 추가로 "계속 자면서 진행할
+작업 더 있나 찾아봐" — 더 파고들 안전한 기계적 작업 탐색.
+
+### 완료된 작업 (커밋 `aa0ea24`, `cf2ff87`)
+- `hooks/useHLPosition.ts`, `hooks/useOptionsFlowSocket.ts` 삭제 — 전 라우트/컴포넌트
+  grep 결과 importer 0건 (hooks 디렉토리 자체 소멸)
+- `package.json`에서 `d3`/`@types/d3` 제거 — 실사용 0건 확인(차트는 `lightweight-charts`만
+  사용, `CandlestickChart.tsx`는 Phase 239에서 이미 삭제됨). `npm install`로 lockfile 갱신
+- SegmentedToggle/Bar/LoadingState/EmptyState/ChartFrame 전 호출부 재검사 — Phase 239 fix
+  이후 신규 누락 없음 확인 (회귀 없음)
+- `docs/roadmap.md` 재확인 — "다음 세션 최우선" 1번 항목(스윙검증-US 봇, id 7591f352)
+  tmux 세션 생존 확인: `seokminal-agent-7591f352` 가동 중, cycle #20 HOLD 정상 기록,
+  킬스위치 정상. 조치 불필요
+- 매 변경마다 `tsc --noEmit` + `vitest run`(33/33) + `next build`(전 라우트) 그린 확인
+
+### 검토했으나 조치 안 한 것 (의도적 보류)
+- `npm audit`: next/postcss/sharp/undici 관련 6건(1 moderate, 5 high) — 전부 `next` 자체의
+  기존 전이 의존성 취약점, d3 제거와 무관. 수정하려면 `next 16.2.9 → 16.3.4` major-adjacent
+  업그레이드가 필요(`npm audit fix --force`) — 운영 중인 프론트를 건드리는 버전업이라
+  유저 승인 없이 진행 안 함. **유저 복귀 시 확인 필요**
+- 백엔드(`seokminal-multi-venue`) 파이썬 정적분석: ruff 미설치, 신규 툴 설치는 스코프 밖으로
+  판단해 보류. `pytest tests/ -q` 1975 passed로 이미 그린 확인함
+- `_state/*.json`, `research/data/*.jsonl` 등 백엔드 런타임 데이터 변경분은 실행 중인
+  라이브 트레이딩 시스템의 산출물이라 손대지 않음(git status에 M/D로 떠도 정상)
+
+### 다음 할 일
+- `npm audit fix --force`(next 업그레이드) 여부 — 유저 판단 필요
+- 남은 룩앤필(스페이싱/타이포)은 Phase 239와 동일하게 시각 판단 필요해 보류 유지
+
+### 막힌 부분/결정사항
+- 없음. 이번 라운드도 기계적으로 검증 가능한 범위로 한정.
+
+---
+
 ## Phase 239 — ap 라이트 디자인 토큰 통일 + dead code 대량 정리 (2026-09-06) ✅ SHIPPED
 
 ### 배경
