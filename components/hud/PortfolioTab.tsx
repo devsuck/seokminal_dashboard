@@ -114,7 +114,7 @@ export default function PortfolioTab() {
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <LoadingState message="포트폴리오 로딩 중…" hint="자산군별 보유내역 집계 — 5~10초 걸립니다" />
+        <LoadingState message="포트폴리오 로딩 중…" hint="자산군별 보유내역 집계 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
       </div>
     );
   }

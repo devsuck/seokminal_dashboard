@@ -149,7 +149,7 @@ export default function LabTab() {
         </Card>
       )}
 
-      {!st && !err && <LoadingState message="LAB 상태 로딩 중…" />}
+      {!st && !err && <LoadingState message="LAB 상태 로딩 중…" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />}
 
       {/* Guardrail */}
       <Card>
