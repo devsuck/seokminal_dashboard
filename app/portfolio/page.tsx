@@ -66,7 +66,7 @@ function AccountCard({
   const [open, setOpen] = useState(false);
   const ok = !error && balance != null;
   return (
-    <div className="bg-ap-surface border border-ap-line rounded-xl overflow-hidden hover:border-ap-ink-3 transition-colors">
+    <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm overflow-hidden hover:border-ap-ink-3 transition-colors">
       <button onClick={() => setOpen(v => !v)} className="w-full text-left hover:bg-ap-bg transition-colors">
         <div className="flex items-center gap-3 px-4 py-3">
           <StatusDot ok={ok} />
@@ -247,7 +247,7 @@ interface CompositionRow { venue: string; ccy: string; balance: number; share: n
 
 function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy: string }) {
   return (
-    <div className="bg-ap-surface border border-ap-line rounded-xl p-3">
+    <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-3">
       <p className="text-ap-ink-3 text-[10px] uppercase tracking-wide">{label}</p>
       <p className="text-ap-ink-1 text-lg font-mono font-bold mt-1">{fmt(value, ccy)}</p>
     </div>
@@ -734,7 +734,7 @@ export default function PortfolioPage() {
               </div>
             </Card>
             <a href="/portfolio/optimizer"
-              className="block text-center py-3 border border-ap-line rounded-xl text-ap-ink-3 text-sm hover:text-ap-ink-2 hover:border-ap-ink-3 transition-colors">
+              className="block text-center py-3 border border-ap-line rounded-ap-lg text-ap-ink-3 text-sm hover:text-ap-ink-2 hover:border-ap-ink-3 transition-colors">
               최적화 도구 열기 →
             </a>
           </div>

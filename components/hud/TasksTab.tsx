@@ -76,7 +76,7 @@ export default function TasksTab() {
       {v2 && <V2ShadowCard v2={v2} />}
 
       {tasks && tasks.length === 0 && (
-        <div className="bg-ap-surface border border-ap-line rounded-lg p-6 text-center text-ap-ink-3 text-sm">
+        <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-6 text-center text-ap-ink-3 text-sm">
           페이퍼 전략 없음 — AI LAB에서 paper_candidate 승격 시 여기 나타남.
         </div>
       )}

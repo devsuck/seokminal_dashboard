@@ -30,7 +30,7 @@ export function ToastContainer() {
       {toasts.map(t => (
         <div
           key={t.id}
-          className={`flex items-start gap-2.5 px-4 py-3 rounded-lg border shadow-xl text-sm w-full sm:w-auto sm:max-w-[340px] pointer-events-auto ${TYPE_STYLES[t.type]}`}
+          className={`flex items-start gap-2.5 px-4 py-3 rounded-ap-lg border shadow-ap-md text-sm w-full sm:w-auto sm:max-w-[340px] pointer-events-auto ${TYPE_STYLES[t.type]}`}
         >
           <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${TYPE_DOT[t.type]}`} />
           <div className="flex-1 leading-snug min-w-0">

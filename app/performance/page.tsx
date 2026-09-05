@@ -9,7 +9,7 @@ const PERIOD_LABEL: Record<string, string> = { "1W": "1주", "1M": "1개월", "3
 
 function Metric({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
-    <div className="bg-ap-surface border border-ap-line rounded-lg p-3">
+    <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-3">
       <div className="text-ap-ink-3 text-[11px] uppercase tracking-wider">{label}</div>
       <div className={`text-lg font-data font-bold mt-1 ${cls ?? "text-ap-ink-1"}`}>{value}</div>
     </div>
@@ -105,7 +105,7 @@ export default function PerformancePage() {
                 cls={pnlCls(data.excess_pct)} />
             </div>
 
-            <div className="bg-ap-surface border border-ap-line rounded-lg p-4">
+            <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
               <div className="flex items-center gap-4 mb-2 text-[11px]">
                 <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-ap-brand inline-block" /> 내 전략</span>
                 <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-ap-ink-3 inline-block" style={{ borderTop: "1px dashed" }} /> SPY 매수보유</span>

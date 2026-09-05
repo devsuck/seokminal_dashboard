@@ -12,7 +12,7 @@ export function BalanceCard({ acc }: { acc: AccountRow }) {
   const remaining = acc.balance != null ? acc.balance - acc.allocated : null;
   const over = remaining != null && remaining < 0;
   return (
-    <div className="bg-ap-surface border border-ap-line rounded-lg p-3">
+    <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-3">
       <div className="flex items-center justify-between">
         <span className="text-ap-ink-2 text-xs font-semibold">{acc.label}</span>
         {acc.mode && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${acc.mode === "live" ? "bg-ap-down/15 text-ap-down border-ap-down/40" : "bg-ap-up/10 text-ap-up border-ap-up/30"}`}>{acc.mode === "live" ? "● 실거래" : "페이퍼"}</span>}
