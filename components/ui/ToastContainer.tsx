@@ -5,17 +5,17 @@ import Link from "next/link";
 import { toast, type Toast } from "@/lib/toast";
 
 const TYPE_STYLES: Record<Toast["type"], string> = {
-  info:    "bg-panel border-border text-text-1",
-  success: "bg-panel border-pos/40 text-pos",
-  warn:    "bg-panel border-warn/40 text-warn",
-  error:   "bg-panel border-neg/40 text-neg",
+  info:    "bg-ap-surface border-ap-line text-ap-ink-1",
+  success: "bg-ap-surface border-ap-up/40 text-ap-up",
+  warn:    "bg-ap-surface border-ap-caution/40 text-ap-caution",
+  error:   "bg-ap-surface border-ap-down/40 text-ap-down",
 };
 
 const TYPE_DOT: Record<Toast["type"], string> = {
-  info:    "bg-accent",
-  success: "bg-pos",
-  warn:    "bg-warn",
-  error:   "bg-neg",
+  info:    "bg-ap-brand",
+  success: "bg-ap-up",
+  warn:    "bg-ap-caution",
+  error:   "bg-ap-down",
 };
 
 export function ToastContainer() {
@@ -39,7 +39,7 @@ export function ToastContainer() {
               <Link
                 href={t.link.href}
                 onClick={() => toast.dismiss(t.id)}
-                className="block mt-1.5 text-accent hover:underline text-xs font-medium"
+                className="block mt-1.5 text-ap-brand hover:underline text-xs font-medium"
               >
                 {t.link.label} →
               </Link>
@@ -47,7 +47,7 @@ export function ToastContainer() {
           </div>
           <button
             onClick={() => toast.dismiss(t.id)}
-            className="text-text-3 hover:text-text-1 ml-1 shrink-0 text-base leading-none">
+            className="text-ap-ink-3 hover:text-ap-ink-1 ml-1 shrink-0 text-base leading-none">
             ×
           </button>
         </div>
