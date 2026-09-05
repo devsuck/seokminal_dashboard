@@ -1,3 +1,71 @@
+## Phase 239 — ap 라이트 디자인 토큰 통일 + dead code 대량 정리 (2026-09-06) ✅ SHIPPED
+
+### 배경
+유저: "디자인이 별로라고 생각하지않아? 통일도안되어 있고, 에이전틱 트레이딩이나
+미니멀리즘이 적용되지 않은 것 같아" → "토큰 통합만 먼저" → "dead code 그것도 삭제해줘"
+→ "이제 디자인 다 통일된거야?"(재감사 요청) → "룩앤필 작업한거 맞아?" → "응, 진행해"
+→ "그냥 할 수 있는 작업 다 해봐 나 자게"(무인 자율진행 승인). 군복무로 장기간 자리 비움
+상태 — 확인 없이 계속 진행하라는 표준 지시 적용 중.
+
+### 완료된 작업 (커밋 4개: `01a6251` → `91aa6b8` → `8c8277f` → `faa783e`)
+
+**색 토큰 다크 잔재 (라이브 ap 라이트 라우트에 다크 하드코드 색이 새던 버그)**
+- `components/AccountBalances.tsx`, `components/hud/PortfolioTab.tsx`(LoadingState 오버라이드) —
+  `bg-panel/border-border/text-text-*` → `ap-*`
+- `app/layout.tsx` — 루트 `<body>` 기본 배경/글자색 ap로
+- `components/ui/ToastContainer.tsx` — 전역 토스트(모든 페이지에 뜸)가 다크로 렌더링되던
+  버그, `TYPE_STYLES`/`TYPE_DOT` 전부 ap 변환
+- `components/Jarvis.tsx` — `LivePulse`(ExecutionTab에서 라이브 사용) `TONE` 맵 값 ap 변환,
+  좌측 tone 키(`pos/accent/info/neg/text-3`)는 API 데이터 계약이라 유지, 값만 변경
+
+**각짐 버그 (더 큰 발견) — `--radius-lg/xl` 등이 전역 0px(다크 Bloomberg 무드 전용)로
+덮여있어서, ap 라이트 카드들도 의도한 둥근 모서리 없이 전부 각지게 렌더링되고 있었음**
+- `app/portfolio/page.tsx`, `app/performance/page.tsx`, `components/AccountBalances.tsx`,
+  `components/hud/{PortfolioTab,TasksTab,ExecutionTab}.tsx`, `components/ui/ToastContainer.tsx`
+  — `rounded-lg/xl` → `Card.tsx`가 쓰던 정상 패턴(`rounded-ap-lg`+`shadow-ap-sm`)으로 통일
+- `app/(console)/*` 20개 라우트는 `rounded-*` 자체를 안 써서(각짐이 원래 의도, Bloomberg
+  무드 유지) 이 버그 영향 없음 — 확인 후 미변경
+
+**SegmentedToggle 미지정 버그**
+- `app/portfolio/page.tsx` 거래소 필터 + 메인 탭 토글 2곳 — `inactiveClass` 안 넘겨서
+  컴포넌트 기본값(다크 `border-border/text-text-3`)이 흰 배경에 그대로 나오던 버그 수정
+
+**dead code 정리 (전부 importer 0건, barrel 재export 잔재 포함 확인 후 삭제)**
+- 컴포넌트 40+개: `components/market/*`(17), `components/backtest/*`(4),
+  `components/experiments/*`(2), `components/notebooks/*`(2), `components/ui/*` 다수
+  (`CompositeStrategyBuilder/RuleCard/ConditionRow/JsonPreview/TradeLogTable/MetricGrid/
+  MetricCard/ChartPanel/StrategyModeTabs/StrategyControlPanel/Panel/Button`),
+  `LabTab.tsx`→`AutoResearchPanel.tsx`→`Hud.tsx`(연쇄 죽은 체인, 처음엔 라이브로
+  오판했다가 `app/hud/page.tsx` 실제 탭 배선 재확인 후 정정),
+  `EdgeReportCard/Heatmap/NullDistribution`, `CandlestickChart/JokerLogo`,
+  `event-study/replay/rolling/terminal` 디렉토리 전체
+- `lib/` 유틸 20개 + 대응 `tests/lib/*.test.ts` 16개 — 위에서 지운 죽은 UI(백테스트/실험/
+  노트북/워치리스트/알림 관련)의 잔존 데이터 레이어. 테스트는 다 통과하고 있었지만
+  (순수 로직 테스트라 UI 없이도 그린) 소비자가 아예 없어서 같이 삭제
+- barrel 재export 함정 주의: `components/ui/index.ts`가 이미 지운 `Button.tsx`를 계속
+  재export하고 있어서 1차 삭제 후 `tsc`가 바로 잡아줌 — 죽은 파일 판정 시
+  `import`뿐 아니라 barrel의 `export {...} from`도 같이 확인 필요(이번 세션 교훈)
+
+### 검증
+매 배치마다 `tsc --noEmit` + `vitest run`(33 tests) 그린 확인, 마지막엔 `next build`
+프로덕션 빌드까지 통과(33 라우트 전부 정상 생성). Chrome으로 `/hud?tab=ops`,
+`/portfolio` 스크린샷 떠서 카드 둥근 모서리+그림자 실제 렌더링 확인.
+
+### 다음 할 일
+- 남은 "룩앤필" 스코프(스페이싱 8px 그리드 통일, 타이포 계층 단순화)는 주관적 디자인
+  판단이 필요한 영역이라 보류 — 라벨류 폰트가 8/9/10/11/12/13px로 흩어져 있는 건 확인함
+  (`text-[Npx]` grep 결과, `app/hud`+`portfolio`+`performance`+`hud/*` 기준) 하지만
+  1px 단위 차이라 시각적 임팩트 낮고, 사람 눈으로 스크린샷 비교하며 진행하는 게 안전 —
+  유저 복귀 후 스크린샷 보여주고 방향 확인 후 진행 권장
+- `(console)` 그룹 20개 라우트는 `.rail-ap` 스코프로 색은 이미 ap 통일 상태지만, 이번
+  세션에서 스페이싱/타이포/카드 패턴 일관성까지는 감사 안 함 — 다음 후보
+
+### 막힌 부분/결정사항
+- 없음. 전부 기계적으로 검증 가능한 범위(토큰 치환, 0-importer 삭제)로 한정해서 진행 —
+  주관적 판단이 필요한 재설계는 사람 피드백 루프 없이 진행하는 게 위험하다고 판단해 보류.
+
+---
+
 ## Phase 238 — 무인기간 원격 접근을 iOS 네이티브 앱 대신 웹뷰로 전환 (2026-09-03) ✅ SHIPPED
 
 ### 배경
