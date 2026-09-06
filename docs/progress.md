@@ -9,11 +9,11 @@ Task 3(Phase 250, `financials_live` 필드)이 curl로만 도달 가능하고 �
 - 수동 테스트: 프로덕션(launchd `com.seokminal.dashboard`, port 3000)은 건드리지 않고 별도 throwaway 스택(dev frontend :3001 + uvicorn 사본 :8001, CORS_ORIGINS로 3001 허용)으로 격리 검증. AAPL(US)·005930(KR) 둘 다 실측 데이터 렌더 확인, 테스트 스택은 종료 후 정리, 프로덕션 서비스 무변경 확인.
 
 ### 결정사항
-- launchd로 관리되는 프로덕션 대시보드(포트 3000, `com.seokminal.dashboard.plist`, KeepAlive)는 실기기(Tailscale) 접속용 상시 서비스라 재기동 없이 그대로 둠 — 변경사항은 다음 정식 배포(빌드+재기동) 시 반영 필요.
-- 커밋은 아직 안 함(사용자 명시 요청 시 커밋 예정).
+- launchd로 관리되는 프로덕션 대시보드(포트 3000, `com.seokminal.dashboard.plist`, KeepAlive)는 실기기(Tailscale) 접속용 상시 서비스라 수동 테스트 중엔 건드리지 않고 별도 throwaway 스택으로만 검증.
+- 사용자 승인 후 커밋(`ad3f97a`) → `npm run build` → `launchctl kickstart -k gui/$UID/com.seokminal.dashboard`로 반영. 프로덕션(포트 3000)에서 005930 조회로 재검증 완료.
 
 ### 다음 할 일
-- 사용자 승인 시: 커밋 + 프로덕션 대시보드 재빌드/재기동(`npm run build` → launchd 서비스 재기동, 또는 사용자가 직접).
+- 없음(이번 배선 작업 완료).
 
 ---
 
