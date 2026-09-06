@@ -38,6 +38,26 @@ variable 에러 발생 (bash 3.2 known bug, 4.4+에서 해결됨). `ENSURE=()`�
 `/bin/bash`(3.2)로 직접 재현 검증 → exit 0. `collectors-watchdog.log` 75초 관찰,
 새 크래시 줄 없음 확인.
 
+### 나머지 launchd job PATH 전수 점검
+`api.plist`가 PATH 문제였던 걸 계기로 `~/Library/LaunchAgents/com.seokminal.*.plist`
+7개 전체(plist 내용 + 호출되는 스크립트/파이썬 모듈의 subprocess 사용) 점검. `api.plist`
+외엔 전부 안전, 수정 불필요:
+
+- **api-watchdog**: `lsof`/`kill`을 `bash -c`로 호출 — `/usr/sbin`, `/bin`은 launchd
+  기본 PATH에 포함돼 있어 안전.
+- **autoresearch**, **collectors**: wrapper 쉘스크립트(`run_autoresearch.sh`,
+  `ensure_collectors.sh`)가 스크립트 안에서 자체적으로
+  `export PATH="/opt/homebrew/bin:..."` 하고 있어서 launchd PATH에 안 걸림.
+- **dashboard**: `node` 절대경로로 직접 실행, 코드에 `exec`/`spawn` 등 외부 바이너리
+  호출 없음.
+- **prune-research-data**: subprocess 호출 자체 없음.
+- **tailscale-watchdog**: `ifconfig`/`killall`/`open` 사용 — 전부 `/sbin`, `/usr/bin`에
+  있어 기본 PATH 포함. `tailscale` 바이너리 자체는 호출 안 함(Mac App Store 배포판 한정
+  워치독이라 코드 주석에도 명시돼 있음).
+
+`api.plist`만 걸렸던 이유: launchd가 python -m uvicorn을 PATH 없이 직접 띄우면서
+homebrew 경로(`/opt/homebrew/bin/tmux`)에 의존하는 유일한 케이스였음.
+
 ---
 
 ## Phase 242 — 백엔드 datetime.utcnow() deprecation 정리 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue)
