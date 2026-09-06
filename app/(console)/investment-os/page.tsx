@@ -14,7 +14,7 @@ import {
   getInvestmentOs, advanceLadder, getForwardLearning, getDataConnection, getResearchAccountability,
   getResearchOrganization, getAllocation, getPositions,
   getValidationLoop, getValidation,
-  getMarketCockpit, getInstitutionalIntelligence,
+  getMarketCockpit, getInstitutionalIntelligence, getFinancialsLive,
   getRisk, getProductionReadiness, getAgents, getConsoleCouncil, getLogs,
   getMonitor, getOrders, getLiveIntelligence, getMonthlyReview,
   type InvestmentOsResp, type LadderAdvanceResp, type ForwardLearningResp, type ForwardLearningRecord,
@@ -22,7 +22,7 @@ import {
   type DataConnectionResp, type ResearchAccountabilityResp,
   type ResearchOrganizationResp, type AllocationResp, type PositionsResp,
   type ValidationLoopResp, type ValidationResp,
-  type MarketCockpitResp, type InstitutionalIntelligenceResp,
+  type MarketCockpitResp, type InstitutionalIntelligenceResp, type FinancialsLiveResp,
   type RiskResp, type ProductionReadinessResp, type AgentsResp, type ConsoleCouncil, type LogsResp,
   type MonitorResp, type OrdersResp, type LiveIntelligenceResp,
 } from "@/lib/console-api";
@@ -131,6 +131,30 @@ function InvestmentOsInner() {
   const [fwd, setFwd] = useState<ForwardLearningResp | null>(null);
   const [conn, setConn] = useState<DataConnectionResp | null>(null);
   const [acct, setAcct] = useState<ResearchAccountabilityResp | null>(null);
+  // 재무제표 실측 조회 패널 (financials_live 직접 배선) — 사용자 입력 트리거, 탭 활성화와 무관
+  const [finQuery, setFinQuery] = useState("");
+  const [finData, setFinData] = useState<FinancialsLiveResp | null>(null);
+  const [finLoading, setFinLoading] = useState(false);
+  const [finErr, setFinErr] = useState<string | null>(null);
+  const finAbortRef = useRef<AbortController | null>(null);
+  const runFinLookup = useCallback(async () => {
+    const q = finQuery.trim();
+    if (!q) return;
+    finAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    finAbortRef.current = ctrl;
+    setFinLoading(true); setFinErr(null);
+    try {
+      const params = /^\d{6}$/.test(q) ? { code: q } : { symbol: q.toUpperCase() };
+      const r = await getFinancialsLive(params, ctrl.signal);
+      if (!ctrl.signal.aborted) setFinData(r);
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) { setFinErr((e as Error).message); setFinData(null); }
+    } finally {
+      if (!ctrl.signal.aborted) setFinLoading(false);
+    }
+  }, [finQuery]);
+  useEffect(() => () => finAbortRef.current?.abort(), []);
 
   const abortRef = useRef<AbortController | null>(null);
   const run = useCallback(async () => {
@@ -513,6 +537,43 @@ function InvestmentOsInner() {
                       <div>Invalidation 누락: {conn.prediction_coverage.missing_invalidation_pct ?? "—"}% · Horizon 누락: {conn.prediction_coverage.missing_horizon_pct ?? "—"}%</div>
                     </div>
                   )}
+                </Panel>
+
+                <Panel>
+                  <PanelHead kicker="/console/financials-live (실측, 신규 배선)" title="재무제표 실측 조회" />
+                  <div className="p-4 space-y-3">
+                    <form
+                      className="flex flex-wrap gap-2"
+                      onSubmit={(e) => { e.preventDefault(); runFinLookup(); }}
+                    >
+                      <input
+                        className="bg-bg border border-border text-text-1 text-[11px] px-2 py-1.5 rounded"
+                        placeholder="종목코드 (예: AAPL, 005930)"
+                        value={finQuery}
+                        onChange={(e) => setFinQuery(e.target.value)}
+                      />
+                      <button
+                        type="submit"
+                        disabled={finLoading || !finQuery.trim()}
+                        className="bg-accent text-black text-[11px] px-3 py-1.5 rounded disabled:opacity-50"
+                      >
+                        {finLoading ? "조회 중…" : "조회"}
+                      </button>
+                    </form>
+                    {finErr && <div className="text-[10.5px] text-neg">조회 실패: {finErr}</div>}
+                    {finData && (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {Object.entries(finData)
+                          .filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined)
+                          .map(([k, v]) => (
+                            <StatTile key={k} label={k} value={typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v)} tone="hud" />
+                          ))}
+                      </div>
+                    )}
+                    {finData && Object.entries(finData).filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined).length === 0 && (
+                      <div className="text-[10.5px] text-text-3">데이터 없음</div>
+                    )}
+                  </div>
                 </Panel>
               </div>
             )}

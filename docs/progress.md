@@ -1,3 +1,22 @@
+## Phase 251 — financials_live 대시보드 배선: investment-os 재무제표 실측 조회 패널 (2026-09-06) ✅ SHIPPED
+
+### 배경
+Task 3(Phase 250, `financials_live` 필드)이 curl로만 도달 가능하고 대시보드/autopilot 어느 쪽도 소비하지 않는 상태였음. 사용자가 실제 배선 검토 요청 → 브레인스토밍(bounded 분류): `/company-monitor`·`/company-intelligence`는 하드코딩 종목("NVDA"/"TSMC")에 프론트 소비자도 없어 확장 대상 아님, `/research-organization`·`/institutional-intelligence`도 동일 이유로 부적합. autopilot 쪽은 `tools/financials.sh`가 이미 `/console/financials-live`를 직접 호출 중이라 재배선 시 중복 호출(Ruling C 재확인, 소스 직접 읽어 검증) — 스코프 밖. 결론: `/console/financials-live`에 새 패널을 직접 배선(investment-os 대시보드, 사용자 승인 "그대로 진행해줘").
+
+### 완료된 작업
+- `lib/console-api.ts` — `FinancialsLiveResp` 타입(US 필드 명시 + KR 동적 필드 index signature) + `getFinancialsLive({symbol?, code?}, signal?)` 추가.
+- `app/(console)/investment-os/page.tsx` — research 탭에 "재무제표 실측 조회" Panel 신설. 종목코드 입력(6자리 숫자 → KR `code`, 그 외 → US `symbol` 대문자 변환) + 조회 버튼/Enter 제출 → `StatTile` 그리드. AbortController lifecycle(abort→create→assign ref→fetch→catch AbortError→finally guard→unmount cleanup) 기존 컨벤션 그대로. 숫자 필드는 `toLocaleString(maximumFractionDigits:2)`로 포맷(원본 float 그대로 찍으면 KR 데이터가 `137.17999999999998`처럼 지저분하게 나옴).
+- 수동 테스트: 프로덕션(launchd `com.seokminal.dashboard`, port 3000)은 건드리지 않고 별도 throwaway 스택(dev frontend :3001 + uvicorn 사본 :8001, CORS_ORIGINS로 3001 허용)으로 격리 검증. AAPL(US)·005930(KR) 둘 다 실측 데이터 렌더 확인, 테스트 스택은 종료 후 정리, 프로덕션 서비스 무변경 확인.
+
+### 결정사항
+- launchd로 관리되는 프로덕션 대시보드(포트 3000, `com.seokminal.dashboard.plist`, KeepAlive)는 실기기(Tailscale) 접속용 상시 서비스라 재기동 없이 그대로 둠 — 변경사항은 다음 정식 배포(빌드+재기동) 시 반영 필요.
+- 커밋은 아직 안 함(사용자 명시 요청 시 커밋 예정).
+
+### 다음 할 일
+- 사용자 승인 시: 커밋 + 프로덕션 대시보드 재빌드/재기동(`npm run build` → launchd 서비스 재기동, 또는 사용자가 직접).
+
+---
+
 ## Phase 250 — 멀티시그널 통합 Task 3: company-monitor/company-intelligence 실측 재무 부착 (2026-09-06) ✅ SHIPPED (백엔드 전용, seokminal-multi-venue)
 
 ### 배경

@@ -561,6 +561,26 @@ export interface InstitutionalIntelligenceResp {
 export const getInstitutionalIntelligence = (topic = "", sector = "semiconductor", entity = "TSMC", s?: AbortSignal) =>
   get<InstitutionalIntelligenceResp>(`/console/institutional-intelligence?topic=${encodeURIComponent(topic)}&sector=${encodeURIComponent(sector)}&entity=${encodeURIComponent(entity)}`, s);
 
+// ── /console/financials-live (실측 재무제표, symbol=미국/code=한국) ───────────
+export interface FinancialsLiveResp {
+  symbol?: string;
+  code?: string;
+  year?: number | null;
+  pe_ttm?: number | null;
+  roe_ttm?: number | null;
+  debt_to_equity?: number | null;
+  current_ratio?: number | null;
+  net_margin_ttm?: number | null;
+  revenue_growth_yoy?: number | null;
+  [key: string]: unknown;
+}
+export const getFinancialsLive = (params: { symbol?: string; code?: string }, s?: AbortSignal) => {
+  const qs = params.code
+    ? `code=${encodeURIComponent(params.code)}`
+    : `symbol=${encodeURIComponent(params.symbol ?? "")}`;
+  return get<FinancialsLiveResp>(`/console/financials-live?${qs}`, s);
+};
+
 // ── /console/production-readiness (P161-170 Committee & Production) ───────────
 export interface ProductionReadinessResp {
   institutional_overview: { version: string; release_ready: boolean; architecture_frozen: boolean; capabilities: string[] };
