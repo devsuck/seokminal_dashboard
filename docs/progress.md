@@ -1,3 +1,42 @@
+## Phase 243 — `/agents` API 500 에러 root-cause: launchd PATH 누락으로 tmux 미검출 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + launchd 설정)
+
+### 배경
+"뭔가 지금 페이퍼가 안돌아가고있는건 기분탓인가?" — 사용자 질문으로 조사 시작.
+`curl -sv http://127.0.0.1:8000/agents` → `HTTP/1.1 500 Internal Server Error`.
+대시보드가 이 엔드포인트로 에이전트 상태를 보여주므로, 500이면 사용자 눈엔
+"페이퍼 트레이딩이 안 돌아간다"처럼 보임.
+
+### Root cause
+`logs/api.log` 트레이스백 확인 결과 datetime 수정과 무관한 별개 pre-existing 버그:
+- `api_server/routers/agents.py:62 _session_exists()` → `subprocess.run(["tmux", "has-session", ...])`
+- `~/Library/LaunchAgents/com.seokminal.api.plist`에 `EnvironmentVariables`/`PATH` 키가 없어서
+  launchd 기본 PATH(`/usr/bin:/bin:/usr/sbin:/sbin`)로 uvicorn 프로세스 기동됨
+- tmux는 `/opt/homebrew/bin/tmux`에 있어서 PATH에 없음 → `FileNotFoundError: [Errno 2] No such file or directory: 'tmux'` → 500
+
+밑단 tmux 세션(`seokminal-agent-7591f352`, cycle #26/#27) 자체는 정상 동작 중이었음 —
+API의 상태 조회 계층만 깨져 있었던 것.
+
+### 변경 파일
+- `~/Library/LaunchAgents/com.seokminal.api.plist` — `EnvironmentVariables.PATH`를
+  `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`로 추가 (repo 밖, 커밋 대상 아님)
+
+### 검증
+- `launchctl unload` → `launchctl load` (plist 변경은 `restart_api.sh`로 반영 안 됨, job 자체 재로드 필요)
+- `curl http://127.0.0.1:8000/health` → 200
+- `curl http://127.0.0.1:8000/agents` → 200, `session_live: true` 확인
+- `pytest tests/ -q` → 1975 passed (회귀 없음)
+
+### 곁가지로 발견한 별개 이슈 (미수정, 낮은 우선순위)
+- `com.seokminal.collectors` launchd job이 60초마다 크래시 루프 중:
+  `scripts/deploy/ensure_collectors.sh:45`의 `for entry in "${ENSURE[@]}"; do`가
+  macOS 기본 `/bin/bash`(3.2, GPLv3 회피로 동결) + `set -u`에서 빈 배열 순회 시 unbound
+  variable 에러 발생 (bash 3.2 known bug, 4.4+에서 해결됨). `ENSURE=()`는 2026-09-03에
+  메모리 절약 목적으로 의도적으로 비워둔 것 — 기능적 영향은 로그 스팸뿐(원래 하려던
+  일이 "아무것도 안 함"이라 크래시해도 결과는 같음). 다음에 손댈 때
+  `"${ENSURE[@]:-}"` 가드 추가 권장.
+
+---
+
 ## Phase 242 — 백엔드 datetime.utcnow() deprecation 정리 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue)
 
 ### 배경
