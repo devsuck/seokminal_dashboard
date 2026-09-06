@@ -1,3 +1,44 @@
+## Phase 245 — 나머지 launchd job 로그 전수 점검 + autoresearch SIGKILL 원인 추정 (2026-09-06) ⏸️ 미조치(리서치 전용, 실거래 무관, 낮은 우선순위)
+
+### 배경
+Phase 243/244 마무리 후 "나머지 launchd job들도 로그에 에러 없는지 확인해줘" 요청으로
+7개 job의 로그 전체 점검.
+
+### 점검 결과
+- **api-watchdog / dashboard / prune-research-data / tailscale-watchdog**: 클린. 에러 없음
+  (api-watchdog 로그의 RSS초과/health실패→재기동은 watchdog이 제 역할 하는 정상 로그).
+- **collectors-watchdog**: Phase 243에서 고친 크래시의 stale 로그만 남아있고 그 이후 새
+  크래시 없음 — 정상.
+- **autoresearch**: `Killed: 9` 2줄 발견. 파일 mtime이 2026-09-06 05:48 — 오늘(일요일)
+  `StartCalendarInterval`(일 05:00) 실행분이 SIGKILL당한 것. 과거 세션에서 "히스토리라
+  안 급함"으로 판단했던 게 **오판이었음** — 매주 실행마다 죽고 있었을 가능성.
+
+### autoresearch SIGKILL 원인 추정 (실측, sudo 불필요 범위)
+자체 kill 로직 없음(`grep -rn "kill -9\|SIGKILL\|killall"`로 확인, 이 스크립트를
+겨냥한 코드 없음) → OS 메모리 압박(jetsam/OOM) 추정. 근거:
+- `research/scanner/event_study.py::load_series()`를 격리 서브프로세스로 직접 실행해
+  실측 → KOSDAQ+KOSPI 전체(3080종목, 335만봉) 로드에 **peak RSS ≈ 2.1GB**, 51.5초.
+  이건 `_event_family_candidates()` 기본 비용일 뿐이고, 그 위에
+  `factor_candidates()`/`load_fundamentals()`, `microstructure_candidates()`가 더 얹힘
+  (안 재봄).
+- `event_study()` 내부 `pool = [(b,i) for b in series.values() for i in ...]`도 11개
+  이벤트 패밀리마다 매번 335만 원소짜리 리스트를 새로 만듦(일시적이지만 GC 지연 시
+  피크에 누적 가능).
+- 같은 맥에서 `com.seokminal.api`(uvicorn)가 상시 4~5GB 사용 중(`api_watchdog.log`의
+  "RSS 4215MB/5028MB 초과 → 선제 재기동" 기록이 근거) — 새벽 5시 autoresearch 기동
+  시점에 두 프로세스 합쳐 메모리 압박 → OOM SIGKILL 추정.
+- 커널 jetsam 로그(`log show`)로 직접 확증하려면 sudo 필요 — 이번엔 sudo 없이 확인
+  가능한 선까지만 함. 확정 아니고 강한 정황증거 수준.
+
+### 조치
+**미조치.** 주 1회 리서치 후보 발굴 배치일 뿐 실거래/페이퍼트레이딩과 무관 —
+사용자 지시로 지금 안 고치고 기록만. 다음에 손댈 때 후보: `load_series()` 결과를
+디스크 캐시(parquet 그대로 유지, 불필요 컬럼/기간 축소), `pool` 재생성을 패밀리 간
+공유로 1회만 빌드, 또는 autoresearch 실행 시간대에 api_watchdog이 API를 일시
+축소/재시작하도록 조율.
+
+---
+
 ## Phase 244 — "페이퍼 안 돌아가는 것 같다" 후속 조사: AUTONOMY_LEVEL 게이트로 전 주문 차단 중 (2026-09-06) ⏸️ 미조치(사용자 결정 대기)
 
 ### 배경
