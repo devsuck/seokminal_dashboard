@@ -134,9 +134,9 @@ function WorldClock({ now }: { now: Date }) {
     <div className="hidden sm:flex items-center justify-end gap-4 px-2 py-0.5">
       {WORLD_CITIES.map(c => (
         <span key={c.tz} className="inline-flex items-baseline gap-1">
-          <span className="text-ap-ink-3 text-[8px] uppercase tracking-widest">{c.label}</span>
+          <span className="text-ap-ink-3 text-[9px] uppercase tracking-widest">{c.label}</span>
           {/* SSR 시각과 클라이언트 시각은 1초 차이로 어긋남 — 시계는 하이드레이션 비교 대상 아님 */}
-          <span className="text-ap-ink-2 text-[10px] font-data tabular-nums" suppressHydrationWarning>
+          <span className="text-ap-ink-2 text-[11px] font-data tabular-nums" suppressHydrationWarning>
             {now.toLocaleTimeString("en-GB", { timeZone: c.tz, hour12: false })}
           </span>
         </span>
@@ -207,9 +207,9 @@ function UnitCard({ u }: { u: Unit }) {
         {u.fleet && (
           <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
         )}
-        <span className={`text-[10px] font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-20" : "max-w-[45%]"}`}>{u.detail}</span>
+        <span className={`text-[11px] font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-20" : "max-w-[45%]"}`}>{u.detail}</span>
       </Link>
-      <span className={`text-[8px] px-1 border font-data shrink-0 ${
+      <span className={`text-[9px] px-1 border font-data shrink-0 ${
         u.kind === "AI" ? "border-ap-brand/40 text-ap-brand" : "border-ap-line text-ap-ink-3"}`}>{u.kind}</span>
       <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
         {statusText}
@@ -351,7 +351,7 @@ function HomeTab() {
           {wd?.critical && (
             <span className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">감시견 경보</span>
           )}
-          <span className={`ml-auto tabular-nums text-[10px] font-data ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
+          <span className={`ml-auto tabular-nums text-[11px] font-data ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
             {health ? (health.ok ? "정합성 이상 없음" : `정합성 오류 ${health.n_errors} · 위반 ${health.n_violations}`) : "정합성 로딩 중…"}
           </span>
         </div>
@@ -361,7 +361,7 @@ function HomeTab() {
               <Link
                 key={i}
                 href={violationHref()}
-                className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px] hover:bg-ap-bg transition-colors">
+                className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px] hover:bg-ap-bg transition-colors">
                 <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
                 <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>
                 <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-ap-down" : "text-ap-caution"}`}>{v.code}</span>
@@ -388,7 +388,7 @@ function HomeTab() {
               <Link key={it.id} href={it.href} className="flex items-center gap-2 border-b border-ap-line px-2 py-1 no-underline hover:opacity-80">
                 <StatusDot tone={it.tone === "neg" ? "neg" : it.tone === "warn" ? "warn" : "info"} />
                 <span className="text-[11px] font-data text-ap-ink-1 truncate flex-1">{it.label}</span>
-                <span className="text-[10px] font-data text-ap-ink-3 truncate">{it.detail}</span>
+                <span className="text-[11px] font-data text-ap-ink-3 truncate">{it.detail}</span>
               </Link>
             ))}
           </div>
@@ -417,7 +417,7 @@ function HomeTab() {
             수집기 {collectorUnits.length === 0 ? "로딩 중…" : `${nHealthy}/${collectorUnits.length} 정상`}
             {nDegraded > 0 && <span className="text-ap-caution"> · 이상 {nDegraded}</span>}
           </span>
-          <span className="ml-auto text-[10px] text-ap-ink-3">설정에서 확인 →</span>
+          <span className="ml-auto text-[11px] text-ap-ink-3">설정에서 확인 →</span>
         </Link>
       </Card>
 
@@ -474,7 +474,7 @@ function HomeTab() {
           {activityView === "alerts" && (
             <>
               {(alerts ?? []).slice(0, 14).map((a, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
                   <span className="text-ap-ink-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
                   <span className="text-ap-caution truncate flex-1">{a.rule_label}</span>
                   <span className="text-ap-ink-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
@@ -488,7 +488,7 @@ function HomeTab() {
           {activityView === "log" && (
             <>
               {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
                   <span className="text-ap-ink-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
                   <span className={`shrink-0 w-12 truncate ${
                     l.level === "error" ? "text-ap-down" : l.level === "warn" ? "text-ap-caution" : "text-ap-ink-3"}`}>{l.stage}</span>
@@ -503,7 +503,7 @@ function HomeTab() {
           {activityView === "trades" && (
             <>
               {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[10px]">
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
                   <span className="text-ap-ink-1 truncate flex-1">{t.corp}</span>
                   <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.entry_date}</span>
                   <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>

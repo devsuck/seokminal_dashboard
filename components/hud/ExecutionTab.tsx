@@ -102,7 +102,7 @@ export default function ExecutionTab() {
           </div>
         )}
         {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-ap-down">차단 사유: {g.reasons.join(" · ")}</div>}
-        <div className="mt-3 text-[12px] text-ap-caution border-t border-ap-caution/20 pt-2 leading-relaxed">{g.human_action}</div>
+        <div className="mt-3 text-[13px] text-ap-caution border-t border-ap-caution/20 pt-2 leading-relaxed">{g.human_action}</div>
       </div>
 
       {/* 3전략 arm 진행률 — buyback/tsmom/tom 한 화면 */}
@@ -121,11 +121,11 @@ export default function ExecutionTab() {
                     {s.decision}
                   </span>
                 </div>
-                <div className="mt-1.5 text-[10px] font-data text-ap-ink-3">
+                <div className="mt-1.5 text-[11px] font-data text-ap-ink-3">
                   페이퍼 {s.paper_months}mo / 최소 {s.min_paper_months}mo
                   {s.months_remaining > 0 && <span> · 잔여 {s.months_remaining}mo</span>}
                 </div>
-                <div className="mt-1 text-[10px]">
+                <div className="mt-1 text-[11px]">
                   <span className={`px-1.5 py-0.5 rounded border ${
                     (EDGE[s.edge_status] ?? EDGE.unavailable).tone === "pos" ? "border-ap-up/40 text-ap-up" :
                     (EDGE[s.edge_status] ?? EDGE.unavailable).tone === "neg" ? "border-ap-down/40 text-ap-down" :
@@ -159,7 +159,7 @@ export default function ExecutionTab() {
             {ea.oos.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {ea.oos.map(m => (
-                  <span key={m.month} className={`text-[10px] px-1.5 py-0.5 rounded border font-data ${
+                  <span key={m.month} className={`text-[11px] px-1.5 py-0.5 rounded border font-data ${
                     m.in_envelope ? "border-ap-up/40 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
                     {m.month} {pct(m.median)}
                   </span>
@@ -249,7 +249,7 @@ function Kv({ k, v, tone }: { k: string; v: string; tone?: "pos" | "neg" | "warn
   const c = tone === "pos" ? "text-ap-up" : tone === "neg" ? "text-ap-down" : tone === "warn" ? "text-ap-caution" : "text-ap-ink-1";
   return (
     <div className="bg-ap-bg border border-ap-line rounded px-2.5 py-1.5">
-      <div className="text-[10px] uppercase tracking-wider text-ap-ink-3">{k}</div>
+      <div className="text-[11px] uppercase tracking-wider text-ap-ink-3">{k}</div>
       <div className={`font-data text-sm ${c}`}>{v}</div>
     </div>
   );

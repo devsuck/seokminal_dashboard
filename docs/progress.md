@@ -1,3 +1,25 @@
+## Phase 252 — 룩앤필 타이포 계층 단순화: 7개 라이브 라우트 폰트사이즈 4단계 통일 (2026-09-07) ✅ SHIPPED (미배포, 프로덕션 미반영)
+
+### 배경
+Phase 237(색상/테마 통일) 이후 남겨둔 "룩앤필" 잔여 스코프 — 라벨 폰트가 8~14px로 12종 흩어져 있던 것. 직전 세션이 "1px 단위 차이라 시각 임팩트 낮음, 유저 복귀 후 스크린샷 보여주고 방향 확인 후 진행" 권고로 보류해뒀던 것을 유저 복귀 후 요청("진행해줘. 모든 페이지 UI 가 해당 미니멀 화 되어있는지 체크해줘") → 브레인스토밍(bounded 분류) → 스페이싱은 이미 8px 그리드 일관이라 스킵, 타이포만 진행하기로 유저 승인("ㅇㅇ 스페이싱은 스킵하고 타이포만 진행").
+
+### 완료된 작업
+- CommandRail(`components/console/CommandRail.tsx`)의 `CONSOLE_GROUPS`/`TERMINAL_GROUPS` + `/hud` 홈링크에서 실제 라이브 라우트 7개 확정: `investment-os`, `hud`, `portfolio`, `performance`, `research-os/{validation,governance,chat}`. `(console)` 그룹의 나머지 ~20개 라우트는 Phase 237 문서상 레거시/orphan — 이번 스코프 제외.
+- `grep -rhoE 'text-\[[0-9.]+px\]'`로 7개 라우트 + 공용 컴포넌트(hud 탭 3종, AccountBalances, charts 2종, ui/Card, ui/SegmentedToggle, console/primitives, console/widgets, CommandRail) 전수조사 — 총 18개 파일, 372건, 12종 사이즈(8/8.5/9/9.5/10/10.5/11/11.5/12/12.5/13/14px) 확인.
+- 4단계로 통일: label 9px / body 11px / subhead 13px / heading 15px(14px→15px 1건 뿐). `primitives.tsx:62`의 26px(대형 스탯 숫자, display 티어)은 의도적으로 그대로 둠. `sed -i ''`로 18개 파일 일괄 치환.
+- `npx tsc --noEmit` 클린, `npm test -- --run` 33/33 통과 — 순수 Tailwind 클래스 문자열 치환이라 로직/타입 영향 없음 확인.
+- 프로덕션(3000/8000) 미터치 원칙으로 throwaway 스택(FE :3001 + API :8001, CORS로 3001만 허용) 띄워서 7개 라우트 before(프로덕션, 수정 전 코드)/after(throwaway, 수정 후 코드) 스크린샷 비교 — 모바일 웹뷰 뷰포트(606×609)에서 truncation/overflow 없음 확인. performance 페이지는 원래 `text-[Npx]` 미사용이라 before/after 완전 동일(byte-identical).
+- throwaway 스택 정리(pkill), 프로덕션 3000/8000 재확인 정상.
+
+### 변경된 파일
+`app/hud/page.tsx`, `app/(console)/research-os/{validation,governance,chat}/page.tsx`, `app/(console)/investment-os/page.tsx`, `app/portfolio/page.tsx`, `app/performance/page.tsx`, `components/hud/{TasksTab,ExecutionTab,PortfolioTab}.tsx`, `components/AccountBalances.tsx`, `components/charts/{ChartFrame,BarChart}.tsx`, `components/ui/{Card,SegmentedToggle}.tsx`, `components/console/{CommandRail,primitives,widgets}.tsx`
+
+### 다음 할 일
+- 커밋 + `npm run build` + `launchctl kickstart -k gui/$UID/com.seokminal.dashboard` 로 프로덕션 반영 — **아직 미실행, 유저 확인 필요** (이번 세션 승인은 구현까지였고 배포는 별도 확인 필요 패턴 유지, Phase 251도 동일하게 배포 전 별도 승인받음).
+- `(console)` 그룹 레거시 ~20개 라우트는 이번에도 스코프 밖 — 다음 후보로 남겨둠.
+
+---
+
 ## Phase 251 — financials_live 대시보드 배선: investment-os 재무제표 실측 조회 패널 (2026-09-06) ✅ SHIPPED
 
 ### 배경

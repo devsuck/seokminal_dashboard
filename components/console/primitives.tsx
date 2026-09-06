@@ -20,7 +20,7 @@ export function PanelHead({
     <div className="flex items-center justify-between gap-3 px-4 h-10 border-b border-[var(--c-border)]">
       <div className="flex items-baseline gap-2 min-w-0">
         {kicker && <span className="text-[9px] font-semibold tracking-[0.22em] text-[var(--c-hud)] uppercase">{kicker}</span>}
-        <span className="text-[12px] font-semibold tracking-wide text-[var(--c-text-1)] truncate">{title}</span>
+        <span className="text-[13px] font-semibold tracking-wide text-[var(--c-text-1)] truncate">{title}</span>
       </div>
       {right && <div className="shrink-0 flex items-center gap-2">{right}</div>}
     </div>
@@ -57,7 +57,7 @@ export function StatTile({
   return (
     <Panel className="relative p-4 overflow-hidden">
       {accent && <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: TONE[accent] }} />}
-      <div className="text-[9.5px] font-semibold tracking-[0.2em] text-[var(--c-text-3)] uppercase">{label}</div>
+      <div className="text-[11px] font-semibold tracking-[0.2em] text-[var(--c-text-3)] uppercase">{label}</div>
       <div className="mt-2 flex items-baseline gap-1.5">
         <span className={`c-num text-[26px] leading-none font-semibold ${valColor}`}>{value}</span>
         {unit && <span className="text-[11px] text-[var(--c-text-2)]">{unit}</span>}
@@ -72,7 +72,7 @@ export function Badge({ children, tone = "mute" }: { children: ReactNode; tone?:
   const c = TONE[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[9.5px] font-semibold tracking-[0.14em] uppercase c-num"
+      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.14em] uppercase c-num"
       style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
     >
       {children}

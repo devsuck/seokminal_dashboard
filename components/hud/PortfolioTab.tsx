@@ -46,7 +46,7 @@ function AssetTile({ data }: { data: AssetTileData }) {
   return (
     <Link href={data.href}
       className="block bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4 no-underline hover:border-ap-ink-3 transition-colors">
-      <p className="text-ap-ink-3 text-[10px] uppercase tracking-wide">{data.label}</p>
+      <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide">{data.label}</p>
       <p className="text-ap-ink-1 text-xl font-mono font-bold mt-1">{fmt(data.value, data.ccy)}</p>
       <p className={`text-xs font-mono mt-1 ${data.returnPct == null ? "text-ap-ink-3" : pos ? "text-ap-up" : "text-ap-down"}`}>
         {pctLabel(data.returnPct)}
@@ -155,7 +155,7 @@ export default function PortfolioTab() {
       </div>
       {returnBars.length > 0 && (
         <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
-          <p className="text-ap-ink-3 text-[10px] uppercase tracking-wide mb-2">자산군별 수익률</p>
+          <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide mb-2">자산군별 수익률</p>
           <BarChart items={returnBars} valueFmt={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`} />
         </div>
       )}

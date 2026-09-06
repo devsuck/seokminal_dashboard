@@ -130,7 +130,7 @@ export function CommandRail() {
                      : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
               {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
               <GroupGlyph label={g.label} />
-              {open && <span className="text-[12px] tracking-wide truncate flex-1">{g.label}</span>}
+              {open && <span className="text-[13px] tracking-wide truncate flex-1">{g.label}</span>}
             </div>
           </Link>
         );
@@ -141,7 +141,7 @@ export function CommandRail() {
         <div key={g.label} className="mb-0.5">
           <button
             onClick={() => toggleGroup(g.label)}
-            className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1 border-0 bg-transparent cursor-pointer text-[9.5px] font-semibold tracking-[0.2em] uppercase transition-colors ${
+            className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1 border-0 bg-transparent cursor-pointer text-[11px] font-semibold tracking-[0.2em] uppercase transition-colors ${
               groupIsActive(g) ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)] hover:text-[var(--c-text-2)]"}`}
           >
             <GroupGlyph label={g.label} />
@@ -162,7 +162,7 @@ export function CommandRail() {
                          : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
                   {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
                   <span className={`h-1 w-1 rounded-full shrink-0 ${active ? "bg-[var(--c-hud)]" : "bg-[var(--c-text-3)]"}`} />
-                  {open && <span className="text-[12px] tracking-wide truncate flex-1">{it.label}</span>}
+                  {open && <span className="text-[13px] tracking-wide truncate flex-1">{it.label}</span>}
                 </div>
               </Link>
             );
@@ -193,7 +193,7 @@ export function CommandRail() {
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
         </svg>
-        {open && <span className="text-[12.5px] font-medium tracking-wide">홈</span>}
+        {open && <span className="text-[13px] font-medium tracking-wide">홈</span>}
       </Link>
 
       {/* Search */}
@@ -206,7 +206,7 @@ export function CommandRail() {
         {renderGroups(operatorMode ? filterGroupsForOperator(CONSOLE_GROUPS) : CONSOLE_GROUPS)}
         {/* divider → 레거시 트레이딩 터미널 */}
         <div className="mt-3 mb-1 mx-3.5 border-t border-[var(--c-border)]" />
-        {open && <div className="px-3.5 pt-1 pb-1 text-[8.5px] font-semibold tracking-[0.28em] text-[var(--c-text-3)] uppercase opacity-70">터미널 · 레거시</div>}
+        {open && <div className="px-3.5 pt-1 pb-1 text-[9px] font-semibold tracking-[0.28em] text-[var(--c-text-3)] uppercase opacity-70">터미널 · 레거시</div>}
         {renderGroups(operatorMode ? filterGroupsForOperator(TERMINAL_GROUPS) : TERMINAL_GROUPS)}
       </div>
 
@@ -215,8 +215,8 @@ export function CommandRail() {
         {open && (
           <div className="flex items-center gap-2 px-3.5 h-9">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-warn)] animate-pulse shadow-[0_0_8px_var(--c-warn)]" />
-            <span className="text-[10px] tracking-wider text-[var(--c-text-2)]">실전 자본</span>
-            <span className="text-[10px] font-semibold tracking-widest text-[var(--c-warn)] ml-auto">휴장</span>
+            <span className="text-[11px] tracking-wider text-[var(--c-text-2)]">실전 자본</span>
+            <span className="text-[11px] font-semibold tracking-widest text-[var(--c-warn)] ml-auto">휴장</span>
           </div>
         )}
         {open && (
@@ -227,11 +227,11 @@ export function CommandRail() {
           </div>
         )}
         <button onClick={toggleOperatorMode}
-          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[10px] tracking-wide">
+          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[11px] tracking-wide">
           {open ? (operatorMode ? "전체보기" : "간단히 보기") : (operatorMode ? "전체" : "간단")}
         </button>
         <button onClick={() => setSettingsOpen(true)}
-          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[10px] tracking-wide">
+          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[11px] tracking-wide">
           {open ? "⚙ 설정" : "⚙"}
         </button>
         <button onClick={() => setOpen((v) => !v)}

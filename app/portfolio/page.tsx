@@ -76,9 +76,9 @@ function AccountCard({
               <ModeChip mode={mode} paper={paper} />
             </div>
             {error ? (
-              <p className="text-ap-down text-[10px] mt-0.5 truncate" title={error}>{errorHint(error)}</p>
+              <p className="text-ap-down text-[11px] mt-0.5 truncate" title={error}>{errorHint(error)}</p>
             ) : (
-              <p className="text-ap-ink-3 text-[10px] mt-0.5">{ccy}</p>
+              <p className="text-ap-ink-3 text-[11px] mt-0.5">{ccy}</p>
             )}
           </div>
           <div className="text-right shrink-0">
@@ -214,7 +214,7 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
       )}
       {paper.closed.length > 0 && (
         <div className="pt-1">
-          <p className="text-ap-ink-3 text-[10px] mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
+          <p className="text-ap-ink-3 text-[11px] mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
         </div>
       )}
     </div>
@@ -248,7 +248,7 @@ interface CompositionRow { venue: string; ccy: string; balance: number; share: n
 function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy: string }) {
   return (
     <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-3">
-      <p className="text-ap-ink-3 text-[10px] uppercase tracking-wide">{label}</p>
+      <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide">{label}</p>
       <p className="text-ap-ink-1 text-lg font-mono font-bold mt-1">{fmt(value, ccy)}</p>
     </div>
   );
@@ -400,7 +400,7 @@ function AccountsTab() {
 
       {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
       <Card>
-        <CardHeader>거래소별 분포 <span className="text-ap-ink-3 text-[10px] font-normal">(구성)</span></CardHeader>
+        <CardHeader>거래소별 분포 <span className="text-ap-ink-3 text-[11px] font-normal">(구성)</span></CardHeader>
         <div className="p-1">
           {compositionRows.length === 0 ? (
             <p className="text-ap-ink-3 text-xs p-2">연동 계좌 없음</p>
@@ -421,7 +421,7 @@ function AccountsTab() {
             </div>
           )}
         </div>
-        <p className="px-3 pb-3 text-[10px] text-ap-ink-3 leading-relaxed">
+        <p className="px-3 pb-3 text-[11px] text-ap-ink-3 leading-relaxed">
           통화 내 venue 잔고 구성비 · 손익 귀속(attribution)이 아닌 배분 현황 표시.
         </p>
       </Card>
@@ -643,7 +643,7 @@ function VenueCard({ v }: { v: VenuePnl }) {
               <span className="text-ap-ink-1 font-data shrink-0">
                 {t.price}
                 {t.price_source === "estimated" && (
-                  <span className="ml-1 text-[10px] text-ap-caution" title="브로커 체결가 미제공 — 주문가로 추정">추정</span>
+                  <span className="ml-1 text-[11px] text-ap-caution" title="브로커 체결가 미제공 — 주문가로 추정">추정</span>
                 )}
               </span>
               <span className={`font-data flex-1 text-right ${t.realized_pnl == null ? "text-ap-ink-3" : pnlColor(t.realized_pnl)}`}>

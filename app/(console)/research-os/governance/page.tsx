@@ -54,22 +54,22 @@ function CommitteeTab() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
               className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3.5 h-11 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
             <button type="submit" disabled={loading}
-              className="flex items-center gap-2 px-5 h-11 text-[11.5px] font-semibold uppercase tracking-wide text-[var(--c-bg)] bg-[var(--c-hud)] cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+              className="flex items-center gap-2 px-5 h-11 text-[13px] font-semibold uppercase tracking-wide text-[var(--c-bg)] bg-[var(--c-hud)] cursor-pointer disabled:opacity-50 disabled:cursor-wait">
               {loading && <span className="h-3 w-3 rounded-full border-2 border-[color-mix(in_srgb,var(--c-bg)_40%,transparent)] border-t-[var(--c-bg)] animate-spin" />}
               {loading ? "소집 중…" : "소집"}
             </button>
           </form>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <span className="text-[9.5px] text-[var(--c-text-3)] uppercase tracking-[0.14em] mr-1 self-center">예시</span>
+            <span className="text-[11px] text-[var(--c-text-3)] uppercase tracking-[0.14em] mr-1 self-center">예시</span>
             {EXAMPLES.map((ex) => (
               <button key={ex} type="button" onClick={() => submit(ex)} disabled={loading}
-                className="px-2.5 py-1 text-[10.5px] text-[var(--c-text-2)] border border-[var(--c-border)] c-panel-2 hover:border-[var(--c-hud)] hover:text-[var(--c-hud)] transition-colors disabled:opacity-40 cursor-pointer">
+                className="px-2.5 py-1 text-[11px] text-[var(--c-text-2)] border border-[var(--c-border)] c-panel-2 hover:border-[var(--c-hud)] hover:text-[var(--c-hud)] transition-colors disabled:opacity-40 cursor-pointer">
                 {ex}
               </button>
             ))}
           </div>
         </Panel>
-        {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
         {council && memo && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* 7관점 */}
@@ -82,7 +82,7 @@ function CommitteeTab() {
                       <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: STANCE[ln.stance] ?? "var(--c-text-3)" }} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2"><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{ln.lens}</span><span className="text-[9px] c-num uppercase" style={{ color: STANCE[ln.stance] ?? "var(--c-text-3)" }}>{ln.stance}</span></div>
-                        <div className="text-[10.5px] text-[var(--c-text-3)]">{ln.rationale}</div>
+                        <div className="text-[11px] text-[var(--c-text-3)]">{ln.rationale}</div>
                       </div>
                     </div>
                   ))}
@@ -93,8 +93,8 @@ function CommitteeTab() {
                 <div className="p-4 space-y-3">
                   <div className="text-[13px] font-medium text-[var(--c-hud)]">{memo.recommendation}</div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-pos)] uppercase mb-1">지지 근거</div>{(memo.supporting_arguments ?? []).map((a, i) => <div key={i} className="text-[10.5px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.supporting_arguments ?? []).length === 0 && <div className="text-[10px] text-[var(--c-text-3)]">—</div>}</div>
-                    <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">반박 근거</div>{(memo.counter_arguments ?? []).map((a, i) => <div key={i} className="text-[10.5px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.counter_arguments ?? []).length === 0 && <div className="text-[10px] text-[var(--c-text-3)]">—</div>}</div>
+                    <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-pos)] uppercase mb-1">지지 근거</div>{(memo.supporting_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.supporting_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
+                    <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">반박 근거</div>{(memo.counter_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.counter_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
                   </div>
                 </div>
               </Panel>
@@ -105,17 +105,17 @@ function CommitteeTab() {
                 <PanelHead kicker="리스크" title="분석" />
                 <div className="p-4 space-y-1">
                   <div className="text-[11px] text-[var(--c-text-1)]">{memo.risk_summary?.label}</div>
-                  <div className="text-[10.5px] text-[var(--c-text-3)]">주요 리스크: {memo.risk_summary?.main_risk} · 신뢰도 {memo.risk_summary?.confidence}</div>
+                  <div className="text-[11px] text-[var(--c-text-3)]">주요 리스크: {memo.risk_summary?.main_risk} · 신뢰도 {memo.risk_summary?.confidence}</div>
                 </div>
               </Panel>
               <Panel>
                 <PanelHead kicker="공백" title="남은 미지수" />
                 <div className="p-4 space-y-1">
-                  {(memo.remaining_unknowns ?? []).length === 0 && <div className="text-[10.5px] text-[var(--c-text-3)]">—</div>}
-                  {(memo.remaining_unknowns ?? []).map((u, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {u}</div>)}
+                  {(memo.remaining_unknowns ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}
+                  {(memo.remaining_unknowns ?? []).map((u, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {u}</div>)}
                 </div>
               </Panel>
-              <div className="c-panel p-3 text-[10px] text-[var(--c-text-3)] leading-relaxed">
+              <div className="c-panel p-3 text-[11px] text-[var(--c-text-3)] leading-relaxed">
                 위원회는 증거를 조직합니다. 결정·이유·시각은 사람이 입력하고 기존 감사(rwf_runs)에 기록됩니다. 엔진은 승인/집행하지 않습니다.
               </div>
             </div>
@@ -158,13 +158,13 @@ function ExplainTab() {
       <div className="p-5">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2 mb-4">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
-            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-10 text-[12.5px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-10 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
           <button type="submit" disabled={loading || !q.trim()}
             className="px-4 h-10 text-[11px] font-semibold tracking-wide uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--c-hud)_18%,transparent)] disabled:opacity-40 cursor-pointer transition-colors">
             {loading ? "…" : "설명"}
           </button>
         </form>
-        {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
         {data && data.chain.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
@@ -185,7 +185,7 @@ function ExplainTab() {
                           <span className="mt-0.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ background: c, boxShadow: active ? `0 0 8px ${c}` : "none" }} />
                           <div className="min-w-0 flex-1">
                             <div className="text-[11px] font-semibold" style={{ color: active ? c : "var(--c-text-1)" }}>{n.stage}</div>
-                            <div className="text-[10px] text-[var(--c-text-3)] truncate">{n.label}</div>
+                            <div className="text-[11px] text-[var(--c-text-3)] truncate">{n.label}</div>
                           </div>
                         </button>
                         {!isLast && <div className="ml-[13px] h-3 w-px bg-[var(--c-border)]" />}
@@ -202,11 +202,11 @@ function ExplainTab() {
                 <Panel>
                   <PanelHead kicker={`노드 ${sel + 1}/${data.chain.length}`} title={node.stage} />
                   <div className="p-4 space-y-2">
-                    <div className="text-[12px] text-[var(--c-text-1)]">{node.label}</div>
+                    <div className="text-[13px] text-[var(--c-text-1)]">{node.label}</div>
                     {(node.refs ?? []).length > 0 && (
                       <div className="pt-1">
                         <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase mb-1">참조</div>
-                        {node.refs!.map((r, i) => <span key={i} className="inline-block mr-1.5 mb-1 text-[10px] c-num text-[var(--c-hud)]">{r}</span>)}
+                        {node.refs!.map((r, i) => <span key={i} className="inline-block mr-1.5 mb-1 text-[11px] c-num text-[var(--c-hud)]">{r}</span>)}
                       </div>
                     )}
                   </div>
@@ -220,8 +220,8 @@ function ExplainTab() {
                 <div className="p-4 space-y-1.5">
                   {Object.entries(data.confidence_breakdown ?? {}).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3 py-1 border-b border-[var(--c-border)] last:border-0">
-                      <span className="text-[10.5px] text-[var(--c-text-3)]">{k.replace(/_/g, " ")}</span>
-                      <span className="text-[10.5px] c-num text-[var(--c-text-1)]">{String(v)}</span>
+                      <span className="text-[11px] text-[var(--c-text-3)]">{k.replace(/_/g, " ")}</span>
+                      <span className="text-[11px] c-num text-[var(--c-text-1)]">{String(v)}</span>
                     </div>
                   ))}
                 </div>
@@ -231,34 +231,34 @@ function ExplainTab() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Panel>
                   <PanelHead kicker="이유" title="이 결론인 이유" />
-                  <div className="p-4 text-[10.5px] text-[var(--c-text-2)] leading-relaxed">{data.why_this_conclusion}</div>
+                  <div className="p-4 text-[11px] text-[var(--c-text-2)] leading-relaxed">{data.why_this_conclusion}</div>
                 </Panel>
                 <Panel>
                   <PanelHead kicker="이유" title="틀릴 수 있는 이유" />
                   <div className="p-4 space-y-1">
-                    {(data.why_it_may_be_wrong ?? []).map((w, i) => <div key={i} className="text-[10.5px] text-[var(--c-warn)]">· {w}</div>)}
+                    {(data.why_it_may_be_wrong ?? []).map((w, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {w}</div>)}
                   </div>
                 </Panel>
                 <Panel>
                   <PanelHead kicker="대안" title="대안적 관점" />
                   <div className="p-4 space-y-1">
-                    {(data.alternative_interpretations ?? []).map((a, i) => <div key={i} className="text-[10.5px] text-[var(--c-text-2)]">· {a}</div>)}
+                    {(data.alternative_interpretations ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· {a}</div>)}
                   </div>
                 </Panel>
                 <Panel>
                   <PanelHead kicker="공백" title="누락된 증거" />
                   <div className="p-4 space-y-1">
-                    {(data.missing_evidence ?? []).length === 0 && <div className="text-[10.5px] text-[var(--c-text-3)]">—</div>}
-                    {(data.missing_evidence ?? []).map((m, i) => <div key={i} className="text-[10.5px] text-[var(--c-neg)]">· {m}</div>)}
+                    {(data.missing_evidence ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}
+                    {(data.missing_evidence ?? []).map((m, i) => <div key={i} className="text-[11px] text-[var(--c-neg)]">· {m}</div>)}
                   </div>
                 </Panel>
               </div>
-              <div className="text-[10px] text-[var(--c-text-3)]">증거 사슬 — 블랙박스 결정이 아니라 추적 가능한 근거. 최종 결정은 사람.</div>
+              <div className="text-[11px] text-[var(--c-text-3)]">증거 사슬 — 블랙박스 결정이 아니라 추적 가능한 근거. 최종 결정은 사람.</div>
             </div>
           </div>
         )}
         {!data && !loading && (
-          <div className="c-panel p-8 text-center text-[12px] text-[var(--c-text-3)]">
+          <div className="c-panel p-8 text-center text-[13px] text-[var(--c-text-3)]">
             주제를 입력하면 Experiment → Validation → Failure → Memory → Council → Portfolio → Risk → Recommendation 증거 사슬을 시각화합니다.
           </div>
         )}
@@ -317,20 +317,20 @@ function GraphTab() {
       <div className="p-5 space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
-            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[12px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-9 text-[10.5px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
+            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+          <button type="submit" className="px-4 h-9 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
         </form>
-        {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
         {data && (
           <>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(data.node_types).map(([t, n]) => (
-                <span key={t} className="inline-flex items-center gap-1.5 text-[10px] text-[var(--c-text-2)]">
+                <span key={t} className="inline-flex items-center gap-1.5 text-[11px] text-[var(--c-text-2)]">
                   <span className="h-2 w-2 rounded-full" style={{ background: TYPE_TONE[t] ?? "var(--c-text-3)" }} />{t} {n}
                 </span>
               ))}
-              <span className="text-[10px] text-[var(--c-text-3)] ml-2">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
+              <span className="text-[11px] text-[var(--c-text-3)] ml-2">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
             </div>
             <Panel>
               <PanelHead kicker="읽기 전용" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
@@ -355,7 +355,7 @@ function GraphTab() {
                 </svg>
               </div>
             </Panel>
-            <div className="text-[10px] text-[var(--c-text-3)]">{data.note} · 노드 클릭 → 연결 강조.</div>
+            <div className="text-[11px] text-[var(--c-text-3)]">{data.note} · 노드 클릭 → 연결 강조.</div>
           </>
         )}
       </div>
@@ -397,10 +397,10 @@ function TimelineTab() {
       <div className="p-5 space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
-            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[12px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-9 text-[10.5px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
+            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+          <button type="submit" className="px-4 h-9 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
         </form>
-        {err && <div className="c-panel p-4 text-[12px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
         {data && (
           <>
@@ -422,7 +422,7 @@ function TimelineTab() {
                         <span className="absolute left-[-11px] top-1 h-2 w-2 rounded-full" style={{ background: c, boxShadow: `0 0 6px ${c}` }} />
                         {i < data.entries.length - 1 && <span className="absolute left-[-7px] top-3 bottom-0 w-px bg-[var(--c-border)]" />}
                         <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: c }}>{e.stage}</span>
+                          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c }}>{e.stage}</span>
                           <span className="text-[11px] text-[var(--c-text-1)]">{e.label || e.ref}</span>
                           <span className="text-[9px] c-num text-[var(--c-text-3)] ml-auto">{e.source} · {e.timestamp}</span>
                         </div>
@@ -432,7 +432,7 @@ function TimelineTab() {
                 </div>
               </div>
             </Panel>
-            <div className="text-[10px] text-[var(--c-text-3)]">{data.note}</div>
+            <div className="text-[11px] text-[var(--c-text-3)]">{data.note}</div>
           </>
         )}
       </div>

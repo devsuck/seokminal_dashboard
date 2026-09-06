@@ -17,11 +17,11 @@ export function ChartFrame({ title, legend, caption, children, textClass = "text
     <div>
       {(title || (legend && legend.length > 0)) && (
         <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-          {title && <span className={`text-[10px] uppercase tracking-wider ${textClass} font-data`}>{title}</span>}
+          {title && <span className={`text-[11px] uppercase tracking-wider ${textClass} font-data`}>{title}</span>}
           {legend && legend.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               {legend.map(l => (
-                <span key={l.label} className={`inline-flex items-center gap-1 text-[10px] ${legendTextClass} font-data`}>
+                <span key={l.label} className={`inline-flex items-center gap-1 text-[11px] ${legendTextClass} font-data`}>
                   {/* 동적 데이터 색이라 토큰 클래스로 못 뺌 — ICT 범례 선례와 동일 */}
                   <span className="w-2.5 h-2.5 inline-block" style={{ backgroundColor: l.color }} />
                   {l.label}

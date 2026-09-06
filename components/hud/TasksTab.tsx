@@ -117,7 +117,7 @@ function BuybackBotCard({ bot }: { bot: BuybackBot }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-ap-ink-3 mb-1">보유중 (다음 청산 대기)</div>
+            <div className="text-[11px] uppercase tracking-wider text-ap-ink-3 mb-1">보유중 (다음 청산 대기)</div>
             <div className="space-y-0.5 max-h-[120px] overflow-y-auto">
               {bot.open_positions.length === 0 && <div className="text-xs text-ap-ink-3">없음</div>}
               {bot.open_positions.map((p, i) => (
@@ -129,7 +129,7 @@ function BuybackBotCard({ bot }: { bot: BuybackBot }) {
             </div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-ap-ink-3 mb-1">최근 청산</div>
+            <div className="text-[11px] uppercase tracking-wider text-ap-ink-3 mb-1">최근 청산</div>
             <div className="space-y-0.5 max-h-[120px] overflow-y-auto">
               {bot.recent_closed.map((p, i) => (
                 <div key={i} className="flex justify-between text-[11px]">
@@ -198,7 +198,7 @@ function V2SegBox({ title, seg, sub, forward }: { title: string; seg: V2Seg; sub
             <div className={`text-center px-1 font-bold ${pctBgColor(seg.v2_net)}`}>{pct(seg.v2_net)}</div>
             <div className="text-center text-ap-ink-1">{pct(seg.v2_winrate, 1)}</div>
           </div>
-          <div className={`text-[10px] mt-1.5 px-1 ${seg.v2_improves ? "font-bold bg-ap-up/20 text-ap-up" : "text-ap-ink-3"}`}>
+          <div className={`text-[11px] mt-1.5 px-1 ${seg.v2_improves ? "font-bold bg-ap-up/20 text-ap-up" : "text-ap-ink-3"}`}>
             {seg.v2_improves ? "✓ v2 > v1 (개선)" : "v2 개선 미확인"} · n{seg.n_v2}
           </div>
         </>
@@ -230,7 +230,7 @@ function PortfolioBookCard({ book }: { book: PortfolioBook }) {
             <div key={s.name} className="bg-ap-bg border border-ap-line rounded px-3 py-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-ap-ink-1">{s.name}</span>
-                <span className="text-[10px] text-ap-ink-3">n{s.n}</span>
+                <span className="text-[11px] text-ap-ink-3">n{s.n}</span>
               </div>
               <div className="flex gap-3 mt-1 text-xs font-data">
                 <span className={`px-1 font-bold ${pctBgColor(s.ann)}`}>연 {pct(s.ann)}</span>
@@ -259,7 +259,7 @@ function PortfolioBookCard({ book }: { book: PortfolioBook }) {
             {/* 누적 곡선(등가중) */}
             {monthly.length > 0 && (
               <div>
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-ap-ink-3 mb-1">
+                <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-ap-ink-3 mb-1">
                   <span>누적 수익 곡선 (등가중)</span>
                   <span className={`font-data px-1 font-bold ${pctBgColor(finalCum)}`}>누적 {pct(finalCum)}</span>
                 </div>
@@ -276,7 +276,7 @@ function PortfolioBookCard({ book }: { book: PortfolioBook }) {
         {/* live-readiness 제약(②) */}
         {book.constraints && (
           <div className="border-t border-ap-line pt-2 space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-ap-ink-3">live-readiness 제약</div>
+            <div className="text-[11px] uppercase tracking-wider text-ap-ink-3">live-readiness 제약</div>
             {Object.entries(book.constraints).map(([k, c]) => (
               <div key={k} className="flex items-center gap-2 text-[11px] flex-wrap">
                 <span className="text-ap-ink-2 font-medium w-16">{k}</span>
@@ -374,7 +374,7 @@ function TaskCard({ task }: { task: LabTask }) {
             {/* 월별 수익 (매매 타이밍·손익 시계열) */}
             {recent.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-ap-ink-3 mb-1">월별 수익 (최근 {recent.length})</div>
+                <div className="text-[11px] uppercase tracking-wider text-ap-ink-3 mb-1">월별 수익 (최근 {recent.length})</div>
                 <div className="space-y-0.5">
                   {recent.map(m => <MonthlyBar key={m.period} m={m} maxMag={maxMag} />)}
                 </div>
@@ -391,7 +391,7 @@ function Stat({ label, val, pos }: { label: string; val: string; pos?: boolean }
   const c = pos === undefined ? "text-ap-ink-1" : pos ? "text-ap-up" : "text-ap-down";
   return (
     <div className="bg-ap-bg border border-ap-line rounded px-2.5 py-1.5">
-      <div className="text-[10px] uppercase tracking-wider text-ap-ink-3">{label}</div>
+      <div className="text-[11px] uppercase tracking-wider text-ap-ink-3">{label}</div>
       <div className={`text-sm font-data ${c}`}>{val}</div>
     </div>
   );

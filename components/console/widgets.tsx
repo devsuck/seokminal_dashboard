@@ -60,7 +60,7 @@ export function StatusPill({ status }: { status: string }) {
   const c = TONEHEX[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[9.5px] font-semibold tracking-[0.1em] uppercase c-num whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.1em] uppercase c-num whitespace-nowrap"
       style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
     >
       <span className="h-1 w-1 rounded-full" style={{ background: c }} />
@@ -74,7 +74,7 @@ export function KV({ k, v, mono = true }: { k: string; v: ReactNode; mono?: bool
   return (
     <div className="flex items-center justify-between gap-4 py-1.5 border-b border-[var(--c-border)] last:border-0">
       <span className="text-[11px] text-[var(--c-text-3)]">{k}</span>
-      <span className={`text-[11.5px] text-[var(--c-text-1)] text-right truncate ${mono ? "c-num" : ""}`}>{v}</span>
+      <span className={`text-[13px] text-[var(--c-text-1)] text-right truncate ${mono ? "c-num" : ""}`}>{v}</span>
     </div>
   );
 }
@@ -89,15 +89,15 @@ export function StateBlock({ loading, err, empty, emptyNote, children }:
     </div>
   );
   if (err) return (
-    <div className="m-5 c-panel p-4 text-[12px] text-[var(--c-neg)]">
+    <div className="m-5 c-panel p-4 text-[13px] text-[var(--c-neg)]">
       백엔드 연결 실패: {err} · <span className="text-[var(--c-text-3)]">api_server(:8000) 기동 확인</span>
     </div>
   );
   if (empty) return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <Dot tone="mute" />
-      <div className="mt-3 text-[12px] text-[var(--c-text-2)]">데이터 없음</div>
-      {emptyNote && <div className="mt-1 text-[10.5px] text-[var(--c-text-3)] max-w-md">{emptyNote}</div>}
+      <div className="mt-3 text-[13px] text-[var(--c-text-2)]">데이터 없음</div>
+      {emptyNote && <div className="mt-1 text-[11px] text-[var(--c-text-3)] max-w-md">{emptyNote}</div>}
     </div>
   );
   return <>{children}</>;
@@ -127,7 +127,7 @@ export function DataTable<T>({ cols, rows, keyFn, onRow }:
               className={`border-b border-[var(--c-border)] transition-colors ${onRow ? "cursor-pointer hover:bg-[var(--c-panel-2)]" : ""}`}
             >
               {cols.map((c) => (
-                <td key={c.key} className={`px-3 py-2 text-[11.5px] text-[var(--c-text-2)] ${c.align === "r" ? "text-right c-num" : ""}`}>
+                <td key={c.key} className={`px-3 py-2 text-[13px] text-[var(--c-text-2)] ${c.align === "r" ? "text-right c-num" : ""}`}>
                   {c.render ? c.render(r) : String((r as Record<string, unknown>)[c.key] ?? "—")}
                 </td>
               ))}
@@ -151,10 +151,10 @@ export function AgentTree({ node, depth = 0 }: { node: AgentNode; depth?: number
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             {node.role && <span className="text-[9px] font-semibold tracking-[0.18em] text-[var(--c-hud)] uppercase">{node.role}</span>}
-            <span className={`${isRoot ? "text-[14px]" : "text-[12.5px]"} font-medium text-[var(--c-text-1)]`}>{node.name}</span>
+            <span className={`${isRoot ? "text-[15px]" : "text-[13px]"} font-medium text-[var(--c-text-1)]`}>{node.name}</span>
             <StatusPill status={node.status} />
           </div>
-          {node.detail && <div className="text-[10.5px] c-num text-[var(--c-text-3)] mt-0.5">{node.detail}</div>}
+          {node.detail && <div className="text-[11px] c-num text-[var(--c-text-3)] mt-0.5">{node.detail}</div>}
         </div>
       </div>
       {node.children && node.children.length > 0 && (
