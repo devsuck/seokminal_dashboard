@@ -53,7 +53,7 @@ export function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "", 
 /* ── 타이핑 커서 (AI가 "생각 중" 텍스트) ─────────────────────────── */
 export function ThinkingLine({ text }: { text: string }) {
   return (
-    <span className="inline-flex items-center gap-1 font-data text-[12px] text-ap-brand">
+    <span className="inline-flex items-center gap-1 font-data text-[13px] text-ap-brand">
       <span>{text}</span>
       <span className="inline-block w-1.5 h-3.5 bg-ap-brand animate-[blink_1.2s_steps(1)_infinite]" />
     </span>

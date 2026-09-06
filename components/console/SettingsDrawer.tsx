@@ -9,7 +9,7 @@ const won = (n: number) => `₩${n.toLocaleString()}`;
 
 function KVRow({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5 text-[11.5px] font-data border-b border-ap-line/60 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-1.5 text-[13px] font-data border-b border-ap-line/60 last:border-0">
       <span className="text-ap-ink-3">{k}</span>
       <span className="text-ap-ink-1 text-right truncate tabular-nums">{v}</span>
     </div>
@@ -87,7 +87,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                 </div>
                 <button onClick={toggleKill} disabled={busy}
-                  className={`text-[12px] font-semibold px-4 py-2 border rounded-ap-sm cursor-pointer disabled:opacity-40 transition-colors bg-transparent ${
+                  className={`text-[13px] font-semibold px-4 py-2 border rounded-ap-sm cursor-pointer disabled:opacity-40 transition-colors bg-transparent ${
                     killed ? "border-ap-up/50 text-ap-up hover:bg-ap-up/10"
                            : "border-ap-down/50 text-ap-down hover:bg-ap-down/10"}`}>
                   {killed ? "해제" : "긴급 정지"}
@@ -125,7 +125,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                 <KVRow k="1회 주문 최대 금액" v={won(data.limits.max_order_notional)} />
                 <KVRow k="종목당 최대 보유수량" v={data.limits.max_position_qty.toLocaleString()} />
                 <KVRow k="일일 손실 한도" v={won(data.limits.daily_loss_limit)} />
-                <div className="pt-2 mt-1 text-[10px] text-ap-ink-3">※ 한도는 .env(MAX_ORDER_*, DAILY_LOSS_LIMIT, MAX_DRAWDOWN_PCT)에서 조정.</div>
+                <div className="pt-2 mt-1 text-[11px] text-ap-ink-3">※ 한도는 .env(MAX_ORDER_*, DAILY_LOSS_LIMIT, MAX_DRAWDOWN_PCT)에서 조정.</div>
               </div>
             </Card>
           </div>

@@ -61,14 +61,14 @@ export function BottomTabBar() {
           return (
             <Link key={t.href} href={t.href} className="flex-1 flex flex-col items-center justify-center gap-0.5 no-underline">
               <TabIcon href={t.href} active={active} />
-              <span className={`text-[10px] tracking-wide ${active ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>{t.label}</span>
+              <span className={`text-[11px] tracking-wide ${active ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>{t.label}</span>
             </Link>
           );
         })}
         <button onClick={() => setMoreOpen(true)}
           className="flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent cursor-pointer">
           <MoreIcon active={moreActive} />
-          <span className={`text-[10px] tracking-wide ${moreActive ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>더보기</span>
+          <span className={`text-[11px] tracking-wide ${moreActive ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>더보기</span>
         </button>
       </nav>
 
@@ -91,7 +91,7 @@ export function BottomTabBar() {
             </button>
             {ALL_GROUPS.map((g) => (
               <div key={g.label} className="py-2">
-                <div className="px-4 pb-1 text-[9.5px] font-semibold tracking-[0.2em] uppercase text-[var(--c-text-3)]">{g.label}</div>
+                <div className="px-4 pb-1 text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--c-text-3)]">{g.label}</div>
                 {g.items.map((it) => (
                   <Link key={it.href} href={it.href} onClick={() => setMoreOpen(false)}
                     className="flex items-center h-10 px-4 no-underline text-[13px] text-[var(--c-text-2)] active:bg-[var(--c-panel-2)]">

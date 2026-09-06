@@ -17,8 +17,15 @@ Phase 237(색상/테마 통일) 이후 남겨둔 "룩앤필" 잔여 스코프 �
 ### 결정사항
 - 유저 확인 후 커밋(`45eea17`) → `npm run build` → `launchctl kickstart -k gui/$UID/com.seokminal.dashboard`로 반영. 프로덕션(포트 3000)에서 investment-os 스크린샷으로 재검증 완료.
 
+### 스코프 확장 (같은 날, 유저 지시 "스코프 넓혀서 다 작업해")
+- 남겨뒀던 `(console)` 레거시 ~20개 라우트까지 전 레포 재조사: `find app components -name "*.tsx"` 전수 스캔 결과, 라우트 자체는 대부분 arbitrary `text-[Npx]` 미사용(표준 Tailwind 클래스라 이미 정상)이었고, 실제 남은 사이즈는 전역 셰어드 컴포넌트 5개 + `quant/validation` 페이지 1개뿐: `components/Jarvis.tsx`, `components/ShutdownButton.tsx`(치환 대상 없어 무변경), `components/console/{CommandPalette,BottomTabBar,SettingsDrawer}.tsx`, `app/(console)/quant/validation/page.tsx`.
+- 동일 4단계 매핑(9/11/13/15px)으로 동일 `sed` 치환. 전 레포 재스캔 결과 `text-[Npx]`는 `11px×277, 9px×67, 13px×55, 26px×1(의도적 보존), 15px×1`로 전부 4단계+display 예외로 수렴 확인.
+- `tsc --noEmit` 클린, `npm test -- --run` 33/33 통과.
+- throwaway 스택(3001/8001) 재기동해서 `/quant/validation`(신규 스코프, before 3000엔 라우트그룹 경로 오타로 404 나서 정정 후 재확인), `/council/agents`(before/after 둘 다 investment-os로 리다이렉트 — 기존 동작, 회귀 아님 확인) 스팟체크. 셰어드 컴포넌트(Jarvis/BottomTabBar 등)는 이미 검증된 7개 라이브 라우트 스크린샷에 노출되어 있어 별도 전수 스크린샷 생략.
+- 커밋(`<확장분 커밋 해시>`) → `npm run build` → `launchctl kickstart`로 반영, 프로덕션 3000/8000 정상 재확인.
+
 ### 다음 할 일
-- 없음(이번 타이포 통일 작업 완료). `(console)` 그룹 레거시 ~20개 라우트는 이번에도 스코프 밖 — 다음 후보로 남겨둠.
+- 없음(타이포 통일 전 레포 스코프 완료). 스페이싱 8px 그리드 통일은 유저가 명시적으로 스킵 지시한 항목이라 여전히 보류 상태 — 필요시 별도 요청.
 
 ---
 

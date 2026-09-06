@@ -30,11 +30,11 @@ export default function ValidationReport() {
                 {(data?.gates ?? []).map((g) => (
                   <div key={g} className="flex items-center gap-3 py-1.5">
                     <Dot tone="pos" />
-                    <span className="text-[12px] text-[var(--c-text-1)] flex-1">{GATE_LABEL[g] ?? g}</span>
+                    <span className="text-[13px] text-[var(--c-text-1)] flex-1">{GATE_LABEL[g] ?? g}</span>
                     <StatusPill status="PASS" />
                   </div>
                 ))}
-                <div className="pt-3 mt-2 border-t border-[var(--c-border)] text-[10.5px] text-[var(--c-text-3)] leading-relaxed">
+                <div className="pt-3 mt-2 border-t border-[var(--c-border)] text-[11px] text-[var(--c-text-3)] leading-relaxed">
                   검증 프레임워크는 다중검정 보정(BH-FDR)·비용 스트레스·레드팀 적대 감사를 강제합니다. 게이트 통과 시에만 paper trading 승격.
                 </div>
               </div>
@@ -73,7 +73,7 @@ export default function ValidationReport() {
               {statuses.map(([s, c]) => (
                 <div key={s} className="flex items-center gap-2 px-2.5 py-1.5 border border-[var(--c-border)]">
                   <StatusPill status={s} />
-                  <span className="c-num text-[12px] font-semibold text-[var(--c-text-1)]">{c}</span>
+                  <span className="c-num text-[13px] font-semibold text-[var(--c-text-1)]">{c}</span>
                 </div>
               ))}
             </div>

@@ -116,7 +116,7 @@ export function CommandPalette({ groups, iconOnly = false }: { groups: RailGroup
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="7" cy="7" r="5" /><line x1="11" y1="11" x2="14.5" y2="14.5" />
         </svg>
-        {!iconOnly && <span className="text-[12px] tracking-wide flex-1">검색</span>}
+        {!iconOnly && <span className="text-[13px] tracking-wide flex-1">검색</span>}
         {!iconOnly && <span className="text-[9px] font-data">⌘K</span>}
       </button>
 
@@ -147,7 +147,7 @@ export function CommandPalette({ groups, iconOnly = false }: { groups: RailGroup
                     idx === activeIndex ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]" : "bg-transparent text-[var(--c-text-2)]"}`}
                 >
                   <span className="truncate">{item.label}</span>
-                  <span className="text-[10px] text-[var(--c-text-3)] shrink-0">{item.group}</span>
+                  <span className="text-[11px] text-[var(--c-text-3)] shrink-0">{item.group}</span>
                 </button>
               ))}
             </div>
