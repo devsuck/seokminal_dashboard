@@ -26,14 +26,17 @@ API의 상태 조회 계층만 깨져 있었던 것.
 - `curl http://127.0.0.1:8000/agents` → 200, `session_live: true` 확인
 - `pytest tests/ -q` → 1975 passed (회귀 없음)
 
-### 곁가지로 발견한 별개 이슈 (미수정, 낮은 우선순위)
-- `com.seokminal.collectors` launchd job이 60초마다 크래시 루프 중:
-  `scripts/deploy/ensure_collectors.sh:45`의 `for entry in "${ENSURE[@]}"; do`가
-  macOS 기본 `/bin/bash`(3.2, GPLv3 회피로 동결) + `set -u`에서 빈 배열 순회 시 unbound
-  variable 에러 발생 (bash 3.2 known bug, 4.4+에서 해결됨). `ENSURE=()`는 2026-09-03에
-  메모리 절약 목적으로 의도적으로 비워둔 것 — 기능적 영향은 로그 스팸뿐(원래 하려던
-  일이 "아무것도 안 함"이라 크래시해도 결과는 같음). 다음에 손댈 때
-  `"${ENSURE[@]:-}"` 가드 추가 권장.
+### 곁가지로 발견한 별개 이슈 — 같은 세션에서 마저 수정
+`com.seokminal.collectors` launchd job이 60초마다 크래시 루프 중이었음:
+`scripts/deploy/ensure_collectors.sh`의 `for entry in "${ENSURE[@]}"; do`가
+macOS 기본 `/bin/bash`(3.2, GPLv3 회피로 동결) + `set -u`에서 빈 배열 순회 시 unbound
+variable 에러 발생 (bash 3.2 known bug, 4.4+에서 해결됨). `ENSURE=()`는 2026-09-03에
+메모리 절약 목적으로 의도적으로 비워둔 것 — 기능적 영향은 로그 스팸뿐이었지만 그대로 뒀음.
+
+**수정:** `"${ENSURE[@]:-}"` + `[ -z "$entry" ] && continue` 가드 추가
+(`scripts/deploy/ensure_collectors.sh`, 커밋 `9722be5`).
+`/bin/bash`(3.2)로 직접 재현 검증 → exit 0. `collectors-watchdog.log` 75초 관찰,
+새 크래시 줄 없음 확인.
 
 ---
 
