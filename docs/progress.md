@@ -1,3 +1,16 @@
+## Phase 250 — 멀티시그널 통합 Task 3: company-monitor/company-intelligence 실측 재무 부착 (2026-09-06) ✅ SHIPPED (백엔드 전용, seokminal-multi-venue)
+
+### 배경
+"멀티시그널 통합" SDD 플랜 Task 3 — 감사 보고서의 "빠른 전환 후보 3개" 중 `/company-monitor`·`/company-intelligence` 2개(`/sector-intelligence`는 종목 파라미터가 없어 제외). 상세는 `seokminal-multi-venue/docs/progress.md` "2026-09-06 계속4" 세션 로그 참고.
+
+### 완료된 작업
+- `/company-monitor`, `/company-intelligence`에 실측 재무(`financials_live` 필드) 부착 — Finnhub(US)/DART(KR) 재사용(Task 2가 만든 헬퍼 그대로), `symbol`/`code` 쿼리파라미터 추가. `/sector-intelligence`는 재무 데이터 주입 지점이 없어 이번 범위에서 제외(별도 스파이크로 이월). 커밋(seokminal-multi-venue) `550b8a2`.
+- 이 레포(`seokminal-dashboard`)는 이번 변경과 **무관** — `lib/console-api.ts`에 `/company-monitor`/`/company-intelligence` 호출 자체가 없어 프론트엔드 소비자가 아직 없는 백엔드 전용 변경.
+
+### 다음 할 일
+- 이 두 엔드포인트를 프론트에서 쓸 화면/컴포넌트가 생기면 `lib/console-api.ts`에 함수 추가 필요(현재 계획 없음).
+- `/sector-intelligence` REAL 전환은 별도 스파이크로 이월.
+
 ## Phase 249 — 멀티시그널 통합 Task 2: 재무제표(회계장부) 실측 배선 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + autopilot)
 
 ### 배경
