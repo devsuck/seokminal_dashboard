@@ -1,3 +1,41 @@
+## Phase 241 — 전 라우트 하이드레이션 에러 스윕 (2026-09-06) ✅ SHIPPED
+
+### 배경
+유저 기상 후 "일어났어. 이제 모바일에서 문제없이, 완벽하게 돌아가는거야?" → 실측 결과
+모바일 뷰포트(390x844)에서 실제 하이드레이션 버그 발견 및 수정 → "다른 페이지들도
+하이드레이션 에러 있는지 전부 훑어봐"(전 라우트 재발 여부 확인 지시).
+
+### 발견 + 수정한 버그 (커밋 `86d5301`)
+- `components/console/CommandRail.tsx:224` — 루트 레이아웃 사이드바 푸터에
+  `new Date().toISOString().slice(0,10)}` 를 `suppressHydrationWarning` 없이 렌더링.
+  ISR 1년 캐시(`s-maxage=31536000`)에 구운 시점 날짜와 며칠 뒤 클라이언트 실제 날짜가
+  어긋나면서 React 하이드레이션 에러 #418 발생 — `CommandRail`이 루트 레이아웃에 있어서
+  **전 페이지 공통으로 매일 발생하는 버그**였음(스크린샷엔 안 보임, React가 자동
+  복구해서 UI는 정상 렌더링되지만 콘솔 에러는 매일 남음)
+- 같은 파일의 기존 `WorldClock` 컴포넌트가 쓰던 `suppressHydrationWarning` 패턴 재사용해 수정
+- 진단: 프로덕션(`localhost:3000/hud`)에서 재현 확인 → 임시 dev 서버(포트 3011)에서는
+  재현 안 됨(dev는 매 요청 fresh render라 캐시-staleness 버그를 못 잡음, 이 자체가
+  캐시 관련 버그라는 진단 증거) → 렌더 트리 grep으로 원인 특정
+- `tsc --noEmit` → `npm run build` → `launchctl kickstart -k gui/$(id -u)/com.seokminal.dashboard`
+  (운영 launchd 재기동) → 브라우저 재확인(에러 사라짐, MetaMask 확장 노이즈만 잔존) 순으로 검증
+
+### 전 라우트 스윕 결과
+- `npm run build` 출력에서 static 라우트 27개 전수 추출 후, 모바일 뷰포트로 전부 접속해
+  콘솔에서 `EXCEPTION|Minified React error` 패턴 확인 — **27/27 클린**(추가 발견 없음)
+- 정적 grep 감사(전체 코드베이스 대상)로 `new Date()`/`Math.random`/`crypto.randomUUID`/
+  `localStorage`/`typeof window,document,navigator`/`matchMedia,innerWidth`/
+  `.toLocaleString()` 렌더 타임 사용처 전수 조사 — `CommandRail.tsx` 건 외 위험 패턴 없음
+  확인(나머지는 전부 fetch-after-mount 컨벤션 덕에 SSR 비교 대상에서 애초에 제외됨)
+
+### 다음 할 일
+- 없음. 유저 요청("전부 훑어봐") 완료 — 27개 라우트 전수 확인, 추가 조치 불필요
+- (이월) `npm audit fix` 여부는 Phase 240에서 유저가 이미 스킵 결정, 재론 안 함
+
+### 막힌 부분/결정사항
+- 없음.
+
+---
+
 ## Phase 240 — 추가 dead code/의존성 정리 + 로드맵 우선순위 확인 (2026-09-06) ✅ SHIPPED
 
 ### 배경
