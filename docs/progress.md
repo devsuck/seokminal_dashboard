@@ -1,3 +1,30 @@
+## Phase 242 — 백엔드 datetime.utcnow() deprecation 정리 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue)
+
+### 배경
+"다른 작업 이어서 진행해줘" — 하이드레이션 스윕 완료 후 안전한 추가 작업 탐색.
+`pytest tests/ -q` 실행 중 `DeprecationWarning: datetime.datetime.utcnow() is
+deprecated` 경고 발견(Python 3.14 대상 향후 제거 예정).
+
+### 완료된 작업 (커밋 `21368f7`, `seokminal-multi-venue` 저장소)
+- `api_server/graph_api.py` 5곳, `research/paper/congress_forward.py`,
+  `research/paper/form4_forward.py` 각 1곳 — `datetime.utcnow()` →
+  `datetime.now(timezone.utc)` 교체
+- 교체 전 위험 검토: 해당 타임스탬프(`last_updated`/`ts`/`exit_time`)가 이후
+  `fromisoformat()`으로 재파싱되는 지점 있는지 전수 grep — 없음 확인(로그/표시 전용).
+  aware/naive datetime 비교 TypeError 위험 없음
+- `pytest tests/ -q` 1975 passed 그린 확인(경고 10→8건으로 감소, 나머지는 무관한
+  서드파티 pandas `Timestamp.utcnow` 경고라 손대지 않음)
+- `scripts/restart_api.sh`로 운영 API 재기동, health 200 확인
+
+### 다음 할 일
+- 없음. 남은 `Pandas4Warning`(backtest_runner/runner.py:57, vectorbt/pandas 내부)은
+  서드파티 라이브러리 이슈라 우리 코드에서 손댈 수 없음 — pandas 업그레이드 시 자연 해소
+
+### 막힌 부분/결정사항
+- 없음.
+
+---
+
 ## Phase 241 — 전 라우트 하이드레이션 에러 스윕 (2026-09-06) ✅ SHIPPED
 
 ### 배경
