@@ -1,3 +1,36 @@
+## Phase 244 — "페이퍼 안 돌아가는 것 같다" 후속 조사: AUTONOMY_LEVEL 게이트로 전 주문 차단 중 (2026-09-06) ⏸️ 미조치(사용자 결정 대기)
+
+### 배경
+Phase 243에서 `/agents` 500은 고쳤지만, `tmux capture-pane -t seokminal-agent-7591f352`로
+사이클 로그(#20~#28) 실제 확인해보니 cycle #26에서 GOOGL buy-limit 시도가
+`AUTONOMY_LEVEL=5<MIN_LIVE_LEVEL=6` 사유로 거부됨. 게이트 코드 추적.
+
+### 확인된 사실 (버그 아님 — 의도된 설계)
+- `jarvis/config.py`: `AUTONOMY_LEVEL = os.environ.get("JARVIS_AUTONOMY_LEVEL", 5)`,
+  `MIN_LIVE_LEVEL = 6`
+- `jarvis/execution/broker_bridge.py::_gate()`가 `route_order()`/`route_order_ib()`/
+  `route_set_leverage()`/`route_close()` 전부에서 공유되는데, **`paper` 플래그와 무관하게**
+  `AUTONOMY_LEVEL >= MIN_LIVE_LEVEL` 아니면 무조건 `BrokerOrderRejected`
+- `tests/test_broker_bridge.py::test_blocked_when_autonomy_level_insufficient`가 정확히
+  이 케이스(`paper=True` 주문 + 게이트 미통과)를 "차단돼야 한다"로 명시 테스트 —
+  의도된 동작 확인, 수정 안 함
+- `jarvis/execution/gateway.py`(제안 단계)는 mode="paper"면 이 체크를 건너뛰지만,
+  `api_server/routers/agents.py::daytrade_tick()`이 HL/KR/US_ALPACA 실브로커 호출
+  (`route_order`)로 넘어갈 때는 이 게이트를 다시 통과해야 함 — 그래서 paper 에이전트도 걸림
+
+### 결론
+지금 `AUTONOMY_LEVEL=5`로 잠겨 있어서 **페이퍼든 라이브든 실제 브로커 주문 자체가
+전부 차단된 상태**. 에이전트의 분석/WATCH/HOLD 판단 사이클 자체(#20~#28)는 정상 —
+매수 신호가 떠도 실제로 페이퍼 계좌에 주문이 안 들어가는 것뿐. "페이퍼가 안 돌아가는
+것 같다"는 체감의 진짜 실체가 이것.
+
+### 조치
+사용자 지시로 **`AUTONOMY_LEVEL`은 6으로 올리지 않고 대기** — 기존 "실거래 관련 설정은
+사용자 결정 보류"(`roadmap.md` "다음 세션 최우선") 항목과 동일 축. 다음 세션에서 사용자가
+직접 판단할 것. 코드/설정 변경 없음.
+
+---
+
 ## Phase 243 — `/agents` API 500 에러 root-cause: launchd PATH 누락으로 tmux 미검출 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + launchd 설정)
 
 ### 배경
