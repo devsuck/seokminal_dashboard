@@ -221,7 +221,8 @@ export function CommandRail() {
         )}
         {open && (
           <div className="flex items-center gap-2 px-3.5 h-9 border-t border-[var(--c-border)]">
-            <span className="text-[9px] c-num text-[var(--c-text-3)]">{new Date().toISOString().slice(0, 10)}</span>
+            {/* ISR 캐시된 HTML의 날짜와 클라이언트 실제 날짜가 며칠씩 어긋날 수 있음 — 하이드레이션 비교 대상 아님 */}
+            <span className="text-[9px] c-num text-[var(--c-text-3)]" suppressHydrationWarning>{new Date().toISOString().slice(0, 10)}</span>
             <ShutdownButton collapsed />
           </div>
         )}
