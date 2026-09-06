@@ -1,3 +1,17 @@
+## Phase 248 — 모바일 실기기 접속 링크 제공 + insider/DART 실측 배선 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + autopilot)
+
+### 배경
+모바일 push 실기기 검증용 링크 요청 → Tailscale IP 확인해 제공. 이어서 "내부자매매/DART도 판단에 들어가는지" 질문에 macro와 동일 패턴(연구모듈만 존재, 미배선) 확인 후 승인받아 배선. 상세는 `seokminal-multi-venue/docs/progress.md` "2026-09-06 계속2" 세션 로그 참고.
+
+### 완료된 작업
+- 모바일 접속 링크 `http://100.108.67.7:3000`(Tailscale) 제공 — CORS·mobile API key 매칭은 09-03/04에 이미 완료 확인됨.
+- `console_api.py::/console/insider-flow-live`(OpenInsider, 미국), `/console/dart-events-live`(OpenDART, 한국) 실측 엔드포인트 신설. 삼성전자 실측 자사주취득 공시로 검증.
+- autopilot `CLAUDE.md` STEP 3D + `tools/insider.sh`/`tools/dart.sh` 배선(참고용, 매수신호 아님). pytest 1975 passed 유지.
+
+### 다음 할 일 — 사용자가 새로 요청한 아키텍처 변경 (미착수, brainstorming 필요)
+- 라이브/페이퍼 이분법 폐지 → "전략이 필요 금액 청구 → 배정금액 기준 PnL" 모델. 자금 청구에도 AI 개입 원함. **실계좌 자금이동 걸린 설계라 구현 전 사용자 승인 필수.**
+- 대시보드에 존재하는 모든 기능(뉴스/거시/재무제표/공시 등)을 에이전트 판단에 복합 통합 원함 — `console_api.py` 100+ 엔드포인트 전수 감사 후 서브프로젝트 분해 필요(규모상 브레인스토밍 스킬 대상).
+
 ## Phase 247 — macro-intelligence 실측 배선 + autoresearch 벡터화 성능수정 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + autopilot)
 
 ### 배경
