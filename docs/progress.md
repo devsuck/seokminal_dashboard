@@ -1,3 +1,17 @@
+## Phase 249 — 멀티시그널 통합 Task 2: 재무제표(회계장부) 실측 배선 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + autopilot)
+
+### 배경
+"멀티시그널 통합" SDD 플랜 Task 2 — macro/insider/dart와 동일한 검증된 레시피를 재무제표(회계장부)에 적용. 사용자가 최우선 항목으로 명시 지목, Task 1(감사)과 독립적으로 확정된 작업. 상세는 `seokminal-multi-venue/docs/progress.md` "2026-09-06 계속3" 세션 로그 참고.
+
+### 완료된 작업
+- Finnhub 실제 응답(`stock/metric?metric=all`) 필드 검증 — 브리프의 `_FINNHUB_FIELD_MAP` 6개 필드 전부 실제 키와 일치, non-null 확인(수정 불필요).
+- `console_api.py::/console/financials-live` 신설 — `code=`(KR, DART 연간 사업보고서 캐시 우선)/`symbol=`(US, Finnhub 기본지표) 분기. 005930·AAPL 둘 다 실측 숫자로 curl 스모크테스트 검증. 커밋 `fea506e`.
+- autopilot `CLAUDE.md` STEP 3E + `tools/financials.sh` 배선(참고용, 매수/매도 신호 아님 — 부채비율 급등/유동비율 급락 시 신규 진입 보류, 영업이익/순이익 급감 시 리스크 재점검). 커밋(autopilot 리포) `03a221b`. pytest 1975 passed 유지.
+
+### 다음 할 일
+- SDD 플랜 다음 Task 진행.
+- "모든 기능 복합 판단" 전수 감사(Task 1, 이 Task와 독립)는 계속 진행 필요(변동 없음).
+
 ## Phase 248 — 모바일 실기기 접속 링크 제공 + insider/DART 실측 배선 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + autopilot)
 
 ### 배경
