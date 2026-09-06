@@ -1,3 +1,18 @@
+## Phase 247 — macro-intelligence 실측 배선 + autoresearch 벡터화 성능수정 (2026-09-06) ✅ SHIPPED (백엔드, seokminal-multi-venue + autopilot)
+
+### 배경
+"믿고 맡길 수 있는 플랫폼" 요청 → HL/KR 미가동·거시경제 미반영·병목 점검 후 "리스크/임팩트 순으로 우선순위 매겨서 진행해줘"로 위임. 상세는 `seokminal-multi-venue/docs/progress.md` "2026-09-06 계속" 세션 로그 참고.
+
+### 완료된 작업
+- `console_api.py::/console/macro-intelligence` 하드코딩 demo → FRED 실측(fed_funds/CPI YoY/unemployment) 교체. 커밋 `243b349`.
+- autopilot 에이전트(`CLAUDE.md`+`tools/macro.sh`)에 거시 컨텍스트 STEP 1.5로 배선, TIGHTENING 시 신규진입 사이즈 축소 규칙. 커밋(autopilot 리포) `7673e33`.
+- `research/data/krx_api.py::build_series()` iterrows→numpy 벡터화, `load_series()` 51.5s→6.2s(8배). 원본과 완전 일치 검증, pytest 1975 passed. 커밋 `4939e06`.
+- HL/KR 에이전트는 등록만 있고 미가동 확인 — API 서버 메모리 불안정 해소 전까지 신규 기동 보류 판단.
+
+### 다음 할 일
+- autoresearch 피크 메모리(~2.1GB) 자체는 안 줄어듦 — 기간 제한/램 증설/스케줄 분리 중 선택 필요(사용자 결정 대기).
+- AUTONOMY_LEVEL 게이트, HL/KR 기동, 모바일 실기기 push 검증 — 전부 미조치 유지.
+
 ## Phase 246 — seokminal-multi-venue docs/progress.md 동기화 (2026-09-06) ✅ SHIPPED (문서)
 
 ### 배경
