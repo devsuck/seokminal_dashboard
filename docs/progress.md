@@ -1,4 +1,4 @@
-## Phase 252 — 룩앤필 타이포 계층 단순화: 7개 라이브 라우트 폰트사이즈 4단계 통일 (2026-09-07) ✅ SHIPPED (미배포, 프로덕션 미반영)
+## Phase 252 — 룩앤필 타이포 계층 단순화: 7개 라이브 라우트 폰트사이즈 4단계 통일 (2026-09-07) ✅ SHIPPED
 
 ### 배경
 Phase 237(색상/테마 통일) 이후 남겨둔 "룩앤필" 잔여 스코프 — 라벨 폰트가 8~14px로 12종 흩어져 있던 것. 직전 세션이 "1px 단위 차이라 시각 임팩트 낮음, 유저 복귀 후 스크린샷 보여주고 방향 확인 후 진행" 권고로 보류해뒀던 것을 유저 복귀 후 요청("진행해줘. 모든 페이지 UI 가 해당 미니멀 화 되어있는지 체크해줘") → 브레인스토밍(bounded 분류) → 스페이싱은 이미 8px 그리드 일관이라 스킵, 타이포만 진행하기로 유저 승인("ㅇㅇ 스페이싱은 스킵하고 타이포만 진행").
@@ -14,9 +14,11 @@ Phase 237(색상/테마 통일) 이후 남겨둔 "룩앤필" 잔여 스코프 �
 ### 변경된 파일
 `app/hud/page.tsx`, `app/(console)/research-os/{validation,governance,chat}/page.tsx`, `app/(console)/investment-os/page.tsx`, `app/portfolio/page.tsx`, `app/performance/page.tsx`, `components/hud/{TasksTab,ExecutionTab,PortfolioTab}.tsx`, `components/AccountBalances.tsx`, `components/charts/{ChartFrame,BarChart}.tsx`, `components/ui/{Card,SegmentedToggle}.tsx`, `components/console/{CommandRail,primitives,widgets}.tsx`
 
+### 결정사항
+- 유저 확인 후 커밋(`45eea17`) → `npm run build` → `launchctl kickstart -k gui/$UID/com.seokminal.dashboard`로 반영. 프로덕션(포트 3000)에서 investment-os 스크린샷으로 재검증 완료.
+
 ### 다음 할 일
-- 커밋 + `npm run build` + `launchctl kickstart -k gui/$UID/com.seokminal.dashboard` 로 프로덕션 반영 — **아직 미실행, 유저 확인 필요** (이번 세션 승인은 구현까지였고 배포는 별도 확인 필요 패턴 유지, Phase 251도 동일하게 배포 전 별도 승인받음).
-- `(console)` 그룹 레거시 ~20개 라우트는 이번에도 스코프 밖 — 다음 후보로 남겨둠.
+- 없음(이번 타이포 통일 작업 완료). `(console)` 그룹 레거시 ~20개 라우트는 이번에도 스코프 밖 — 다음 후보로 남겨둠.
 
 ---
 
