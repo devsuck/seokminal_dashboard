@@ -1,3 +1,15 @@
+## Phase 246 — seokminal-multi-venue docs/progress.md 동기화 (2026-09-06) ✅ SHIPPED (문서)
+
+### 배경
+Phase 243~245 전부 이 파일(대시보드 리포)에만 기록됨. `seokminal-multi-venue`가 자체 `docs/progress.md`(9/3 이후 미갱신, "세션 로그 (날짜)" 포맷)를 따로 유지한다는 걸 발견해 동기화 확인 요청 → 안 돼있음 확인 후 해당 리포 쪽에 요약 반영.
+
+### 완료된 작업
+- `seokminal-multi-venue/docs/progress.md`에 Phase 243(launchd PATH 버그 2건), 244(AUTONOMY_LEVEL 게이트), 245(autoresearch OOM 추정) 요약을 그 리포 자체 포맷("세션 로그 (2026-09-06)")으로 반영.
+- 커밋: `seokminal-multi-venue` 리포 `ee4131d`.
+
+### 다음 할 일
+- 없음. 두 리포 progress.md는 각자 독립 관리 — 백엔드 손대는 세션은 앞으로도 양쪽 다 기록 필요.
+
 ## Phase 245 — 나머지 launchd job 로그 전수 점검 + autoresearch SIGKILL 원인 추정 (2026-09-06) ⏸️ 미조치(리서치 전용, 실거래 무관, 낮은 우선순위)
 
 ### 배경
