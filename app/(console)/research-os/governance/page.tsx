@@ -188,7 +188,7 @@ function ExplainTab() {
                             <div className="text-[11px] text-[var(--c-text-3)] truncate">{n.label}</div>
                           </div>
                         </button>
-                        {!isLast && <div className="ml-[13px] h-3 w-px bg-[var(--c-border)]" />}
+                        {!isLast && <div className="ml-3.5 h-3 w-px bg-[var(--c-border)]" />}
                       </div>
                     );
                   })}
