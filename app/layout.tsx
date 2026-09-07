@@ -5,6 +5,7 @@ import { BottomTabBar } from "@/components/console/BottomTabBar";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { AlertPoller } from "@/components/AlertPoller";
 import { PwaRegister } from "@/components/PwaRegister";
+import { PageTransition } from "@/components/PageTransition";
 import "./globals.css";
 
 const inter = Inter({
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="console-shell flex h-screen overflow-hidden">
           <CommandRail />
           <main className="flex-1 min-w-0 min-h-0 overflow-y-auto pb-14 md:pb-0">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
         </div>
         <BottomTabBar />
