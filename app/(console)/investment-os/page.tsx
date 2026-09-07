@@ -27,7 +27,7 @@ import {
   type MonitorResp, type OrdersResp, type LiveIntelligenceResp,
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
-import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
+import { Panel, PanelHead, StatTile, Badge, Skeleton, SkeletonStatTile, SkeletonLines } from "@/components/console/primitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -131,6 +131,7 @@ function InvestmentOsInner() {
   const [fwd, setFwd] = useState<ForwardLearningResp | null>(null);
   const [conn, setConn] = useState<DataConnectionResp | null>(null);
   const [acct, setAcct] = useState<ResearchAccountabilityResp | null>(null);
+  const [sideLoading, setSideLoading] = useState(true);
   // 재무제표 실측 조회 패널 (financials_live 직접 배선) — 사용자 입력 트리거, 탭 활성화와 무관
   const [finQuery, setFinQuery] = useState("");
   const [finData, setFinData] = useState<FinancialsLiveResp | null>(null);
@@ -176,9 +177,12 @@ function InvestmentOsInner() {
     sideAbortRef.current?.abort();
     const ctrl = new AbortController();
     sideAbortRef.current = ctrl;
-    getForwardLearning(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setFwd(r); }).catch(() => {});
-    getDataConnection(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setConn(r); }).catch(() => {});
-    getResearchAccountability(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setAcct(r); }).catch(() => {});
+    setSideLoading(true);
+    Promise.allSettled([
+      getForwardLearning(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setFwd(r); }),
+      getDataConnection(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setConn(r); }),
+      getResearchAccountability(ctrl.signal).then((r) => { if (!ctrl.signal.aborted) setAcct(r); }),
+    ]).finally(() => { if (!ctrl.signal.aborted) setSideLoading(false); });
     return () => ctrl.abort();
   }, []);
 
@@ -244,6 +248,27 @@ function InvestmentOsInner() {
           <Badge tone="mute">모두 추천/시뮬레이션 · 실행 없음</Badge>
         </div>
 
+        {!data && !err && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)}
+            </div>
+            <div className="flex flex-wrap gap-1 border-b border-[var(--c-border)]">
+              {TABS.map((t) => (
+                <div key={t.key} className="px-3.5 h-9 flex items-center">
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+              ))}
+            </div>
+            <Panel>
+              <div className="px-4 h-10 border-b border-[var(--c-border)] flex items-center">
+                <Skeleton className="h-2.5 w-40" />
+              </div>
+              <div className="p-4"><SkeletonLines rows={4} /></div>
+            </Panel>
+          </div>
+        )}
+
         {data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -273,7 +298,7 @@ function InvestmentOsInner() {
                   <PanelHead kicker="monthly-review · Phase 5-C (READ ONLY, 새 원장 없음)" title="월간 의사결정 루프"
                     right={<Badge tone="mute">제안 라벨 — 자동 결정 아님, 사람이 최종 선택</Badge>} />
                   <div className="p-4 space-y-2">
-                    {monthly.loading && <div className="text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                    {monthly.loading && <SkeletonLines rows={3} />}
                     {monthly.data && monthly.data.strategies.length === 0 && (
                       <div className="text-[11px] text-[var(--c-text-3)]">추적 대상 전략 없음.</div>
                     )}
@@ -315,7 +340,7 @@ function InvestmentOsInner() {
 
                 <Panel>
                   <PanelHead kicker="research-organization (기존 API)" title="시스템 헬스" />
-                  {org.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {org.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                   {org.err && <div className="p-4 text-[11px] text-[var(--c-neg)]">{org.err}</div>}
                   {org.data && (
                     <div className="p-4 space-y-1.5">
@@ -368,7 +393,7 @@ function InvestmentOsInner() {
                   <Panel>
                     <PanelHead kicker="/console/positions (기존 API)" title="포지션" right={positions.data && <Badge tone="mute">{positions.data.count}건</Badge>} />
                     <div className="p-4 space-y-1.5">
-                      {positions.loading && <div className="text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                      {positions.loading && <SkeletonLines rows={4} />}
                       {positions.data && positions.data.count === 0 && <div className="text-[11px] text-[var(--c-text-3)]">{positions.data.note}</div>}
                       {positions.data && positions.data.positions.slice(0, 8).map((p, i) => (
                         <div key={i} className="flex flex-wrap gap-x-3 text-[11px] c-num text-[var(--c-text-2)] border-b border-[var(--c-border)] last:border-0 py-1">
@@ -396,7 +421,8 @@ function InvestmentOsInner() {
                   <PanelHead kicker="Forward Learning · STEP4 (READ ONLY, 파생 데이터)" title="전략별 검증 상태"
                     right={<Badge tone="mute">registry+experiment_registry+prediction_registry+paper.deploy 조인 · 새 원장 없음</Badge>} />
                   <div className="p-4 space-y-3">
-                    {acct && (
+                    {sideLoading && <SkeletonLines rows={4} />}
+                    {!sideLoading && acct && (
                       <div className="flex flex-wrap items-center gap-2 text-[11px]">
                         <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">Edge Score</span>
                         {acct.edge_score.status === "PROVISIONAL"
@@ -448,7 +474,7 @@ function InvestmentOsInner() {
                 <Panel>
                   <PanelHead kicker="validation-loop (기존 API)" title="라이프사이클 보드"
                     right={valLoop.data && <Badge tone={valLoop.data.loop_status.release_ready ? "pos" : "mute"}>{valLoop.data.loop_status.release_ready ? "출시 준비 완료" : "진행 중"}</Badge>} />
-                  {valLoop.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {valLoop.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                   {valLoop.data && (
                     <div className="p-4 space-y-1.5">
                       {valLoop.data.lifecycle_board.strategies.map((s) => (
@@ -467,7 +493,7 @@ function InvestmentOsInner() {
 
                 <Panel>
                   <PanelHead kicker="validation (기존 API)" title="검증 게이트" />
-                  {val.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {val.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                   {val.data && (
                     <div className="p-4 space-y-1.5">
                       <div className="flex flex-wrap gap-1.5">{val.data.gates.map((g) => <Badge key={g} tone="mute">{g}</Badge>)}</div>
@@ -498,7 +524,7 @@ function InvestmentOsInner() {
                 <Panel>
                   <PanelHead kicker="market-cockpit (기존 API)" title="마켓 / 리서치 인텔리전스"
                     right={market.data && <Badge tone="hud">{market.data.market_state.regime}</Badge>} />
-                  {market.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {market.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                   {market.data && (
                     <div className="p-4 space-y-1.5">
                       <div className="flex flex-wrap gap-1.5">{market.data.market_state.labels.map((l) => <Badge key={l} tone="mute">{l}</Badge>)}</div>
@@ -516,7 +542,7 @@ function InvestmentOsInner() {
                 <Panel>
                   <PanelHead kicker="institutional-intelligence (기존 API)" title="기관 인텔리전스"
                     right={inst.data && <Badge tone="mute">{inst.data.data_production_health.overall_status}</Badge>} />
-                  {inst.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {inst.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                   {inst.data && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>데이터 품질 평균: <span className="c-num text-[var(--c-text-1)]">{inst.data.data_production_health.average_quality}</span></div>
@@ -528,7 +554,8 @@ function InvestmentOsInner() {
 
                 <Panel>
                   <PanelHead kicker="data-connection (기존 API, 재사용)" title="예측 커버리지" />
-                  {conn && (
+                  {sideLoading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                  {!sideLoading && conn && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>총 예측 수: <span className="c-num text-[var(--c-text-1)]">{conn.prediction_coverage.total ?? 0}</span></div>
                       <div className="flex flex-wrap gap-2">
@@ -561,6 +588,11 @@ function InvestmentOsInner() {
                       </button>
                     </form>
                     {finErr && <div className="text-[11px] text-neg">조회 실패: {finErr}</div>}
+                    {finLoading && (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)}
+                      </div>
+                    )}
                     {finData && (
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {Object.entries(finData)
@@ -608,7 +640,7 @@ function InvestmentOsInner() {
 
                 <Panel>
                   <PanelHead kicker="risk (기존 API)" title="리스크 거버너" right={riskGov.data && <Badge tone="mute">{riskGov.data.governor}</Badge>} />
-                  {riskGov.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {riskGov.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                   {riskGov.data && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>실행 리스크 이벤트: <span className="c-num text-[var(--c-text-1)]">{riskGov.data.execution_risk_events}</span></div>
@@ -623,7 +655,7 @@ function InvestmentOsInner() {
                 <Panel>
                   <PanelHead kicker="production-readiness (기존 API)" title="거버넌스"
                     right={prod.data && <Badge tone={prod.data.governance_status.passed ? "pos" : "neg"}>{prod.data.governance_status.governance}</Badge>} />
-                  {prod.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {prod.loading && <div className="p-4"><SkeletonLines rows={4} /></div>}
                   {prod.data && (
                     <div className="p-4 space-y-1.5">
                       {prod.data.governance_status.checks.map((c) => (
@@ -642,7 +674,7 @@ function InvestmentOsInner() {
                   <Panel>
                     <PanelHead kicker="agents + council (기존 API)" title="협의회 / 승인" right={agents.data && <Badge tone="neg">라이브 집행: {String(agents.data.live_execution_enabled)}</Badge>} />
                     <div className="p-4 space-y-2">
-                      {agents.loading && <div className="text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                      {agents.loading && <SkeletonLines rows={3} />}
                       {agents.data && <AgentTree node={agents.data.council} />}
                       {council.data && (
                         <div className="pt-2 border-t border-[var(--c-border)] space-y-1">
@@ -658,7 +690,7 @@ function InvestmentOsInner() {
                   <Panel>
                     <PanelHead kicker="logs (기존 API)" title="감사 로그" right={logs.data && <Badge tone="mute">{logs.data.count}건</Badge>} />
                     <div className="p-4 space-y-1">
-                      {logs.loading && <div className="text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                      {logs.loading && <SkeletonLines rows={5} />}
                       {logs.data && logs.data.logs.slice(0, 10).map((l, i) => (
                         <div key={i} className="text-[11px] c-num text-[var(--c-text-3)] truncate border-b border-[var(--c-border)] last:border-0 py-0.5">{JSON.stringify(l)}</div>
                       ))}
@@ -793,7 +825,7 @@ function InvestmentOsInner() {
 
                 <Panel>
                   <PanelHead kicker="monitor (기존 API)" title="파이프라인 모니터" />
-                  {monitor.loading && <div className="p-4 text-[11px] text-[var(--c-text-3)]">로딩…</div>}
+                  {monitor.loading && <div className="p-4"><SkeletonLines rows={2} /></div>}
                   {monitor.data && (
                     <div className="p-4 space-y-1.5">
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -812,6 +844,7 @@ function InvestmentOsInner() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Panel>
                     <PanelHead kicker="orders (기존 API)" title="주문" />
+                    {orders.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
                     {orders.data && (
                       <div className="p-4 space-y-1 text-[11px] text-[var(--c-text-2)]">
                         <div>라이프사이클 이벤트: <span className="c-num text-[var(--c-text-1)]">{orders.data.lifecycle_events}</span></div>
@@ -824,6 +857,7 @@ function InvestmentOsInner() {
                   <Panel>
                     <PanelHead kicker="live-intelligence (기존 API)" title="라이브 데이터 소스"
                       right={live.data && <Badge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"}>{live.data.data_health.overall_status}</Badge>} />
+                    {live.loading && <div className="p-4"><SkeletonLines rows={2} /></div>}
                     {live.data && (
                       <div className="p-4 space-y-1 text-[11px] text-[var(--c-text-2)]">
                         <div>소스 {live.data.data_sources.available_count}/{live.data.data_sources.count}개 사용 가능</div>

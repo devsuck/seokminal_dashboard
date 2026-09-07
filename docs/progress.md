@@ -1,3 +1,46 @@
+## Phase 254 — investment-os 스켈레톤 로딩 전면 적용 (2026-09-08) ✅ SHIPPED
+
+### 배경
+Phase 253 마무리 후 유저 질문("그럼 이제 네이티브 급으로 좋은 디자인이야?")에 남은 갭으로 스켈레톤 부재를 짚음 → 유저 승인("스켈레톤부터 진행해줘") → top-level 게이트만 할지 탭별 중첩 패널까지 할지 물었더니 유저가 스코프 확장 지시("다 필요해. 디자인 작업 출시급으로 만든다 생각하고 디자인해줘").
+
+### 완료된 작업
+- `components/console/primitives.tsx` — `Skeleton`(animate-pulse 바), `SkeletonStatTile`, `SkeletonLines(rows)` 3종 신규, 기존 Panel/StatTile와 동일 `--c-*` 토큰·패딩 규칙으로 제작.
+- `app/(console)/investment-os/page.tsx`:
+  - top-level 로딩 게이트: `{data && (...)}` 진입 전 StatTile 4개 + 탭바 pill + Panel 프리뷰 스켈레톤 블록 추가.
+  - `useTabFetch` 기반 12개 탭 패널(monthly/org/positions/valLoop/val/market/inst/riskGov/prod/agents/logs/monitor) 전부 "로딩…" 텍스트 → `SkeletonLines`로 교체.
+  - `sideAbortRef` 이펙트(fwd/conn/acct, 원래 로딩 트래킹 없었음) — `sideLoading` state 신규 추가, `Promise.allSettled`로 리팩터해서 Forward Learning/Prediction Coverage 패널에 스켈레톤 연결.
+  - `orders`/`live`/재무제표 실측 검색(`finLoading`) 패널에도 스켈레톤 추가.
+- `tsc --noEmit` 클린, 테스트 33/33 통과. 스로어웨이 스택(fe:3001/api:8001)으로 top-level 스켈레톤 + 실데이터 전환 스크린샷 검증 완료(검은 화면/빈 화면 없음). 탭별 중첩 스켈레톤은 로컬 API가 너무 빨라 로딩 순간을 스크린샷으로 못 잡았으나 top-level과 동일 패턴(`SkeletonLines`)이라 코드 검증으로 충분.
+
+### 다음 할 일
+- 프로덕션 배포(`npm run build` → `launchctl kickstart`) 아직 안 함 — 다음 세션에서.
+
+---
+
+## Phase 253 — 모바일 네이티브 앱 느낌 개선 + 콘솔 라우트 검은 배경 플래시 수정 (2026-09-07~08) ✅ SHIPPED
+
+### 배경
+유저 질문("모바일 디자인 최적화됐다고 생각해? 진짜 앱처럼은 안느껴지는데") → PWA 인프라(manifest.ts/sw.js/아이콘)는 이미 정상 확인, 실제 갭은 네이티브 앱 느낌을 깨는 CSS 4가지(탭 시 회색 하이라이트, 오버스크롤 바운스, 텍스트 드래그 선택, 라우트 전환 시 화면 뚝뚝 끊김)로 진단 → 유저 승인("다 작업해줘").
+
+### 완료된 작업 (모바일 느낌 4종)
+- `app/globals.css` — `body`에 `-webkit-tap-highlight-color: transparent`, `overscroll-behavior: none`(html/body 둘 다), `user-select: none`(input/textarea/contenteditable엔 `user-select: text`로 복원).
+- `components/PageTransition.tsx` 신규 — `usePathname()` 키로 `.page-transition` 클래스 리마운트, CSS `@keyframes page-fade-in`(0.18s, `prefers-reduced-motion` 대응)로 라우트 전환 페이드. framer-motion 등 신규 의존성 없이 순수 CSS로 처리.
+- `app/layout.tsx` — `<main>` 안 `{children}`을 `<PageTransition>`으로 감쌈.
+- 커밋(`e56f16f`) → build → `launchctl kickstart`로 반영. 프로덕션 7개 라이브 라우트(investment-os/hud/portfolio/performance/research-os×3) 모바일 뷰포트(393×852) 스크린샷 전수 재검증 — BottomTabBar 정상.
+
+### 검은 패널 버그 발견 및 원인 분석
+- 위 재검증 스크린샷 중 3개 라우트(investment-os, research-os/governance, research-os/chat)에서 로딩 직후 화면 하단이 통째로 검게 뜨는 현상 포착. 처음엔 "기존 HUD 위젯 영역, 무관"이라고 추측성 답변했다가 유저가 직접 지적("그 검은 패널 뭔지 확인해줘") → 재조사.
+- 원인: `app/layout.tsx`의 `.console-shell`이 자기 스코프 `--c-bg`를 다크(`#05070A`)로 정의하고 `background: ... var(--c-bg)`로 항상 어두운 그라디언트를 깔아둠(주석에도 "자식 스코프 오버라이드로는 안 가려짐" 명시돼 있었음). `(console)` 라우트 그룹의 `.rail-ap` 래퍼(`app/(console)/layout.tsx`)가 그 위를 라이트 배경으로 덮어 가리는 구조인데, 래퍼가 `min-h-full`(부모 %기준)이라 데이터 로딩 전(`{data && (...)}` 가드로 컨텐츠 짧은 순간) 뷰포트를 다 못 채워서 밑 다크 배경이 노출됨. `elementFromPoint`/computed-style DOM 스캔으로 실제 로딩 순간 재현해서 확증.
+
+### 완료된 작업 (검은 패널 수정)
+- `app/(console)/layout.tsx` — `min-h-full` → `min-h-screen`(뷰포트 고정값, flex 부모 % 계산 불안정성 회피)로 1줄 수정.
+- `tsc --noEmit` 클린. 커밋(`8c9dd62`) → build → `launchctl kickstart`로 반영. investment-os/governance 로딩 순간 재현 스크린샷으로 검은 패널 소실 확인.
+
+### 다음 할 일
+- 없음(모바일 느낌 개선 + 검은 패널 버그 둘 다 완료·배포·검증됨).
+
+---
+
 ## Phase 252 — 룩앤필 타이포 계층 단순화: 7개 라이브 라우트 폰트사이즈 4단계 통일 (2026-09-07) ✅ SHIPPED
 
 ### 배경

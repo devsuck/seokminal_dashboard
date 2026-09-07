@@ -80,6 +80,31 @@ export function Badge({ children, tone = "mute" }: { children: ReactNode; tone?:
   );
 }
 
+// ── Skeleton (로딩 placeholder) ────────────────────────────────────
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-sm bg-[var(--c-border)] ${className}`} />;
+}
+
+export function SkeletonStatTile() {
+  return (
+    <Panel className="p-4 space-y-2.5">
+      <Skeleton className="h-2 w-16" />
+      <Skeleton className="h-5 w-12" />
+    </Panel>
+  );
+}
+
+export function SkeletonLines({ rows = 3, className = "" }: { rows?: number; className?: string }) {
+  const widths = ["w-full", "w-5/6", "w-2/3", "w-3/4", "w-1/2"];
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className={`h-3 ${widths[i % widths.length]}`} />
+      ))}
+    </div>
+  );
+}
+
 // ── Meter (0..1) ──────────────────────────────────────────────────
 export function Meter({ value, tone = "hud" }: { value: number; tone?: keyof typeof TONE }) {
   const c = TONE[tone];
