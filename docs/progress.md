@@ -1,3 +1,43 @@
+## Phase 256 — research-os/investment-os 패널 각짐 → 둥근 코너 통일 (2026-09-08) ✅ SHIPPED
+
+### 배경
+유저: "아이폰 미니 13인데 리서치 os 페이지가 너무 각지고" → 조사 결과 `--radius: 0px`(코드 주석 "Bloomberg 무드: 전역 각짐")가 `.c-panel`/`.c-panel-hud`(research-os·investment-os·console 카드 전부)에 적용 중이던 반면, `hud`/`portfolio`/`performance`는 별도 `rounded-ap-*` 토큰(둥근 앱 스타일)을 씀 — 의도된 디자인이었지만 두 스타일 공존이 사용자 눈엔 버그로 보임. "둥글게 통일해줘"로 승인.
+
+### 완료된 작업
+- `app/globals.css` — `.c-panel`/`.c-panel-hud`에 `border-radius: var(--radius-ap-lg)`(16px, `Card.tsx` rounded-ap-lg와 동일값) 추가. CommandRail/BottomTabBar/CommandPalette는 `.c-panel` 클래스가 아니라 `bg-[var(--c-panel)]` 배경색만 참조해서 영향 없음(네브 크롬 그대로 각짐 유지, 카드류만 둥글어짐).
+- `tsc --noEmit` 클린(CSS 전용 변경). 프로덕션 빌드 → `launchctl kickstart` → research-os/governance·investment-os 스크린샷으로 카드 코너 둥글어짐 확인.
+
+### 다음 할 일
+- 폰트 깨짐 제보는 코드로 원인 특정 안 됨(Inter 라틴전용+한글 시스템폴백 정상 동작이어야 함) — 실기기 스크린샷 오면 재조사.
+
+---
+
+## Phase 255 — 하드 락 감사 + Edge Score(P205) 캡처 파이프라인 배선 (2026-09-08) ✅ SHIPPED (백엔드, seokminal-multi-venue)
+
+### 배경
+유저 질문("18개월 펀드매니저 에이전틱 트레이더로 쓸꺼야?") → 정직한 답: 아니, 시스템 스스로 AUTO_EXECUTION 영구 OFF·사람 승인 필수·Edge Score 0/20(표본부족)이라고 못박아둠. 유저 반성("내가 못 박은 게 진짜 필요한 못인가 고민해야") → 락 전수 감사 요청 → 감사 후 "너가 생각해서 파줘, 에이전틱 트레이딩 성공을 위해"로 우선순위 위임.
+
+### 감사 결과 (subagent fork 2회)
+- 락이 두 계층: ①Investment OS(advisory, execute() 자체 없음 — 락 상당수가 사실 라벨) ②Execution(진짜 브로커 관문).
+- 진짜 손대면 위험한 건 `broker_bridge.py` 실계좌 레버리지 무조건 거부("헌법 v2") 하나뿐 — 안 건드림.
+- `MIN_PAPER_MONTHS=6`(arm_criteria.py)는 정상 작동 중, 경과일 자동계산이라 손 안 대도 됨(2026-09-08 기준 경과 2.1개월, 레벨6은 2027-01월경 — 진짜 필요한 시간).
+- `human_can_override`(compliance.py) — 3곳 grep, 어디서도 분기조건으로 안 읽음. 확정 죽은 코드(라벨).
+- **핵심 발견**: Edge Score(P205, MIN_GRADED=20)는 "표본부족(시간 문제)"이 아니라 **배선 문제**. `capture_tracked_research()`(단일 진입점, 이미 완성·멱등)를 호출하는 곳이 코드베이스 전체에 0곳 — 07-29에 5건 수동 캡처됐다 07-31에 무결성실패로 전부 무효화된 뒤 41일간 신규 캡처 0건. 이대로 두면 레벨6과 무관하게 Edge Score는 영원히 0.
+
+### 완료된 작업
+- `research/run_research_capture.py`(신규) — `capture_tracked_research(commit=True)` CLI. 새 로직 없음, 이미 완성된 함수 부르기만.
+- `scripts/deploy/run_research_capture.sh`(신규) — `run_autoresearch.sh`와 동일 패턴.
+- `scripts/deploy/launchd/com.seokminal.research-ledger-sync.plist`(신규) — 평일 08:00(`research_scheduler.CYCLES["daily"]`의 `research_ledger_sync` cadence "0 8 * * 1-5"와 정합, 원래 이름만 있고 실체 없던 자리를 채움).
+- `jarvis/research_workflow/tests/test_research_capture.py`(신규, 4건) — TRACKED_STATES 필터링·중복skip·family 유도·금지 def/import 없음(prediction_registry 테스트와 동일 패턴).
+- 전체 테스트(`tests/ jarvis/ research/`) 92개 실패 확인 → git stash로 재현해보니 내 변경 무관한 기존 실패(system_integration 모듈, 별개 이슈). 커밋(`7c0e3e8`).
+- 수동 1회 실행(commit=True) — 추적전략 14개 신규 캡처, 원장 total 5→19. `launchctl load` 유저가 직접 실행, `com.seokminal.research-ledger-sync` 등록 확인(exit 0).
+
+### 다음 할 일
+- Edge Score 20건(graded) 채워지는 거 지켜보기 — 매일 자동 캡처는 걸렸지만 실제 채점(RIGHT/WRONG)은 horizon 지나야 나옴, 당장 할 일 없음.
+- 레벨5→6 승격 재검토는 2027-01월경 페이퍼 6개월 채워진 뒤.
+
+---
+
 ## Phase 254 — investment-os 스켈레톤 로딩 전면 적용 (2026-09-08) ✅ SHIPPED
 
 ### 배경
