@@ -63,7 +63,7 @@ function CommitteeTab() {
             <span className="text-[11px] text-[var(--c-text-3)] uppercase tracking-[0.14em] mr-1 self-center">예시</span>
             {EXAMPLES.map((ex) => (
               <button key={ex} type="button" onClick={() => submit(ex)} disabled={loading}
-                className="px-2.5 py-1 text-[11px] text-[var(--c-text-2)] border border-[var(--c-border)] c-panel-2 hover:border-[var(--c-hud)] hover:text-[var(--c-hud)] transition-colors disabled:opacity-40 cursor-pointer">
+                className="px-2.5 py-1 text-[11px] text-[var(--c-text-2)] border border-[var(--c-border)] bg-[var(--c-panel-2)] hover:border-[var(--c-hud)] hover:text-[var(--c-hud)] transition-colors disabled:opacity-40 cursor-pointer">
                 {ex}
               </button>
             ))}

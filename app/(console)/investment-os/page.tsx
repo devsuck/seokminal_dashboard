@@ -238,7 +238,7 @@ function InvestmentOsInner() {
         {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
         {/* Safety banner — 미션 핵심, 탭과 무관하게 항상 표시 */}
-        <div className="c-panel-2 p-3 flex flex-wrap items-center gap-2 text-[11px]">
+        <div className="bg-[var(--c-panel-2)] p-3 flex flex-wrap items-center gap-2 text-[11px]">
           <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">보장 사항</span>
           <Badge tone="pos">연구=생산 · 투자=소비</Badge>
           <Badge tone="pos">Research OS 무변경</Badge>
@@ -306,7 +306,7 @@ function InvestmentOsInner() {
                       const dr = s.decision_required ?? {};
                       const tone = DECISION_TONE[dr.suggested_label ?? ""] ?? "mute";
                       return (
-                        <div key={s.strategy_id} className="c-panel-2 p-2.5 flex items-center justify-between gap-3 flex-wrap">
+                        <div key={s.strategy_id} className="bg-[var(--c-panel-2)] p-2.5 flex items-center justify-between gap-3 flex-wrap">
                           <div className="min-w-0">
                             <div className="text-[11px] text-[var(--c-text-1)] font-semibold">{s.strategy_id}</div>
                             <div className="text-[11px] text-[var(--c-text-3)] truncate">{dr.reason}</div>
@@ -443,7 +443,7 @@ function InvestmentOsInner() {
                     {(fwd?.records ?? []).map((r) => {
                       const eq = evidenceQuality(r); const fp = forwardProgress(r); const rs = riskState(r);
                       return (
-                        <div key={r.strategy_id} className="c-panel-2 p-3 space-y-1.5">
+                        <div key={r.strategy_id} className="bg-[var(--c-panel-2)] p-3 space-y-1.5">
                           <div className="flex items-center justify-between flex-wrap gap-1.5">
                             <span className="text-[11px] text-[var(--c-text-1)] font-semibold">{r.strategy_id}</span>
                             <Badge tone="hud">{STATUS_LABEL[r.validation_status ?? ""] ?? r.validation_status ?? "—"}</Badge>
@@ -626,11 +626,11 @@ function InvestmentOsInner() {
                   <PanelHead kicker="리스크 & 시나리오" title="예산 · 스트레스" right={data?.risk_budget && <Badge tone={data.risk_budget.within_budget ? "pos" : "warn"}>{data.risk_budget.within_budget ? "예산 내" : "한도 초과"}</Badge>} />
                   <div className="p-4 space-y-2">
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="c-panel-2 p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">최대 비중</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%</div></div>
-                      <div className="c-panel-2 p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">포지션</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{data.exposure.n_positions ?? 0}</div></div>
-                      <div className="c-panel-2 p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">HHI</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
+                      <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">최대 비중</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%</div></div>
+                      <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">포지션</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{data.exposure.n_positions ?? 0}</div></div>
+                      <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">HHI</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
                     </div>
-                    <div className="c-panel-2 p-2.5">
+                    <div className="bg-[var(--c-panel-2)] p-2.5">
                       <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-0.5">최악 시나리오</div>
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] text-[var(--c-text-1)]">{data.scenarios.scenario ?? "—"}</span>
@@ -731,7 +731,7 @@ function InvestmentOsInner() {
                   <PanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리"
                     right={<Badge tone="neg">auto_execution: {String(ladder?.auto_execution_enabled)}</Badge>} />
                   <div className="p-4 space-y-3">
-                    <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed c-panel-2 px-3 py-2">
+                    <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed bg-[var(--c-panel-2)] px-3 py-2">
                       전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
                       승인해도 새로고침하면 PAPER로 리셋되고, 실제로 바뀌는 건 없습니다(AUTO_EXECUTION은 영구 비활성).
                       특정 전략을 실제 페이퍼 운용으로 올리는 "승격"은 여기가 아니라 <Link href="/auto-research" className="text-[var(--c-hud)] hover:underline">Auto-Research</Link>의 "🚀 페이퍼로 올리기" 버튼입니다.
@@ -756,7 +756,7 @@ function InvestmentOsInner() {
                       })}
                     </div>
 
-                    <div className="c-panel-2 p-3">
+                    <div className="bg-[var(--c-panel-2)] p-3">
                       <div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1.5">필수 게이트 (우회 불가)</div>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                         {(advResult?.gates ?? []).length > 0
@@ -773,7 +773,7 @@ function InvestmentOsInner() {
                       </div>
                     </div>
 
-                    <div className="c-panel-2 p-3 space-y-2.5">
+                    <div className="bg-[var(--c-panel-2)] p-3 space-y-2.5">
                       {nextIsAuto ? (
                         <div className="text-[11px] text-[var(--c-neg)] flex items-center gap-2">
                           🔒 <span>다음 단계는 <b>AUTO_EXECUTION</b> — 영구 비활성. 승인·게이트와 무관하게 전진 불가.</span>
@@ -834,7 +834,7 @@ function InvestmentOsInner() {
                     <div className="p-4 space-y-1.5">
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                         {monitor.data.stages.map((s) => (
-                          <div key={s.key} className="c-panel-2 p-2">
+                          <div key={s.key} className="bg-[var(--c-panel-2)] p-2">
                             <div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">{s.label}</div>
                             <div className="text-[13px] c-num text-[var(--c-text-1)]">{s.count}</div>
                           </div>
