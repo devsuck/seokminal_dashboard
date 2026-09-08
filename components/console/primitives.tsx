@@ -17,12 +17,12 @@ export function PanelHead({
   title, kicker, right,
 }: { title: string; kicker?: string; right?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 h-10 border-b border-[var(--c-border)]">
-      <div className="flex items-baseline gap-2 min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 min-h-10 py-1.5 px-4 border-b border-[var(--c-border)]">
+      <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
         {kicker && <span className="text-[9px] font-semibold tracking-[0.22em] text-[var(--c-hud)] uppercase">{kicker}</span>}
         <span className="text-[13px] font-semibold tracking-wide text-[var(--c-text-1)] truncate">{title}</span>
       </div>
-      {right && <div className="shrink-0 flex items-center gap-2">{right}</div>}
+      {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
     </div>
   );
 }
@@ -72,7 +72,7 @@ export function Badge({ children, tone = "mute" }: { children: ReactNode; tone?:
   const c = TONE[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.14em] uppercase c-num"
+      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.14em] uppercase c-num whitespace-nowrap"
       style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
     >
       {children}

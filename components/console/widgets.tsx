@@ -32,12 +32,12 @@ export function useConsole<T>(fn: (s: AbortSignal) => Promise<T>, deps: unknown[
 // ── page header ───────────────────────────────────────────────────
 export function PageHeader({ kicker, title, right }: { kicker?: string; title: string; right?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-4 h-12 px-5 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] backdrop-blur">
-      <div className="flex items-baseline gap-2.5">
+    <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 min-h-12 py-2 px-5 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] backdrop-blur">
+      <div className="flex items-baseline gap-2.5 flex-wrap min-w-0">
         {kicker && <span className="text-[9px] font-semibold tracking-[0.24em] text-[var(--c-hud)] uppercase">{kicker}</span>}
         <span className="text-[13px] font-semibold tracking-[0.14em] text-[var(--c-text-1)] uppercase">{title}</span>
       </div>
-      {right && <div className="flex items-center gap-3">{right}</div>}
+      {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
     </header>
   );
 }

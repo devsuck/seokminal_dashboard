@@ -1,3 +1,20 @@
+## Phase 257 — PageHeader/PanelHead/Badge 텍스트 줄바꿈 겹침 수정 (2026-09-08) ✅ SHIPPED
+
+### 배경
+Phase 256 배포 후 유저가 실기기(아이폰 미니 13) 스크린샷 보내옴 — 코너는 둥글게 잘 나왔으나, "폰트도 깨지는데" 제보는 사실 폰트 글리프 문제가 아니라 좁은 화면(375px)에서 `PageHeader`/`PanelHead`가 고정 높이(`h-12`/`h-10`)라 긴 kicker 문구·배지 텍스트가 줄바꿈되면서 박스는 안 늘어나 아래 콘텐츠와 겹치는 레이아웃 버그였음("Forward Learning · STEP4 (READ ONLY, 파생 데이터)" kicker가 6줄로 wrap되며 패널 본문과 겹침, "AUTO-EXEC OFF" 배지가 단어 중간에서 끊김).
+
+### 완료된 작업
+- `components/console/widgets.tsx` `PageHeader` — `h-12` → `min-h-12 py-2`, 헤더에 `flex-wrap`, kicker+title 그룹에 `flex-wrap`(줄바꿈 허용해 겹침 방지 — `whitespace-nowrap`은 긴 kicker 문구가 카드 밖으로 수평 오버플로할 위험이 있어 미채택), `right` 배지 컨테이너에 `flex-wrap`.
+- `components/console/primitives.tsx` `PanelHead` — 동일 패턴(`h-10`→`min-h-10 py-1.5` 등).
+- `components/console/primitives.tsx` `Badge` — `whitespace-nowrap` 추가(짧고 고정된 라벨이라 안전, `StatusPill`이 이미 쓰던 패턴과 통일).
+- investment-os/research-os(chat·governance·validation)/quant-validation 5개 페이지가 이 두 shared 컴포넌트 그대로 씀 — 공유 컴포넌트 2곳 수정으로 전체 커버.
+- `tsc --noEmit` 클린 → 빌드 → `launchctl kickstart` → 375×812 스크린샷으로 investment-os(개요·전략 인텔리전스 탭)·research-os/governance 확인, 배지 줄바꿈·겹침 없음.
+
+### 다음 할 일
+- 없음. UX/UI 트래킹 항목 전부 종료.
+
+---
+
 ## Phase 256 — research-os/investment-os 패널 각짐 → 둥근 코너 통일 (2026-09-08) ✅ SHIPPED
 
 ### 배경
