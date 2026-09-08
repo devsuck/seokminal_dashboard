@@ -39,7 +39,7 @@ export default function AiPortfolioPage() {
   const weights = Object.entries(latest?.weights ?? {});
 
   return (
-    <div className="min-h-full c-bg p-5 space-y-4">
+    <div className="min-h-full p-5 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div className="text-[9px] font-semibold tracking-[0.24em] uppercase text-[var(--c-text-3)]">
@@ -52,19 +52,24 @@ export default function AiPortfolioPage() {
         </Link>
       </div>
 
+      {/* Safety banner — 미션 핵심, 패널과 무관하게 항상 표시 */}
+      <div className="bg-[var(--c-panel-2)] p-3 flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">보장 사항</span>
+        <Badge tone="mute">추천 · 실배분/주문 아님 — 사람이 최종 결정</Badge>
+      </div>
+
       <Panel>
-        <PanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천"
-          right={<Badge tone="mute">추천 · 실배분/주문 아님 — 사람이 최종 결정</Badge>} />
+        <PanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천" />
         <div className="p-4 space-y-2">
           {loading && <SkeletonLines rows={4} />}
-          {err && <div className="text-[11px] text-[var(--c-neg)]">{err}</div>}
-          {latest?.fallback_used && (
+          {!loading && err && <div className="text-[11px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+          {!loading && !err && latest?.fallback_used && (
             <Badge tone="warn">AI 응답 실패 — 규칙 기반(evidence_weighted) 폴백</Badge>
           )}
-          {!loading && weights.length === 0 && (
+          {!loading && !err && weights.length === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">{latest?.note ?? "추천 없음"}</div>
           )}
-          {weights.map(([sid, w]) => (
+          {!loading && !err && weights.map(([sid, w]) => (
             <div key={sid} className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-[var(--c-text-1)] w-52 truncate">{sid}</span>
@@ -78,7 +83,7 @@ export default function AiPortfolioPage() {
               )}
             </div>
           ))}
-          {latest?.overall_rationale && (
+          {!loading && !err && latest?.overall_rationale && (
             <div className="pt-2 border-t border-[var(--c-border)] text-[11px] text-[var(--c-text-2)] leading-relaxed">
               {latest.overall_rationale}
             </div>
@@ -90,11 +95,12 @@ export default function AiPortfolioPage() {
         <PanelHead kicker="이력" title="최근 추천 이력" right={hist && <Badge tone="mute">{hist.records.length}건</Badge>} />
         <div className="p-4 space-y-1.5">
           {loading && <SkeletonLines rows={3} />}
-          {!loading && (hist?.records.length ?? 0) === 0 && (
+          {!loading && err && <div className="text-[11px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+          {!loading && !err && (hist?.records.length ?? 0) === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">이력 없음.</div>
           )}
-          {hist?.records.map((r, i) => (
-            <div key={i} className="flex items-center justify-between text-[11px] c-num text-[var(--c-text-2)] border-b border-[var(--c-border)] last:border-0 py-1">
+          {!loading && !err && hist?.records.map((r) => (
+            <div key={r.timestamp} className="flex items-center justify-between text-[11px] c-num text-[var(--c-text-2)] border-b border-[var(--c-border)] last:border-0 py-1">
               <span>{r.timestamp}</span>
               <span>{Object.keys(r.weights).length}개 전략{r.fallback_used ? " · 폴백" : ""}</span>
             </div>

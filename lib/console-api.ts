@@ -789,6 +789,7 @@ export interface AiPortfolioResp {
   candidates_count?: number;
   is_advisory: boolean;
   is_decision: boolean;
+  requires_human_review?: boolean;
   note?: string;
 }
 export const getAiPortfolioLatest = (s?: AbortSignal) =>
