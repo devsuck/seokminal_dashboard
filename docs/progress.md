@@ -1,3 +1,39 @@
+## Phase 259 — 죽은 c-panel-2 클래스 정리 (2026-09-09) ✅ SHIPPED
+
+### 배경
+Phase 258 park 항목. `.c-panel-2` CSS 룰 자체가 없음(`--c-panel-2` 커스텀 프로퍼티만 존재) — bare
+`className="c-panel-2 ..."`는 전부 no-op이었음.
+
+### 완료된 작업
+- `investment-os/page.tsx`(11곳), `research-os/validation/page.tsx`(10곳), `research-os/governance/page.tsx`(1곳)
+  — 실제 재스캔 결과 총 22곳(park 메모의 7+9는 과거 부분스캔, 재확인 시 governance 1곳 추가 발견).
+  전부 `bg-[var(--c-panel-2)]`로 교체(코드베이스 기존 관행과 동일 패턴).
+- tsc 0 errors, npm test 33/33. 스로어웨이 fe:3001로 정적 배너 렌더 확인(배경색 정상 적용). CORS가
+  :3000만 허용해 데이터 카드는 미검증(코드 자체는 diff 리뷰로 충분). 커밋 `5b3c60b`.
+
+### 다음 할 일
+- 없음.
+
+---
+
+## Phase 258 — AI 포트폴리오 빌더 프론트 (2026-09-09) ✅ SHIPPED
+
+### 배경
+유저 요청("autopilot 에이전트들처럼 AI가 포트폴리오 짜는 기능") → brainstorming(architectural)→spec→plan→SDD.
+백엔드(`seokminal-multi-venue`)에 주간 Claude CLI 배분추천 엔진 신규, 이 Phase는 그 프론트 소비단.
+상세: `seokminal-multi-venue/docs/progress.md` 2026-09-09 "AI 포트폴리오 빌더 SDD 완료".
+
+### 완료된 작업
+- `lib/console-api.ts` — `getAiPortfolioLatest`/`getAiPortfolioHistory` + `AiPortfolioResp`/`AiPortfolioHistoryResp` 타입.
+- `app/(console)/investment-os/ai-portfolio/page.tsx` 신규 페이지(최신 추천 + 이력 2패널), investment-os 진입 링크 추가.
+- 최종 whole-branch 리뷰(opus) fix: 에러/빈 상태 구분, advisory disclaimer를 페이지 상단 상시배너로 이동, 죽은 `c-bg` 클래스 제거, `requires_human_review` 타입 보강, history row key 수정.
+- tsc 0 errors, npm test 33/33. 커밋 `4359fe6`(API client), `dbf0863`(페이지), `87ecc85`(최종리뷰 fix).
+
+### 다음 할 일
+- 없음(SDD 완료). park: 부모 페이지 `investment-os/page.tsx`의 죽은 `c-panel-2` bare 클래스(7곳, `research-os/validation/page.tsx`도 9곳 동일) — 이번 범위 밖, 후속 후보.
+
+---
+
 ## Phase 257 — PageHeader/PanelHead/Badge 텍스트 줄바꿈 겹침 수정 (2026-09-08) ✅ SHIPPED
 
 ### 배경
