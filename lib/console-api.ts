@@ -779,6 +779,27 @@ export interface InvestmentOsResp {
 export const getInvestmentOs = (notional = 1_000_000, s?: AbortSignal) =>
   get<InvestmentOsResp>(`/console/investment-os?notional=${notional}`, s);
 
+// AI 포트폴리오 추천 — registry 검증 전략(paper_active+) 대상 Claude 배분 추천. 주 1회 자동 생성.
+export interface AiPortfolioResp {
+  timestamp?: string;
+  weights: Record<string, number>;
+  per_strategy_note?: Record<string, string>;
+  overall_rationale?: string;
+  fallback_used?: boolean;
+  candidates_count?: number;
+  is_advisory: boolean;
+  is_decision: boolean;
+  note?: string;
+}
+export const getAiPortfolioLatest = (s?: AbortSignal) =>
+  get<AiPortfolioResp>(`/console/investment-os/ai-portfolio/latest`, s);
+
+export interface AiPortfolioHistoryResp {
+  records: AiPortfolioResp[];
+}
+export const getAiPortfolioHistory = (limit = 20, s?: AbortSignal) =>
+  get<AiPortfolioHistoryResp>(`/console/investment-os/ai-portfolio/history?limit=${limit}`, s);
+
 export interface LadderAdvanceResp {
   requested_from: string;
   approved: boolean;
