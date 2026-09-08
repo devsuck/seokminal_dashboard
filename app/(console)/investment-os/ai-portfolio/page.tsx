@@ -1,0 +1,106 @@
+"use client";
+// AI 포트폴리오 추천 — registry 검증 전략(paper_active+) 대상 Claude 배분 추천.
+// /console/investment-os/ai-portfolio/*. READ ONLY — 추천만, 실행/주문 없음. 사람이 최종 결정.
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  getAiPortfolioLatest, getAiPortfolioHistory,
+  type AiPortfolioResp, type AiPortfolioHistoryResp,
+} from "@/lib/console-api";
+import { Panel, PanelHead, Badge, SkeletonLines } from "@/components/console/primitives";
+
+export default function AiPortfolioPage() {
+  const [latest, setLatest] = useState<AiPortfolioResp | null>(null);
+  const [hist, setHist] = useState<AiPortfolioHistoryResp | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const run = useCallback(async () => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true);
+    setErr(null);
+    try {
+      const [l, h] = await Promise.all([
+        getAiPortfolioLatest(ctrl.signal),
+        getAiPortfolioHistory(20, ctrl.signal),
+      ]);
+      if (!ctrl.signal.aborted) { setLatest(l); setHist(h); }
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message);
+    } finally {
+      if (!ctrl.signal.aborted) setLoading(false);
+    }
+  }, []);
+  useEffect(() => { run(); return () => abortRef.current?.abort(); }, [run]);
+
+  const weights = Object.entries(latest?.weights ?? {});
+
+  return (
+    <div className="min-h-full c-bg p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-[9px] font-semibold tracking-[0.24em] uppercase text-[var(--c-text-3)]">
+            registry 검증 전략(paper_active+) · 주 1회 자동 생성
+          </div>
+          <div className="text-[13px] font-semibold text-[var(--c-text-1)]">AI 포트폴리오 추천</div>
+        </div>
+        <Link href="/investment-os" className="text-[11px] text-[var(--c-hud)] hover:underline no-underline">
+          ← Investment OS
+        </Link>
+      </div>
+
+      <Panel>
+        <PanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천"
+          right={<Badge tone="mute">추천 · 실배분/주문 아님 — 사람이 최종 결정</Badge>} />
+        <div className="p-4 space-y-2">
+          {loading && <SkeletonLines rows={4} />}
+          {err && <div className="text-[11px] text-[var(--c-neg)]">{err}</div>}
+          {latest?.fallback_used && (
+            <Badge tone="warn">AI 응답 실패 — 규칙 기반(evidence_weighted) 폴백</Badge>
+          )}
+          {!loading && weights.length === 0 && (
+            <div className="text-[11px] text-[var(--c-text-3)]">{latest?.note ?? "추천 없음"}</div>
+          )}
+          {weights.map(([sid, w]) => (
+            <div key={sid} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[var(--c-text-1)] w-52 truncate">{sid}</span>
+                <div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${w * 100}%`, background: "var(--c-hud)" }} />
+                </div>
+                <span className="text-[11px] c-num text-[var(--c-text-3)] w-14 text-right">{(w * 100).toFixed(1)}%</span>
+              </div>
+              {latest?.per_strategy_note?.[sid] && (
+                <div className="text-[9px] text-[var(--c-text-3)] pl-1">{latest.per_strategy_note[sid]}</div>
+              )}
+            </div>
+          ))}
+          {latest?.overall_rationale && (
+            <div className="pt-2 border-t border-[var(--c-border)] text-[11px] text-[var(--c-text-2)] leading-relaxed">
+              {latest.overall_rationale}
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      <Panel>
+        <PanelHead kicker="이력" title="최근 추천 이력" right={hist && <Badge tone="mute">{hist.records.length}건</Badge>} />
+        <div className="p-4 space-y-1.5">
+          {loading && <SkeletonLines rows={3} />}
+          {!loading && (hist?.records.length ?? 0) === 0 && (
+            <div className="text-[11px] text-[var(--c-text-3)]">이력 없음.</div>
+          )}
+          {hist?.records.map((r, i) => (
+            <div key={i} className="flex items-center justify-between text-[11px] c-num text-[var(--c-text-2)] border-b border-[var(--c-border)] last:border-0 py-1">
+              <span>{r.timestamp}</span>
+              <span>{Object.keys(r.weights).length}개 전략{r.fallback_used ? " · 폴백" : ""}</span>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}

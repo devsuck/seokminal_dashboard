@@ -364,7 +364,11 @@ function InvestmentOsInner() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Panel>
-                    <PanelHead kicker="포트폴리오 구성" title="추천 비중" right={<Badge tone="mute">추천 · 실배분 아님</Badge>} />
+                    <PanelHead kicker="포트폴리오 구성" title="추천 비중"
+                      right={<div className="flex items-center gap-2">
+                        <Badge tone="mute">추천 · 실배분 아님</Badge>
+                        <TabLink href="/investment-os/ai-portfolio" label="AI 추천 보기" />
+                      </div>} />
                     <div className="p-4 space-y-1.5">
                       {Object.entries(weights).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">소비할 연구 후보 없음 — 지식 축적 필요.</div>}
                       {Object.entries(weights).map(([sid, w]) => (
