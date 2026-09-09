@@ -15,24 +15,41 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   (typeof window !== "undefined" ? `http://${window.location.hostname}:8000` : "http://127.0.0.1:8000");
 
-// api_server의 _require_key_for_remote 미들웨어가 127.0.0.1이 아닌 요청엔 X-Api-Key를 강제함
-// (2026-09-02, 주문 라우트까지 열려있어 실거래 리스크). 이 파일의 fetch 호출 173곳 전부에
-// 헤더를 넣는 대신 전역 fetch를 한 번만 패치 — root cause 지점(요청 나가는 곳)에서 일괄 적용.
-// ponytail: 클라이언트 번들에 키가 그대로 노출됨(devtools로 보임) — iOS 앱도 동일 키를
-// 바이너리에 하드코딩해서 쓰는 중이라 기존 리스크 수준과 동일. 기기 여러 개로 늘면 per-device 키로 승격.
+// api_server의 _require_key_for_remote 미들웨어가 127.0.0.1이 아닌 요청엔 X-Api-Key 또는
+// 세션 쿠키를 강제함 (2026-09-02, 주문 라우트까지 열려있어 실거래 리스크). 이 파일의 fetch
+// 호출 173곳 전부에 손대는 대신 전역 fetch를 한 번만 패치 — root cause 지점에서 일괄 적용.
+// 2026-09-09: 클라우드 배포 대비 세션 로그인 추가. X-Api-Key는 iOS 앱 등 기존 기기 하위호환용
+// 그대로 유지, 웹은 credentials:'include'로 세션 쿠키(httpOnly라 JS 번들에 노출 안 됨) 사용.
+// 401(=미인증) 받으면 /login으로 보냄 — 로그인 자체 실패(비번 오류)는 리다이렉트 안 함.
 if (typeof window !== "undefined" && !(window as unknown as { __seokminalFetchPatched?: boolean }).__seokminalFetchPatched) {
   (window as unknown as { __seokminalFetchPatched: boolean }).__seokminalFetchPatched = true;
   const _originalFetch = window.fetch.bind(window);
   const _mobileKey = process.env.NEXT_PUBLIC_MOBILE_API_KEY ?? "";
-  window.fetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
+  window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-    if (_mobileKey && url.startsWith(API_URL)) {
-      const headers = new Headers(init.headers ?? (input instanceof Request ? input.headers : undefined));
-      headers.set("X-Api-Key", _mobileKey);
-      return _originalFetch(input, { ...init, headers });
+    if (!url.startsWith(API_URL)) return _originalFetch(input, init);
+
+    const headers = new Headers(init.headers ?? (input instanceof Request ? input.headers : undefined));
+    if (_mobileKey) headers.set("X-Api-Key", _mobileKey);
+    const res = await _originalFetch(input, { ...init, headers, credentials: "include" });
+    if (res.status === 401 && !url.includes("/auth/login") && !window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login";
     }
-    return _originalFetch(input, init);
+    return res;
   };
+}
+
+export async function login(password: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new ApiError(res.status, body.detail ?? res.statusText);
+  }
+  return res.json();
 }
 
 export interface BarOut {
