@@ -1,3 +1,24 @@
+## Phase 260 — 로그인 페이지 (클라우드 배포 대비 세션 인증) (2026-09-09) ✅ SHIPPED
+
+### 배경
+백엔드(`seokminal-multi-venue`)에 단일유저 세션 로그인(`api_server/auth.py`) 신설 — 상세는 그쪽
+`docs/progress.md` 2026-09-09 "단일유저 세션 로그인 추가" 참고. 이 Phase는 그 프론트 소비단.
+
+### 완료된 작업
+- `app/login/page.tsx` 신규 — 비밀번호 입력 → `lib/api.ts`의 `login()` 호출 → 성공 시 `/` 이동.
+- `lib/api.ts` 전역 fetch 패치 수정: `credentials:'include'` 추가(세션 쿠키가 cross-origin fetch에
+  실리도록), 응답 401 시 `/login`으로 리다이렉트(단, `/auth/login` 자체 실패나 이미 `/login`에
+  있을 땐 리다이렉트 안 함 — 무한루프 방지). 기존 `X-Api-Key` 주입은 그대로 유지(iOS 앱 하위호환).
+- tsc 0 errors, npm test 33/33. 커밋 `7ccbda8`.
+
+### 다음 할 일
+- 없음. 로컬(loopback)은 인증 게이트가 아예 안 걸려 실브라우저로 로그인 폼 클릭 테스트는 못함
+  (백엔드에서 curl로 원격 시뮬레이션만 검증) — 클라우드 배포 후 실환경 확인 권장.
+- park: 로그인 페이지가 루트 레이아웃(콘솔 셸) 그대로 물려받아 비로그인 상태에서도 사이드바가
+  보임(미관상 흠, 기능엔 무관) — 별도 레이아웃 분리는 오버엔지니어링 방지 지시에 따라 안 함.
+
+---
+
 ## Phase 259 — 죽은 c-panel-2 클래스 정리 (2026-09-09) ✅ SHIPPED
 
 ### 배경
