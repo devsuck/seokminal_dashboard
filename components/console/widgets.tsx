@@ -1,8 +1,47 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Panel, Dot } from "@/components/console/primitives";
 import type { AgentNode } from "@/lib/console-api";
+
+// ── manually-triggered fetch hook (검색창 등 사용자 입력으로 재실행, in-flight 요청 취소) ──
+export function useAbortableRun<T, A>(fetcher: (arg: A, signal: AbortSignal) => Promise<T>, initialArg: NoInfer<A>) {
+  const [data, setData] = useState<T | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const abortRef = useRef<AbortController | null>(null);
+  const run = useCallback((arg: A) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true); setErr(null);
+    fetcher(arg, ctrl.signal)
+      .then((d) => { if (!ctrl.signal.aborted) setData(d); })
+      .catch((e) => { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { run(initialArg); return () => abortRef.current?.abort(); }, [run]);
+  return { data, err, loading, run };
+}
+
+// ── tab bar (URL 쿼리 파라미터 기반 탭 전환) ────────────────────────
+export function TabBar<K extends string>({ tabs, active, onSelect }: { tabs: { key: K; label: string }[]; active: K; onSelect: (k: K) => void }) {
+  return (
+    <div className="flex gap-1 border-b border-[var(--c-border)] px-5 pt-3 overflow-x-auto">
+      {tabs.map((t) => (
+        <button key={t.key} onClick={() => onSelect(t.key)}
+          className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
+            active === t.key
+              ? "border-[var(--c-hud)] text-[var(--c-hud)] bg-[var(--c-hud)]/10"
+              : "border-transparent text-[var(--c-text-2)] hover:text-[var(--c-text-1)]"
+          }`}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ── generic fetch hook (옵션: pollMs 마다 조용히 자동 새로고침) ────
 export function useConsole<T>(fn: (s: AbortSignal) => Promise<T>, deps: unknown[] = [], pollMs = 0) {

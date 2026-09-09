@@ -102,85 +102,87 @@ function AccountCard({
 
 // ── 알파카 포지션 인라인 ─────────────────────────────────────────────────────
 
-function AlpacaPositions({ positions }: { positions: AlpacaPosition[] }) {
-  if (positions.length === 0) return <p className="text-ap-ink-3 text-xs">포지션 없음</p>;
+// ── 벤더별 포지션/보유종목 목록 공용 렌더러 ───────────────────────────────────
+
+function PositionRow({ name, side, sideLabel, pnlPositive, pnlLabel, detail }: {
+  name: string; side?: boolean; sideLabel?: string; pnlPositive: boolean; pnlLabel: React.ReactNode; detail: React.ReactNode;
+}) {
+  return (
+    <div className="py-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-ap-ink-1 font-medium min-w-0 truncate">{name}</span>
+          {sideLabel && (
+            <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${side ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
+              {sideLabel}
+            </span>
+          )}
+        </div>
+        <span className={`font-mono px-1 font-bold shrink-0 text-right ${pnlPositive ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
+          {pnlLabel}
+        </span>
+      </div>
+      <p className="text-ap-ink-3 font-mono mt-0.5">{detail}</p>
+    </div>
+  );
+}
+
+function PositionList<T>({ items, keyFn, empty, row }: {
+  items: T[]; keyFn: (item: T) => string; empty: string; row: (item: T) => React.ComponentProps<typeof PositionRow>;
+}) {
+  if (items.length === 0) return <p className="text-ap-ink-3 text-xs">{empty}</p>;
   return (
     <div className="divide-y divide-ap-line/60 text-[11px]">
-      {positions.map(p => (
-        <div key={p.symbol} className="py-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-ap-ink-1 font-medium">{p.symbol}</span>
-              <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${p.side === "long" ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
-                {p.side.toUpperCase()}
-              </span>
-            </div>
-            <span className={`font-mono px-1 font-bold shrink-0 text-right ${p.unrealized_pl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
-              {p.unrealized_pl >= 0 ? "+" : ""}${p.unrealized_pl.toFixed(2)}
-              <span className="text-ap-ink-3 ml-1 font-normal">({(p.unrealized_plpc * 100).toFixed(1)}%)</span>
-            </span>
-          </div>
-          <p className="text-ap-ink-3 font-mono mt-0.5">{p.qty}주 @ ${p.avg_entry_price.toFixed(2)} → ${p.current_price.toFixed(2)}</p>
-        </div>
-      ))}
+      {items.map((item) => <PositionRow key={keyFn(item)} {...row(item)} />)}
     </div>
+  );
+}
+
+function AlpacaPositions({ positions }: { positions: AlpacaPosition[] }) {
+  return (
+    <PositionList items={positions} keyFn={(p) => p.symbol} empty="포지션 없음" row={(p) => ({
+      name: p.symbol,
+      side: p.side === "long",
+      sideLabel: p.side.toUpperCase(),
+      pnlPositive: p.unrealized_pl >= 0,
+      pnlLabel: <>{p.unrealized_pl >= 0 ? "+" : ""}${p.unrealized_pl.toFixed(2)}<span className="text-ap-ink-3 ml-1 font-normal">({(p.unrealized_plpc * 100).toFixed(1)}%)</span></>,
+      detail: `${p.qty}주 @ $${p.avg_entry_price.toFixed(2)} → $${p.current_price.toFixed(2)}`,
+    })} />
   );
 }
 
 // ── Hyperliquid 포지션 인라인 ────────────────────────────────────────────────
 
 function HLPositions({ positions }: { positions: HLAssetPosition[] }) {
-  if (positions.length === 0) return <p className="text-ap-ink-3 text-xs">포지션 없음</p>;
   return (
-    <div className="divide-y divide-ap-line/60 text-[11px]">
-      {positions.map(p => {
-        const pos = p.position;
-        const szi = parseFloat(pos.szi);
-        const isLong = szi >= 0;
-        const pnl = parseFloat(pos.unrealizedPnl);
-        const roe = parseFloat(pos.returnOnEquity) * 100;
-        return (
-          <div key={pos.coin} className="py-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-ap-ink-1 font-medium">{pos.coin}</span>
-                <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${isLong ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
-                  {isLong ? "롱" : "숏"}
-                </span>
-              </div>
-              <span className={`font-mono px-1 font-bold shrink-0 text-right ${pnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
-                {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
-                <span className="text-ap-ink-3 ml-1 font-normal">({roe.toFixed(1)}%)</span>
-              </span>
-            </div>
-            <p className="text-ap-ink-3 font-mono mt-0.5">
-              {Math.abs(szi)} @ {pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—"} · 평가액 ${parseFloat(pos.positionValue).toFixed(2)}
-            </p>
-          </div>
-        );
-      })}
-    </div>
+    <PositionList items={positions} keyFn={(p) => p.position.coin} empty="포지션 없음" row={(p) => {
+      const pos = p.position;
+      const szi = parseFloat(pos.szi);
+      const isLong = szi >= 0;
+      const pnl = parseFloat(pos.unrealizedPnl);
+      const roe = parseFloat(pos.returnOnEquity) * 100;
+      return {
+        name: pos.coin,
+        side: isLong,
+        sideLabel: isLong ? "롱" : "숏",
+        pnlPositive: pnl >= 0,
+        pnlLabel: <>{pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}<span className="text-ap-ink-3 ml-1 font-normal">({roe.toFixed(1)}%)</span></>,
+        detail: `${Math.abs(szi)} @ ${pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—"} · 평가액 $${parseFloat(pos.positionValue).toFixed(2)}`,
+      };
+    }} />
   );
 }
 
 // ── KIS(한투) 보유종목 인라인 ─────────────────────────────────────────────────
 
 function KISHoldings({ holdings }: { holdings: KISHolding[] }) {
-  if (holdings.length === 0) return <p className="text-ap-ink-3 text-xs">보유 종목 없음</p>;
   return (
-    <div className="divide-y divide-ap-line/60 text-[11px]">
-      {holdings.map(h => (
-        <div key={h.code} className="py-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-ap-ink-1 font-medium min-w-0 truncate">{h.name}</span>
-            <span className={`font-mono px-1 font-bold shrink-0 text-right ${(h.return_pct ?? 0) >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>
-              {h.return_pct != null ? `${h.return_pct >= 0 ? "+" : ""}${h.return_pct.toFixed(1)}%` : "—"}
-            </span>
-          </div>
-          <p className="text-ap-ink-3 font-mono mt-0.5">{h.qty}주 @ ₩{h.avg_price.toLocaleString("ko-KR")} → ₩{h.current.toLocaleString("ko-KR")}</p>
-        </div>
-      ))}
-    </div>
+    <PositionList items={holdings} keyFn={(h) => h.code} empty="보유 종목 없음" row={(h) => ({
+      name: h.name,
+      pnlPositive: (h.return_pct ?? 0) >= 0,
+      pnlLabel: h.return_pct != null ? `${h.return_pct >= 0 ? "+" : ""}${h.return_pct.toFixed(1)}%` : "—",
+      detail: `${h.qty}주 @ ₩${h.avg_price.toLocaleString("ko-KR")} → ₩${h.current.toLocaleString("ko-KR")}`,
+    })} />
   );
 }
 

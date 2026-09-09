@@ -40,16 +40,13 @@ if (typeof window !== "undefined" && !(window as unknown as { __seokminalFetchPa
 }
 
 export async function login(password: string): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new ApiError(res.status, body.detail ?? res.statusText);
-  }
-  return res.json();
+  return handleResponse<{ ok: boolean }>(
+    await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    })
+  );
 }
 
 export interface BarOut {
@@ -1942,23 +1939,18 @@ export async function createAlertRule(
   req: CreateAlertRuleRequest,
   signal?: AbortSignal,
 ): Promise<AlertRule> {
-  const r = await fetch(`${API_URL}/alerts/rules`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-    signal,
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({ detail: r.statusText }));
-    throw new Error(err.detail ?? r.statusText);
-  }
-  return r.json();
+  return handleResponse<AlertRule>(
+    await fetch(`${API_URL}/alerts/rules`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal,
+    })
+  );
 }
 
 export async function getAlertRules(signal?: AbortSignal): Promise<AlertRule[]> {
-  const r = await fetch(`${API_URL}/alerts/rules`, { signal });
-  if (!r.ok) throw new Error(r.statusText);
-  const data: AlertRulesResponse = await r.json();
+  const data = await handleResponse<AlertRulesResponse>(await fetch(`${API_URL}/alerts/rules`, { signal }));
   return data.rules;
 }
 
@@ -2062,12 +2054,9 @@ export async function getWalkForward(
     n_windows: String(nWindows),
     ...strategyParams,
   });
-  const r = await fetch(`${API_URL}/backtest/walk-forward?${params.toString()}`, { signal });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({ detail: r.statusText }));
-    throw new ApiError(r.status, err.detail ?? r.statusText);
-  }
-  return r.json();
+  return handleResponse<WalkForwardResponse>(
+    await fetch(`${API_URL}/backtest/walk-forward?${params.toString()}`, { signal })
+  );
 }
 
 // ── Insider Trading ───────────────────────────────────────────────────────────

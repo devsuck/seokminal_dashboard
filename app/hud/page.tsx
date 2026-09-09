@@ -177,11 +177,6 @@ interface Unit {
   fleet?: { verdict: Verdict; ageSec: number | null; staleAfterS: number; reason: string };
 }
 
-/** 정합성 위반 엔티티 → 조사할 페이지. 모르는 엔티티는 포트폴리오로. */
-function violationHref(): string {
-  return "/portfolio";
-}
-
 function formatAge(ageSec: number | null): string {
   if (ageSec == null) return "데이터 없음";
   if (ageSec < 60) return `${ageSec}s 전`;
@@ -360,7 +355,7 @@ function HomeTab() {
             {health.violations.map((v, i) => (
               <Link
                 key={i}
-                href={violationHref()}
+                href="/portfolio"
                 className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px] hover:bg-ap-bg transition-colors">
                 <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
                 <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>

@@ -1,7 +1,7 @@
 "use client";
-import { Suspense, useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { Suspense, useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PageHeader } from "@/components/console/widgets";
+import { PageHeader, TabBar, useAbortableRun } from "@/components/console/widgets";
 import { Panel, PanelHead, Badge } from "@/components/console/primitives";
 import {
   getCouncilExpanded, type CouncilExpandedResp,
@@ -278,22 +278,9 @@ const W = 5, COLW = 240, ROWH = 30, PAD = 40;
 
 function GraphTab() {
   const [q, setQ] = useState("");
-  const [data, setData] = useState<ResearchGraphResp | null>(null);
   const [sel, setSel] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const run = useCallback(async (topic: string) => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true); setErr(null);
-    try { const d = await getResearchGraph(topic, ctrl.signal); if (!ctrl.signal.aborted) { setData(d); setSel(null); } }
-    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
-    finally { if (!ctrl.signal.aborted) setLoading(false); }
-  }, []);
-  useEffect(() => { run(""); return () => abortRef.current?.abort(); }, [run]);
+  const { data, err, run } = useAbortableRun(getResearchGraph, "");
+  useEffect(() => { setSel(null); }, [data]);
 
   const pos = useMemo(() => {
     const p: Record<string, { x: number; y: number }> = {};
@@ -374,21 +361,7 @@ const STAGE_TONE: Record<string, string> = {
 
 function TimelineTab() {
   const [q, setQ] = useState("");
-  const [data, setData] = useState<TimelineResp | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const run = useCallback(async (topic: string) => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true); setErr(null);
-    try { const d = await getResearchTimeline(topic, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
-    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
-    finally { if (!ctrl.signal.aborted) setLoading(false); }
-  }, []);
-  useEffect(() => { run(""); return () => abortRef.current?.abort(); }, [run]);
+  const { data, err, loading, run } = useAbortableRun(getResearchTimeline, "");
 
   return (
     <div className="min-h-full">
@@ -449,18 +422,7 @@ function GovernanceInner() {
 
   return (
     <div className="min-h-full">
-      <div className="flex gap-1 border-b border-[var(--c-border)] px-5 pt-3 overflow-x-auto">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
-              tab === t.key
-                ? "border-[var(--c-hud)] text-[var(--c-hud)] bg-[var(--c-hud)]/10"
-                : "border-transparent text-[var(--c-text-2)] hover:text-[var(--c-text-1)]"
-            }`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} active={tab} onSelect={setTab} />
       {tab === "committee" && <CommitteeTab />}
       {tab === "explain" && <ExplainTab />}
       {tab === "graph" && <GraphTab />}

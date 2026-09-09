@@ -1,7 +1,7 @@
 "use client";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PageHeader } from "@/components/console/widgets";
+import { PageHeader, TabBar, useAbortableRun } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
 import {
   getValidationLoop, type ValidationLoopResp,
@@ -25,18 +25,7 @@ function ValidationInner() {
 
   return (
     <div className="min-h-full">
-      <div className="flex gap-1 border-b border-[var(--c-border)] px-5 pt-3 overflow-x-auto">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
-              tab === t.key
-                ? "border-[var(--c-hud)] text-[var(--c-hud)] bg-[var(--c-hud)]/10"
-                : "border-transparent text-[var(--c-text-2)] hover:text-[var(--c-text-1)]"
-            }`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} active={tab} onSelect={setTab} />
       {tab === "validation" && <ValidationTab />}
       {tab === "production" && <ProductionTab />}
       {tab === "intelligence-plus" && <IntelligencePlusTab />}
@@ -220,19 +209,7 @@ const CONV_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM:
 
 function ProductionTab() {
   const [q, setQ] = useState("Does momentum work in KR equities?");
-  const [data, setData] = useState<ProductionReadinessResp | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const run = useCallback(async (query: string) => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setErr(null);
-    try { const d = await getProductionReadiness(query, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
-    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
-  }, []);
-  useEffect(() => { run("Does momentum work in KR equities?"); return () => abortRef.current?.abort(); }, [run]);
+  const { data, err, run } = useAbortableRun(getProductionReadiness, "Does momentum work in KR equities?");
 
   const ov = data?.institutional_overview;
   const cp = data?.committee_packet;
@@ -372,19 +349,7 @@ const PRIO_TONE: Record<string, "pos" | "warn" | "neg"> = { LOW: "pos", MEDIUM: 
 
 function IntelligencePlusTab() {
   const [q, setQ] = useState("Does momentum work in KR equities?");
-  const [data, setData] = useState<ResearchIntelligenceResp | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const run = useCallback(async (query: string) => {
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setErr(null);
-    try { const d = await getResearchIntelligence(query, ctrl.signal); if (!ctrl.signal.aborted) setData(d); }
-    catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); }
-  }, []);
-  useEffect(() => { run("Does momentum work in KR equities?"); return () => abortRef.current?.abort(); }, [run]);
+  const { data, err, run } = useAbortableRun(getResearchIntelligence, "Does momentum work in KR equities?");
 
   const ch = data?.creative_hypotheses;
   const cq = data?.continuous_queue;
