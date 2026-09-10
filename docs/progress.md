@@ -1,3 +1,48 @@
+## Phase 262 — 자본 청구 모델 프론트 (2026-09-11) ✅ SHIPPED
+
+### 배경
+유저 요청("자금구조 모델 브레인스토밍 시작해줘") → brainstorming(architectural, 7라운드 질의) →
+spec → 유저가 "자면서 계속해도 됨(실계좌 자금연결은 제외)" 승인 → 백엔드+API+프론트 전부 구현.
+상세: `seokminal-multi-venue/docs/progress.md` 2026-09-11 "자본 청구 모델 SDD 완료" 및
+`seokminal-multi-venue/docs/superpowers/specs/2026-09-11-capital-claim-model-design.md`.
+
+### 완료된 작업
+- `lib/console-api.ts` — `submitCapitalClaim`/`getCapitalClaimQueue`/`decideCapitalClaim`/
+  `getCapitalClaimHistory`/`getCapitalEnvelope`/`setCapitalEnvelope` + `CapitalClaim`/
+  `CapitalEnvelope` 등 타입.
+- `app/(console)/investment-os/capital-claims/page.tsx` 신규 — 엔벨로프 설정 폼, 청구 제출 폼,
+  대기열(승인/거부+사유), 이력 4패널. 기존 ai-portfolio 페이지와 동일 패턴(Panel/PanelHead/Badge,
+  --c-* 토큰).
+- `investment-os/page.tsx`에 탭 링크 연결.
+- tsc 0 errors, npm test 33/33. 커밋 `9a07311`.
+
+### 다음 할 일
+- 실계좌 자금이동 wiring은 명시적으로 범위 밖(유저 지시) — 다음 단계는 사용자 승인 후 별도 브레인스토밍.
+- 유저가 잠든 사이 자율 진행 — 판단 로그는 백엔드 progress.md 참고.
+
+---
+
+## Phase 261 — ponytail-review 프론트 중복 제거 (2026-09-09) ✅ SHIPPED
+
+### 배경
+`/ponytail:ponytail-review`로 양쪽 레포 전체(8존 병렬 fork 리뷰) 최적화 검토 → 저위험 findings
+즉시 수정 승인("둘 다 지금"). 상세는 백엔드 `docs/progress.md` 2026-09-09 "ponytail-review 전체
+프로젝트 정리" 참고. 이 Phase는 그 프론트 부분.
+
+### 완료된 작업
+- `components/console/widgets.tsx`: `useAbortableRun<T,A>` 훅 + `TabBar<K>` 컴포넌트 신규 —
+  research-os governance/validation 페이지 4곳의 abortRef+AbortController 반복 패턴,
+  URL-param 탭바 JSX 반복 제거.
+- `app/portfolio/page.tsx`: `AlpacaPositions`/`HLPositions`/`KISHoldings` 3개 벤더 컴포넌트의
+  거의 동일한 렌더 로직 → `PositionRow`/`PositionList<T>` 공용화.
+- `app/hud/page.tsx`: 호출부 1곳뿐인 `violationHref()` 함수 삭제, 인라인화.
+- `lib/api.ts`: `login`/`createAlertRule`/`getAlertRules`/`getWalkForward` 4개 함수가 각자
+  에러 파싱 재구현하던 것 → 기존 `handleResponse<T>()` 위임으로 통일.
+- 검증: `tsc --noEmit` 0 errors, `npm test` 33/33. 커밋 `c719cda`(6 files, +134/-182).
+
+### 다음 할 일
+없음.
+
 ## Phase 260 — 로그인 페이지 (클라우드 배포 대비 세션 인증) (2026-09-09) ✅ SHIPPED
 
 ### 배경
