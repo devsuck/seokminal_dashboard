@@ -801,6 +801,79 @@ export interface AiPortfolioHistoryResp {
 export const getAiPortfolioHistory = (limit = 20, s?: AbortSignal) =>
   get<AiPortfolioHistoryResp>(`/console/investment-os/ai-portfolio/history?limit=${limit}`, s);
 
+// ══════════════ 자본 청구 (Capital Claims) — 배정 장부만, 브로커 자금이동/주문 없음 ══════════════
+// 설계: seokminal-multi-venue/docs/superpowers/specs/2026-09-11-capital-claim-model-design.md
+export interface CapitalClaim {
+  claim_id: string;
+  strategy_id: string;
+  requested_amount: number | null;
+  proposed_amount: number | null;
+  ceiling_ref: { weight: number | null; capital_amount: number | null; as_of: string | null; stale: boolean } | null;
+  fulfillment_mode: "paper" | "live";
+  envelope_check: {
+    strategy_limit: number; pool_limit: number;
+    strategy_used_before: number; pool_used_before: number;
+    within_strategy: boolean; within_pool: boolean;
+  } | null;
+  status: "pending" | "approved" | "queued" | "rejected";
+  allocated_capital: number;
+  decided_by: string | null;
+  created_at: string;
+  decided_at: string | null;
+  reason: string;
+  is_decision: boolean;
+  executes_broker_order: boolean;
+  moves_real_capital: boolean;
+  note: string;
+  error?: string;
+  detail?: string;
+}
+export const submitCapitalClaim = (strategyId: string, requestedAmount?: number, s?: AbortSignal) =>
+  post<CapitalClaim>(
+    `/console/capital-claims?strategy_id=${encodeURIComponent(strategyId)}` +
+      (requestedAmount != null ? `&requested_amount=${requestedAmount}` : ""), s);
+
+export interface CapitalClaimQueueResp {
+  queue: CapitalClaim[];
+  count: number;
+  is_advisory: boolean;
+  is_decision: boolean;
+  note: string;
+}
+export const getCapitalClaimQueue = (s?: AbortSignal) =>
+  get<CapitalClaimQueueResp>(`/console/capital-claims/queue`, s);
+
+export const decideCapitalClaim = (claimId: string, approve: boolean, note = "", s?: AbortSignal) =>
+  post<CapitalClaim>(
+    `/console/capital-claims/${encodeURIComponent(claimId)}/decide?approve=${approve}&note=${encodeURIComponent(note)}`, s);
+
+export interface CapitalClaimHistoryResp {
+  records: CapitalClaim[];
+  count: number;
+}
+export const getCapitalClaimHistory = (strategyId = "", limit = 50, s?: AbortSignal) =>
+  get<CapitalClaimHistoryResp>(
+    `/console/capital-claims/history?strategy_id=${encodeURIComponent(strategyId)}&limit=${limit}`, s);
+
+export interface CapitalEnvelope {
+  pool_limit: number;
+  default_paper_limit: number;
+  per_strategy_paper_limit: Record<string, number>;
+  set_by?: string;
+  ts?: string;
+  error?: string;
+  detail?: string;
+}
+export const getCapitalEnvelope = (s?: AbortSignal) =>
+  get<CapitalEnvelope>(`/console/capital-envelope`, s);
+
+export const setCapitalEnvelope = (
+  poolLimit: number, defaultPaperLimit: number, perStrategyPaperLimit: Record<string, number>, s?: AbortSignal,
+) =>
+  post<CapitalEnvelope>(
+    `/console/capital-envelope?pool_limit=${poolLimit}&default_paper_limit=${defaultPaperLimit}` +
+      `&per_strategy_paper_limit_json=${encodeURIComponent(JSON.stringify(perStrategyPaperLimit))}`, s);
+
 export interface LadderAdvanceResp {
   requested_from: string;
   approved: boolean;

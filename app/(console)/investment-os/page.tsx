@@ -36,9 +36,27 @@ const RUNG_LABEL: Record<string, string> = {
 const RUNGS = ["PAPER", "SHADOW", "SMALL_CAPITAL", "PRODUCTION_CANDIDATE", "AUTO_EXECUTION"];
 interface ApprovalEntry { from: string; to: string; approved: boolean; advanced: boolean; reason: string | null; ts: string }
 
+// 전략 생애주기 — jarvis/registry/lifecycle.py Status (16종)
 const STATUS_LABEL: Record<string, string> = {
-  paper_active: "페이퍼 운용중", paper_candidate: "페이퍼 후보",
-  paper_candidate_forward_test_required: "페이퍼 후보 · Forward 테스트 필요", watchlist: "워치리스트",
+  draft: "초안", data_audit_passed: "데이터 감사 통과", blocked_by_data: "데이터 문제로 차단",
+  sanity_check_only: "정합성 점검만 완료", backtested: "백테스트 완료", watchlist: "워치리스트",
+  rejected: "반려됨", paper_candidate: "페이퍼 후보",
+  paper_candidate_forward_test_required: "페이퍼 후보 · Forward 테스트 필요",
+  paper_active: "페이퍼 운용중", paper_failed: "페이퍼 실패", paper_retired: "페이퍼 은퇴",
+  live_candidate: "실거래 후보", micro_live: "소액 실거래", constrained_live: "제한적 실거래",
+  retired: "은퇴",
+};
+// 지식/전략 헬스 등급 — jarvis/research_workflow/knowledge_quality.py
+const GRADE_LABEL: Record<string, string> = {
+  EMPTY: "데이터 없음", HEALTHY: "양호", FAIR: "보통", DEGRADED: "저하됨",
+};
+// Edge/Validation Score 상태 — jarvis/research_workflow/research_validation_score.py
+const SCORE_STATUS_LABEL: Record<string, string> = {
+  PROVISIONAL: "미확정", SCORED: "계산됨",
+};
+// data_health 상태 — jarvis/research_workflow/data_quality.py (system_health와 별개 도메인)
+const DATA_HEALTH_LABEL: Record<string, string> = {
+  ok: "정상", DEGRADED: "저하됨", LIMITED: "제한됨",
 };
 
 // STEP4-B 원칙: 단순 ranking/숫자 스코어 금지 — Evidence Quality + Validation Status + Forward Progress + Risk State
@@ -272,10 +290,10 @@ function InvestmentOsInner() {
         {data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`research 무변경: ${!data.knowledge.research_os_modified}`} tone="hud" />
+              <StatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`research 무변경: ${!data.knowledge.research_os_modified ? "예" : "아니오"}`} tone="hud" />
               <StatTile label="포트폴리오 포지션" value={String(Object.keys(weights).length)} sub={data.portfolio.method} tone="pos" />
-              <StatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`override 불가: ${!data.compliance.human_can_override}`} tone={data.compliance.compliant ? "pos" : "neg"} />
-              <StatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`bypass: ${data.gates.bypass_possible}`} tone={data.gates.passed ? "pos" : "warn"} />
+              <StatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`override 불가: ${!data.compliance.human_can_override ? "예" : "아니오"}`} tone={data.compliance.compliant ? "pos" : "neg"} />
+              <StatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`bypass: ${data.gates.bypass_possible ? "가능" : "불가"}`} tone={data.gates.passed ? "pos" : "warn"} />
             </div>
 
             {/* Tab bar — STEP4-D 5-view consolidation */}
@@ -346,7 +364,7 @@ function InvestmentOsInner() {
                     <div className="p-4 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge tone={org.data.operational_status.operational ? "pos" : "warn"}>{org.data.operational_status.operational ? "가동 중" : "검토 필요"}</Badge>
-                        <Badge tone="mute">지식 헬스: {org.data.knowledge_health.grade}</Badge>
+                        <Badge tone="mute" title={org.data.knowledge_health.grade}>지식 헬스: {GRADE_LABEL[org.data.knowledge_health.grade] ?? org.data.knowledge_health.grade}</Badge>
                         {org.data.strategy_health.review_needed_count > 0 && <Badge tone="warn">review 필요 {org.data.strategy_health.review_needed_count}</Badge>}
                       </div>
                       {org.data.strategy_health.strategies.map((s) => (
@@ -354,7 +372,7 @@ function InvestmentOsInner() {
                           <span className="text-[var(--c-text-1)]">{s.strategy}</span>
                           <span className="flex items-center gap-2">
                             <span className="c-num text-[var(--c-text-2)]">{s.health_score}</span>
-                            <Badge tone={s.review_needed ? "warn" : "pos"}>{s.grade}</Badge>
+                            <Badge tone={s.review_needed ? "warn" : "pos"} title={s.grade}>{GRADE_LABEL[s.grade] ?? s.grade}</Badge>
                           </span>
                         </div>
                       ))}
@@ -368,6 +386,7 @@ function InvestmentOsInner() {
                       right={<div className="flex items-center gap-2">
                         <Badge tone="mute">추천 · 실배분 아님</Badge>
                         <TabLink href="/investment-os/ai-portfolio" label="AI 추천 보기" />
+                        <TabLink href="/investment-os/capital-claims" label="자본 청구" />
                       </div>} />
                     <div className="p-4 space-y-1.5">
                       {Object.entries(weights).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">소비할 연구 후보 없음 — 지식 축적 필요.</div>}
@@ -386,7 +405,7 @@ function InvestmentOsInner() {
                           {alloc.data.derived_proposal!.map((a) => (
                             <div key={a.strategy_id} className="flex items-center justify-between text-[11px]">
                               <span className="text-[var(--c-text-2)]">{a.name} · {a.factor}</span>
-                              <span className="c-num text-[var(--c-text-3)]">{(a.target_weight * 100).toFixed(1)}% · {a.status}</span>
+                              <span className="c-num text-[var(--c-text-3)]">{(a.target_weight * 100).toFixed(1)}% · <span title={a.status}>{STATUS_LABEL[a.status] ?? a.status}</span></span>
                             </div>
                           ))}
                         </div>
@@ -430,11 +449,11 @@ function InvestmentOsInner() {
                       <div className="flex flex-wrap items-center gap-2 text-[11px]">
                         <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">Edge Score</span>
                         {acct.edge_score.status === "PROVISIONAL"
-                          ? <Badge tone="mute">PROVISIONAL — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨 (표본 부족, 랭킹 아님)</Badge>
-                          : <Badge tone="pos">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</Badge>}
+                          ? <Badge tone="mute" title="PROVISIONAL">미확정 — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨 (표본 부족, 랭킹 아님)</Badge>
+                          : <Badge tone="pos" title="SCORED">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</Badge>}
                         {conn && (
-                          <Badge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"}>
-                            Validation Score: {conn.validation_score.status === "PROVISIONAL" ? "PROVISIONAL" : "계산됨"}
+                          <Badge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"} title={conn.validation_score.status}>
+                            Validation Score: {SCORE_STATUS_LABEL[conn.validation_score.status ?? ""] ?? conn.validation_score.status}
                           </Badge>
                         )}
                       </div>
@@ -453,7 +472,7 @@ function InvestmentOsInner() {
                             <Badge tone={eq.tone}>근거: {eq.label}</Badge>
                             <Badge tone={fp.tone}>Forward: {fp.label}</Badge>
                             <Badge tone={rs.tone}>리스크: {rs.label}</Badge>
-                            {!r.prediction_captured && <Badge tone="warn">Thesis 사전등록 안 됨(P201 미기록)</Badge>}
+                            {!r.prediction_captured && <Badge tone="warn" title="P201 미기록">Thesis 사전등록 안 됨</Badge>}
                           </div>
                           {(r.next_possible?.length ?? 0) > 0 && (
                             <div className="text-[11px] text-[var(--c-text-3)]">
@@ -648,7 +667,7 @@ function InvestmentOsInner() {
                   {riskGov.data && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>실행 리스크 이벤트: <span className="c-num text-[var(--c-text-1)]">{riskGov.data.execution_risk_events}</span></div>
-                      <div>자율성 레벨 {riskGov.data.autonomy.level} · 라이브 집행 활성화: {String(riskGov.data.autonomy.live_execution_enabled)}</div>
+                      <div>자율성 레벨 {riskGov.data.autonomy.level} · 라이브 집행 활성화: {riskGov.data.autonomy.live_execution_enabled ? "켜짐" : "꺼짐"}</div>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(riskGov.data.limits).map(([k, v]) => <Badge key={k} tone="mute">{k}: {String(v)}</Badge>)}
                       </div>
@@ -676,7 +695,7 @@ function InvestmentOsInner() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <Panel>
-                    <PanelHead kicker="agents + council (기존 API)" title="협의회 / 승인" right={agents.data && <Badge tone="neg">라이브 집행: {String(agents.data.live_execution_enabled)}</Badge>} />
+                    <PanelHead kicker="agents + council (기존 API)" title="협의회 / 승인" right={agents.data && <Badge tone="neg">라이브 집행: {agents.data.live_execution_enabled ? "켜짐" : "꺼짐"}</Badge>} />
                     <div className="p-4 space-y-2">
                       {agents.loading && <SkeletonLines rows={3} />}
                       {agents.data && <AgentTree node={agents.data.council} />}
@@ -729,7 +748,7 @@ function InvestmentOsInner() {
                 {/* Execution ladder — 인터랙티브 승인 워크플로 */}
                 <Panel>
                   <PanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리"
-                    right={<Badge tone="neg">auto_execution: {String(ladder?.auto_execution_enabled)}</Badge>} />
+                    right={<Badge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</Badge>} />
                   <div className="p-4 space-y-3">
                     <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed bg-[var(--c-panel-2)] px-3 py-2">
                       전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
@@ -860,7 +879,7 @@ function InvestmentOsInner() {
 
                   <Panel>
                     <PanelHead kicker="live-intelligence (기존 API)" title="라이브 데이터 소스"
-                      right={live.data && <Badge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"}>{live.data.data_health.overall_status}</Badge>} />
+                      right={live.data && <Badge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"} title={live.data.data_health.overall_status}>{DATA_HEALTH_LABEL[live.data.data_health.overall_status] ?? live.data.data_health.overall_status}</Badge>} />
                     {live.loading && <div className="p-4"><SkeletonLines rows={2} /></div>}
                     {live.data && (
                       <div className="p-4 space-y-1 text-[11px] text-[var(--c-text-2)]">
