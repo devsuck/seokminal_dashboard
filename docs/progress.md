@@ -1,3 +1,31 @@
+## Phase 263 — 모바일 반응형 다듬기 (2026-09-13) ✅ SHIPPED
+
+### 배경
+유저: "디자인이 핸드폰 용이 아닌 것 같아" → "대시보드 전체" 스코프로 확인.
+조사해보니 이전 세션에서 이미 절반 작업해둔 미커밋 상태 발견(HUD 리팩터+반응형+
+next.config LAN/Tailscale origin 추가) — 커밋 전 상태로 방치돼 있었음. "이어서 하자"
+승인받아 마무리.
+
+### 발견/완료된 작업
+1. `components/console/BottomTabBar.tsx` 오표기 버그: 탭 라벨 "Research OS"인데
+   href는 `/investment-os` (e66f8a1 pipeline 라우트 삭제 리팩터 때 href만 바뀌고 라벨
+   안 고쳐짐). "Investment OS"로 수정. 커밋 `f6655e3`.
+2. 나머지 미커밋 파일 조사 → 이미 완성된 상태였음(tsc/test 통과):
+   - `app/hud/summary/page.tsx` 신규(폰 전용 요약), `useHudFeed.ts`/`StatusDot.tsx` 분리 —
+     근데 **BottomTabBar 홈 탭에 연결이 안 돼서 고아 라우트**였음. `/hud` → `/hud/summary`로
+     연결(TabIcon switch case도 같이 수정).
+   - `/hud`, `/portfolio`, HUD 탭들 반응형 패딩(`p-6→p-4 sm:p-6`) 등 다수 소폭 수정.
+   - research-os validation/governance: 백엔드 enum 코드 그대로 노출하던 뱃지 →
+     한국어 라벨(원본 코드는 `title` 속성에 유지).
+3. tsc 0 errors, npm test 33/33. 커밋 `4f42a3e`.
+
+### 다음 할 일
+- Claude in Chrome 브라우저 확장 미연결이라 실제 모바일 뷰포트 비주얼 확인 못 함 —
+  확장 연결되면 실기기/뷰포트로 스크린샷 검증 권장.
+- 그 외 페이지(quant, exec, portfolio-os 등)는 이번 스코프 밖 — 필요시 추가 요청.
+
+---
+
 ## Phase 262 — 자본 청구 모델 프론트 (2026-09-11) ✅ SHIPPED
 
 ### 배경
