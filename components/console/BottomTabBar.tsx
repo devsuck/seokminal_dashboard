@@ -13,7 +13,7 @@ function isActivePath(pathname: string, href: string) {
 const PRIMARY_TABS = [
   { href: "/hud", label: "홈" },
   { href: "/portfolio", label: "포트폴리오" },
-  { href: "/investment-os", label: "Research OS" },
+  { href: "/investment-os", label: "Investment OS" },
 ];
 
 function TabIcon({ href, active }: { href: string; active: boolean }) {
