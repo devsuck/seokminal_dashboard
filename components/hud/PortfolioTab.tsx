@@ -45,9 +45,9 @@ function AssetTile({ data }: { data: AssetTileData }) {
   const pos = data.returnPct != null && data.returnPct >= 0;
   return (
     <Link href={data.href}
-      className="block bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4 no-underline hover:border-ap-ink-3 transition-colors">
+      className="block min-w-0 bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4 no-underline hover:border-ap-ink-3 transition-colors">
       <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide">{data.label}</p>
-      <p className="text-ap-ink-1 text-xl font-mono font-bold mt-1">{fmt(data.value, data.ccy)}</p>
+      <p className="text-ap-ink-1 text-xl font-mono font-bold mt-1 truncate">{fmt(data.value, data.ccy)}</p>
       <p className={`text-xs font-mono mt-1 ${data.returnPct == null ? "text-ap-ink-3" : pos ? "text-ap-up" : "text-ap-down"}`}>
         {pctLabel(data.returnPct)}
       </p>
@@ -113,7 +113,7 @@ export default function PortfolioTab() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         <LoadingState message="포트폴리오 로딩 중…" hint="자산군별 보유내역 집계 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
       </div>
     );
@@ -148,7 +148,7 @@ export default function PortfolioTab() {
     .map(t => ({ label: t.label, value: t.returnPct as number, href: t.href }));
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
       <h1 className="text-xl font-semibold text-ap-ink-1 tracking-wide">총 포트폴리오</h1>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {tiles.map(t => <AssetTile key={t.label} data={t} />)}

@@ -21,7 +21,9 @@ const TABS: { key: TabKey; label: string }[] = [
 
 // ---- committee/page.tsx (P93 — Human Decision Center / Investment Committee) ----
 const STANCE: Record<string, string> = { SUPPORT: "var(--c-pos)", INFO: "var(--c-blue)", NEUTRAL: "var(--c-text-3)", CAUTION: "var(--c-warn)", OPPOSE: "var(--c-neg)" };
+const STANCE_LABEL: Record<string, string> = { SUPPORT: "지지", INFO: "정보", NEUTRAL: "중립", CAUTION: "주의", OPPOSE: "반대" };
 const CONF: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
+const CONF_LABEL: Record<string, string> = { HIGH: "높음", MEDIUM: "중간", LOW: "낮음" };
 const EXAMPLES = [
   "모멘텀 전략을 배포해야 하는가?",
   "DART 바이백 봇 자본 배분을 늘려야 하는가?",
@@ -43,7 +45,7 @@ function CommitteeTab() {
   const submit = (text: string) => { setQ(text); run(text); };
   return (
     <div className="min-h-full">
-      <PageHeader kicker="P93" title="투자 위원회" right={memo?.confidence && <Badge tone={CONF[memo.confidence] ?? "mute"}>{memo.confidence}</Badge>} />
+      <PageHeader kicker="P93" title="투자 위원회" right={memo?.confidence && <Badge tone={CONF[memo.confidence] ?? "mute"} title={memo.confidence}>신뢰도 {CONF_LABEL[memo.confidence] ?? memo.confidence}</Badge>} />
       <div className="p-5 space-y-4">
         <Panel hud className="p-5">
           <div className="text-[13px] font-semibold text-[var(--c-text-1)]">어떤 논제를 심의할까요?</div>
@@ -81,7 +83,7 @@ function CommitteeTab() {
                     <div key={i} className="flex items-start gap-3 py-1.5 border-b border-[var(--c-border)] last:border-0">
                       <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: STANCE[ln.stance] ?? "var(--c-text-3)" }} />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2"><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{ln.lens}</span><span className="text-[9px] c-num uppercase" style={{ color: STANCE[ln.stance] ?? "var(--c-text-3)" }}>{ln.stance}</span></div>
+                        <div className="flex items-center gap-2"><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{ln.lens}</span><span className="text-[9px] c-num uppercase" style={{ color: STANCE[ln.stance] ?? "var(--c-text-3)" }} title={ln.stance}>{STANCE_LABEL[ln.stance] ?? ln.stance}</span></div>
                         <div className="text-[11px] text-[var(--c-text-3)]">{ln.rationale}</div>
                       </div>
                     </div>
@@ -154,7 +156,7 @@ function ExplainTab() {
   return (
     <div className="min-h-full">
       <PageHeader kicker="P71" title="설명 가능성"
-        right={data?.confidence && <Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"}>신뢰도 {data.confidence}</Badge>} />
+        right={data?.confidence && <Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>신뢰도 {CONF_LABEL[data.confidence] ?? data.confidence}</Badge>} />
       <div className="p-5">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2 mb-4">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
@@ -216,7 +218,7 @@ function ExplainTab() {
               {/* 신뢰도 분해 */}
               <Panel>
                 <PanelHead kicker="신뢰도" title="분해"
-                  right={<Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"}>{data.confidence}</Badge>} />
+                  right={<Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>{CONF_LABEL[data.confidence ?? ""] ?? data.confidence}</Badge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(data.confidence_breakdown ?? {}).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3 py-1 border-b border-[var(--c-border)] last:border-0">
@@ -358,6 +360,12 @@ const STAGE_TONE: Record<string, string> = {
   Paper: "var(--c-blue)", "Decision Memo": "var(--c-warn)", "Human Review": "var(--c-warn)",
   Archive: "var(--c-text-3)",
 };
+const STAGE_LABEL: Record<string, string> = {
+  Idea: "아이디어", Hypothesis: "가설", Experiment: "실험", Backtest: "백테스트",
+  Validation: "검증", Failure: "실패 분석", Lesson: "교훈", "Portfolio Effect": "포트폴리오 영향",
+  Risk: "리스크", Paper: "페이퍼", "Decision Memo": "의사결정 메모", "Human Review": "사람 검토",
+  Archive: "보관",
+};
 
 function TimelineTab() {
   const [q, setQ] = useState("");
@@ -380,7 +388,7 @@ function TimelineTab() {
             {/* 스테이지 분포 */}
             <div className="flex flex-wrap gap-1.5">
               {data.stage_order.filter((s) => data.by_stage[s]).map((s) => (
-                <Badge key={s} tone="mute">{s} · {data.by_stage[s]}</Badge>
+                <Badge key={s} tone="mute" title={s}>{STAGE_LABEL[s] ?? s} · {data.by_stage[s]}</Badge>
               ))}
             </div>
             <Panel>
@@ -395,7 +403,7 @@ function TimelineTab() {
                         <span className="absolute left-[-11px] top-1 h-2 w-2 rounded-full" style={{ background: c, boxShadow: `0 0 6px ${c}` }} />
                         {i < data.entries.length - 1 && <span className="absolute left-[-7px] top-3 bottom-0 w-px bg-[var(--c-border)]" />}
                         <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c }}>{e.stage}</span>
+                          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c }} title={e.stage}>{STAGE_LABEL[e.stage] ?? e.stage}</span>
                           <span className="text-[11px] text-[var(--c-text-1)]">{e.label || e.ref}</span>
                           <span className="text-[9px] c-num text-[var(--c-text-3)] ml-auto">{e.source} · {e.timestamp}</span>
                         </div>

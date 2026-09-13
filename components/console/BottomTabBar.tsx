@@ -11,7 +11,7 @@ function isActivePath(pathname: string, href: string) {
 }
 
 const PRIMARY_TABS = [
-  { href: "/hud", label: "홈" },
+  { href: "/hud/summary", label: "홈" },
   { href: "/portfolio", label: "포트폴리오" },
   { href: "/investment-os", label: "Investment OS" },
 ];
@@ -20,7 +20,7 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
   const stroke = active ? "var(--c-hud)" : "var(--c-text-3)";
   const props = { width: 21, height: 21, viewBox: "0 0 16 16", fill: "none", stroke, strokeWidth: 1.3, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className: "shrink-0" };
   switch (href) {
-    case "/hud":
+    case "/hud/summary":
       return <svg {...props}><circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" /></svg>;
     case "/portfolio":
       return <svg {...props}><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></svg>;

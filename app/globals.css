@@ -357,7 +357,7 @@
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.page-transition { animation: page-fade-in 0.18s ease-out; }
+.page-transition { height: 100%; animation: page-fade-in 0.18s ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .page-transition { animation: none; }
 }

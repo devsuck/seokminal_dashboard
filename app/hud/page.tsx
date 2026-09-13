@@ -1,20 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  getLabState, getJarvisStatus, getAutoResearch, getBuybackBot, listAgents, getLabStatus,
-  getExecutionConsole, getExecutionEdge, getAccountBalances, getTriggeredAlerts,
-  getLabHealth, getFleet,
-  type LabState, type JarvisStatus, type AutoResearchStatus, type BuybackBot,
-  type TradingAgent, type LabStatus, type ExecutionConsole, type ExecutionEdge,
-  type AccountBalances, type TriggeredAlert, type CollectorKey,
-  type LabHealth, type FleetResponse,
-} from "@/lib/api";
-import {
-  getConsolePipeline, getRisk, getInvestmentOs,
-  type ConsolePipeline, type RiskResp, type InvestmentOsResp,
-} from "@/lib/console-api";
+import { type CollectorKey } from "@/lib/api";
 import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -27,6 +15,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PortfolioTab from "@/components/hud/PortfolioTab";
 import ExecutionTab from "@/components/hud/ExecutionTab";
 import TasksTab from "@/components/hud/TasksTab";
+import { useHudFeed } from "@/components/hud/useHudFeed";
+import { StatusDot } from "@/components/hud/StatusDot";
 
 /* AI LAB 통제판(구 /lab, /research-os/pipeline)은 read-only 리뉴얼(2026-08-25)에서 삭제 —
    집행콘솔·페이퍼모니터는 "운영" 한 탭 안에서 토글로 묶어 HOME 상단 탭 수를 줄임. */
@@ -101,26 +91,6 @@ export default function HudShell() {
    3) 계좌 잔액 + 돈길 핵심 3줄
    상세 수치는 각 전용 페이지(/auto-research, /hud?tab=ops)로 위임. */
 
-type Tone = "pos" | "accent" | "info" | "neg" | "warn" | "text-3";
-const TONE: Record<Tone, { solid: string; text: string }> = {
-  pos:      { solid: "bg-ap-up",    text: "text-ap-up" },
-  accent:   { solid: "bg-ap-brand", text: "text-ap-brand" },
-  info:     { solid: "bg-ap-note",   text: "text-ap-note" },
-  neg:      { solid: "bg-ap-down",    text: "text-ap-down" },
-  warn:     { solid: "bg-ap-caution",   text: "text-ap-caution" },
-  "text-3": { solid: "bg-ap-ink-3", text: "text-ap-ink-3" },
-};
-
-function StatusDot({ tone, label }: { tone: Tone; label?: string }) {
-  const c = TONE[tone];
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`w-2 h-2 rounded-full inline-block ${c.solid}`} />
-      {label && <span className={`text-[11px] font-data ${c.text}`}>{label}</span>}
-    </span>
-  );
-}
-
 const WORLD_CITIES: { label: string; tz: string }[] = [
   { label: "서울", tz: "Asia/Seoul" },
   { label: "뉴욕", tz: "America/New_York" },
@@ -146,8 +116,8 @@ function WorldClock({ now }: { now: Date }) {
 }
 
 /** 돈길 = 순서 있는 관문. 텍스트 3칸으로는 "어디까지 왔나"가 안 보여서 스테퍼로. */
-function LadderStep({ label, value, state }: {
-  label: string; value: string; state: "done" | "current" | "blocked" | "pending";
+function LadderStep({ label, value, title, state }: {
+  label: string; value: string; title?: string; state: "done" | "current" | "blocked" | "pending";
 }) {
   const tone = state === "done" ? "text-ap-up" : state === "blocked" ? "text-ap-down"
     : state === "current" ? "text-ap-brand" : "text-ap-ink-3";
@@ -157,17 +127,9 @@ function LadderStep({ label, value, state }: {
     <div className="flex-1 min-w-0 px-1.5 pb-1.5">
       <div className={`h-0.5 mb-1 ${bar}`} />
       <p className="text-ap-ink-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
-      <p className={`font-data text-xs font-bold truncate ${tone}`}>{value}</p>
+      <p className={`font-data text-xs font-bold truncate ${tone}`} title={title}>{value}</p>
     </div>
   );
-}
-
-interface Feed {
-  lab: LabState | null; jarvis: JarvisStatus | null; ar: AutoResearchStatus | null;
-  bot: BuybackBot | null; agents: TradingAgent[] | null; sys: LabStatus | null;
-  exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
-  health: LabHealth | null; fleet: FleetResponse | null;
-  pipeline: ConsolePipeline | null; risk: RiskResp | null; ios: InvestmentOsResp | null;
 }
 
 interface Unit {
@@ -200,11 +162,13 @@ function UnitCard({ u }: { u: Unit }) {
         <StatusDot tone={v ? (v === "fresh" ? "pos" : v === "stale" ? "warn" : "neg") : u.running ? "pos" : "text-3"} />
         <span className="text-[11px] font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
         {u.fleet && (
-          <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
+          <span className="hidden sm:block">
+            <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
+          </span>
         )}
-        <span className={`text-[11px] font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-20" : "max-w-[45%]"}`}>{u.detail}</span>
+        <span className={`text-[11px] font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-14 sm:w-20" : "max-w-[30%] sm:max-w-[45%]"}`}>{u.detail}</span>
       </Link>
-      <span className={`text-[9px] px-1 border font-data shrink-0 ${
+      <span className={`hidden sm:inline-flex text-[9px] px-1 border font-data shrink-0 ${
         u.kind === "AI" ? "border-ap-brand/40 text-ap-brand" : "border-ap-line text-ap-ink-3"}`}>{u.kind}</span>
       <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
         {statusText}
@@ -214,66 +178,9 @@ function UnitCard({ u }: { u: Unit }) {
 }
 
 function HomeTab() {
-  const [f, setF] = useState<Feed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
-  const [bal, setBal] = useState<AccountBalances | null>(null);
+  const { feed: f, bal } = useHudFeed();
   const [now, setNow] = useState(new Date());
   const [activityView, setActivityView] = useState<"alerts" | "log" | "trades">("alerts");
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      abortRef.current?.abort();
-      const c = new AbortController();
-      abortRef.current = c;
-      const [lab, jarvis, ar, bot, agentsRes, sys, exec, edge, alerts, health, fleet] = await Promise.all([
-        getLabState(c.signal).catch(() => null),
-        getJarvisStatus(c.signal).catch(() => null),
-        getAutoResearch(c.signal).catch(() => null),
-        getBuybackBot(c.signal).catch(() => null),
-        listAgents(c.signal).catch(() => null),
-        getLabStatus(c.signal).catch(() => null),
-        getExecutionConsole(c.signal).catch(() => null),
-        getExecutionEdge(c.signal).catch(() => null),  // read_only 캐시 — 서버 계산 없음
-        getTriggeredAlerts(c.signal).catch(() => null),
-        getLabHealth(c.signal).catch(() => null),  // 봇·에이전트 정합성 불변식
-        getFleet(c.signal).catch(() => null),      // 수집기 신선도 판정(fresh/stale/stuck/dead)
-      ]);
-      if (mounted && !c.signal.aborted) setF((prev) => ({ ...prev, lab, jarvis, ar, bot, agents: agentsRes?.agents ?? null, sys, exec, edge, alerts, health, fleet }));
-    }
-    load();
-    const iv = setInterval(load, 4000);
-    return () => { mounted = false; clearInterval(iv); abortRef.current?.abort(); };
-  }, []);
-
-  // 계좌 잔액은 KIS/IB 등 외부 브로커 API를 직접 호출해 5~30초씩 걸릴 수 있음 —
-  // 4초 주기 메인 피드 루프에 섞으면 abort-then-check 경합으로 상태 갱신 자체가 막힘.
-  // 별도의 느린 주기로 독립 폴링.
-  // pipeline/risk/investment-os도 여기서 같이 폴링 — getInvestmentOs는 validate_separation()이
-  // 매 요청마다 ast.parse로 소스 트리를 재파싱해 200ms+ 걸림. 판단 필요 신호는 초단위 신선도가
-  // 필요 없으므로(30초면 충분) 4초 메인 루프에 두면 상시 열려있는 홈페이지에서 CPU를 계속 태움.
-  useEffect(() => {
-    let mounted = true;
-    let inFlight = false;
-    async function loadBal() {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const b = await getAccountBalances();
-        if (mounted) setBal(b);
-      } catch { /* 이전 값 유지 */ }
-      const [pipeline, risk, ios] = await Promise.all([
-        getConsolePipeline().catch(() => null),
-        getRisk().catch(() => null),
-        getInvestmentOs(1_000_000).catch(() => null),
-      ]);
-      if (mounted) setF((prev) => ({ ...prev, pipeline, risk, ios }));
-      inFlight = false;
-    }
-    loadBal();
-    const iv = setInterval(loadBal, 30000);
-    return () => { mounted = false; clearInterval(iv); };
-  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -292,6 +199,8 @@ function HomeTab() {
     : edge?.status === "accumulating" ? "누적 중" : edge?.status === "no_oos_yet" ? "OOS 대기" : "워밍 중";
   const edgeTone = edge?.status === "confirmed" ? "text-ap-up" : edge?.status === "drifting" ? "text-ap-down"
     : edge?.status === "accumulating" ? "text-ap-brand" : "text-ap-note";
+  const armLabel = arm?.decision === "GO" ? "진입 가능" : arm?.decision === "KILL" ? "중단" : arm?.decision === "WAIT" ? "대기" : "—";
+  const liveLabel = jarvis?.live_execution === "enabled" ? "가동" : jarvis?.live_execution === "disabled" ? "비활성" : "—";
 
   // 전 유닛 로스터 — 트레이딩 AI + 시스템 봇
   const units: Unit[] = [];
@@ -332,15 +241,15 @@ function HomeTab() {
       {/* 시스템개요 — 시스템상태+정합성감시 병합, 시계는 우측에 얹어 한 줄 절약 */}
       <Card className="mb-1">
         <CardHeader right={<WorldClock now={now} />}>시스템개요</CardHeader>
-        <div className="flex items-center gap-3 px-2 py-1 border-b border-ap-line">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 border-b border-ap-line">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
-            <Link href="/hud?tab=ops"
+            <Link href="/hud?tab=ops" title={arm.decision}
               className={`no-underline text-[11px] px-2 py-0.5 border font-data font-bold tracking-wider ${
                 arm.decision === "GO" ? "border-ap-up/50 text-ap-up bg-ap-up/15" :
                 arm.decision === "KILL" ? "border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink" :
                 "border-ap-note/40 text-ap-note bg-ap-note/15"}`}>
-              ARM {arm.decision}
+              ARM {armLabel}
             </Link>
           )}
           {wd?.critical && (
@@ -356,12 +265,13 @@ function HomeTab() {
               <Link
                 key={i}
                 href="/portfolio"
-                className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px] hover:bg-ap-bg transition-colors">
-                <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
-                <span className="text-ap-ink-3 shrink-0 w-32 truncate">{v.entity}</span>
-                <span className={`shrink-0 w-40 truncate font-bold font-data ${v.severity === "error" ? "text-ap-down" : "text-ap-caution"}`}>{v.code}</span>
-                <span className="text-ap-ink-2 truncate flex-1">{v.detail}</span>
-                <span className="text-ap-ink-3 shrink-0">→</span>
+                className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 border-b border-ap-line px-2 py-1.5 sm:py-0.5 text-[11px] hover:bg-ap-bg transition-colors">
+                <span className="flex items-center gap-2 min-w-0">
+                  <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
+                  <span className="text-ap-ink-3 truncate sm:shrink-0 sm:w-32">{v.entity}</span>
+                  <span className={`truncate sm:shrink-0 sm:w-40 font-bold font-data ${v.severity === "error" ? "text-ap-down" : "text-ap-caution"}`}>{v.code}</span>
+                </span>
+                <span className="text-ap-ink-2 truncate sm:flex-1 pl-4 sm:pl-0">{v.detail}</span>
               </Link>
             ))}
           </div>
@@ -431,11 +341,11 @@ function HomeTab() {
               state={edge?.status === "confirmed" ? "done" : edge?.status === "drifting" ? "blocked" : "current"} />
             <LadderStep label="2 페이퍼" value={`${paperMo}/${paperMin}mo`}
               state={paperMo >= paperMin ? "done" : edge?.status === "confirmed" ? "current" : "pending"} />
-            <LadderStep label="3 ARM" value={arm?.decision ?? "—"}
+            <LadderStep label="3 ARM" value={armLabel} title={arm?.decision}
               state={arm?.decision === "GO" ? "done" : arm?.decision === "KILL" ? "blocked"
                 : paperMo >= paperMin ? "current" : "pending"} />
-            <LadderStep label="4 LIVE" value={jarvis?.live_execution ?? "—"}
-              state={jarvis?.live_execution === "blocked" ? "blocked"
+            <LadderStep label="4 LIVE" value={liveLabel} title={jarvis?.live_execution}
+              state={jarvis?.live_execution === "disabled" ? "blocked"
                 : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
           </div>
         </Card>
@@ -501,7 +411,7 @@ function HomeTab() {
                 <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
                   <span className="text-ap-ink-1 truncate flex-1">{t.corp}</span>
                   <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.entry_date}</span>
-                  <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
+                  <span className="hidden sm:block text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
                   <span className={`shrink-0 w-14 text-right px-1 font-bold ${
                     (t.pnl_pct ?? 0) > 0 ? "bg-ap-up/20 text-ap-up" : (t.pnl_pct ?? 0) < 0 ? "bg-ap-down/20 text-ap-down" : "text-ap-ink-3"}`}>
                     {t.pnl_pct != null ? `${t.pnl_pct.toFixed(2)}%` : "—"}

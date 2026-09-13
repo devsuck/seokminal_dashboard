@@ -61,7 +61,7 @@ export default function TasksTab() {
   }, []);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-ap-ink-1">Lab Task — 페이퍼 전략 모니터</h1>
         <p className="text-ap-ink-3 text-sm mt-1">

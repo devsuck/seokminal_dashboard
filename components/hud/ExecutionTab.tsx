@@ -54,8 +54,8 @@ export default function ExecutionTab() {
     return () => { mounted = false; ctrl.abort(); };
   }, []);
 
-  if (err) return <div className="p-6 text-xs text-ap-down border border-ap-down/30 rounded-ap-lg m-6">오류: {err}</div>;
-  if (!d) return <div className="p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton-ap h-20 rounded-ap-lg" />)}</div>;
+  if (err) return <div className="p-4 sm:p-6 text-xs text-ap-down border border-ap-down/30 rounded-ap-lg m-4 sm:m-6">오류: {err}</div>;
+  if (!d) return <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-3">{[0, 1, 2].map(i => <div key={i} className="scan-skeleton-ap h-20 rounded-ap-lg" />)}</div>;
 
   const g = d.arm_gate, lr = d.live_readiness;
   const warming = !ea || ea.status === "warming";
@@ -65,7 +65,7 @@ export default function ExecutionTab() {
   const armDecision = d.arm_decision?.decision ?? null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
       {/* ARM 판정 — 이 페이지의 답. 최상단에 크게 */}
       <div className={`rounded-ap-lg shadow-ap-sm p-4 border ${
         armDecision === "GO" ? "border-ap-up/50 bg-ap-up/5" :

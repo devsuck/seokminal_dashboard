@@ -48,9 +48,22 @@ const STATE_TONE: Record<string, string> = {
   DISCOVERED: "var(--c-text-3)", HYPOTHESIS: "var(--c-blue)", EXPERIMENT: "var(--c-hud)",
   BACKTEST: "var(--c-emerald)", PAPER: "var(--c-warn)", REVIEW: "var(--c-warn)", ARCHIVED: "var(--c-text-3)",
 };
+const STATE_LABEL: Record<string, string> = {
+  DISCOVERED: "발견됨", HYPOTHESIS: "가설", EXPERIMENT: "실험", BACKTEST: "백테스트",
+  PAPER: "페이퍼", REVIEW: "검토", ARCHIVED: "보관",
+};
 const EV_TONE: Record<string, "pos" | "hud" | "neg" | "warn" | "blue" | "mute"> = {
   NEW_HYPOTHESIS: "blue", BACKTEST_COMPLETED: "hud", VALIDATION_FAILED: "neg",
   PAPER_DIVERGENCE: "warn", HUMAN_REVIEW_REQUIRED: "warn",
+};
+const EV_LABEL: Record<string, string> = {
+  NEW_HYPOTHESIS: "새 가설", BACKTEST_COMPLETED: "백테스트 완료", VALIDATION_FAILED: "검증 실패",
+  PAPER_DIVERGENCE: "페이퍼 괴리", HUMAN_REVIEW_REQUIRED: "사람 검토 필요",
+};
+// jarvis/research_workflow/paper_validation.py
+const VP_STATUS_LABEL: Record<string, string> = {
+  BACKTEST_SUCCESS_PAPER_FAILURE: "백테스트 성공 · 페이퍼 실패", DIVERGENCE: "괴리 감지",
+  CONSISTENT: "일치", INSUFFICIENT_DATA: "데이터 부족",
 };
 const fmt = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
 
@@ -89,7 +102,7 @@ function ValidationTab() {
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {data.lifecycle_board.lifecycle.map((s) => (
                     <span key={s} className="text-[9px] uppercase c-num px-1.5 py-0.5 border border-[var(--c-border)]"
-                      style={{ color: STATE_TONE[s] ?? "var(--c-text-3)" }}>{s}</span>
+                      style={{ color: STATE_TONE[s] ?? "var(--c-text-3)" }} title={s}>{STATE_LABEL[s] ?? s}</span>
                   ))}
                 </div>
                 {data.lifecycle_board.strategies.length === 0 && (
@@ -108,7 +121,7 @@ function ValidationTab() {
                               boxShadow: c.current ? `0 0 6px ${STATE_TONE[c.state] ?? "var(--c-hud)"}` : "none" }} />
                         ))}
                       </div>
-                      <Badge tone="hud">{row.current_state}</Badge>
+                      <Badge tone="hud" title={row.current_state}>{STATE_LABEL[row.current_state] ?? row.current_state}</Badge>
                     </div>
                   ))}
                 </div>
@@ -119,7 +132,7 @@ function ValidationTab() {
               {/* 2. Validation Panel */}
               <Panel>
                 <PanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
-                  right={vp && <Badge tone={vp.divergence_detected ? "neg" : "pos"}>{vp.status}</Badge>} />
+                  right={vp && <Badge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</Badge>} />
                 <div className="p-4 space-y-3">
                   {vp?.is_demo && <div className="text-[11px] text-[var(--c-text-3)] uppercase tracking-[0.15em]">데모 · 데이터 소스 연결 시 실데이터</div>}
                   <div className="grid grid-cols-3 gap-2 text-center">
@@ -185,7 +198,7 @@ function ValidationTab() {
                 {data.review_queue.map((e, i) => (
                   <div key={i} className="bg-[var(--c-panel-2)] p-2.5 flex items-center justify-between gap-2">
                     <span className="text-[11px] text-[var(--c-text-1)] truncate">{e.label || e.ref}</span>
-                    <div className="flex gap-1.5 shrink-0"><Badge tone={EV_TONE[e.event_type] ?? "mute"}>{e.event_type}</Badge><span className="text-[9px] c-num text-[var(--c-text-3)]">{e.source}</span></div>
+                    <div className="flex gap-1.5 shrink-0"><Badge tone={EV_TONE[e.event_type] ?? "mute"} title={e.event_type}>{EV_LABEL[e.event_type] ?? e.event_type}</Badge><span className="text-[9px] c-num text-[var(--c-text-3)]">{e.source}</span></div>
                   </div>
                 ))}
                 {Object.keys(data.ops_by_type).length > 0 && (
@@ -206,6 +219,10 @@ function ValidationTab() {
 
 const SEV_TONE: Record<string, "pos" | "warn" | "neg"> = { OK: "pos", WARNING: "warn", CRITICAL: "neg" };
 const CONV_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
+const CONV_LABEL: Record<string, string> = { HIGH: "높음", MEDIUM: "중간", LOW: "낮음" };
+// bull/bear_case.evidence: string 또는 {text|finding} 객체 혼재 (jarvis/research_workflow/debate_engine.py)
+const evidenceText = (e: unknown): string =>
+  typeof e === "string" ? e : (e as { text?: string; finding?: string })?.text ?? (e as { text?: string; finding?: string })?.finding ?? String(e);
 
 function ProductionTab() {
   const [q, setQ] = useState("Does momentum work in KR equities?");
@@ -235,7 +252,7 @@ function ProductionTab() {
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatTile label="v2.0 릴리스" value={ov?.release_ready ? "준비완료" : "대기중"} sub={ov?.architecture_frozen ? "아키텍처 고정됨" : ""} tone={ov?.release_ready ? "pos" : "warn"} />
-              <StatTile label="확신도" value={cv?.level ?? "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
+              <StatTile label="확신도" value={cv?.level ? (CONV_LABEL[cv.level] ?? cv.level) : "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
               <StatTile label="거버넌스" value={gov?.governance ?? "—"} sub={`${gov?.checks.filter((c) => c.ok).length ?? 0}/${gov?.checks.length ?? 0} 항목`} tone={gov?.passed ? "pos" : "warn"} />
               <StatTile label="프로덕션" value={prod?.overall_severity ?? "—"} sub={`${prod?.counts?.OK ?? 0} OK · ${prod?.counts?.WARNING ?? 0} 경고`} tone={SEV_TONE[prod?.overall_severity ?? ""] ?? "warn"} />
             </div>
@@ -243,7 +260,7 @@ function ProductionTab() {
 
             {/* Committee Packet */}
             <Panel>
-              <PanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 70) || "—"} right={<Badge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"}>확신 {cp?.confidence}</Badge>} />
+              <PanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 70) || "—"} right={<Badge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</Badge>} />
               <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
                   <div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
@@ -261,15 +278,15 @@ function ProductionTab() {
               <Panel>
                 <PanelHead kicker="토론 패널" title="강세 / 약세 / 리스크" />
                 <div className="p-4 space-y-2">
-                  <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="pos">강세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map((e) => String(e)).join("; ") || "—"}</div></div>
-                  <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="neg">약세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map((e) => String(e)).join("; ") || "—"}</div></div>
+                  <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="pos">강세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map(evidenceText).join("; ") || "—"}</div></div>
+                  <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="neg">약세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map(evidenceText).join("; ") || "—"}</div></div>
                   {data.debate.historical_counterexamples.length > 0 && <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="warn">반례</Badge>{data.debate.historical_counterexamples.map((c, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)] mt-1">{c.topic}: {c.study_a} vs {c.study_b} — {c.explanation}</div>)}</div>}
                 </div>
               </Panel>
 
               {/* Conviction factors */}
               <Panel>
-                <PanelHead kicker="확신도" title="연구 확신도" right={cv && <Badge tone={CONV_TONE[cv.level] ?? "mute"}>{cv.level}</Badge>} />
+                <PanelHead kicker="확신도" title="연구 확신도" right={cv && <Badge tone={CONV_TONE[cv.level] ?? "mute"} title={cv.level}>{CONV_LABEL[cv.level] ?? cv.level}</Badge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(cv?.factors ?? {}).map(([k, v]) => (
                     <div key={k} className="flex items-center gap-2">

@@ -68,10 +68,11 @@ export function StatTile({
 }
 
 // ── Badge ─────────────────────────────────────────────────────────
-export function Badge({ children, tone = "mute" }: { children: ReactNode; tone?: keyof typeof TONE }) {
+export function Badge({ children, tone = "mute", title }: { children: ReactNode; tone?: keyof typeof TONE; title?: string }) {
   const c = TONE[tone];
   return (
     <span
+      title={title}
       className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.14em] uppercase c-num whitespace-nowrap"
       style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
     >

@@ -702,7 +702,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-full bg-ap-bg">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 flex-wrap px-5 py-3 border-b border-ap-line bg-ap-bg/85 backdrop-blur">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 flex-wrap px-4 sm:px-5 py-3 border-b border-ap-line bg-ap-bg/85 backdrop-blur">
         <div className="flex items-baseline gap-2.5">
           <span className="text-ap-ink-3 text-[9px] font-semibold tracking-[0.24em] uppercase">계좌현황 · 주문 · 손익</span>
           <span className="text-ap-ink-1 text-[13px] font-semibold tracking-wide">포트폴리오</span>
@@ -721,7 +721,7 @@ export default function PortfolioPage() {
         />
       </header>
 
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         {tab === "accounts" && <AccountsTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "pnl" && <PnlTab />}
