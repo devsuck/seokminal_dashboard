@@ -126,7 +126,9 @@
 > ~~[알파검증 트랙] 수동 가설 5종(VWAP평균회귀/ORB실패돌파/섹터모멘텀/갭페이드/ATR압축)~~ — **stale, 삭제(2026-07-20).** Phase 98(2026-07-02)에서 이미 6/6 REJECT, Phase 99에서 크립토 funding 포함 9/9 REJECT, 같은 날 Phase 100에서 유저가 "알파 사냥 중단 → Strategy Validation Terminal" 전략 전환 명시 결정(agentic-roadmap 참조). 이후 재검 시도(Gold Haven narrow-universe, Phase 149)도 REJECT. **이 방향 재개하지 말 것** — 재개하려면 유저가 명시적으로 새 자산군/알파원 지정해야 함.
 1. **스윙 페이퍼 검증 지속** — 봇 `스윙검증-US`(id 7591f352, 잠금됨) 가동중. 노트북 켤 때 tmux 살아있는지 확인, 죽었으면 /agents에서 재시작. 며칠~몇주 후 성과페이지 SPY 초과수익 확인
 2. KR 단타 실투자(KIS 실계좌) / IB(TWS) 실계좌 라이브 검증
-3. 뉴스 본문 전문(선택): Jina Reader 스크레이핑
+3. ~~뉴스 본문 전문(선택): Jina Reader 스크레이핑~~ — **완료(2026-09-14).** 보유종목 뉴스
+   Jina Reader 본문수집 → jarvis 연구 파이프라인 자동연결, 24h 스로틀 `_news_research_collect`
+   배포. 상세: `seokminal-multi-venue/docs/progress.md` 2026-09-14 "뉴스 본문 전문 자동수집"
 
 > 사용자 결정(2026-09-09): 차트 US 분봉용 IB 유료 구독 — **안 함.** 하루봉만 catalog 유지.
 
