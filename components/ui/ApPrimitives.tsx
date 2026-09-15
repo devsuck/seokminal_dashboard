@@ -1,0 +1,118 @@
+"use client";
+
+import type { ReactNode } from "react";
+
+// ── Panel ─────────────────────────────────────────────────────────
+export function ApPanel({
+  children, className = "",
+}: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`relative rounded-ap-lg border border-ap-line bg-ap-surface shadow-ap-sm overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function ApPanelHead({
+  title, kicker, right,
+}: { title: string; kicker?: string; right?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 min-h-10 py-1.5 px-4 border-b border-ap-line">
+      <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
+        {kicker && <span className="text-[9px] font-semibold tracking-[0.22em] text-ap-brand uppercase">{kicker}</span>}
+        <span className="text-[13px] font-semibold tracking-wide text-ap-ink-1 truncate">{title}</span>
+      </div>
+      {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
+    </div>
+  );
+}
+
+// ── Status dot ────────────────────────────────────────────────────
+const AP_TONE: Record<string, string> = {
+  pos: "var(--color-ap-up)", neg: "var(--color-ap-down)", warn: "var(--color-ap-caution)",
+  hud: "var(--color-ap-brand)", info: "var(--color-ap-note)", mute: "var(--color-ap-ink-3)",
+};
+export function ApDot({ tone = "mute", pulse = false }: { tone?: keyof typeof AP_TONE | string; pulse?: boolean }) {
+  const c = AP_TONE[tone] ?? tone;
+  return (
+    <span
+      className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${pulse ? "animate-pulse" : ""}`}
+      style={{ background: c }}
+    />
+  );
+}
+
+// ── Stat tile ─────────────────────────────────────────────────────
+export function ApStatTile({
+  label, value, unit, sub, tone = "ink-1", accent,
+}: {
+  label: string; value: ReactNode; unit?: string; sub?: ReactNode;
+  tone?: "ink-1" | "hud" | "pos" | "neg" | "warn"; accent?: keyof typeof AP_TONE;
+}) {
+  const valColor =
+    tone === "hud" ? "text-ap-brand" :
+    tone === "pos" ? "text-ap-up" :
+    tone === "neg" ? "text-ap-down" :
+    tone === "warn" ? "text-ap-caution" : "text-ap-ink-1";
+  return (
+    <ApPanel className="relative p-4">
+      {accent && <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: AP_TONE[accent] }} />}
+      <div className="text-[11px] font-semibold tracking-[0.2em] text-ap-ink-3 uppercase">{label}</div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className={`font-data text-[26px] leading-none font-semibold ${valColor}`}>{value}</span>
+        {unit && <span className="text-[11px] text-ap-ink-2">{unit}</span>}
+      </div>
+      {sub && <div className="mt-1.5 text-[11px] text-ap-ink-2">{sub}</div>}
+    </ApPanel>
+  );
+}
+
+// ── Badge ─────────────────────────────────────────────────────────
+export function ApBadge({ children, tone = "mute", title }: { children: ReactNode; tone?: keyof typeof AP_TONE; title?: string }) {
+  const c = AP_TONE[tone];
+  return (
+    <span
+      title={title}
+      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-ap-sm text-[11px] font-semibold tracking-[0.14em] uppercase font-data whitespace-nowrap"
+      style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ── Skeleton (로딩 placeholder) ────────────────────────────────────
+export function ApSkeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-sm bg-ap-line ${className}`} />;
+}
+
+export function ApSkeletonStatTile() {
+  return (
+    <ApPanel className="p-4 space-y-2.5">
+      <ApSkeleton className="h-2 w-16" />
+      <ApSkeleton className="h-5 w-12" />
+    </ApPanel>
+  );
+}
+
+export function ApSkeletonLines({ rows = 3, className = "" }: { rows?: number; className?: string }) {
+  const widths = ["w-full", "w-5/6", "w-2/3", "w-3/4", "w-1/2"];
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <ApSkeleton key={i} className={`h-3 ${widths[i % widths.length]}`} />
+      ))}
+    </div>
+  );
+}
+
+// ── Meter (0..1) ──────────────────────────────────────────────────
+export function ApMeter({ value, tone = "hud" }: { value: number; tone?: keyof typeof AP_TONE }) {
+  const c = AP_TONE[tone];
+  const pct = Math.max(0, Math.min(1, value)) * 100;
+  return (
+    <div className="h-1 w-full bg-ap-line overflow-hidden rounded-full">
+      <div className="h-full transition-[width] duration-500 rounded-full" style={{ width: `${pct}%`, background: c }} />
+    </div>
+  );
+}
