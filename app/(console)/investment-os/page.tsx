@@ -28,6 +28,7 @@ import {
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge, Skeleton, SkeletonStatTile, SkeletonLines } from "@/components/console/primitives";
+import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -246,7 +247,8 @@ function InvestmentOsInner() {
   const sizes = data?.position_sizing ?? {};
 
   return (
-    <div className="min-h-full">
+    <>
+    <div className="hidden md:block min-h-full">
       <PageHeader kicker="Investment OS · 분리 계층" title="Investment OS"
         right={<div className="flex gap-1.5">
           {sep && <Badge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</Badge>}
@@ -897,6 +899,170 @@ function InvestmentOsInner() {
         )}
       </div>
     </div>
+
+    <div className="md:hidden min-h-screen bg-ap-bg">
+      <div className="sticky top-0 z-10 bg-ap-bg/90 backdrop-blur border-b border-ap-line px-4 py-3 flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-ap-ink-1">Investment OS</span>
+        <div className="flex gap-1.5">
+          {sep && <ApBadge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</ApBadge>}
+          <ApBadge tone="neg">AUTO-EXEC OFF</ApBadge>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+
+        <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-0.5">
+          <ApBadge tone="pos">연구=생산 · 투자=소비</ApBadge>
+          <ApBadge tone="pos">Research OS 무변경</ApBadge>
+          <ApBadge tone="neg">AUTO_EXECUTION 영구 OFF</ApBadge>
+          <ApBadge tone="warn">사람 승인 필수</ApBadge>
+          <ApBadge tone="warn">Risk/Compliance/Portfolio/Kill 우회 불가</ApBadge>
+          <ApBadge tone="mute">모두 추천/시뮬레이션 · 실행 없음</ApBadge>
+        </div>
+
+        {!data && !err && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => <ApSkeletonStatTile key={i} />)}
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1">
+              {TABS.map((t) => (
+                <div key={t.key} className="shrink-0 px-3 h-8 rounded-ap-md border border-ap-line flex items-center">
+                  <ApSkeleton className="h-2.5 w-14" />
+                </div>
+              ))}
+            </div>
+            <ApPanel>
+              <div className="px-4 h-10 border-b border-ap-line flex items-center"><ApSkeleton className="h-2.5 w-32" /></div>
+              <div className="p-4"><ApSkeletonLines rows={4} /></div>
+            </ApPanel>
+          </div>
+        )}
+
+        {data && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <ApStatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`research 무변경: ${!data.knowledge.research_os_modified ? "예" : "아니오"}`} tone="hud" />
+              <ApStatTile label="포트폴리오 포지션" value={String(Object.keys(weights).length)} sub={data.portfolio.method} tone="pos" />
+              <ApStatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`override 불가: ${!data.compliance.human_can_override ? "예" : "아니오"}`} tone={data.compliance.compliant ? "pos" : "neg"} />
+              <ApStatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`bypass: ${data.gates.bypass_possible ? "가능" : "불가"}`} tone={data.gates.passed ? "pos" : "warn"} />
+            </div>
+
+            <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1">
+              {TABS.map((t) => (
+                <button key={t.key} onClick={() => setTab(t.key)}
+                  className={`shrink-0 px-3 h-8 rounded-ap-md text-[11px] font-semibold whitespace-nowrap border transition-colors ${
+                    tab === t.key ? "bg-ap-brand text-white border-ap-brand" : "bg-ap-surface text-ap-ink-2 border-ap-line"}`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === "overview" && (
+              <div className="space-y-4">
+                <ApPanel>
+                  <ApPanelHead kicker="monthly-review" title="월간 의사결정 루프" right={<ApBadge tone="mute">제안 라벨</ApBadge>} />
+                  <div className="p-4 space-y-2">
+                    {monthly.loading && <ApSkeletonLines rows={3} />}
+                    {monthly.data && monthly.data.strategies.length === 0 && (
+                      <div className="text-[11px] text-ap-ink-3">추적 대상 전략 없음.</div>
+                    )}
+                    {(monthly.data?.strategies ?? []).map((s) => {
+                      const dr = s.decision_required ?? {};
+                      const tone = DECISION_TONE[dr.suggested_label ?? ""] ?? "mute";
+                      return (
+                        <div key={s.strategy_id} className="bg-ap-bg rounded-ap-md p-2.5 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-[11px] text-ap-ink-1 font-semibold truncate">{s.strategy_id}</div>
+                            <div className="text-[11px] text-ap-ink-3 truncate">{dr.reason}</div>
+                          </div>
+                          <ApBadge tone={tone}>{dr.suggested_label ?? "—"}</ApBadge>
+                        </div>
+                      );
+                    })}
+                    {monthly.data?.prediction_integrity && (
+                      <div className="pt-2 grid grid-cols-2 gap-2">
+                        <ApStatTile label="유효" value={String(monthly.data.prediction_integrity.valid)} tone="pos" />
+                        <ApStatTile label="레거시" value={String(monthly.data.prediction_integrity.legacy_capture)} tone="ink-1" />
+                        <ApStatTile label="무효화" value={String(monthly.data.prediction_integrity.invalidated)} tone="neg" />
+                        <ApStatTile label="재포착 필요" value={String(monthly.data.prediction_integrity.recapture_required)} tone="warn" />
+                      </div>
+                    )}
+                  </div>
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="research-organization" title="시스템 헬스" />
+                  {org.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {org.err && <div className="p-4 text-[11px] text-ap-down">{org.err}</div>}
+                  {org.data && (
+                    <div className="p-4 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ApBadge tone={org.data.operational_status.operational ? "pos" : "warn"}>{org.data.operational_status.operational ? "가동 중" : "검토 필요"}</ApBadge>
+                        <ApBadge tone="mute">지식 헬스: {GRADE_LABEL[org.data.knowledge_health.grade] ?? org.data.knowledge_health.grade}</ApBadge>
+                        {org.data.strategy_health.review_needed_count > 0 && <ApBadge tone="warn">review 필요 {org.data.strategy_health.review_needed_count}</ApBadge>}
+                      </div>
+                      {org.data.strategy_health.strategies.map((s) => (
+                        <div key={s.strategy} className="flex items-center justify-between text-[11px]">
+                          <span className="text-ap-ink-1">{s.strategy}</span>
+                          <span className="flex items-center gap-2">
+                            <span className="font-data text-ap-ink-2">{s.health_score}</span>
+                            <ApBadge tone={s.review_needed ? "warn" : "pos"}>{GRADE_LABEL[s.grade] ?? s.grade}</ApBadge>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="포트폴리오 구성" title="추천 비중" right={<ApBadge tone="mute">추천 · 실배분 아님</ApBadge>} />
+                  <div className="p-4 space-y-2">
+                    {Object.entries(weights).length === 0 && <div className="text-[11px] text-ap-ink-3">소비할 연구 후보 없음 — 지식 축적 필요.</div>}
+                    {Object.entries(weights).map(([sid, w]) => (
+                      <div key={sid} className="space-y-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-ap-ink-1 truncate">{sid}</span>
+                          <span className="font-data text-ap-ink-3">{(w * 100).toFixed(1)}% · {(sizes[sid] ?? 0).toLocaleString()}</span>
+                        </div>
+                        <ApMeter value={w} tone="hud" />
+                      </div>
+                    ))}
+                    <div className="text-[9px] text-ap-ink-3 pt-1">우측 수치 = position sizing 추천(notional 1M 기준). 자본 배분/집행 아님.</div>
+                    {alloc.data && (alloc.data.derived_proposal?.length ?? 0) > 0 && (
+                      <div className="pt-2 border-t border-ap-line space-y-1">
+                        <div className="text-[9px] tracking-[0.2em] text-ap-ink-3 uppercase">배분 파생 제안</div>
+                        {alloc.data.derived_proposal!.map((a) => (
+                          <div key={a.strategy_id} className="flex items-center justify-between text-[11px]">
+                            <span className="text-ap-ink-2 truncate">{a.name} · {a.factor}</span>
+                            <span className="font-data text-ap-ink-3">{(a.target_weight * 100).toFixed(1)}% · {STATUS_LABEL[a.status] ?? a.status}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="/console/positions" title="포지션" right={positions.data && <ApBadge tone="mute">{positions.data.count}건</ApBadge>} />
+                  <div className="p-4 space-y-1.5">
+                    {positions.loading && <ApSkeletonLines rows={4} />}
+                    {positions.data && positions.data.count === 0 && <div className="text-[11px] text-ap-ink-3">{positions.data.note}</div>}
+                    {positions.data && positions.data.positions.slice(0, 8).map((p, i) => (
+                      <div key={i} className="text-[11px] font-data text-ap-ink-2 border-b border-ap-line last:border-0 py-1.5 space-y-0.5">
+                        {Object.entries(p).slice(0, 5).map(([k, v]) => <div key={k}>{k}: {String(v)}</div>)}
+                      </div>
+                    ))}
+                  </div>
+                </ApPanel>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+    </>
   );
 }
 
