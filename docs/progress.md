@@ -1,3 +1,47 @@
+## Phase 265 — 모바일 핀테크 리디자인: research-os/validation (2026-09-16) ✅ SHIPPED
+
+### 배경
+Phase 264 후속. 라우트 순서: portfolio→performance→investment-os(완료)→
+**research-os/validation(이번 세션 완료)**→governance→chat. plan-then-execute,
+SDD 파이프라인 그대로.
+
+### 완료된 작업
+- `app/(console)/research-os/validation/page.tsx` — `ValidationInner` 모바일 탭필
+  셸(sticky, `h-11` 버튼) + `ValidationTab`/`ProductionTab`/`IntelligencePlusTab`
+  3개 탭 전체 `md:hidden` 카드 브랜치 신규(데스크톱 `hidden md:block` 무변경).
+  `ApPrimitives.tsx` 재사용, 기존 `STATE_TONE`/`EV_TONE`/`SEV_TONE`/`CONV_TONE`/
+  `PRIO_TONE` 톤맵 그대로 재사용(`.rail-ap`가 콘솔 라우트 전체를 이미 라이트로
+  감싸고 있어서 dark→light 변환이 아니라 레이아웃 재구성임 — Phase 264 스펙 해석
+  그대로 적용).
+- SDD 풀 사이클: plan(`docs/superpowers/plans/2026-09-15-research-os-validation-mobile.md`)
+  → Task 1~3 각각 fresh subagent(sonnet, 플랜에 완전한 코드 있어서 transcription
+  tier) 구현 + task reviewer(sonnet) 승인(minor 7건 파킹) → 최종 브랜치 리뷰.
+- **최종 리뷰 1차 시도(opus) 실패**: 계정 세션 rate limit(1:10am KST 리셋)으로
+  중도 종료. sonnet으로 재발송, 정상 완료.
+- **최종 리뷰에서 잡힌 실수(정정 완료)**: `ProductionTab` 모바일 Production Health
+  패널이 `c.detail`(컴포넌트별 설명 텍스트)을 누락 — 바로 옆 Governance 패널은
+  동일한 check/detail 구조인데 detail 필터 리스트를 이미 추가해뒀었음, Production
+  Health만 빠짐. 실질적 정보 손실이라 판단, Governance 패턴 그대로 미러링해서 수정
+  (commit `059cda1`) → 스코프 한정 재리뷰 승인.
+- 추가 minor 2건(page.tsx:357,361, `text-[11px]` on numeric field) — Phase 264와
+  동일 카테고리(플랜 브리프 원본 코드, 데스크톱 `text-[9px]`보다는 개선) 판단으로
+  파킹, 수정 안 함.
+- 최종 검증: `npx tsc --noEmit` 0 errors, `npm run build` 37/37 라우트.
+
+### 변경된 파일
+- 수정: `app/(console)/research-os/validation/page.tsx`
+- 신규 계획 문서: `docs/superpowers/plans/2026-09-15-research-os-validation-mobile.md`
+
+### 다음 할 일
+- 같은 패턴으로 `research-os/governance` → `research-os/chat` 순서로
+  plan-then-execute 반복.
+- **플랜 작성 시 교훈**: 숫자/`font-data` 리스트 행 텍스트는 브리프 코드 작성
+  단계부터 기본값을 `text-xs`로(`text-[11px]` 반복 방지 — 지금까지 누적 9건
+  파킹됨, load-bearing은 아니지만 플랜 단계에서 막는 게 리뷰 사이클 절약).
+- `origin` 푸시는 아직 안 함 — 별도 명시적 확인 없이는 안 함(세션 전역 규칙).
+
+---
+
 ## Phase 264 — 모바일 핀테크 리디자인: investment-os (2026-09-15) ✅ SHIPPED
 
 ### 배경
