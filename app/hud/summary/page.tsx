@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { useHudFeed } from "@/components/hud/useHudFeed";
 import { deriveAttentionItems } from "@/lib/attention";
 import PortfolioTab from "@/components/hud/PortfolioTab";
 import { Card, CardHeader } from "@/components/ui/Card";
+
+function subscribeToMobileQuery(cb: () => void) {
+  const m = matchMedia("(max-width: 767px)");
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+}
 
 /* 폰 전용 요약 — 에이전틱 트레이딩 AI가 아는 걸 전부 보여주지 않고,
    사람이 봐야만 하는 것만: 성과 요약, 가동 여부, 실거래(LIVE) 게이트, 판단 필요 항목, 정합성 에러.
@@ -15,12 +22,19 @@ export default function HudSummaryPage() {
   const { feed: f } = useHudFeed();
   const { lab, jarvis, sys, exec, health, pipeline, risk, ar, ios } = f;
 
+  const isMobile = useSyncExternalStore(
+    subscribeToMobileQuery,
+    () => matchMedia("(max-width: 767px)").matches,
+    () => false, // SSR snapshot: don't mount on the server
+  );
+
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
   const liveOn = jarvis?.live_execution === "enabled";
   const liveLabel = jarvis?.live_execution === "enabled" ? "가동" : jarvis?.live_execution === "disabled" ? "비활성" : "—";
   const wd = sys?.research_service?.watchdog;
   const critical = wd?.critical || exec?.arm_decision?.decision === "KILL";
+  const attnLoading = !pipeline && !risk && !ios;
 
   const attentionItems = deriveAttentionItems({
     pipeline: pipeline ? { proposals: pipeline.proposals } : null,
@@ -73,8 +87,8 @@ export default function HudSummaryPage() {
           </div>
           {attentionItems.length === 0 ? (
             <div className="px-3 py-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-pos shrink-0" />
-              <span className="text-sm text-text-2">판단 대기 항목 없음</span>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${attnLoading ? "bg-text-3" : "bg-pos"}`} />
+              <span className="text-sm text-text-2">{attnLoading ? "로딩 중" : "판단 대기 항목 없음"}</span>
             </div>
           ) : (
             <div>
@@ -97,12 +111,16 @@ export default function HudSummaryPage() {
       </div>
 
       {/* ── 모바일(md:hidden): 신규 라이트 카드 IA ── */}
-      <div className="md:hidden bg-ap-bg min-h-screen">
+      <div className="md:hidden bg-ap-bg min-h-full">
         <div className="px-4 pt-8 pb-1 max-w-md mx-auto">
           <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-ap-ink-3">SEOKMINAL · 요약</span>
         </div>
 
-        <PortfolioTab />
+        {isMobile && (
+          <div className="max-w-md mx-auto">
+            <PortfolioTab />
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 px-4 pb-4 max-w-md mx-auto">
           <div className={`flex flex-col items-center justify-center gap-2 py-8 rounded-ap-lg border ${
@@ -140,8 +158,8 @@ export default function HudSummaryPage() {
             <CardHeader right={`${attentionItems.length}건`}>판단 필요</CardHeader>
             {attentionItems.length === 0 ? (
               <div className="px-3 py-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-ap-up shrink-0" />
-                <span className="text-sm text-ap-ink-2">판단 대기 항목 없음</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${attnLoading ? "bg-ap-ink-3" : "bg-ap-up"}`} />
+                <span className="text-sm text-ap-ink-2">{attnLoading ? "로딩 중" : "판단 대기 항목 없음"}</span>
               </div>
             ) : (
               <div>
