@@ -391,127 +391,261 @@ function ProductionTab() {
   const gov = data?.governance_status;
   const prod = data?.production_health;
   return (
-    <div className="min-h-full">
-      <PageHeader kicker="P161-170 · v2.0" title="위원회 & 프로덕션"
-        right={ov && <div className="flex gap-1.5">
-          <Badge tone={ov.release_ready ? "pos" : "warn"}>{ov.release_ready ? "릴리스 준비완료" : "v2.0"}</Badge>
-          {ov.architecture_frozen && <Badge tone="hud">고정됨</Badge>}
-        </div>} />
-      <div className="p-5 space-y-5">
-        <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="연구 질문…"
-            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-10 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-10 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">소집</button>
-        </form>
-        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+    <>
+      <div className="hidden md:block min-h-full">
+        <PageHeader kicker="P161-170 · v2.0" title="위원회 & 프로덕션"
+          right={ov && <div className="flex gap-1.5">
+            <Badge tone={ov.release_ready ? "pos" : "warn"}>{ov.release_ready ? "릴리스 준비완료" : "v2.0"}</Badge>
+            {ov.architecture_frozen && <Badge tone="hud">고정됨</Badge>}
+          </div>} />
+        <div className="p-5 space-y-5">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="연구 질문…"
+              className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-10 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+            <button type="submit" className="px-4 h-10 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">소집</button>
+          </form>
+          {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
-        {data && (
-          <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatTile label="v2.0 릴리스" value={ov?.release_ready ? "준비완료" : "대기중"} sub={ov?.architecture_frozen ? "아키텍처 고정됨" : ""} tone={ov?.release_ready ? "pos" : "warn"} />
-              <StatTile label="확신도" value={cv?.level ? (CONV_LABEL[cv.level] ?? cv.level) : "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
-              <StatTile label="거버넌스" value={gov?.governance ?? "—"} sub={`${gov?.checks.filter((c) => c.ok).length ?? 0}/${gov?.checks.length ?? 0} 항목`} tone={gov?.passed ? "pos" : "warn"} />
-              <StatTile label="프로덕션" value={prod?.overall_severity ?? "—"} sub={`${prod?.counts?.OK ?? 0} OK · ${prod?.counts?.WARNING ?? 0} 경고`} tone={SEV_TONE[prod?.overall_severity ?? ""] ?? "warn"} />
-            </div>
-            {ov && <div className="flex flex-wrap gap-1.5">{ov.capabilities.map((c) => <Badge key={c} tone="hud">{c}</Badge>)}</div>}
-
-            {/* Committee Packet */}
-            <Panel>
-              <PanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 70) || "—"} right={<Badge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</Badge>} />
-              <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
-                  {(cp?.questions_for_human ?? []).map((qq, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· {qq}</div>)}
-                </div>
-                <div>
-                  <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">제한사항</div>
-                  {(cp?.limitations ?? []).map((l, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)]">· {l}</div>)}
-                </div>
+          {data && (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <StatTile label="v2.0 릴리스" value={ov?.release_ready ? "준비완료" : "대기중"} sub={ov?.architecture_frozen ? "아키텍처 고정됨" : ""} tone={ov?.release_ready ? "pos" : "warn"} />
+                <StatTile label="확신도" value={cv?.level ? (CONV_LABEL[cv.level] ?? cv.level) : "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
+                <StatTile label="거버넌스" value={gov?.governance ?? "—"} sub={`${gov?.checks.filter((c) => c.ok).length ?? 0}/${gov?.checks.length ?? 0} 항목`} tone={gov?.passed ? "pos" : "warn"} />
+                <StatTile label="프로덕션" value={prod?.overall_severity ?? "—"} sub={`${prod?.counts?.OK ?? 0} OK · ${prod?.counts?.WARNING ?? 0} 경고`} tone={SEV_TONE[prod?.overall_severity ?? ""] ?? "warn"} />
               </div>
-            </Panel>
+              {ov && <div className="flex flex-wrap gap-1.5">{ov.capabilities.map((c) => <Badge key={c} tone="hud">{c}</Badge>)}</div>}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Debate */}
+              {/* Committee Packet */}
               <Panel>
-                <PanelHead kicker="토론 패널" title="강세 / 약세 / 리스크" />
-                <div className="p-4 space-y-2">
-                  <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="pos">강세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map(evidenceText).join("; ") || "—"}</div></div>
-                  <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="neg">약세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map(evidenceText).join("; ") || "—"}</div></div>
-                  {data.debate.historical_counterexamples.length > 0 && <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="warn">반례</Badge>{data.debate.historical_counterexamples.map((c, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)] mt-1">{c.topic}: {c.study_a} vs {c.study_b} — {c.explanation}</div>)}</div>}
+                <PanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 70) || "—"} right={<Badge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</Badge>} />
+                <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
+                    {(cp?.questions_for_human ?? []).map((qq, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· {qq}</div>)}
+                  </div>
+                  <div>
+                    <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">제한사항</div>
+                    {(cp?.limitations ?? []).map((l, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)]">· {l}</div>)}
+                  </div>
                 </div>
               </Panel>
 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Debate */}
+                <Panel>
+                  <PanelHead kicker="토론 패널" title="강세 / 약세 / 리스크" />
+                  <div className="p-4 space-y-2">
+                    <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="pos">강세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map(evidenceText).join("; ") || "—"}</div></div>
+                    <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="neg">약세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map(evidenceText).join("; ") || "—"}</div></div>
+                    {data.debate.historical_counterexamples.length > 0 && <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="warn">반례</Badge>{data.debate.historical_counterexamples.map((c, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)] mt-1">{c.topic}: {c.study_a} vs {c.study_b} — {c.explanation}</div>)}</div>}
+                  </div>
+                </Panel>
+
+                {/* Conviction factors */}
+                <Panel>
+                  <PanelHead kicker="확신도" title="연구 확신도" right={cv && <Badge tone={CONV_TONE[cv.level] ?? "mute"} title={cv.level}>{CONV_LABEL[cv.level] ?? cv.level}</Badge>} />
+                  <div className="p-4 space-y-1.5">
+                    {Object.entries(cv?.factors ?? {}).map(([k, v]) => (
+                      <div key={k} className="flex items-center gap-2">
+                        <span className="text-[11px] text-[var(--c-text-2)] w-44">{k}</span>
+                        <div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${v * 100}%`, background: v >= 0.5 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>
+                        <span className="text-[11px] c-num text-[var(--c-text-3)] w-8 text-right">{v.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div className="text-[9px] text-[var(--c-text-3)] pt-1">연구 확신도 — 투자 등급 아님.</div>
+                  </div>
+                </Panel>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Governance */}
+                <Panel>
+                  <PanelHead kicker="거버넌스" title="컴플라이언스" right={gov && <Badge tone={gov.passed ? "pos" : "warn"}>{gov.governance}</Badge>} />
+                  <div className="p-4 space-y-1">
+                    {(gov?.checks ?? []).map((c) => (
+                      <div key={c.check} className="flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: c.ok ? "var(--c-pos)" : "var(--c-neg)" }} />
+                        <span className="text-[11px] text-[var(--c-text-1)] w-44">{c.check}</span>
+                        <span className="text-[9px] text-[var(--c-text-3)] flex-1 truncate">{c.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+
+                {/* Production Health */}
+                <Panel>
+                  <PanelHead kicker="프로덕션 헬스" title="컴포넌트" right={prod && <Badge tone={SEV_TONE[prod.overall_severity] ?? "mute"}>{prod.overall_severity}</Badge>} />
+                  <div className="p-4 space-y-1">
+                    {(prod?.components ?? []).map((c) => (
+                      <div key={c.component} className="flex items-center gap-2">
+                        <Badge tone={SEV_TONE[c.severity] ?? "mute"}>{c.severity}</Badge>
+                        <span className="text-[11px] text-[var(--c-text-1)] w-40">{c.component}</span>
+                        <span className="text-[9px] text-[var(--c-text-3)] flex-1 truncate">{c.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+              </div>
+
+              {/* Portfolio Research + Review Queue */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Panel>
+                  <PanelHead kicker="포트폴리오 리서치" title="전략 헬스" right={<Badge tone="hud">{data.portfolio_research.strategy_health.length}</Badge>} />
+                  <div className="p-4 space-y-1.5">
+                    {data.portfolio_research.strategy_health.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">전략이 축적되면 노출·중첩·상관 뷰가 나타납니다(배분 아님).</div>}
+                    {data.portfolio_research.strategy_health.map((s) => (
+                      <div key={s.strategy} className="flex items-center gap-2"><span className="text-[11px] text-[var(--c-text-1)] w-36 truncate">{s.strategy}</span><div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${s.health_score}%`, background: s.health_score >= 65 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>{s.review_needed && <Badge tone="warn">검토</Badge>}</div>
+                    ))}
+                    <div className="text-[9px] text-[var(--c-text-3)] pt-1">배분 제안 아님 — 연구 관점.</div>
+                  </div>
+                </Panel>
+                <Panel>
+                  <PanelHead kicker="검토 대기열" title="휴먼 액션" right={<Badge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</Badge>} />
+                  <div className="p-4 space-y-1.5">
+                    {data.review_queue.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">사람 검토 대기 항목 없음.</div>}
+                    {data.review_queue.map((r, i) => <div key={i} className="bg-[var(--c-panel-2)] p-2.5 flex items-center justify-between gap-2"><span className="text-[11px] text-[var(--c-text-1)] truncate">{r.task}</span><span className="text-[9px] c-num text-[var(--c-text-3)]">{r.source}</span></div>)}
+                  </div>
+                </Panel>
+              </div>
+              <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="md:hidden min-h-full">
+        <div className="p-4 space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="연구 질문…"
+              className="flex-1 bg-ap-surface border border-ap-line rounded-ap-md px-3 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand" />
+            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-white bg-ap-brand cursor-pointer shrink-0">소집</button>
+          </form>
+          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+
+          {!data && !err && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">{Array.from({ length: 4 }).map((_, i) => <ApSkeletonStatTile key={i} />)}</div>
+              <ApPanel>
+                <div className="px-4 h-10 border-b border-ap-line flex items-center"><ApSkeleton className="h-2.5 w-32" /></div>
+                <div className="p-4"><ApSkeletonLines rows={4} /></div>
+              </ApPanel>
+            </div>
+          )}
+
+          {data && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <ApStatTile label="v2.0 릴리스" value={ov?.release_ready ? "준비완료" : "대기중"} sub={ov?.architecture_frozen ? "아키텍처 고정됨" : ""} tone={ov?.release_ready ? "pos" : "warn"} />
+                <ApStatTile label="확신도" value={cv?.level ? (CONV_LABEL[cv.level] ?? cv.level) : "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
+                <ApStatTile label="거버넌스" value={gov?.governance ?? "—"} sub={`${gov?.checks.filter((c) => c.ok).length ?? 0}/${gov?.checks.length ?? 0} 항목`} tone={gov?.passed ? "pos" : "warn"} />
+                <ApStatTile label="프로덕션" value={prod?.overall_severity ?? "—"} sub={`${prod?.counts?.OK ?? 0} OK · ${prod?.counts?.WARNING ?? 0} 경고`} tone={SEV_TONE[prod?.overall_severity ?? ""] ?? "warn"} />
+              </div>
+              {ov && <div className="flex flex-wrap gap-1.5">{ov.capabilities.map((c) => <ApBadge key={c} tone="hud">{c}</ApBadge>)}</div>}
+
+              {/* Committee Packet */}
+              <ApPanel>
+                <ApPanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 40) || "—"} right={<ApBadge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</ApBadge>} />
+                <div className="p-4 space-y-3">
+                  <div>
+                    <div className="text-[11px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
+                    {(cp?.questions_for_human ?? []).map((qq, i) => <div key={i} className="text-xs text-ap-ink-2">· {qq}</div>)}
+                  </div>
+                  <div>
+                    <div className="text-[11px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">제한사항</div>
+                    {(cp?.limitations ?? []).map((l, i) => <div key={i} className="text-xs text-ap-ink-3">· {l}</div>)}
+                  </div>
+                </div>
+              </ApPanel>
+
+              {/* Debate */}
+              <ApPanel>
+                <ApPanelHead kicker="토론 패널" title="강세 / 약세 / 리스크" />
+                <div className="p-4 space-y-2">
+                  <div className="bg-ap-bg rounded-ap-md p-2.5"><ApBadge tone="pos">강세</ApBadge><div className="text-xs text-ap-ink-2 mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map(evidenceText).join("; ") || "—"}</div></div>
+                  <div className="bg-ap-bg rounded-ap-md p-2.5"><ApBadge tone="neg">약세</ApBadge><div className="text-xs text-ap-ink-2 mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map(evidenceText).join("; ") || "—"}</div></div>
+                  {data.debate.historical_counterexamples.length > 0 && <div className="bg-ap-bg rounded-ap-md p-2.5"><ApBadge tone="warn">반례</ApBadge>{data.debate.historical_counterexamples.map((c, i) => <div key={i} className="text-xs text-ap-ink-3 mt-1">{c.topic}: {c.study_a} vs {c.study_b} — {c.explanation}</div>)}</div>}
+                </div>
+              </ApPanel>
+
               {/* Conviction factors */}
-              <Panel>
-                <PanelHead kicker="확신도" title="연구 확신도" right={cv && <Badge tone={CONV_TONE[cv.level] ?? "mute"} title={cv.level}>{CONV_LABEL[cv.level] ?? cv.level}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="확신도" title="연구 확신도" right={cv && <ApBadge tone={CONV_TONE[cv.level] ?? "mute"} title={cv.level}>{CONV_LABEL[cv.level] ?? cv.level}</ApBadge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(cv?.factors ?? {}).map(([k, v]) => (
                     <div key={k} className="flex items-center gap-2">
-                      <span className="text-[11px] text-[var(--c-text-2)] w-44">{k}</span>
-                      <div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${v * 100}%`, background: v >= 0.5 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>
-                      <span className="text-[11px] c-num text-[var(--c-text-3)] w-8 text-right">{v.toFixed(2)}</span>
+                      <span className="text-xs text-ap-ink-2 w-32 truncate">{k}</span>
+                      <div className="flex-1 h-1.5 bg-ap-line rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${v * 100}%`, background: v >= 0.5 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>
+                      <span className="text-xs font-data text-ap-ink-3 w-8 text-right">{v.toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="text-[9px] text-[var(--c-text-3)] pt-1">연구 확신도 — 투자 등급 아님.</div>
+                  <div className="text-[11px] text-ap-ink-3 pt-1">연구 확신도 — 투자 등급 아님.</div>
                 </div>
-              </Panel>
-            </div>
+              </ApPanel>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Governance */}
-              <Panel>
-                <PanelHead kicker="거버넌스" title="컴플라이언스" right={gov && <Badge tone={gov.passed ? "pos" : "warn"}>{gov.governance}</Badge>} />
-                <div className="p-4 space-y-1">
+              <ApPanel>
+                <ApPanelHead kicker="거버넌스" title="컴플라이언스" right={gov && <ApBadge tone={gov.passed ? "pos" : "warn"}>{gov.governance}</ApBadge>} />
+                <div className="p-4 space-y-1.5">
                   {(gov?.checks ?? []).map((c) => (
                     <div key={c.check} className="flex items-center gap-2">
                       <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: c.ok ? "var(--c-pos)" : "var(--c-neg)" }} />
-                      <span className="text-[11px] text-[var(--c-text-1)] w-44">{c.check}</span>
-                      <span className="text-[9px] text-[var(--c-text-3)] flex-1 truncate">{c.detail}</span>
+                      <span className="text-xs text-ap-ink-1 flex-1 truncate">{c.check}</span>
                     </div>
                   ))}
+                  {(gov?.checks ?? []).some((c) => c.detail) && (
+                    <div className="pt-1 space-y-1">
+                      {(gov?.checks ?? []).filter((c) => c.detail).map((c) => (
+                        <div key={c.check} className="text-[11px] text-ap-ink-3 truncate">{c.check}: {c.detail}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </Panel>
+              </ApPanel>
 
               {/* Production Health */}
-              <Panel>
-                <PanelHead kicker="프로덕션 헬스" title="컴포넌트" right={prod && <Badge tone={SEV_TONE[prod.overall_severity] ?? "mute"}>{prod.overall_severity}</Badge>} />
-                <div className="p-4 space-y-1">
+              <ApPanel>
+                <ApPanelHead kicker="프로덕션 헬스" title="컴포넌트" right={prod && <ApBadge tone={SEV_TONE[prod.overall_severity] ?? "mute"}>{prod.overall_severity}</ApBadge>} />
+                <div className="p-4 space-y-1.5">
                   {(prod?.components ?? []).map((c) => (
                     <div key={c.component} className="flex items-center gap-2">
-                      <Badge tone={SEV_TONE[c.severity] ?? "mute"}>{c.severity}</Badge>
-                      <span className="text-[11px] text-[var(--c-text-1)] w-40">{c.component}</span>
-                      <span className="text-[9px] text-[var(--c-text-3)] flex-1 truncate">{c.detail}</span>
+                      <ApBadge tone={SEV_TONE[c.severity] ?? "mute"}>{c.severity}</ApBadge>
+                      <span className="text-xs text-ap-ink-1 flex-1 truncate">{c.component}</span>
                     </div>
                   ))}
                 </div>
-              </Panel>
-            </div>
+              </ApPanel>
 
-            {/* Portfolio Research + Review Queue */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Panel>
-                <PanelHead kicker="포트폴리오 리서치" title="전략 헬스" right={<Badge tone="hud">{data.portfolio_research.strategy_health.length}</Badge>} />
+              {/* Portfolio Research */}
+              <ApPanel>
+                <ApPanelHead kicker="포트폴리오 리서치" title="전략 헬스" right={<ApBadge tone="hud">{data.portfolio_research.strategy_health.length}</ApBadge>} />
                 <div className="p-4 space-y-1.5">
-                  {data.portfolio_research.strategy_health.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">전략이 축적되면 노출·중첩·상관 뷰가 나타납니다(배분 아님).</div>}
+                  {data.portfolio_research.strategy_health.length === 0 && <div className="text-xs text-ap-ink-3">전략이 축적되면 노출·중첩·상관 뷰가 나타납니다(배분 아님).</div>}
                   {data.portfolio_research.strategy_health.map((s) => (
-                    <div key={s.strategy} className="flex items-center gap-2"><span className="text-[11px] text-[var(--c-text-1)] w-36 truncate">{s.strategy}</span><div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${s.health_score}%`, background: s.health_score >= 65 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>{s.review_needed && <Badge tone="warn">검토</Badge>}</div>
+                    <div key={s.strategy} className="flex items-center gap-2">
+                      <span className="text-xs text-ap-ink-1 w-24 truncate">{s.strategy}</span>
+                      <div className="flex-1 h-1.5 bg-ap-line rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${s.health_score}%`, background: s.health_score >= 65 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>
+                      {s.review_needed && <ApBadge tone="warn">검토</ApBadge>}
+                    </div>
                   ))}
-                  <div className="text-[9px] text-[var(--c-text-3)] pt-1">배분 제안 아님 — 연구 관점.</div>
+                  <div className="text-[11px] text-ap-ink-3 pt-1">배분 제안 아님 — 연구 관점.</div>
                 </div>
-              </Panel>
-              <Panel>
-                <PanelHead kicker="검토 대기열" title="휴먼 액션" right={<Badge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</Badge>} />
+              </ApPanel>
+
+              {/* Review Queue */}
+              <ApPanel>
+                <ApPanelHead kicker="검토 대기열" title="휴먼 액션" right={<ApBadge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</ApBadge>} />
                 <div className="p-4 space-y-1.5">
-                  {data.review_queue.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">사람 검토 대기 항목 없음.</div>}
-                  {data.review_queue.map((r, i) => <div key={i} className="bg-[var(--c-panel-2)] p-2.5 flex items-center justify-between gap-2"><span className="text-[11px] text-[var(--c-text-1)] truncate">{r.task}</span><span className="text-[9px] c-num text-[var(--c-text-3)]">{r.source}</span></div>)}
+                  {data.review_queue.length === 0 && <div className="text-xs text-ap-ink-3">사람 검토 대기 항목 없음.</div>}
+                  {data.review_queue.map((r, i) => <div key={i} className="bg-ap-bg rounded-ap-md p-2.5 flex items-center justify-between gap-2"><span className="text-xs text-ap-ink-1 truncate">{r.task}</span><span className="text-[11px] font-data text-ap-ink-3">{r.source}</span></div>)}
                 </div>
-              </Panel>
-            </div>
-            <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
-          </>
-        )}
+              </ApPanel>
+              <div className="text-xs text-ap-ink-3 leading-relaxed">{data.disclaimer}</div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
