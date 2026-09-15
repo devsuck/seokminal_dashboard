@@ -598,7 +598,7 @@ function GraphTab() {
                     const isSel = sel === n.id;
                     return (
                       <button key={n.id} onClick={() => setSel(isSel ? null : n.id)}
-                        className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-ap-md ${
+                        className={`w-full text-left flex items-center gap-2.5 px-2.5 py-3 min-h-11 rounded-ap-md ${
                           isSel ? "bg-ap-brand/10" : highlighted ? "bg-ap-brand/5" : ""
                         }`}>
                         <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c }} />
