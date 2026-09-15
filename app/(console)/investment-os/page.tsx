@@ -1343,6 +1343,146 @@ function InvestmentOsInner() {
                 </ApPanel>
               </div>
             )}
+
+            {tab === "ops" && (
+              <div className="space-y-4">
+                <ApPanel>
+                  <ApPanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리" right={<ApBadge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
+                  <div className="p-4 space-y-3">
+                    <div className="text-[11px] text-ap-ink-2 leading-relaxed bg-ap-bg rounded-ap-md px-3 py-2">
+                      전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
+                      승인해도 새로고침하면 PAPER로 리셋되고, 실제로 바뀌는 건 없습니다(AUTO_EXECUTION은 영구 비활성).
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {RUNGS.map((r) => {
+                        const isAuto = r === "AUTO_EXECUTION";
+                        const isCurrent = r === currentRung;
+                        const isPast = RUNGS.indexOf(r) < RUNGS.indexOf(currentRung);
+                        return (
+                          <span key={r} className={`text-[11px] px-2 py-1 rounded-ap-sm border ${
+                            isAuto ? "border-ap-down text-ap-down line-through"
+                            : isCurrent ? "border-ap-brand text-ap-brand font-semibold bg-ap-brand/10"
+                            : isPast ? "border-ap-up text-ap-up"
+                            : "border-ap-line text-ap-ink-3"}`}>
+                            {isAuto && "🔒 "}{isCurrent && "▶ "}{RUNG_LABEL[r] ?? r}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="bg-ap-bg rounded-ap-md p-3">
+                      <div className="text-[9px] tracking-[0.2em] text-ap-brand uppercase mb-1.5">필수 게이트 (우회 불가)</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(advResult?.gates ?? []).length > 0
+                          ? advResult!.gates.map((g) => (
+                            <div key={g.gate} className="flex items-center gap-1.5">
+                              <ApDot tone={g.ok ? "pos" : "neg"} />
+                              <span className="text-[11px] text-ap-ink-1">{g.gate}</span>
+                            </div>))
+                          : ["risk", "compliance", "portfolio", "kill_switch"].map((g) => (
+                            <div key={g} className="flex items-center gap-1.5">
+                              <ApDot tone={data.gates.passed ? "pos" : "warn"} />
+                              <span className="text-[11px] text-ap-ink-1">{g}</span>
+                            </div>))}
+                      </div>
+                    </div>
+
+                    <div className="bg-ap-bg rounded-ap-md p-3 space-y-2.5">
+                      {nextIsAuto ? (
+                        <div className="text-[11px] text-ap-down flex items-center gap-2">
+                          🔒 <span>다음 단계는 <b>AUTO_EXECUTION</b> — 영구 비활성. 승인·게이트와 무관하게 전진 불가.</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-[11px] text-ap-ink-2">
+                            현재 <span className="text-ap-brand font-semibold">{RUNG_LABEL[currentRung]}</span> → 다음 <span className="text-ap-ink-1 font-semibold">{RUNG_LABEL[nextRung]}</span>. 승인은 실행이 아니라 준비도 상태 전이(자문).
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} className="accent-ap-brand w-4 h-4" />
+                            <span className="text-[11px] text-ap-ink-2">Risk·Compliance·Portfolio 게이트와 시나리오를 검토했으며, 이 전진을 승인합니다.</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button onClick={approveAndAdvance} disabled={!reviewed || busy}
+                              className={`px-4 h-10 rounded-ap-md text-[11px] font-semibold uppercase border ${
+                                reviewed && !busy ? "text-ap-up border-ap-up bg-ap-up/10" : "text-ap-ink-3 border-ap-line opacity-50"}`}>
+                              {busy ? "검증 중…" : `승인 & 전진 → ${RUNG_LABEL[nextRung]}`}
+                            </button>
+                            <button onClick={resetLadder} className="px-3 h-10 rounded-ap-md text-[11px] uppercase text-ap-ink-3 border border-ap-line">페이퍼로 리셋</button>
+                          </div>
+                        </>
+                      )}
+                      {advResult && (
+                        <div className={`text-[11px] ${advResult.advanced ? "text-ap-up" : "text-ap-caution"}`}>
+                          {advResult.advanced ? `✓ 승인됨 — ${RUNG_LABEL[advResult.new_rung]} 로 전진(게이트 통과 + 사람 승인).`
+                            : `✗ 차단됨 — ${advResult.blocked_reason}`}
+                        </div>
+                      )}
+                    </div>
+
+                    {history.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-[9px] tracking-[0.2em] text-ap-ink-3 uppercase">승인 로그 (이번 세션)</div>
+                        {history.map((h, i) => (
+                          <div key={i} className="flex flex-wrap items-center gap-2 text-[11px] font-data text-ap-ink-3">
+                            <span>{h.ts}</span>
+                            <ApBadge tone={h.advanced ? "pos" : "neg"}>{h.advanced ? "전진함" : "차단됨"}</ApBadge>
+                            <span>{RUNG_LABEL[h.from]} → {RUNG_LABEL[h.to]}</span>
+                            {!h.advanced && <span className="text-ap-caution truncate">{h.reason}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="text-[11px] text-ap-ink-3">
+                      각 전진에 사람 승인 필수 + 4게이트 통과. <span className="text-ap-down">AUTO_EXECUTION 은 영구 비활성.</span> Kill switch 시 전부 페이퍼 강제.
+                    </div>
+                  </div>
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="monitor" title="파이프라인 모니터" />
+                  {monitor.loading && <div className="p-4"><ApSkeletonLines rows={2} /></div>}
+                  {monitor.data && (
+                    <div className="p-4 space-y-1.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        {monitor.data.stages.map((s) => (
+                          <div key={s.key} className="bg-ap-bg rounded-ap-md p-2">
+                            <div className="text-[9px] tracking-[0.15em] text-ap-ink-3 uppercase">{s.label}</div>
+                            <div className="text-[13px] font-data text-ap-ink-1">{s.count}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-[11px] text-ap-ink-3">제안 {monitor.data.proposals} · 승인 {monitor.data.approvals} · 익스포저 {monitor.data.capital.exposure_pct}%</div>
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="orders" title="주문" />
+                  {orders.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {orders.data && (
+                    <div className="p-4 space-y-1 text-[11px] text-ap-ink-2">
+                      <div>라이프사이클 이벤트: <span className="font-data text-ap-ink-1">{orders.data.lifecycle_events}</span></div>
+                      <div>요청 {orders.data.requests.length} · 응답 {orders.data.responses.length}</div>
+                      <div className="text-ap-ink-3">{orders.data.note}</div>
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="live-intelligence" title="라이브 데이터 소스" right={live.data && <ApBadge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"}>{DATA_HEALTH_LABEL[live.data.data_health.overall_status] ?? live.data.data_health.overall_status}</ApBadge>} />
+                  {live.loading && <div className="p-4"><ApSkeletonLines rows={2} /></div>}
+                  {live.data && (
+                    <div className="p-4 space-y-1 text-[11px] text-ap-ink-2">
+                      <div>소스 {live.data.data_sources.available_count}/{live.data.data_sources.count}개 사용 가능</div>
+                      <div>이슈: {live.data.data_health.issue_count}</div>
+                    </div>
+                  )}
+                </ApPanel>
+              </div>
+            )}
+
+            <div className="text-[11px] text-ap-ink-3 leading-relaxed">{data.disclaimer}</div>
           </>
         )}
       </div>
