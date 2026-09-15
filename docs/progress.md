@@ -1,4 +1,54 @@
-## Phase 265 — 모바일 핀테크 리디자인: research-os/validation (2026-09-16) ✅ SHIPPED
+## Phase 266 — 모바일 핀테크 리디자인: research-os/governance (2026-09-16) ✅ SHIPPED
+
+### 배경
+Phase 265 후속. 라우트 순서: portfolio→performance→investment-os→validation(완료)→
+**research-os/governance(이번 세션 완료)**→chat. plan-then-execute, SDD 파이프라인 그대로.
+Phase 265 교훈(text-xs 기본값) 이번 플랜부터 Global Constraints에 명시 반영.
+
+### 완료된 작업
+- `app/(console)/research-os/governance/page.tsx` — 4개 탭(`CommitteeTab`,
+  `ExplainTab`, `GraphTab`, `TimelineTab`) + `GovernanceInner` 탭 셸 전체
+  `md:hidden` 카드 브랜치 신규(데스크톱 `hidden md:block` 무변경). `ApPrimitives.tsx`
+  재사용(`ApPanel/ApPanelHead/ApDot/ApBadge/ApSkeletonStatTile/ApSkeletonLines`만,
+  미사용 `ApStatTile/ApMeter`는 플랜 자체 리뷰 단계에서 걸러냄).
+- **GraphTab SVG→리스트 재해석**: 데스크톱은 SVG 노드-엣지 다이어그램(컬럼 레이아웃),
+  모바일 폭에 안 맞아서 플랜 Architecture 섹션에 사전 결정 — 같은 `sel`/`adj`/`data`
+  상태 재사용한 세로 리스트(탭하면 연결 노드 하이라이트, hide/dim 대신 배경 틴트).
+  최종 리뷰에서 desktop SVG 엣지가 원래 unlabeled/undirected라 정보 손실 없음 확인.
+- SDD 풀 사이클: plan(`docs/superpowers/plans/2026-09-16-research-os-governance-mobile.md`)
+  → Task 1~3 각각 fresh subagent(sonnet) 구현 + task reviewer(sonnet) 승인 —
+  **3개 태스크 전부 findings 0건, fix loop 없이 1차 통과** (validation 라우트 대비
+  개선, text-xs 교훈이 실제로 먹힘을 확인).
+- **최종 브랜치 리뷰(opus, 전날 rate limit 리셋 이후 재시도 → 성공)**: desktop
+  무변경을 `git diff -w --ignore-blank-lines`로 기계적 증명(진짜 변경 4줄, 전부
+  `hidden md:block` 래핑 지점). `text-[11px]` 0건 확인(교훈 적용 효과 확인).
+  Important 1건: GraphTab 모바일 노드 행 터치 타겟 32px(`py-2`) — spec 44px 미달,
+  플랜이 폼/탭 버튼에만 `h-11` 지정하고 그래프 행은 누락한 플랜 갭. 직접 수정
+  (`px-2.5 py-2` → `px-2.5 py-3 min-h-11`, commit `ba7b3b3`) + 플랜 파일 untracked
+  상태였던 것도 같이 커밋 → 스코프 한정 재리뷰(sonnet) 승인, 이슈 없음.
+  Minor 4건(PageHeader 배지 일부 라우트 누락/GraphTab 스켈레톤 없음/미사용 memo/
+  플랜 untracked-fixed)은 load-bearing 아니라 파킹, 수정 안 함.
+- 최종 검증: `npx tsc --noEmit` 0 errors, `npm run build` 정적 프리렌더 성공.
+
+### 변경된 파일
+- 수정: `app/(console)/research-os/governance/page.tsx`
+- 신규 계획 문서: `docs/superpowers/plans/2026-09-16-research-os-governance-mobile.md`
+
+### 다음 할 일
+- 같은 패턴으로 `research-os/chat` 진행 — 마지막 라우트, 완료되면 모바일 핀테크
+  리디자인 스펙 전체 완료.
+- **플랜 작성 시 교훈(검증됨)**: Global Constraints에 `text-xs` 기본값 명시하면
+  minor finding이 실제로 0건까지 줄어듦(validation 9건 → governance 0건). 다음
+  플랜에도 유지.
+- **새 교훈**: SVG/다이어그램류 데스크톱 컴포넌트를 모바일로 옮길 때 터치 타겟
+  44px 요구사항을 폼/탭 버튼뿐 아니라 리스트 행 버튼에도 명시적으로 적어둘 것 —
+  이번엔 플랜에서 빠져서 최종 리뷰 단계에서 잡힘.
+- `origin` 푸시는 아직 안 함 — 별도 명시적 확인 없이는 계속 보류.
+
+### 막힌 부분/결정사항
+- 없음. 전 과정 순조롭게 완료.
+
+
 
 ### 배경
 Phase 264 후속. 라우트 순서: portfolio→performance→investment-os(완료)→
