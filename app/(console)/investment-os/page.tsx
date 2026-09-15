@@ -1058,6 +1058,97 @@ function InvestmentOsInner() {
                 </ApPanel>
               </div>
             )}
+
+            {tab === "strategy" && (
+              <div className="space-y-4">
+                <ApPanel>
+                  <ApPanelHead kicker="Forward Learning · STEP4" title="전략별 검증 상태" right={<ApBadge tone="mute">조인 · 새 원장 없음</ApBadge>} />
+                  <div className="p-4 space-y-3">
+                    {sideLoading && <ApSkeletonLines rows={4} />}
+                    {!sideLoading && acct && (
+                      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="text-[9px] tracking-[0.2em] text-ap-brand uppercase">Edge Score</span>
+                        {acct.edge_score.status === "PROVISIONAL"
+                          ? <ApBadge tone="mute">미확정 — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨</ApBadge>
+                          : <ApBadge tone="pos">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</ApBadge>}
+                        {conn && (
+                          <ApBadge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"}>
+                            Validation Score: {SCORE_STATUS_LABEL[conn.validation_score.status ?? ""] ?? conn.validation_score.status}
+                          </ApBadge>
+                        )}
+                      </div>
+                    )}
+                    {fwd && fwd.count === 0 && <div className="text-[11px] text-ap-ink-3">추적 대상(paper_active/watchlist/paper_candidate) 전략 없음.</div>}
+                    {(fwd?.records ?? []).map((r) => {
+                      const eq = evidenceQuality(r); const fp = forwardProgress(r); const rs = riskState(r);
+                      return (
+                        <div key={r.strategy_id} className="bg-ap-bg rounded-ap-md p-3 space-y-1.5">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[11px] text-ap-ink-1 font-semibold">{r.strategy_id}</span>
+                            <ApBadge tone="hud">{STATUS_LABEL[r.validation_status ?? ""] ?? r.validation_status ?? "—"}</ApBadge>
+                          </div>
+                          {r.thesis && <div className="text-[11px] text-ap-ink-2">{r.thesis}</div>}
+                          <div className="flex flex-wrap gap-1.5">
+                            <ApBadge tone={eq.tone}>근거: {eq.label}</ApBadge>
+                            <ApBadge tone={fp.tone}>Forward: {fp.label}</ApBadge>
+                            <ApBadge tone={rs.tone}>리스크: {rs.label}</ApBadge>
+                            {!r.prediction_captured && <ApBadge tone="warn">Thesis 사전등록 안 됨</ApBadge>}
+                          </div>
+                          {(r.next_possible?.length ?? 0) > 0 && (
+                            <div className="text-[11px] text-ap-ink-3">
+                              다음 가능 상태: {r.next_possible!.join(", ")}
+                              {(r.human_approval_required_next?.length ?? 0) > 0 &&
+                                <span className="text-ap-caution"> · 사람 승인 필요: {r.human_approval_required_next!.join(", ")}</span>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {fwd && (
+                      <div className="text-[11px] text-ap-ink-3 pt-1">
+                        커버리지 갭: thesis 없음 {fwd.coverage_gaps.missing_thesis} ·
+                        thesis 사전등록 안 됨 {fwd.coverage_gaps.missing_prediction_capture} ·
+                        forward 데이터 없음 {fwd.coverage_gaps.missing_forward_data} / {fwd.count}
+                      </div>
+                    )}
+                  </div>
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="validation-loop" title="라이프사이클 보드"
+                    right={valLoop.data && <ApBadge tone={valLoop.data.loop_status.release_ready ? "pos" : "mute"}>{valLoop.data.loop_status.release_ready ? "출시 준비 완료" : "진행 중"}</ApBadge>} />
+                  {valLoop.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {valLoop.data && (
+                    <div className="p-4 space-y-1.5">
+                      {valLoop.data.lifecycle_board.strategies.map((s) => (
+                        <div key={s.strategy} className="flex items-center justify-between text-[11px]">
+                          <span className="text-ap-ink-1">{s.strategy}</span>
+                          <ApBadge tone="hud">{s.current_state}</ApBadge>
+                        </div>
+                      ))}
+                      <div className="pt-1.5 flex items-center gap-2 text-[11px] text-ap-ink-3">
+                        <span>품질: {valLoop.data.quality_panel.quality_score ?? "—"} ({valLoop.data.quality_panel.grade})</span>
+                        {valLoop.data.validation_panel.divergence_detected && <ApBadge tone="warn">편차 감지됨</ApBadge>}
+                      </div>
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="validation" title="검증 게이트" />
+                  {val.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {val.data && (
+                    <div className="p-4 space-y-1.5">
+                      <div className="flex flex-wrap gap-1.5">{val.data.gates.map((g) => <ApBadge key={g} tone="mute">{g}</ApBadge>)}</div>
+                      <div className="text-[11px] text-ap-ink-3">레드팀 n={val.data.redteam.n} · 사람 동의={val.data.redteam.human_redteam_agree ?? "—"}</div>
+                      <div className="flex flex-wrap gap-2 text-[11px] text-ap-ink-2">
+                        {Object.entries(val.data.experiment_status).map(([k, v]) => <span key={k} className="font-data">{k}: {v}</span>)}
+                      </div>
+                    </div>
+                  )}
+                </ApPanel>
+              </div>
+            )}
           </>
         )}
       </div>
