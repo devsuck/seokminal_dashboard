@@ -10,6 +10,10 @@ import {
   getResearchGraph, type ResearchGraphResp,
   getResearchTimeline, type TimelineResp,
 } from "@/lib/console-api";
+import {
+  ApPanel, ApPanelHead, ApDot, ApBadge,
+  ApSkeletonStatTile, ApSkeletonLines,
+} from "@/components/ui/ApPrimitives";
 
 type TabKey = "committee" | "explain" | "graph" | "timeline";
 const TABS: { key: TabKey; label: string }[] = [
@@ -44,93 +48,192 @@ function CommitteeTab() {
   }, []);
   const submit = (text: string) => { setQ(text); run(text); };
   return (
-    <div className="min-h-full">
-      <PageHeader kicker="P93" title="투자 위원회" right={memo?.confidence && <Badge tone={CONF[memo.confidence] ?? "mute"} title={memo.confidence}>신뢰도 {CONF_LABEL[memo.confidence] ?? memo.confidence}</Badge>} />
-      <div className="p-5 space-y-4">
-        <Panel hud className="p-5">
-          <div className="text-[13px] font-semibold text-[var(--c-text-1)]">어떤 논제를 심의할까요?</div>
-          <div className="mt-1 text-[11px] text-[var(--c-text-3)] leading-relaxed">
-            투자 논제를 입력하면 7관점 협의체가 찬반 근거를 조직하고 Decision Memo 패킷을 만듭니다. 위원회는 증거만 조직할 뿐, 최종 결정·집행은 사람이 합니다.
-          </div>
-          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="mt-3 flex gap-2">
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
-              className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3.5 h-11 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-            <button type="submit" disabled={loading}
-              className="flex items-center gap-2 px-5 h-11 text-[13px] font-semibold uppercase tracking-wide text-[var(--c-bg)] bg-[var(--c-hud)] cursor-pointer disabled:opacity-50 disabled:cursor-wait">
-              {loading && <span className="h-3 w-3 rounded-full border-2 border-[color-mix(in_srgb,var(--c-bg)_40%,transparent)] border-t-[var(--c-bg)] animate-spin" />}
-              {loading ? "소집 중…" : "소집"}
-            </button>
-          </form>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <span className="text-[11px] text-[var(--c-text-3)] uppercase tracking-[0.14em] mr-1 self-center">예시</span>
-            {EXAMPLES.map((ex) => (
-              <button key={ex} type="button" onClick={() => submit(ex)} disabled={loading}
-                className="px-2.5 py-1 text-[11px] text-[var(--c-text-2)] border border-[var(--c-border)] bg-[var(--c-panel-2)] hover:border-[var(--c-hud)] hover:text-[var(--c-hud)] transition-colors disabled:opacity-40 cursor-pointer">
-                {ex}
+    <>
+      <div className="hidden md:block min-h-full">
+        <PageHeader kicker="P93" title="투자 위원회" right={memo?.confidence && <Badge tone={CONF[memo.confidence] ?? "mute"} title={memo.confidence}>신뢰도 {CONF_LABEL[memo.confidence] ?? memo.confidence}</Badge>} />
+        <div className="p-5 space-y-4">
+          <Panel hud className="p-5">
+            <div className="text-[13px] font-semibold text-[var(--c-text-1)]">어떤 논제를 심의할까요?</div>
+            <div className="mt-1 text-[11px] text-[var(--c-text-3)] leading-relaxed">
+              투자 논제를 입력하면 7관점 협의체가 찬반 근거를 조직하고 Decision Memo 패킷을 만듭니다. 위원회는 증거만 조직할 뿐, 최종 결정·집행은 사람이 합니다.
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="mt-3 flex gap-2">
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
+                className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3.5 h-11 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+              <button type="submit" disabled={loading}
+                className="flex items-center gap-2 px-5 h-11 text-[13px] font-semibold uppercase tracking-wide text-[var(--c-bg)] bg-[var(--c-hud)] cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+                {loading && <span className="h-3 w-3 rounded-full border-2 border-[color-mix(in_srgb,var(--c-bg)_40%,transparent)] border-t-[var(--c-bg)] animate-spin" />}
+                {loading ? "소집 중…" : "소집"}
               </button>
-            ))}
-          </div>
-        </Panel>
-        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
-        {council && memo && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* 7관점 */}
-            <div className="lg:col-span-2 space-y-4">
-              <Panel>
-                <PanelHead kicker="P90 · 7가지 관점" title="협의회" right={<Badge tone="hud">{council.recommendation?.split("—")[0]?.trim()}</Badge>} />
+            </form>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="text-[11px] text-[var(--c-text-3)] uppercase tracking-[0.14em] mr-1 self-center">예시</span>
+              {EXAMPLES.map((ex) => (
+                <button key={ex} type="button" onClick={() => submit(ex)} disabled={loading}
+                  className="px-2.5 py-1 text-[11px] text-[var(--c-text-2)] border border-[var(--c-border)] bg-[var(--c-panel-2)] hover:border-[var(--c-hud)] hover:text-[var(--c-hud)] transition-colors disabled:opacity-40 cursor-pointer">
+                  {ex}
+                </button>
+              ))}
+            </div>
+          </Panel>
+          {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+          {council && memo && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* 7관점 */}
+              <div className="lg:col-span-2 space-y-4">
+                <Panel>
+                  <PanelHead kicker="P90 · 7가지 관점" title="협의회" right={<Badge tone="hud">{council.recommendation?.split("—")[0]?.trim()}</Badge>} />
+                  <div className="p-4 space-y-2">
+                    {(council.lenses ?? []).map((ln, i) => (
+                      <div key={i} className="flex items-start gap-3 py-1.5 border-b border-[var(--c-border)] last:border-0">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: STANCE[ln.stance] ?? "var(--c-text-3)" }} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2"><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{ln.lens}</span><span className="text-[9px] c-num uppercase" style={{ color: STANCE[ln.stance] ?? "var(--c-text-3)" }} title={ln.stance}>{STANCE_LABEL[ln.stance] ?? ln.stance}</span></div>
+                          <div className="text-[11px] text-[var(--c-text-3)]">{ln.rationale}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+                <Panel>
+                  <PanelHead kicker="위원회 패킷" title={q} />
+                  <div className="p-4 space-y-3">
+                    <div className="text-[13px] font-medium text-[var(--c-hud)]">{memo.recommendation}</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-pos)] uppercase mb-1">지지 근거</div>{(memo.supporting_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.supporting_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
+                      <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">반박 근거</div>{(memo.counter_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.counter_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
+                    </div>
+                  </div>
+                </Panel>
+              </div>
+              {/* 리스크·미지·이력 */}
+              <div className="space-y-4">
+                <Panel>
+                  <PanelHead kicker="리스크" title="분석" />
+                  <div className="p-4 space-y-1">
+                    <div className="text-[11px] text-[var(--c-text-1)]">{memo.risk_summary?.label}</div>
+                    <div className="text-[11px] text-[var(--c-text-3)]">주요 리스크: {memo.risk_summary?.main_risk} · 신뢰도 {memo.risk_summary?.confidence}</div>
+                  </div>
+                </Panel>
+                <Panel>
+                  <PanelHead kicker="공백" title="남은 미지수" />
+                  <div className="p-4 space-y-1">
+                    {(memo.remaining_unknowns ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}
+                    {(memo.remaining_unknowns ?? []).map((u, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {u}</div>)}
+                  </div>
+                </Panel>
+                <div className="c-panel p-3 text-[11px] text-[var(--c-text-3)] leading-relaxed">
+                  위원회는 증거를 조직합니다. 결정·이유·시각은 사람이 입력하고 기존 감사(rwf_runs)에 기록됩니다. 엔진은 승인/집행하지 않습니다.
+                </div>
+              </div>
+            </div>
+          )}
+          {loading && !council && (
+            <div className="c-panel p-10 text-center flex flex-col items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-hud)] animate-pulse" />
+              <span className="text-[11px] tracking-wider text-[var(--c-text-3)]">7관점 협의체 소집 중…</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="md:hidden min-h-full">
+        <div className="px-4 py-3 space-y-3">
+          <ApPanel className="p-4">
+            <div className="text-[13px] font-semibold text-ap-ink-1">어떤 논제를 심의할까요?</div>
+            <div className="mt-1 text-xs text-ap-ink-2 leading-relaxed">
+              투자 논제를 입력하면 7관점 협의체가 찬반 근거를 조직하고 Decision Memo 패킷을 만듭니다. 위원회는 증거만 조직할 뿐, 최종 결정·집행은 사람이 합니다.
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="mt-3 flex flex-col gap-2">
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
+                className="w-full bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+              <button type="submit" disabled={loading}
+                className="h-11 rounded-ap-md text-[13px] font-semibold text-white bg-ap-brand disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2">
+                {loading && <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
+                {loading ? "소집 중…" : "소집"}
+              </button>
+            </form>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="text-xs text-ap-ink-3 uppercase tracking-[0.14em] mr-1 self-center">예시</span>
+              {EXAMPLES.map((ex) => (
+                <button key={ex} type="button" onClick={() => submit(ex)} disabled={loading}
+                  className="px-2.5 py-1.5 rounded-ap-sm text-xs text-ap-ink-2 border border-ap-line bg-ap-bg disabled:opacity-40">
+                  {ex}
+                </button>
+              ))}
+            </div>
+          </ApPanel>
+
+          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+
+          {loading && !council && (
+            <div className="space-y-3">
+              <ApSkeletonStatTile />
+              <ApPanel className="p-4"><ApSkeletonLines rows={4} /></ApPanel>
+            </div>
+          )}
+
+          {council && memo && (
+            <div className="space-y-3">
+              <ApPanel>
+                <ApPanelHead kicker="P90 · 7가지 관점" title="협의회" right={<ApBadge tone="hud">{council.recommendation?.split("—")[0]?.trim()}</ApBadge>} />
                 <div className="p-4 space-y-2">
                   {(council.lenses ?? []).map((ln, i) => (
-                    <div key={i} className="flex items-start gap-3 py-1.5 border-b border-[var(--c-border)] last:border-0">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: STANCE[ln.stance] ?? "var(--c-text-3)" }} />
+                    <div key={i} className="flex items-start gap-3 py-1.5 border-b border-ap-line last:border-0">
+                      <ApDot tone={STANCE[ln.stance] ?? "var(--c-text-3)"} />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2"><span className="text-[11px] font-semibold text-[var(--c-text-1)]">{ln.lens}</span><span className="text-[9px] c-num uppercase" style={{ color: STANCE[ln.stance] ?? "var(--c-text-3)" }} title={ln.stance}>{STANCE_LABEL[ln.stance] ?? ln.stance}</span></div>
-                        <div className="text-[11px] text-[var(--c-text-3)]">{ln.rationale}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-ap-ink-1">{ln.lens}</span>
+                          <span className="text-xs font-data uppercase text-ap-ink-3" title={ln.stance}>{STANCE_LABEL[ln.stance] ?? ln.stance}</span>
+                        </div>
+                        <div className="text-xs text-ap-ink-2">{ln.rationale}</div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </Panel>
-              <Panel>
-                <PanelHead kicker="위원회 패킷" title={q} />
+              </ApPanel>
+
+              <ApPanel>
+                <ApPanelHead kicker="위원회 패킷" title={q} />
                 <div className="p-4 space-y-3">
-                  <div className="text-[13px] font-medium text-[var(--c-hud)]">{memo.recommendation}</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-pos)] uppercase mb-1">지지 근거</div>{(memo.supporting_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.supporting_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
-                    <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">반박 근거</div>{(memo.counter_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.counter_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
+                  <div className="text-[13px] font-medium text-ap-brand">{memo.recommendation}</div>
+                  <div className="space-y-1">
+                    <div className="text-xs tracking-[0.2em] text-ap-up uppercase">지지 근거</div>
+                    {(memo.supporting_arguments ?? []).map((a, i) => <div key={i} className="text-xs text-ap-ink-2">· <b>{a.lens}</b> {a.rationale}</div>)}
+                    {(memo.supporting_arguments ?? []).length === 0 && <div className="text-xs text-ap-ink-3">—</div>}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs tracking-[0.2em] text-ap-caution uppercase">반박 근거</div>
+                    {(memo.counter_arguments ?? []).map((a, i) => <div key={i} className="text-xs text-ap-ink-2">· <b>{a.lens}</b> {a.rationale}</div>)}
+                    {(memo.counter_arguments ?? []).length === 0 && <div className="text-xs text-ap-ink-3">—</div>}
                   </div>
                 </div>
-              </Panel>
-            </div>
-            {/* 리스크·미지·이력 */}
-            <div className="space-y-4">
-              <Panel>
-                <PanelHead kicker="리스크" title="분석" />
+              </ApPanel>
+
+              <ApPanel>
+                <ApPanelHead kicker="리스크" title="분석" />
                 <div className="p-4 space-y-1">
-                  <div className="text-[11px] text-[var(--c-text-1)]">{memo.risk_summary?.label}</div>
-                  <div className="text-[11px] text-[var(--c-text-3)]">주요 리스크: {memo.risk_summary?.main_risk} · 신뢰도 {memo.risk_summary?.confidence}</div>
+                  <div className="text-xs text-ap-ink-1">{memo.risk_summary?.label}</div>
+                  <div className="text-xs text-ap-ink-2">주요 리스크: {memo.risk_summary?.main_risk} · 신뢰도 {memo.risk_summary?.confidence}</div>
                 </div>
-              </Panel>
-              <Panel>
-                <PanelHead kicker="공백" title="남은 미지수" />
+              </ApPanel>
+
+              <ApPanel>
+                <ApPanelHead kicker="공백" title="남은 미지수" />
                 <div className="p-4 space-y-1">
-                  {(memo.remaining_unknowns ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}
-                  {(memo.remaining_unknowns ?? []).map((u, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {u}</div>)}
+                  {(memo.remaining_unknowns ?? []).length === 0 && <div className="text-xs text-ap-ink-3">—</div>}
+                  {(memo.remaining_unknowns ?? []).map((u, i) => <div key={i} className="text-xs text-ap-caution">· {u}</div>)}
                 </div>
-              </Panel>
-              <div className="c-panel p-3 text-[11px] text-[var(--c-text-3)] leading-relaxed">
+              </ApPanel>
+
+              <div className="rounded-ap-md bg-ap-bg border border-ap-line p-3 text-xs text-ap-ink-3 leading-relaxed">
                 위원회는 증거를 조직합니다. 결정·이유·시각은 사람이 입력하고 기존 감사(rwf_runs)에 기록됩니다. 엔진은 승인/집행하지 않습니다.
               </div>
             </div>
-          </div>
-        )}
-        {loading && !council && (
-          <div className="c-panel p-10 text-center flex flex-col items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-hud)] animate-pulse" />
-            <span className="text-[11px] tracking-wider text-[var(--c-text-3)]">7관점 협의체 소집 중…</span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -430,7 +533,21 @@ function GovernanceInner() {
 
   return (
     <div className="min-h-full">
-      <TabBar tabs={TABS} active={tab} onSelect={setTab} />
+      <div className="hidden md:block">
+        <TabBar tabs={TABS} active={tab} onSelect={setTab} />
+      </div>
+      <div className="md:hidden sticky top-0 z-10 bg-ap-bg/90 backdrop-blur border-b border-ap-line px-4 py-3">
+        <div className="flex gap-2 overflow-x-auto">
+          {TABS.map((t) => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`h-11 px-4 rounded-ap-md text-xs font-semibold whitespace-nowrap border shrink-0 ${
+                tab === t.key ? "bg-ap-brand text-white border-ap-brand" : "bg-ap-surface text-ap-ink-2 border-ap-line"
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
       {tab === "committee" && <CommitteeTab />}
       {tab === "explain" && <ExplainTab />}
       {tab === "graph" && <GraphTab />}
