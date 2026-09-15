@@ -1,3 +1,58 @@
+## Phase 264 — 모바일 핀테크 리디자인: investment-os (2026-09-15) ✅ SHIPPED
+
+### 배경
+유저 요청("프론트엔드 작업하자, 거의 웹은 안보고 모바일로만 볼거니까 사이트를 다시
+만드는 느낌으로") → brainstorming(architectural) → spec
+`docs/superpowers/specs/2026-09-15-mobile-fintech-home-design.md` 승인 → 라우트별
+plan-then-execute 순서: portfolio(완료)→performance(완료)→**investment-os(이번 세션
+완료)**→research-os/{validation,governance,chat}(다음). "계획 다 되면 서브에이전트로
+바로 실행해줘" 승인 — plan 작성 즉시 subagent-driven-development로 실행, 확인 대기 없음.
+
+### 완료된 작업
+- `components/ui/ApPrimitives.tsx` 신규 — 다크 `components/console/primitives.tsx`를
+  `--color-ap-*` 라이트 토큰으로 포팅(`ApPanel`/`ApPanelHead`/`ApDot`/`ApStatTile`/
+  `ApBadge`/`ApSkeleton`/`ApMeter` 등). research-os 3개 플랜도 이 파일 재사용 예정.
+- `app/(console)/investment-os/page.tsx` — `hidden md:block`(데스크톱 무변경) /
+  `md:hidden`(신규 라이트 카드 UI) 분기. 모바일 5개 탭(overview/strategy/research/
+  risk/ops) + 상시 노출 disclaimer 전부 신규 마크업, 기존 훅/상태 그대로 재사용
+  (raw fetch 없음).
+- SDD 파이프라인 풀 사이클: plan(953줄, `docs/superpowers/plans/2026-09-15-investment-os-mobile.md`)
+  → Task 1~6 각각 fresh subagent 구현 + task reviewer(spec/quality) 승인 → 전체 브랜치
+  최종 리뷰(most capable model) → fix round 1건 → scoped re-review 승인. 전부 `main`에
+  직접 커밋(별도 브랜치 없음, 프로젝트 컨벤션).
+- **최종 브랜치 리뷰에서 잡힌 실수(정정 완료):** Task 5에서 Risk 탭 council 위젯을
+  "`AgentTree`가 다크 토큰 하드코딩이라 라이트 카드에서 오류로 보인다"는 잘못된
+  전제로 평면 렌더러로 새로 만듦 → 실제로는 `app/(console)/layout.tsx`가 콘솔 라우트
+  전체를 `.rail-ap`로 이미 감싸서 `AgentTree`가 이미 라이트로 렌더됨. 평면 렌더러는
+  전 노드를 중립색으로 뭉개 거버넌스 상태색(빨강/주황)이 사라지는 실질적 정보 손실이었음
+  — fix round에서 실제 `<AgentTree>` 재사용으로 교체. 플랜의 "Spec과의 차이" 섹션도
+  정정.
+- 그 외 fix round: 터치 타겟 44px 미만(탭바/사다리 버튼 h-8·h-10→h-11), 모바일
+  타입스케일 9px/11px→11px/12px(가독성), Ops 탭 안전 문구("승격은 Auto-Research
+  🚀 버튼에서" ) 복원, 스크롤 컨테이너 `min-h-screen`→`min-h-full`.
+- **의도된 이탈(리뷰에서 승인, 미수정):** `ApPanel`이 기존 `components/ui/Card.tsx`
+  대신 신규 병렬 컴포넌트 계열인 것 — 콘솔 레이아웃 페이지 전체가 다크 프리미티브
+  패턴을 따르고 있어 구조적 일관성 우선 판단, research-os 3개 플랜도 재논의 없이
+  이 컴포넌트 재사용.
+- 최종 검증: `npx tsc --noEmit` 0 errors, `npm run build` 37/37 라우트, `npm test`
+  33/33. 실기기/뷰포트 비주얼 확인은 미실시(스펙상 유일한 남은 검증 단계, Chrome
+  확장 연결 시 후속 권장 — Phase 263과 동일 사유).
+
+### 변경된 파일
+- 신규: `components/ui/ApPrimitives.tsx`
+- 수정: `app/(console)/investment-os/page.tsx` (903→1500줄대, 데스크톱 브랜치는
+  바이트 단위 무변경)
+- 신규 계획 문서: `docs/superpowers/plans/2026-09-15-investment-os-mobile.md`
+- 신규 스펙 문서: `docs/superpowers/specs/2026-09-15-mobile-fintech-home-design.md`
+
+### 다음 할 일
+- 같은 패턴으로 `research-os/validation` → `research-os/governance` →
+  `research-os/chat` 순서로 plan-then-execute 반복. 각 플랜은 `ApPrimitives.tsx`
+  임포트해서 재사용(중복 구현 금지).
+- `origin` 푸시는 아직 안 함 — 별도 명시적 확인 없이는 안 함(세션 전역 규칙).
+
+---
+
 ## Phase 263 — 모바일 반응형 다듬기 (2026-09-13) ✅ SHIPPED
 
 ### 배경
