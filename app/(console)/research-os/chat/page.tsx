@@ -184,7 +184,8 @@ export default function ResearchChat() {
               </button>
             </form>
 
-            <div className="flex flex-wrap gap-1.5 mb-4">
+            <div className="flex flex-wrap items-center gap-1.5 mb-4">
+              <span className="text-xs text-ap-ink-3 uppercase tracking-wide mr-1">예시</span>
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s} onClick={() => { setQ(s); run(s); }} disabled={loading}
@@ -263,7 +264,9 @@ export default function ResearchChat() {
                 <ApPanel>
                   <ApPanelHead
                     kicker="설명가능성" title="참조 실험"
-                    right={<ApBadge tone={CONF_TONE[turn.ev.confidence ?? ""] ?? "mute"}>{turn.ev.confidence}</ApBadge>}
+                    right={turn.ev.confidence && (
+                      <ApBadge tone={CONF_TONE[turn.ev.confidence] ?? "mute"}>{turn.ev.confidence}</ApBadge>
+                    )}
                   />
                   <div className="p-3 space-y-1">
                     {(turn.ev.references_experiments ?? []).length === 0 && (
