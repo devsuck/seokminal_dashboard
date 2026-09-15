@@ -22,9 +22,11 @@
 ## Spec과의 차이
 
 - **탭별 외부 딥링크(`TabLink` 행, 예: "전략 랩 ↗", "투자 위원회 ↗") 모바일 미포함.** 데스크톱 전용 참조 네비게이션이며 스코프 밖 라우트로 연결됨(`research-os/strategy-lab`, `research-os/committee` 등은 spec의 "스코프 밖" 목록) — 모바일 IA는 핵심 콘텐츠에 집중.
-- **Risk 탭의 `AgentTree`(재귀 트리 위젯)는 모바일에서 재사용하지 않는다.** `components/console/widgets.tsx`의 `AgentTree`는 `var(--c-*)` 다크 토큰을 하드코딩해서(`.rail-ap` 미사용 페이지에서는 다크로 렌더됨) 라이트 카드 안에서 그대로 쓰면 오류처럼 보임. 대신 council 루트 + 1단계 자식만 평면 리스트로 직접 렌더(`ApDot` + 이름 + 상태 배지) — 2단계 이상 깊이는 이 페이지 council 데이터에 드물어 정보 손실 최소.
+- **[정정, 최종 브랜치 리뷰에서 발견] Risk 탭의 `AgentTree`는 결국 그대로 재사용한다.** 최초 판단("`AgentTree`가 `var(--c-*)`를 하드코딩해서 라이트 카드 안에서 다크로 오류처럼 보인다")은 틀렸음이 최종 리뷰에서 확인됨 — `app/(console)/layout.tsx`가 모든 콘솔 라우트를 `.rail-ap`로 이미 감싸고 있고, `app/globals.css:90-107`이 `--c-*`를 `--color-ap-*`로 전부 리맵하므로 `AgentTree`는 이 페이지에서 이미 라이트로 렌더된다. Task 5에서 만든 평면 대체 렌더러(`ApDot tone="hud"` + `ApBadge tone="mute"` 고정)는 실제로는 `STATUS_MAP` 기반 빨강/주황 상태색을 전부 중립색으로 뭉개는 정보 손실이었음 — 수정 라운드에서 `<AgentTree node={agents.data.council} />` 재사용으로 교체.
 - **Financials 조회 폼의 input/button을 `ap-` 토큰으로 새로 작성.** 데스크톱 원본(`bg-bg border-border text-text-1`, `bg-accent text-black`)은 프로젝트 구(舊) 다크 토큰 컨벤션이 아니라 CLAUDE.md 규정과도 다른 값이 섞여 있던 부분(감사 중 발견) — 데스크톱은 무변경 유지, 모바일만 정확한 `ap-` 토큰으로 작성.
 - **`data.disclaimer`는 모바일에서도 탭과 무관하게 항상 표시**(데스크톱과 동일 위치·동일 동작으로 Task 6에서 최종 배치).
+- **[최종 브랜치 리뷰 이후 추가] `ApPanel`/`ApPrimitives.tsx`를 기존 `components/ui/Card.tsx`(`Card`/`CardHeader`) 대신 신규 병렬 컴포넌트 계열로 만든 것은 의도된 이탈.** 스펙(`:106`)은 `Card`/`CardHeader` 재사용을 지시했으나, Task 1에서 다크 `components/console/primitives.tsx`를 라이트로 그대로 포팅하는 쪽을 택함 — 콘솔 레이아웃 하위 페이지(investment-os 및 이후 research-os 3개)가 전부 이 다크 프리미티브 패턴을 따르고 있어 구조적 일관성이 더 높다고 판단. 다만 그 결과 형제 모바일 페이지(`/hud/summary`, `Card` 기반)와 타입 스케일이 갈라짐(`text-[9px]`/`text-[11px]` vs `text-xs`/`text-sm`) — 수정 라운드에서 최소 크기를 `text-[11px]`(라벨류) / `text-xs`(본문/수치류)로 상향해 가독성만 보정하고, 컴포넌트 계열 자체는 유지. research-os 3개 플랜은 이 `ApPrimitives.tsx`를 그대로 재사용하며 이 결정을 다시 논의하지 않는다.
+- **`.rail-ap`를 모바일 브랜치 래퍼에 적용하지 않은 것도 결과적으로만 무해한 결정이었다.** 최초 근거("이미 `ap-` 유틸만 써서 다크 잔여물 없음")는 사실이 아니었음 — 실제 이유는 `app/(console)/layout.tsx`가 콘솔 라우트 전체를 이미 `.rail-ap`로 감싸고 있어 페이지 레벨에서 다시 적용할 필요가 없었던 것. 결과는 동일(라이트 렌더)이라 재작업 없음.
 
 ---
 
