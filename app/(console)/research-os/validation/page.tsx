@@ -613,6 +613,13 @@ function ProductionTab() {
                       <span className="text-xs text-ap-ink-1 flex-1 truncate">{c.component}</span>
                     </div>
                   ))}
+                  {(prod?.components ?? []).some((c) => c.detail) && (
+                    <div className="pt-1 space-y-1">
+                      {(prod?.components ?? []).filter((c) => c.detail).map((c) => (
+                        <div key={c.component} className="text-[11px] text-ap-ink-3 truncate">{c.component}: {c.detail}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </ApPanel>
 
