@@ -8,6 +8,7 @@ import {
 } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
 import { Panel, PanelHead, Badge } from "@/components/console/primitives";
+import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines } from "@/components/ui/ApPrimitives";
 
 const CONF_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
 const SUGGESTIONS = ["어제 리서치 이어서 진행해줘", "모멘텀 시도해본 적 있어?", "밸류 로테이션 리서치 해볼까?", "TSMOM은 왜 실패했어?"];
@@ -33,7 +34,8 @@ export default function ResearchChat() {
   }, []);
 
   return (
-    <div className="min-h-full">
+    <>
+    <div className="hidden md:block min-h-full">
       <PageHeader kicker="P69" title="리서치 챗"
         right={<span className="text-[11px] tracking-wider text-[var(--c-text-3)] uppercase">주요 인터페이스</span>} />
       <div className="p-5">
@@ -160,5 +162,159 @@ export default function ResearchChat() {
         )}
       </div>
     </div>
+
+        <div className="md:hidden min-h-full">
+          <div className="p-4">
+            <div className="mb-2">
+              <span className="text-xs tracking-wide text-ap-ink-3 uppercase">P69 · 리서치 챗 · 주요 인터페이스</span>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex flex-col gap-2 mb-3">
+              <input
+                value={q} onChange={(e) => setQ(e.target.value)}
+                placeholder="연구 질문… (예: 어제 리서치 이어서 진행해줘)"
+                className="w-full bg-ap-surface border border-ap-line rounded-ap-md px-3.5 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand"
+              />
+              <button
+                type="submit" disabled={loading || !q.trim()}
+                className="flex items-center justify-center gap-2 w-full h-11 rounded-ap-md text-sm font-semibold text-white bg-ap-brand disabled:opacity-50 disabled:cursor-wait"
+              >
+                {loading && <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
+                {loading ? "생각 중…" : "질문"}
+              </button>
+            </form>
+
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s} onClick={() => { setQ(s); run(s); }} disabled={loading}
+                  className="min-h-11 px-3 rounded-ap-md text-xs text-ap-ink-2 border border-ap-line bg-ap-surface disabled:opacity-40"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {err && (
+              <ApPanel className="p-3 mb-4">
+                <div className="text-xs text-ap-down">백엔드 연결 실패: {err}</div>
+              </ApPanel>
+            )}
+
+            {loading && !turn && (
+              <ApPanel className="p-4"><ApSkeletonLines rows={4} /></ApPanel>
+            )}
+
+            {turn && (
+              <div className="space-y-4">
+                <ApPanel>
+                  <ApPanelHead
+                    kicker="추천" title={turn.q}
+                    right={turn.memo.confidence && (
+                      <ApBadge tone={CONF_TONE[turn.memo.confidence] ?? "mute"}>{turn.memo.confidence}</ApBadge>
+                    )}
+                  />
+                  <div className="p-3 space-y-3">
+                    <div className="text-sm font-medium text-ap-brand">{turn.memo.recommendation ?? turn.recall.answer}</div>
+                    {turn.memo.rationale && (
+                      <div className="text-xs text-ap-ink-2 leading-relaxed">{turn.memo.rationale}</div>
+                    )}
+                    <div className="space-y-2 pt-1">
+                      <div>
+                        <div className="text-xs tracking-wide text-ap-up uppercase mb-1.5">지지 근거</div>
+                        {(turn.memo.supporting_arguments ?? []).map((a, i) => (
+                          <div key={i} className="text-xs text-ap-ink-2 mb-1">· <b className="text-ap-ink-1">{a.lens}</b> {a.rationale}</div>
+                        ))}
+                        {(turn.memo.supporting_arguments ?? []).length === 0 && <div className="text-xs text-ap-ink-3">—</div>}
+                      </div>
+                      <div>
+                        <div className="text-xs tracking-wide text-ap-caution uppercase mb-1.5">반대 근거</div>
+                        {(turn.memo.counter_arguments ?? []).map((a, i) => (
+                          <div key={i} className="text-xs text-ap-ink-2 mb-1">· <b className="text-ap-ink-1">{a.lens}</b> {a.rationale}</div>
+                        ))}
+                        {(turn.memo.counter_arguments ?? []).length === 0 && <div className="text-xs text-ap-ink-3">—</div>}
+                      </div>
+                    </div>
+                  </div>
+                </ApPanel>
+
+                {history.length > 1 && (
+                  <ApPanel>
+                    <ApPanelHead kicker="대화" title="히스토리" />
+                    <div className="p-3 space-y-1.5">
+                      {history.map((h, i) => (
+                        <div key={i} className="bg-ap-bg rounded-ap-md p-2.5 text-xs">
+                          <div><span className="text-ap-ink-3">질문:</span> <span className="text-ap-ink-1">{h.q}</span></div>
+                          <div className="text-ap-brand mt-0.5">→ {h.a}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </ApPanel>
+                )}
+
+                <ApPanel>
+                  <ApPanelHead kicker="메모리" title="회상" />
+                  <div className="p-3">
+                    <div className="text-xs text-ap-ink-2">{turn.recall.answer}</div>
+                    {turn.recall.topic && <div className="text-xs text-ap-ink-3 mt-1">주제: {turn.recall.topic}</div>}
+                  </div>
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead
+                    kicker="설명가능성" title="참조 실험"
+                    right={<ApBadge tone={CONF_TONE[turn.ev.confidence ?? ""] ?? "mute"}>{turn.ev.confidence}</ApBadge>}
+                  />
+                  <div className="p-3 space-y-1">
+                    {(turn.ev.references_experiments ?? []).length === 0 && (
+                      <div className="text-xs text-ap-ink-3">참조된 과거 실험 없음.</div>
+                    )}
+                    {(turn.ev.references_experiments ?? []).map((r, i) => (
+                      <div key={i} className="text-xs font-data text-ap-ink-2">· {r}</div>
+                    ))}
+                  </div>
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="제안" title="다음 액션" />
+                  <div className="p-3 space-y-1">
+                    {(turn.memo.suggested_next_research ?? []).length === 0 && (
+                      <div className="text-xs text-ap-ink-3">제안 없음.</div>
+                    )}
+                    {(turn.memo.suggested_next_research ?? []).map((s, i) => (
+                      <button
+                        key={i} onClick={() => { setQ(s); run(s); }}
+                        className="block w-full text-left min-h-11 py-2.5 px-0 text-xs text-ap-ink-2 bg-transparent border-0"
+                      >
+                        → {s}
+                      </button>
+                    ))}
+                  </div>
+                </ApPanel>
+
+                {(turn.memo.remaining_unknowns ?? []).length > 0 && (
+                  <ApPanel>
+                    <ApPanelHead kicker="공백" title="남은 불확실성" />
+                    <div className="p-3 space-y-1">
+                      {turn.memo.remaining_unknowns!.map((u, i) => (
+                        <div key={i} className="text-xs text-ap-caution">· {u}</div>
+                      ))}
+                    </div>
+                  </ApPanel>
+                )}
+              </div>
+            )}
+
+            {!turn && !loading && (
+              <ApPanel className="p-6 text-center">
+                <div className="text-xs text-ap-ink-2">
+                  질문을 입력하면 Decision Memo · 증거 · 메모리 회상 · 다음 액션을 함께 보여줍니다.
+                </div>
+                <div className="text-xs text-ap-ink-3 mt-1.5">분석·회상만 — 투자 결정·집행은 사람이 합니다.</div>
+              </ApPanel>
+            )}
+          </div>
+        </div>
+    </>
   );
 }
