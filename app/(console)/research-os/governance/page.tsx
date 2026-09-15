@@ -515,55 +515,107 @@ function GraphTab() {
   const adj = useMemo(() => sel && data ? new Set(data.edges.filter((e) => e.source === sel || e.target === sel).flatMap((e) => [e.source, e.target])) : null, [sel, data]);
 
   return (
-    <div className="min-h-full">
-      <PageHeader kicker="P79" title="지식 그래프"
-        right={data && <Badge tone="hud">{data.node_count} · {data.edge_count}</Badge>} />
-      <div className="p-5 space-y-4">
-        <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
-            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-9 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
-        </form>
-        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+    <>
+      <div className="hidden md:block min-h-full">
+        <PageHeader kicker="P79" title="지식 그래프"
+          right={data && <Badge tone="hud">{data.node_count} · {data.edge_count}</Badge>} />
+        <div className="p-5 space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
+              className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+            <button type="submit" className="px-4 h-9 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
+          </form>
+          {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
-        {data && (
-          <>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(data.node_types).map(([t, n]) => (
-                <span key={t} className="inline-flex items-center gap-1.5 text-[11px] text-[var(--c-text-2)]">
-                  <span className="h-2 w-2 rounded-full" style={{ background: TYPE_TONE[t] ?? "var(--c-text-3)" }} />{t} {n}
-                </span>
-              ))}
-              <span className="text-[11px] text-[var(--c-text-3)] ml-2">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
-            </div>
-            <Panel>
-              <PanelHead kicker="읽기 전용" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
-              <div className="p-2 overflow-x-auto">
-                <svg width={PAD * 2 + W * COLW} height={height} className="min-w-full">
-                  {data.edges.map((e, i) => {
-                    const a = pos[e.source], b = pos[e.target]; if (!a || !b) return null;
-                    const active = !adj || (adj.has(e.source) && adj.has(e.target));
-                    return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--c-border)" strokeWidth={active ? 1 : 0.4} opacity={active ? 0.6 : 0.15} />;
-                  })}
+          {data && (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(data.node_types).map(([t, n]) => (
+                  <span key={t} className="inline-flex items-center gap-1.5 text-[11px] text-[var(--c-text-2)]">
+                    <span className="h-2 w-2 rounded-full" style={{ background: TYPE_TONE[t] ?? "var(--c-text-3)" }} />{t} {n}
+                  </span>
+                ))}
+                <span className="text-[11px] text-[var(--c-text-3)] ml-2">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
+              </div>
+              <Panel>
+                <PanelHead kicker="읽기 전용" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
+                <div className="p-2 overflow-x-auto">
+                  <svg width={PAD * 2 + W * COLW} height={height} className="min-w-full">
+                    {data.edges.map((e, i) => {
+                      const a = pos[e.source], b = pos[e.target]; if (!a || !b) return null;
+                      const active = !adj || (adj.has(e.source) && adj.has(e.target));
+                      return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--c-border)" strokeWidth={active ? 1 : 0.4} opacity={active ? 0.6 : 0.15} />;
+                    })}
+                    {data.nodes.map((n) => {
+                      const p = pos[n.id]; if (!p) return null;
+                      const c = TYPE_TONE[n.type] ?? "var(--c-text-3)";
+                      const dim = adj && !adj.has(n.id);
+                      return (
+                        <g key={n.id} transform={`translate(${p.x},${p.y})`} onClick={() => setSel(sel === n.id ? null : n.id)} style={{ cursor: "pointer", opacity: dim ? 0.25 : 1 }}>
+                          <circle r={4} fill={c} />
+                          <text x={7} y={3.5} fontSize={9.5} fill="var(--c-text-2)" className="c-num">{n.label.slice(0, 24)}</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </Panel>
+              <div className="text-[11px] text-[var(--c-text-3)]">{data.note} · 노드 클릭 → 연결 강조.</div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="md:hidden min-h-full">
+        <div className="px-4 py-3 space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
+              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-ap-brand border border-ap-brand/40 bg-ap-brand/10">필터</button>
+          </form>
+
+          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+
+          {data && (
+            <div className="space-y-3">
+              <ApPanel className="p-3">
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                  {Object.entries(data.node_types).map(([t, n]) => (
+                    <span key={t} className="inline-flex items-center gap-1.5 text-xs text-ap-ink-2">
+                      <span className="h-2 w-2 rounded-full" style={{ background: TYPE_TONE[t] ?? "var(--c-text-3)" }} />{t} {n}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-1.5 text-xs text-ap-ink-3">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</div>
+              </ApPanel>
+
+              <ApPanel>
+                <ApPanelHead kicker="읽기 전용" title="노드" right={<ApBadge tone="hud">{data.node_count} · {data.edge_count}</ApBadge>} />
+                <div className="p-2">
                   {data.nodes.map((n) => {
-                    const p = pos[n.id]; if (!p) return null;
                     const c = TYPE_TONE[n.type] ?? "var(--c-text-3)";
-                    const dim = adj && !adj.has(n.id);
+                    const highlighted = adj && adj.has(n.id);
+                    const isSel = sel === n.id;
                     return (
-                      <g key={n.id} transform={`translate(${p.x},${p.y})`} onClick={() => setSel(sel === n.id ? null : n.id)} style={{ cursor: "pointer", opacity: dim ? 0.25 : 1 }}>
-                        <circle r={4} fill={c} />
-                        <text x={7} y={3.5} fontSize={9.5} fill="var(--c-text-2)" className="c-num">{n.label.slice(0, 24)}</text>
-                      </g>
+                      <button key={n.id} onClick={() => setSel(isSel ? null : n.id)}
+                        className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-ap-md ${
+                          isSel ? "bg-ap-brand/10" : highlighted ? "bg-ap-brand/5" : ""
+                        }`}>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c }} />
+                        <span className="text-xs text-ap-ink-1 flex-1 truncate">{n.label}</span>
+                        <span className="text-xs font-data text-ap-ink-3">{n.type}</span>
+                      </button>
                     );
                   })}
-                </svg>
-              </div>
-            </Panel>
-            <div className="text-[11px] text-[var(--c-text-3)]">{data.note} · 노드 클릭 → 연결 강조.</div>
-          </>
-        )}
+                </div>
+              </ApPanel>
+
+              <div className="text-xs text-ap-ink-3 px-1">{data.note} · 노드 탭 → 연결 강조.</div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -587,52 +639,106 @@ function TimelineTab() {
   const { data, err, loading, run } = useAbortableRun(getResearchTimeline, "");
 
   return (
-    <div className="min-h-full">
-      <PageHeader kicker="P78" title="리서치 타임라인"
-        right={data && <Badge tone="mute">이벤트 {data.count}건</Badge>} />
-      <div className="p-5 space-y-4">
-        <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
-            className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
-          <button type="submit" className="px-4 h-9 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
-        </form>
-        {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
+    <>
+      <div className="hidden md:block min-h-full">
+        <PageHeader kicker="P78" title="리서치 타임라인"
+          right={data && <Badge tone="mute">이벤트 {data.count}건</Badge>} />
+        <div className="p-5 space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
+              className="flex-1 bg-[var(--c-panel-2)] border border-[var(--c-border)] px-3 h-9 text-[13px] text-[var(--c-text-1)] outline-none focus:border-[var(--c-hud)]" />
+            <button type="submit" className="px-4 h-9 text-[11px] font-semibold uppercase text-[var(--c-hud)] border border-[color-mix(in_srgb,var(--c-hud)_40%,transparent)] bg-[color-mix(in_srgb,var(--c-hud)_10%,transparent)] cursor-pointer">필터</button>
+          </form>
+          {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
-        {data && (
-          <>
-            {/* 스테이지 분포 */}
-            <div className="flex flex-wrap gap-1.5">
-              {data.stage_order.filter((s) => data.by_stage[s]).map((s) => (
-                <Badge key={s} tone="mute" title={s}>{STAGE_LABEL[s] ?? s} · {data.by_stage[s]}</Badge>
-              ))}
-            </div>
-            <Panel>
-              <PanelHead kicker="재구성됨" title="아이디어 → … → 아카이브" />
-              <div className="p-4">
-                {data.count === 0 && !loading && <div className="text-[11px] text-[var(--c-text-3)] py-8 text-center">원장에서 재구성할 이벤트 없음 — 연구가 기록되면 타임라인이 채워집니다.</div>}
-                <div className="relative pl-4">
-                  {(data.entries ?? []).map((e, i) => {
-                    const c = STAGE_TONE[e.stage] ?? "var(--c-text-3)";
-                    return (
-                      <div key={i} className="relative pb-3">
-                        <span className="absolute left-[-11px] top-1 h-2 w-2 rounded-full" style={{ background: c, boxShadow: `0 0 6px ${c}` }} />
-                        {i < data.entries.length - 1 && <span className="absolute left-[-7px] top-3 bottom-0 w-px bg-[var(--c-border)]" />}
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c }} title={e.stage}>{STAGE_LABEL[e.stage] ?? e.stage}</span>
-                          <span className="text-[11px] text-[var(--c-text-1)]">{e.label || e.ref}</span>
-                          <span className="text-[9px] c-num text-[var(--c-text-3)] ml-auto">{e.source} · {e.timestamp}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+          {data && (
+            <>
+              {/* 스테이지 분포 */}
+              <div className="flex flex-wrap gap-1.5">
+                {data.stage_order.filter((s) => data.by_stage[s]).map((s) => (
+                  <Badge key={s} tone="mute" title={s}>{STAGE_LABEL[s] ?? s} · {data.by_stage[s]}</Badge>
+                ))}
               </div>
-            </Panel>
-            <div className="text-[11px] text-[var(--c-text-3)]">{data.note}</div>
-          </>
-        )}
+              <Panel>
+                <PanelHead kicker="재구성됨" title="아이디어 → … → 아카이브" />
+                <div className="p-4">
+                  {data.count === 0 && !loading && <div className="text-[11px] text-[var(--c-text-3)] py-8 text-center">원장에서 재구성할 이벤트 없음 — 연구가 기록되면 타임라인이 채워집니다.</div>}
+                  <div className="relative pl-4">
+                    {(data.entries ?? []).map((e, i) => {
+                      const c = STAGE_TONE[e.stage] ?? "var(--c-text-3)";
+                      return (
+                        <div key={i} className="relative pb-3">
+                          <span className="absolute left-[-11px] top-1 h-2 w-2 rounded-full" style={{ background: c, boxShadow: `0 0 6px ${c}` }} />
+                          {i < data.entries.length - 1 && <span className="absolute left-[-7px] top-3 bottom-0 w-px bg-[var(--c-border)]" />}
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c }} title={e.stage}>{STAGE_LABEL[e.stage] ?? e.stage}</span>
+                            <span className="text-[11px] text-[var(--c-text-1)]">{e.label || e.ref}</span>
+                            <span className="text-[9px] c-num text-[var(--c-text-3)] ml-auto">{e.source} · {e.timestamp}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Panel>
+              <div className="text-[11px] text-[var(--c-text-3)]">{data.note}</div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+
+      <div className="md:hidden min-h-full">
+        <div className="px-4 py-3 space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
+              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-ap-brand border border-ap-brand/40 bg-ap-brand/10">필터</button>
+          </form>
+
+          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+
+          {loading && !data && (
+            <div className="space-y-3">
+              <ApSkeletonStatTile />
+              <ApPanel className="p-4"><ApSkeletonLines rows={5} /></ApPanel>
+            </div>
+          )}
+
+          {data && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-1.5">
+                {data.stage_order.filter((s) => data.by_stage[s]).map((s) => (
+                  <ApBadge key={s} tone="mute" title={s}>{STAGE_LABEL[s] ?? s} · {data.by_stage[s]}</ApBadge>
+                ))}
+              </div>
+              <ApPanel>
+                <ApPanelHead kicker="재구성됨" title="아이디어 → … → 아카이브" />
+                <div className="p-4">
+                  {data.count === 0 && !loading && <div className="text-xs text-ap-ink-3 py-8 text-center">원장에서 재구성할 이벤트 없음 — 연구가 기록되면 타임라인이 채워집니다.</div>}
+                  <div className="relative pl-4">
+                    {(data.entries ?? []).map((e, i) => {
+                      const c = STAGE_TONE[e.stage] ?? "var(--c-text-3)";
+                      return (
+                        <div key={i} className="relative pb-3">
+                          <span className="absolute left-[-11px] top-1 h-2 w-2 rounded-full" style={{ background: c }} />
+                          {i < data.entries.length - 1 && <span className="absolute left-[-7px] top-3 bottom-0 w-px bg-ap-line" />}
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: c }} title={e.stage}>{STAGE_LABEL[e.stage] ?? e.stage}</span>
+                            <span className="text-xs text-ap-ink-1">{e.label || e.ref}</span>
+                          </div>
+                          <div className="text-xs font-data text-ap-ink-3">{e.source} · {e.timestamp}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </ApPanel>
+              <div className="text-xs text-ap-ink-3 px-1">{data.note}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
