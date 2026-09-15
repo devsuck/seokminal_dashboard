@@ -257,7 +257,8 @@ function ExplainTab() {
 
   const node: EvidenceNode | undefined = data?.chain[sel];
   return (
-    <div className="min-h-full">
+    <>
+      <div className="hidden md:block min-h-full">
       <PageHeader kicker="P71" title="설명 가능성"
         right={data?.confidence && <Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>신뢰도 {CONF_LABEL[data.confidence] ?? data.confidence}</Badge>} />
       <div className="p-5">
@@ -368,7 +369,118 @@ function ExplainTab() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      <div className="md:hidden min-h-full">
+        <div className="px-4 py-3 space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
+              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+            <button type="submit" disabled={loading || !q.trim()}
+              className="px-4 h-11 rounded-ap-md text-xs font-semibold tracking-wide uppercase text-ap-brand border border-ap-brand/40 bg-ap-brand/10 disabled:opacity-40">
+              {loading ? "…" : "설명"}
+            </button>
+          </form>
+
+          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+
+          {loading && !data && (
+            <div className="space-y-3">
+              <ApSkeletonStatTile />
+              <ApPanel className="p-4"><ApSkeletonLines rows={4} /></ApPanel>
+            </div>
+          )}
+
+          {data && data.chain.length > 0 && (
+            <div className="space-y-3">
+              <ApPanel>
+                <ApPanelHead kicker="증거 사슬" title="질문 → 권고"
+                  right={<ApBadge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>신뢰도 {CONF_LABEL[data.confidence ?? ""] ?? data.confidence}</ApBadge>} />
+                <div className="p-3">
+                  {data.chain.map((n, i) => {
+                    const active = i === sel;
+                    const isLast = i === data.chain.length - 1;
+                    const c = isLast ? CONF_C(data.confidence) : "var(--c-hud)";
+                    return (
+                      <div key={i} className="relative">
+                        <button onClick={() => setSel(i)}
+                          className={`w-full text-left flex items-start gap-3 p-2.5 rounded-ap-md border ${active ? "" : "border-transparent"}`}
+                          style={active ? { borderColor: `color-mix(in srgb, ${c} 45%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` } : undefined}>
+                          <ApDot tone={c} pulse={active} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold" style={{ color: active ? c : "var(--color-ap-ink-1)" }}>{n.stage}</div>
+                            <div className="text-xs text-ap-ink-3 truncate">{n.label}</div>
+                          </div>
+                        </button>
+                        {!isLast && <div className="ml-6 h-3 w-px bg-ap-line" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </ApPanel>
+
+              {node && (
+                <ApPanel>
+                  <ApPanelHead kicker={`노드 ${sel + 1}/${data.chain.length}`} title={node.stage} />
+                  <div className="p-4 space-y-2">
+                    <div className="text-[13px] text-ap-ink-1">{node.label}</div>
+                    {(node.refs ?? []).length > 0 && (
+                      <div className="pt-1">
+                        <div className="text-xs tracking-[0.2em] text-ap-ink-3 uppercase mb-1">참조</div>
+                        {node.refs!.map((r, i) => <span key={i} className="inline-block mr-1.5 mb-1 text-xs font-data text-ap-brand">{r}</span>)}
+                      </div>
+                    )}
+                  </div>
+                </ApPanel>
+              )}
+
+              <ApPanel>
+                <ApPanelHead kicker="신뢰도" title="분해" />
+                <div className="p-4 space-y-1.5">
+                  {Object.entries(data.confidence_breakdown ?? {}).map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between gap-3 py-1 border-b border-ap-line last:border-0">
+                      <span className="text-xs text-ap-ink-3">{k.replace(/_/g, " ")}</span>
+                      <span className="text-xs font-data text-ap-ink-1">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              </ApPanel>
+
+              <ApPanel>
+                <ApPanelHead kicker="이유" title="이 결론인 이유" />
+                <div className="p-4 text-xs text-ap-ink-2 leading-relaxed">{data.why_this_conclusion}</div>
+              </ApPanel>
+              <ApPanel>
+                <ApPanelHead kicker="이유" title="틀릴 수 있는 이유" />
+                <div className="p-4 space-y-1">
+                  {(data.why_it_may_be_wrong ?? []).map((w, i) => <div key={i} className="text-xs text-ap-caution">· {w}</div>)}
+                </div>
+              </ApPanel>
+              <ApPanel>
+                <ApPanelHead kicker="대안" title="대안적 관점" />
+                <div className="p-4 space-y-1">
+                  {(data.alternative_interpretations ?? []).map((a, i) => <div key={i} className="text-xs text-ap-ink-2">· {a}</div>)}
+                </div>
+              </ApPanel>
+              <ApPanel>
+                <ApPanelHead kicker="공백" title="누락된 증거" />
+                <div className="p-4 space-y-1">
+                  {(data.missing_evidence ?? []).length === 0 && <div className="text-xs text-ap-ink-3">—</div>}
+                  {(data.missing_evidence ?? []).map((m, i) => <div key={i} className="text-xs text-ap-down">· {m}</div>)}
+                </div>
+              </ApPanel>
+              <div className="text-xs text-ap-ink-3 px-1">증거 사슬 — 블랙박스 결정이 아니라 추적 가능한 근거. 최종 결정은 사람.</div>
+            </div>
+          )}
+
+          {!data && !loading && (
+            <ApPanel className="p-8 text-center text-[13px] text-ap-ink-3">
+              주제를 입력하면 Experiment → Validation → Failure → Memory → Council → Portfolio → Risk → Recommendation 증거 사슬을 시각화합니다.
+            </ApPanel>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
