@@ -1149,6 +1149,92 @@ function InvestmentOsInner() {
                 </ApPanel>
               </div>
             )}
+
+            {tab === "research" && (
+              <div className="space-y-4">
+                <ApPanel>
+                  <ApPanelHead kicker="market-cockpit" title="마켓 / 리서치 인텔리전스" right={market.data && <ApBadge tone="hud">{market.data.market_state.regime}</ApBadge>} />
+                  {market.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {market.data && (
+                    <div className="p-4 space-y-1.5">
+                      <div className="flex flex-wrap gap-1.5">{market.data.market_state.labels.map((l) => <ApBadge key={l} tone="mute">{l}</ApBadge>)}</div>
+                      {market.data.top_opportunities.map((o, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className="text-ap-ink-1 truncate">{o.name} <span className="text-ap-ink-3">· {o.kind}</span></span>
+                          <span className="font-data text-ap-ink-3 shrink-0">{o.confidence} · EV {o.expected_value}</span>
+                        </div>
+                      ))}
+                      <div className="text-[11px] text-ap-ink-3">헬스 스코어 {market.data.health_score} · 상위 리스크 {market.data.risk.top_category ?? "—"}</div>
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="institutional-intelligence" title="기관 인텔리전스" right={inst.data && <ApBadge tone="mute">{inst.data.data_production_health.overall_status}</ApBadge>} />
+                  {inst.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {inst.data && (
+                    <div className="p-4 space-y-1.5 text-[11px] text-ap-ink-2">
+                      <div>데이터 품질 평균: <span className="font-data text-ap-ink-1">{inst.data.data_production_health.average_quality}</span></div>
+                      <div>섹터: {inst.data.sector_intelligence.sector} — {inst.data.sector_intelligence.key_entities.join(", ")}</div>
+                      <div>매크로 상태: {inst.data.macro_context.macro_state}</div>
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="data-connection" title="예측 커버리지" />
+                  {sideLoading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
+                  {!sideLoading && conn && (
+                    <div className="p-4 space-y-1.5 text-[11px] text-ap-ink-2">
+                      <div>총 예측 수: <span className="font-data text-ap-ink-1">{conn.prediction_coverage.total ?? 0}</span></div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(conn.prediction_coverage.by_source ?? {}).map(([k, v]) => <ApBadge key={k} tone="mute">{k}: {v}</ApBadge>)}
+                      </div>
+                      <div>Invalidation 누락: {conn.prediction_coverage.missing_invalidation_pct ?? "—"}% · Horizon 누락: {conn.prediction_coverage.missing_horizon_pct ?? "—"}%</div>
+                    </div>
+                  )}
+                </ApPanel>
+
+                <ApPanel>
+                  <ApPanelHead kicker="/console/financials-live" title="재무제표 실측 조회" />
+                  <div className="p-4 space-y-3">
+                    <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); runFinLookup(); }}>
+                      <input
+                        className="flex-1 min-w-0 bg-ap-bg border border-ap-line text-ap-ink-1 text-[13px] px-3 py-2 rounded-ap-md"
+                        placeholder="종목코드 (예: AAPL, 005930)"
+                        value={finQuery}
+                        onChange={(e) => setFinQuery(e.target.value)}
+                      />
+                      <button
+                        type="submit"
+                        disabled={finLoading || !finQuery.trim()}
+                        className="bg-ap-brand text-white text-[13px] font-semibold px-4 py-2 rounded-ap-md disabled:opacity-50 shrink-0"
+                      >
+                        {finLoading ? "조회 중…" : "조회"}
+                      </button>
+                    </form>
+                    {finErr && <div className="text-[11px] text-ap-down">조회 실패: {finErr}</div>}
+                    {finLoading && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {Array.from({ length: 4 }).map((_, i) => <ApSkeletonStatTile key={i} />)}
+                      </div>
+                    )}
+                    {finData && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {Object.entries(finData)
+                          .filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined)
+                          .map(([k, v]) => (
+                            <ApStatTile key={k} label={k} value={typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v)} tone="hud" />
+                          ))}
+                      </div>
+                    )}
+                    {finData && Object.entries(finData).filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined).length === 0 && (
+                      <div className="text-[11px] text-ap-ink-3">데이터 없음</div>
+                    )}
+                  </div>
+                </ApPanel>
+              </div>
+            )}
           </>
         )}
       </div>
