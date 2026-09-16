@@ -13,8 +13,7 @@ function isActivePath(pathname: string, href: string) {
 const PRIMARY_TABS: { href: string; label: string; matchPrefix?: string }[] = [
   { href: "/hud/summary", label: "홈" },
   { href: "/portfolio", label: "포트폴리오" },
-  { href: "/research-os/chat", label: "Research OS", matchPrefix: "/research-os" },
-  { href: "/investment-os", label: "Investment OS" },
+  { href: "/investment-os?tab=risk", label: "에이전트", matchPrefix: "/investment-os" },
   { href: "/performance", label: "성과" },
 ];
 
@@ -26,10 +25,8 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
       return <svg {...props}><circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" /></svg>;
     case "/portfolio":
       return <svg {...props}><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></svg>;
-    case "/investment-os":
+    case "/investment-os?tab=risk":
       return <svg {...props}><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></svg>;
-    case "/research-os/chat":
-      return <svg {...props}><rect x="2" y="3" width="12" height="7.5" rx="1.5" /><path d="M5 10.5v3l3-3" /></svg>;
     case "/performance":
       return <svg {...props}><path d="M2 12l4-4 3 3 5-6" /><path d="M11 5h3v3" /></svg>;
     default:
