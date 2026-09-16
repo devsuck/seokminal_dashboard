@@ -78,7 +78,7 @@ export default function PerformancePage() {
       <div className="flex items-start justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-ap-ink-1 text-lg font-semibold">성과 추적</h1>
-          <p className="text-ap-ink-3 text-sm mt-0.5">
+          <p className="hidden md:block text-ap-ink-3 text-sm mt-0.5">
             페이퍼 계좌(Alpaca) equity 곡선 · 수익률/MDD/Sharpe · <span className="text-ap-ink-2">SPY 매수보유</span> 벤치마크 대비. 전략이 그냥 지수 든 것보다 나은지 판단.
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function PerformancePage() {
               ) : <EquityChart data={data} />}
             </div>
 
-            <p className="text-ap-ink-3 text-[11px]">
+            <p className="hidden md:block text-ap-ink-3 text-[11px]">
               ※ Sharpe ≥ 1 이면 위험대비 수익 양호. 초과수익(vs SPY)이 (-)면 그냥 지수 드는 게 나음 — 전략 재검토 신호.
             </p>
           </>
