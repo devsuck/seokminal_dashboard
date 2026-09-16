@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 // ── Panel ─────────────────────────────────────────────────────────
 export function ApPanel({
@@ -187,4 +187,36 @@ export function ApListRow({
     );
   }
   return <div className="flex items-center gap-3 w-full min-h-11 py-2 px-3">{content}</div>;
+}
+
+// ── Bottom sheet (스와이프-다운으로 닫히는 모바일 시트) ─────────────────────
+export function shouldDismissSheet(startY: number | null, endY: number, threshold = 80): boolean {
+  return startY !== null && endY - startY > threshold;
+}
+
+export function ApBottomSheet({
+  open, onClose, title, children,
+}: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const swipeStartY = useRef<number | null>(null);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-h-[80vh] overflow-y-auto bg-ap-surface border-t border-ap-line rounded-t-xl pb-[env(safe-area-inset-bottom)]"
+        onTouchStart={(e) => { swipeStartY.current = e.touches[0].clientY; }}
+        onTouchEnd={(e) => {
+          if (shouldDismissSheet(swipeStartY.current, e.changedTouches[0].clientY)) onClose();
+          swipeStartY.current = null;
+        }}>
+        <div className="sticky top-0 flex items-center justify-between px-4 h-11 border-b border-ap-line bg-ap-surface">
+          <span className="text-sm font-semibold text-ap-ink-1 truncate">{title}</span>
+          <button onClick={onClose}
+            className="text-ap-ink-3 text-xs border-0 bg-transparent cursor-pointer min-h-11 min-w-11 px-3 flex items-center justify-center shrink-0">
+            닫기
+          </button>
+        </div>
+        <div className="p-4">{children}</div>
+      </div>
+    </div>
+  );
 }

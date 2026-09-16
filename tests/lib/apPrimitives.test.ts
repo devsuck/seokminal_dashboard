@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hashHue, gainBarWidthPct } from "@/components/ui/ApPrimitives";
+import { hashHue, gainBarWidthPct, shouldDismissSheet } from "@/components/ui/ApPrimitives";
 
 describe("hashHue", () => {
   it("같은 심볼은 항상 같은 hue를 반환한다", () => {
@@ -28,5 +28,17 @@ describe("gainBarWidthPct", () => {
   });
   it("maxAbs가 0이어도 나눗셈 에러 없이 동작한다", () => {
     expect(Number.isFinite(gainBarWidthPct(3, 0))).toBe(true);
+  });
+});
+
+describe("shouldDismissSheet", () => {
+  it("80px 넘게 아래로 스와이프하면 true", () => {
+    expect(shouldDismissSheet(100, 190)).toBe(true);
+  });
+  it("80px 이하면 false", () => {
+    expect(shouldDismissSheet(100, 170)).toBe(false);
+  });
+  it("시작점이 없으면(startY null) false", () => {
+    expect(shouldDismissSheet(null, 300)).toBe(false);
   });
 });
