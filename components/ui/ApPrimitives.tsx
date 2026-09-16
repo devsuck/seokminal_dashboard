@@ -139,3 +139,19 @@ export function ApTickerBadge({ symbol, size = 32 }: { symbol: string; size?: nu
     </span>
   );
 }
+
+// ── Gain bar (평단가→현재가 손익률 막대, 시계열 대체) ──────────────────────
+export function gainBarWidthPct(pct: number, maxAbs: number): number {
+  const denom = Math.max(1e-9, Math.abs(maxAbs));
+  return Math.max(0, Math.min(100, (Math.abs(pct) / denom) * 100));
+}
+
+export function ApGainBar({ pct, maxAbs }: { pct: number; maxAbs: number }) {
+  const width = gainBarWidthPct(pct, maxAbs);
+  const tone = pct >= 0 ? "var(--color-ap-up)" : "var(--color-ap-down)";
+  return (
+    <div className="h-1.5 w-full min-w-[36px] bg-ap-line rounded-full overflow-hidden">
+      <div className="h-full rounded-full" style={{ width: `${width}%`, background: tone }} />
+    </div>
+  );
+}
