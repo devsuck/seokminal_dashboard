@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings,
   getOmsOrders, getRealizedPnl, ApiError,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/api";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
+import { ApPanel, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet } from "@/components/ui/ApPrimitives";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
@@ -256,6 +258,75 @@ function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy
   );
 }
 
+// ── 모바일 리스트용 공통 포지션 모양 ─────────────────────────────────────────
+
+export interface MobilePosition {
+  key: string; symbol: string; qty: string; avgPrice: string; currentPrice: string;
+  pnlPct: number; venue: string;
+}
+
+export function alpacaToMobile(p: AlpacaPosition): MobilePosition {
+  return {
+    key: p.symbol, symbol: p.symbol, qty: `${p.qty}주`,
+    avgPrice: `$${p.avg_entry_price.toFixed(2)}`, currentPrice: `$${p.current_price.toFixed(2)}`,
+    pnlPct: p.unrealized_plpc * 100, venue: "Alpaca",
+  };
+}
+
+export function hlToMobile(p: HLAssetPosition, venue: string): MobilePosition {
+  const pos = p.position;
+  const szi = parseFloat(pos.szi);
+  const roe = parseFloat(pos.returnOnEquity) * 100;
+  return {
+    key: pos.coin, symbol: pos.coin, qty: `${Math.abs(szi)}`,
+    avgPrice: pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—",
+    currentPrice: `평가 $${parseFloat(pos.positionValue).toFixed(2)}`,
+    pnlPct: roe, venue,
+  };
+}
+
+export function kisToMobile(h: KISHolding, venue: string): MobilePosition {
+  return {
+    key: h.code, symbol: h.name, qty: `${h.qty}주`,
+    avgPrice: `₩${h.avg_price.toLocaleString("ko-KR")}`,
+    currentPrice: `₩${h.current.toLocaleString("ko-KR")}`,
+    pnlPct: h.return_pct ?? 0, venue,
+  };
+}
+
+function MobileGroup({ title, ccy, total, items, emptyHint, onSelect }: {
+  title: string; ccy: string; total: number | null; items: MobilePosition[]; emptyHint: string;
+  onSelect: (p: MobilePosition) => void;
+}) {
+  const maxAbs = Math.max(1, ...items.map((p) => Math.abs(p.pnlPct)));
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2 px-1">
+        <span className="text-ap-ink-1 text-sm font-semibold">{title}</span>
+        {total != null && <span className="text-ap-brand text-sm font-mono font-bold">{fmt(total, ccy)}</span>}
+      </div>
+      <ApPanel>
+        {items.length === 0 ? (
+          <p className="text-ap-ink-3 text-xs p-3">{emptyHint}</p>
+        ) : (
+          <div className="divide-y divide-ap-line/60">
+            {items.map((p, i) => (
+              <ApListRow key={`${p.key}-${i}`}
+                leading={<ApTickerBadge symbol={p.symbol} />}
+                title={p.symbol}
+                subtitle={`${p.qty} · ${p.avgPrice} · ${p.venue}`}
+                trailing={<span className={p.pnlPct >= 0 ? "text-ap-up" : "text-ap-down"}>{p.pnlPct >= 0 ? "+" : ""}{p.pnlPct.toFixed(1)}%</span>}
+                trailingSub={<div className="w-14"><ApGainBar pct={p.pnlPct} maxAbs={maxAbs} /></div>}
+                onClick={() => onSelect(p)}
+              />
+            ))}
+          </div>
+        )}
+      </ApPanel>
+    </div>
+  );
+}
+
 // ── 계좌 현황 탭 ─────────────────────────────────────────────────────────────
 
 function AccountsTab() {
@@ -335,8 +406,22 @@ function AccountsTab() {
     </div>
   );
 
+  const [selected, setSelected] = useState<MobilePosition | null>(null);
+  const router = useRouter();
+
+  const krwMobile: MobilePosition[] = [
+    ...kisMockHoldings.map((h) => kisToMobile(h, "한투 모의")),
+    ...kisLiveHoldings.map((h) => kisToMobile(h, "한투 실계좌")),
+  ];
+  const usdMobile: MobilePosition[] = alpacaPositions.map(alpacaToMobile);
+  const usdcMobile: MobilePosition[] = [
+    ...hlTestnetPositions.map((p) => hlToMobile(p, "HL 테스트넷")),
+    ...hlMainnetPositions.map((p) => hlToMobile(p, "HL 메인넷")),
+  ];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4 items-start">
+    <>
+    <div className="hidden md:grid grid-cols-1 lg:grid-cols-[220px_1fr_320px] gap-4 items-start">
       {/* LEFT — 자산군별 합계, quick nav */}
       <div className="space-y-3">
         {krwTotal != null && <CcyTotalTile label="국내주식 합계" value={krwTotal} ccy="KRW" />}
@@ -428,6 +513,62 @@ function AccountsTab() {
         </p>
       </Card>
     </div>
+
+    <div className="md:hidden space-y-6">
+      <MobileGroup title="국내주식" ccy="KRW" total={krwTotal} items={krwMobile}
+        emptyHint={balancesPending ? "한투 잔고 조회 중… (최대 30초)" : "국내주식 보유 종목 없음"}
+        onSelect={setSelected} />
+      <MobileGroup title="해외주식" ccy="USD" total={usdTotal > 0 ? usdTotal : null} items={usdMobile}
+        emptyHint="해외주식 보유 종목 없음" onSelect={setSelected} />
+      <MobileGroup title="코인" ccy="USDC" total={usdcTotal} items={usdcMobile}
+        emptyHint={balancesPending ? "HL 잔고 조회 중…" : "코인 보유 종목 없음"} onSelect={setSelected} />
+
+      {compositionRows.length > 0 && (
+        <ApPanel>
+          <div className="px-4 py-3 border-b border-ap-line">
+            <span className="text-sm font-semibold text-ap-ink-1">거래소별 분포</span>
+          </div>
+          <div className="divide-y divide-ap-line/60 p-1">
+            {[...compositionRows].sort((a, b) => b.balance - a.balance).map(r => (
+              <div key={`${r.venue}-${r.ccy}`} className="flex items-center justify-between gap-2 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-ap-ink-1 text-sm truncate">{r.venue}</p>
+                  <p className="text-ap-ink-3 text-xs">{r.ccy} · {fmt(r.balance, r.ccy, true)}</p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 shrink-0">
+                  <Bar ratio={r.share} tone="bg-ap-brand/70" trackClass="bg-ap-bg border-ap-line" />
+                  <span className="tabular-nums text-ap-ink-2 text-xs">{(r.share * 100).toFixed(1)}%</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </ApPanel>
+      )}
+    </div>
+
+    <ApBottomSheet open={selected != null} onClose={() => setSelected(null)} title={selected?.symbol ?? ""}>
+      {selected && (
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm"><span className="text-ap-ink-3">평균단가</span><span className="text-ap-ink-1 font-mono">{selected.avgPrice}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-ap-ink-3">현재가</span><span className="text-ap-ink-1 font-mono">{selected.currentPrice}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-ap-ink-3">수량</span><span className="text-ap-ink-1 font-mono">{selected.qty}</span></div>
+          <div className="flex justify-between text-sm">
+            <span className="text-ap-ink-3">평가손익률</span>
+            <span className={`font-mono font-semibold ${selected.pnlPct >= 0 ? "text-ap-up" : "text-ap-down"}`}>
+              {selected.pnlPct >= 0 ? "+" : ""}{selected.pnlPct.toFixed(2)}%
+            </span>
+          </div>
+          <div className="flex justify-between text-sm"><span className="text-ap-ink-3">venue</span><span className="text-ap-ink-1">{selected.venue}</span></div>
+          <button
+            onClick={() => router.push(`/research-os/chat?q=${encodeURIComponent(selected.symbol)}`)}
+            className="w-full h-11 rounded-ap-md text-sm font-semibold text-white bg-ap-brand mt-2"
+          >
+            AI 판단 보러가기 →
+          </button>
+        </div>
+      )}
+    </ApBottomSheet>
+    </>
   );
 }
 
