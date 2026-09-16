@@ -1,3 +1,65 @@
+## Phase 268 — 페이지 정보 최소화 + investment-os 리스크탭 재설계 (2026-09-17) ✅ SHIPPED, PUSHED
+
+### 배경
+Phase 267(스펙 4개 라우트 완료) 이후 사용자 피드백: "페이지들도 더 심플하게
+해야할 것 같아... 내가 알아야할 정보가 최소화 되어야된단 말이지" — 풀
+에이전틱 트레이딩이 최종 목표라 사람이 봐야 할 정보 자체를 줄여야 한다는
+방향. `AskUserQuestion`으로 범위 확인 → "셋 다 한번에"(portfolio/investment-os/
+performance) 선택, 페이지별 순차 커밋+리뷰로 진행.
+
+1차 완료 후 사용자 재피드백: "에이전트에서 정보가 너무 많다. 그리고 디자인이
+좀 약하다" — 원시 JSON을 토글 뒤에 숨기는 것만으로는(`e664fe4`) 부족하다는
+지적, 실제 콘텐츠 삭제 + 시각적 위계 강화 요구. 이후 "이게 최선이냐" 질문에
+카드 껍데기가 데스크톱과 동일 비주얼 언어(같은 보더/타이포)라는 점, 이미 쓰던
+바텀시트 제스처(portfolio Orders 탭)를 안 쓰고 있다는 점을 지적 → 2차 재설계
+승인받아 진행. 사용자는 "다 해놨으니 끝까지 진행, 결과만 확인" 상태로 취침.
+
+### 완료된 작업
+- `app/portfolio/page.tsx` (`0783675`) — Orders/PnL 탭에 모바일 카드 신규
+  추가(기존엔 `md:hidden` 분기 자체가 없어서 폰 폭에 데스크톱 표가 그대로
+  렌더됐음). Orders: 탭하면 상세(체결 이력)가 `ApBottomSheet`로 뜨는 압축
+  리스트. PnL: venue당 net P&L 한 줄 + 거래 5건 캡+"전체 보기" 토글, 차트 제외.
+- `app/(console)/investment-os/page.tsx` 리스크탭 2단계 재설계:
+  - 1차(`e664fe4`): 협의회 최근 결정/감사 로그 원시 JSON 덤프를 토글 뒤로 접음.
+  - 2차(`8bf2eef`): 사용자 피드백 반영, 구조 전체 교체 — 예산·스트레스/
+    리스크거버너/거버넌스/감사로그(4개 패널)를 (1) 라이브 집행 히어로 카드
+    (2) 문제 있을 때만 뜨는 조용한 경고 배너(거버넌스 실패/예산 초과/분리
+    위반) (3) 협의회 트리(유지) (4) 통합 "상세 지표" 접이 패널 하나로 축소.
+    감사로그·원시 결정 리스트는 모바일에서 완전 삭제(스키마 없는 데이터라
+    재포맷 대신 삭제 선택).
+  - 3차(`d1108a0`): 히어로 카드 보더/배경 박스 제거하고 34px 볼드 텍스트만
+    남김(데스크톱과 같은 카드 크롬 탈피), "상세 지표"를 인라인 아코디언 대신
+    `ApBottomSheet`로 이동(portfolio Orders 탭과 동일 제스처 패턴 통일).
+- `app/performance/page.tsx` (`8902200`) — 설명 문단 2개(`hidden md:block`)로
+  데스크톱 전용화, 지표 그리드/차트는 폰 폭에서도 이미 적정 스케일이라 유지.
+- 검증(4개 커밋 전부): `npx tsc --noEmit` 0 errors, `npx vitest run` 45/45,
+  `npm run build` 정적 프리렌더 성공.
+- 보류 중이던 `ffb790b`(하단탭 "Research OS"→"에이전트" 교체, `/investment-os?tab=risk`
+  연결)도 이번 세션에서 push 승인받아 같이 반영.
+- `git push` 완료: `dd5b975..d1108a0` origin/main.
+
+### 변경된 파일
+- 수정: `app/portfolio/page.tsx`, `app/(console)/investment-os/page.tsx`,
+  `app/performance/page.tsx`
+
+### 막힌 부분/결정사항
+- 브라우저로 실제 폰 폭(390px) 프리뷰 시도 → `resize_window` 도구가 이 환경
+  window manager에서 무시됨(요청 200px든 800px든 `innerWidth` 820px 고정,
+  하한 클램프 추정). CSS 강제 주입(`[class~="md:hidden"]{display:revert}` 등)으로
+  우회 시도했으나 데스크톱/모바일 마크업이 동시에 겹쳐 렌더돼 신뢰 불가 판단,
+  포기. `tsc`/`vitest`/`build` 3종 검증 + 이미 검증된 `ApBottomSheet`/`ApStatTile`
+  재사용으로 대체. **다음 세션에서 실기기나 정상 동작하는 뷰포트 도구로 최종
+  육안 확인 권장.**
+- "디자인이 약하다" 지적이 investment-os 리스크탭에 국한된 건지, 다른
+  탭(overview/strategy/research/ops)·portfolio AccountsTab까지 해당하는지는
+  미확인 — 범위 확장 전 사용자 확인 필요.
+
+### 다음 할 일
+- 위 "막힌 부분" 두 항목 확인: (1) 실기기 육안 검증 (2) 디자인 재검토 범위
+  확장 여부.
+
+---
+
 ## Phase 267 — 모바일 핀테크 리디자인: research-os/chat (2026-09-16) ✅ SHIPPED — 스펙 전체 완료
 
 ### 배경
