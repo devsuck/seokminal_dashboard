@@ -116,3 +116,26 @@ export function ApMeter({ value, tone = "hud" }: { value: number; tone?: keyof t
     </div>
   );
 }
+
+// ── Ticker badge (심볼 해시 기반 원형 뱃지, 외부 로고 없음) ──────────────────
+export function hashHue(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+export function ApTickerBadge({ symbol, size = 32 }: { symbol: string; size?: number }) {
+  const hue = hashHue(symbol);
+  const text = symbol.slice(0, 2).toUpperCase();
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-semibold shrink-0"
+      style={{
+        width: size, height: size, fontSize: Math.round(size * 0.38),
+        background: `hsl(${hue} 60% 90%)`, color: `hsl(${hue} 55% 28%)`,
+      }}
+    >
+      {text}
+    </span>
+  );
+}
