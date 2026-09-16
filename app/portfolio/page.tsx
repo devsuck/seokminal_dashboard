@@ -609,6 +609,7 @@ function OrdersTab() {
   const [venue, setVenue] = useState<(typeof VENUES)[number]>("ALL");
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("ALL");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [selected, setSelected] = useState<OmsOrder | null>(null);
   const ctrl = useRef<AbortController | null>(null);
 
   const load = useCallback(() => {
@@ -658,50 +659,108 @@ function OrdersTab() {
         : loading ? <LoadingState message="주문 상태 로딩 중…" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
         : !orders || orders.length === 0 ? <EmptyState message="추적 중인 주문 없음" textClass="text-ap-ink-3" />
         : (
-          <Card>
-            <CardHeader right={<span>{orders.length}건</span>}>주문 목록</CardHeader>
-            <div className="divide-y divide-ap-line/60 text-sm">
-              {orders.map(o => {
-                const key = `${o.venue}:${o.order_id}`;
-                const total = o.filled + o.remaining;
-                const pct = total > 0 ? Math.round((o.filled / total) * 100) : 0;
-                return (
-                  <div key={key}>
-                    <button
-                      onClick={() => setExpanded(expanded === key ? null : key)}
-                      className="w-full px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-left hover:bg-ap-bg"
-                    >
-                      <span className="text-ap-ink-3 shrink-0 font-data">{o.venue}</span>
-                      <span className="text-ap-ink-1 shrink-0 font-data truncate max-w-[8rem]">{o.order_id}</span>
-                      <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
-                        {STATUS_LABEL[o.status] ?? o.status}
-                      </span>
-                      <div className="flex-1 min-w-[80px] flex items-center gap-2">
-                        <Bar ratio={pct / 100} tone="bg-ap-brand" width="flex-1" trackClass="bg-ap-bg border-ap-line" />
-                        <span className="text-ap-ink-3 font-data shrink-0">{o.filled}/{total} ({pct}%)</span>
-                      </div>
-                      <span className="text-ap-ink-3 font-data shrink-0">{fmtTs(o.updated_ts)}</span>
-                    </button>
-                    {expanded === key && (
-                      <div className="px-4 pb-3 pl-8">
-                        <div className="text-ap-ink-3 text-[11px] mb-1">체결 이력 ({o.history.length}건)</div>
-                        <div className="space-y-1">
-                          {o.history.map((h, i) => (
-                            <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-[11px] text-ap-ink-3">
-                              <span className="shrink-0">{fmtTs(h.ts)}</span>
-                              <span className={`shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
-                              <span>{h.filled}/{h.filled + h.remaining}</span>
-                            </div>
-                          ))}
+          <>
+            <Card className="hidden md:block">
+              <CardHeader right={<span>{orders.length}건</span>}>주문 목록</CardHeader>
+              <div className="divide-y divide-ap-line/60 text-sm">
+                {orders.map(o => {
+                  const key = `${o.venue}:${o.order_id}`;
+                  const total = o.filled + o.remaining;
+                  const pct = total > 0 ? Math.round((o.filled / total) * 100) : 0;
+                  return (
+                    <div key={key}>
+                      <button
+                        onClick={() => setExpanded(expanded === key ? null : key)}
+                        className="w-full px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-left hover:bg-ap-bg"
+                      >
+                        <span className="text-ap-ink-3 shrink-0 font-data">{o.venue}</span>
+                        <span className="text-ap-ink-1 shrink-0 font-data truncate max-w-[8rem]">{o.order_id}</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
+                          {STATUS_LABEL[o.status] ?? o.status}
+                        </span>
+                        <div className="flex-1 min-w-[80px] flex items-center gap-2">
+                          <Bar ratio={pct / 100} tone="bg-ap-brand" width="flex-1" trackClass="bg-ap-bg border-ap-line" />
+                          <span className="text-ap-ink-3 font-data shrink-0">{o.filled}/{total} ({pct}%)</span>
                         </div>
+                        <span className="text-ap-ink-3 font-data shrink-0">{fmtTs(o.updated_ts)}</span>
+                      </button>
+                      {expanded === key && (
+                        <div className="px-4 pb-3 pl-8">
+                          <div className="text-ap-ink-3 text-[11px] mb-1">체결 이력 ({o.history.length}건)</div>
+                          <div className="space-y-1">
+                            {o.history.map((h, i) => (
+                              <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-[11px] text-ap-ink-3">
+                                <span className="shrink-0">{fmtTs(h.ts)}</span>
+                                <span className={`shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
+                                <span>{h.filled}/{h.filled + h.remaining}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <ApPanel className="md:hidden">
+              <div className="px-4 py-3 border-b border-ap-line flex items-center justify-between">
+                <span className="text-sm font-semibold text-ap-ink-1">주문 목록</span>
+                <span className="text-ap-ink-3 text-xs">{orders.length}건</span>
+              </div>
+              <div className="divide-y divide-ap-line/60">
+                {orders.map(o => {
+                  const total = o.filled + o.remaining;
+                  const pct = total > 0 ? Math.round((o.filled / total) * 100) : 0;
+                  return (
+                    <button key={`${o.venue}:${o.order_id}`} onClick={() => setSelected(o)}
+                      className="w-full px-4 py-3 flex flex-col gap-1.5 text-left active:bg-ap-bg">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-ap-ink-1 text-sm font-data truncate">{o.venue} · {o.order_id}</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
+                          {STATUS_LABEL[o.status] ?? o.status}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+                      <div className="flex items-center gap-2">
+                        <Bar ratio={pct / 100} tone="bg-ap-brand" width="flex-1" trackClass="bg-ap-bg border-ap-line" />
+                        <span className="text-ap-ink-3 font-data text-xs shrink-0">{o.filled}/{total}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </ApPanel>
+          </>
         )}
+
+      <ApBottomSheet open={selected != null} onClose={() => setSelected(null)} title={selected?.order_id ?? ""}>
+        {selected && (
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm"><span className="text-ap-ink-3">venue</span><span className="text-ap-ink-1 font-data">{selected.venue}</span></div>
+            <div className="flex justify-between text-sm">
+              <span className="text-ap-ink-3">상태</span>
+              <span className={`text-[11px] px-2 py-0.5 rounded border ${STATUS_STYLE[selected.status] ?? ""}`}>{STATUS_LABEL[selected.status] ?? selected.status}</span>
+            </div>
+            <div className="flex justify-between text-sm"><span className="text-ap-ink-3">체결</span><span className="text-ap-ink-1 font-data">{selected.filled}/{selected.filled + selected.remaining}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-ap-ink-3">업데이트</span><span className="text-ap-ink-1 font-data">{fmtTs(selected.updated_ts)}</span></div>
+            {selected.history.length > 0 && (
+              <div className="pt-2 border-t border-ap-line">
+                <div className="text-ap-ink-3 text-[11px] mb-1.5">체결 이력 ({selected.history.length}건)</div>
+                <div className="space-y-1">
+                  {selected.history.map((h, i) => (
+                    <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-[11px] text-ap-ink-3">
+                      <span className="shrink-0">{fmtTs(h.ts)}</span>
+                      <span className={`shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
+                      <span>{h.filled}/{h.filled + h.remaining}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </ApBottomSheet>
     </div>
   );
 }
@@ -803,6 +862,57 @@ function VenueCard({ v }: { v: VenuePnl }) {
   );
 }
 
+function MobileVenueCard({ v }: { v: VenuePnl }) {
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? v.trades : v.trades.slice(0, 5);
+  return (
+    <ApPanel>
+      <div className="px-4 py-3 border-b border-ap-line flex items-center justify-between">
+        <span className="text-sm font-semibold text-ap-ink-1">{v.venue}</span>
+        <span className={`font-data text-base font-semibold ${pnlColor(v.net_realized_pnl)}`}>{fmtPnl(v.net_realized_pnl)}</span>
+      </div>
+
+      {v.unpriced_fills > 0 && (
+        <div className="px-4 py-2 text-xs text-ap-caution bg-ap-caution/10 border-b border-ap-caution/30">
+          체결가 미확인 {v.unpriced_fills}건 — 손익 제외
+        </div>
+      )}
+
+      {v.open_positions.length > 0 && (
+        <div className="px-4 py-2.5 border-b border-ap-line/60 space-y-1 text-sm font-data">
+          {v.open_positions.map(p => (
+            <div key={p.symbol} className="flex gap-3 text-ap-ink-1">
+              <span className="w-20 shrink-0 truncate">{p.symbol}</span>
+              <span className="text-ap-ink-3">{p.qty} @ {p.avg_price}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {v.trades.length > 0 && (
+        <>
+          <div className="divide-y divide-ap-line/60 text-sm">
+            {shown.map((t, i) => (
+              <div key={i} className="px-4 py-2 flex items-center gap-2">
+                <span className="text-ap-ink-1 font-data shrink-0">{t.symbol}</span>
+                <span className={`font-data shrink-0 text-xs ${t.side === "buy" ? "text-ap-up" : "text-ap-down"}`}>{t.side}</span>
+                <span className={`font-data flex-1 text-right ${t.realized_pnl == null ? "text-ap-ink-3" : pnlColor(t.realized_pnl)}`}>
+                  {t.realized_pnl == null ? "—" : fmtPnl(t.realized_pnl)}
+                </span>
+              </div>
+            ))}
+          </div>
+          {v.trades.length > 5 && (
+            <button onClick={() => setShowAll(s => !s)} className="w-full py-2.5 text-center text-xs text-ap-ink-3 active:opacity-70">
+              {showAll ? "접기" : `전체 ${v.trades.length}건 보기`}
+            </button>
+          )}
+        </>
+      )}
+    </ApPanel>
+  );
+}
+
 function PnlTab() {
   const [venues, setVenues] = useState<VenuePnl[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -834,7 +944,12 @@ function PnlTab() {
       {error ? <div className="text-ap-down text-sm bg-ap-down/10 border border-ap-down/30 rounded px-3 py-2">{error}</div>
         : loading ? <LoadingState message="손익 계산 중…" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
         : !venues || venues.length === 0 ? <EmptyState message="체결된 주문 없음" textClass="text-ap-ink-3" />
-        : <div className="space-y-4">{venues.map(v => <VenueCard key={v.venue} v={v} />)}</div>}
+        : (
+          <>
+            <div className="hidden md:block space-y-4">{venues.map(v => <VenueCard key={v.venue} v={v} />)}</div>
+            <div className="md:hidden space-y-3">{venues.map(v => <MobileVenueCard key={v.venue} v={v} />)}</div>
+          </>
+        )}
     </div>
   );
 }
