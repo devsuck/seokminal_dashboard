@@ -28,7 +28,7 @@ import {
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge, Skeleton, SkeletonStatTile, SkeletonLines } from "@/components/console/primitives";
-import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -1245,12 +1245,11 @@ function InvestmentOsInner() {
               const sepBroken = sep && !sep.separated;
               const hasWarning = govFail || budgetOver || sepBroken;
               return (
-                <div className="space-y-4">
-                  <div className={`flex flex-col items-center justify-center gap-1.5 py-7 rounded-ap-lg border ${
-                    liveOn ? "border-ap-up/50 bg-ap-up/10" : "border-ap-line bg-ap-surface"}`}>
-                    <span className={`w-3 h-3 rounded-full ${liveOn ? "bg-ap-up" : "bg-ap-ink-3"}`} />
-                    <span className={`text-2xl font-bold tracking-wide ${liveOn ? "text-ap-up" : "text-ap-ink-2"}`}>
-                      라이브 집행 {agents.data ? (liveOn ? "켜짐" : "꺼짐") : "—"}
+                <div className="space-y-5">
+                  <div className="flex flex-col items-center gap-2 py-9">
+                    <span className={`w-3.5 h-3.5 rounded-full ${liveOn ? "bg-ap-up" : "bg-ap-ink-3"}`} />
+                    <span className={`text-[34px] leading-none font-bold tracking-tight ${liveOn ? "text-ap-up" : "text-ap-ink-2"}`}>
+                      {agents.data ? (liveOn ? "라이브 집행 중" : "집행 대기") : "—"}
                     </span>
                     <span className="text-xs text-ap-ink-3">
                       게이트 {data.gates.passed ? "통과" : "차단"} · 컴플라이언스 {data.compliance.compliant ? "통과" : "실패"}
@@ -1276,34 +1275,34 @@ function InvestmentOsInner() {
                     </div>
                   </ApPanel>
 
-                  <ApPanel>
-                    <button onClick={() => setShowDetail(s => !s)} className="w-full flex items-center justify-between px-4 h-10 active:bg-ap-bg">
-                      <span className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">상세 지표</span>
-                      <span className="text-[11px] text-ap-ink-3">{showDetail ? "접기" : "펼치기"}</span>
-                    </button>
-                    {showDetail && (
-                      <div className="p-4 space-y-3 border-t border-ap-line text-xs">
-                        <div className="grid grid-cols-3 gap-2">
-                          <div><div className="text-ap-ink-3 text-[10px] uppercase">최대비중</div><div className="font-data text-ap-ink-1">{((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%</div></div>
-                          <div><div className="text-ap-ink-3 text-[10px] uppercase">포지션</div><div className="font-data text-ap-ink-1">{data.exposure.n_positions ?? 0}</div></div>
-                          <div><div className="text-ap-ink-3 text-[10px] uppercase">HHI</div><div className="font-data text-ap-ink-1">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
-                        </div>
-                        {riskGov.data && (
-                          <div className="text-ap-ink-2">자율성 레벨 {riskGov.data.autonomy.level} · 실행 리스크 이벤트 {riskGov.data.execution_risk_events}</div>
-                        )}
-                        {prod.data && (
-                          <div className="space-y-1">
-                            {prod.data.governance_status.checks.map((c) => (
-                              <div key={c.check} className="flex items-center gap-1.5">
-                                <ApDot tone={c.ok ? "pos" : "neg"} />
-                                <span className="text-ap-ink-1">{c.check}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                  <button onClick={() => setShowDetail(true)}
+                    className="w-full flex items-center justify-between py-2 border-0 bg-transparent active:opacity-60">
+                    <span className="text-xs text-ap-ink-3">상세 지표 보기</span>
+                    <span className="text-ap-ink-3">›</span>
+                  </button>
+
+                  <ApBottomSheet open={showDetail} onClose={() => setShowDetail(false)} title="상세 지표">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        <ApStatTile label="최대비중" value={`${((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%`} />
+                        <ApStatTile label="포지션" value={data.exposure.n_positions ?? 0} />
+                        <ApStatTile label="HHI" value={(data.exposure.herfindahl ?? 0).toFixed(2)} />
                       </div>
-                    )}
-                  </ApPanel>
+                      {riskGov.data && (
+                        <div className="text-xs text-ap-ink-2">자율성 레벨 {riskGov.data.autonomy.level} · 실행 리스크 이벤트 {riskGov.data.execution_risk_events}</div>
+                      )}
+                      {prod.data && (
+                        <div className="space-y-1.5">
+                          {prod.data.governance_status.checks.map((c) => (
+                            <div key={c.check} className="flex items-center gap-1.5 text-xs">
+                              <ApDot tone={c.ok ? "pos" : "neg"} />
+                              <span className="text-ap-ink-1">{c.check}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </ApBottomSheet>
                 </div>
               );
             })()}
