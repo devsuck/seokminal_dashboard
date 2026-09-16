@@ -151,9 +151,8 @@ function InvestmentOsInner() {
   const [conn, setConn] = useState<DataConnectionResp | null>(null);
   const [acct, setAcct] = useState<ResearchAccountabilityResp | null>(null);
   const [sideLoading, setSideLoading] = useState(true);
-  // 모바일 리스크 탭 — 원시 로그/결정 레코드는 기본 접힘(정보 최소화)
-  const [showDecisions, setShowDecisions] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
+  // 모바일 리스크 탭 — 상세 지표는 기본 접힘(정보 최소화)
+  const [showDetail, setShowDetail] = useState(false);
   // 재무제표 실측 조회 패널 (financials_live 직접 배선) — 사용자 입력 트리거, 탭 활성화와 무관
   const [finQuery, setFinQuery] = useState("");
   const [finData, setFinData] = useState<FinancialsLiveResp | null>(null);
@@ -1239,113 +1238,75 @@ function InvestmentOsInner() {
               </div>
             )}
 
-            {tab === "risk" && (
-              <div className="space-y-4">
-                <ApPanel>
-                  <ApPanelHead kicker="리스크 & 시나리오" title="예산 · 스트레스" right={data?.risk_budget && <ApBadge tone={data.risk_budget.within_budget ? "pos" : "warn"}>{data.risk_budget.within_budget ? "예산 내" : "한도 초과"}</ApBadge>} />
-                  <div className="p-4 space-y-2">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-ap-bg rounded-ap-md p-2"><div className="text-[11px] tracking-[0.15em] text-ap-ink-3 uppercase">최대 비중</div><div className="text-[13px] font-data text-ap-ink-1">{((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%</div></div>
-                      <div className="bg-ap-bg rounded-ap-md p-2"><div className="text-[11px] tracking-[0.15em] text-ap-ink-3 uppercase">포지션</div><div className="text-[13px] font-data text-ap-ink-1">{data.exposure.n_positions ?? 0}</div></div>
-                      <div className="bg-ap-bg rounded-ap-md p-2"><div className="text-[11px] tracking-[0.15em] text-ap-ink-3 uppercase">HHI</div><div className="text-[13px] font-data text-ap-ink-1">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
-                    </div>
-                    <div className="bg-ap-bg rounded-ap-md p-2.5">
-                      <div className="text-[11px] tracking-[0.2em] text-ap-caution uppercase mb-0.5">최악 시나리오</div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-ap-ink-1">{data.scenarios.scenario ?? "—"}</span>
-                        <span className="text-xs font-data text-ap-down">{((data.scenarios.portfolio_impact_pct ?? 0) * 100).toFixed(1)}%</span>
-                      </div>
-                      <div className="text-[11px] font-data text-ap-ink-3">예상 PnL {(data.scenarios.estimated_pnl ?? 0).toLocaleString()}</div>
-                    </div>
-                    <div className="text-[11px] text-ap-ink-3">{data.risk_budget.summary}</div>
+            {tab === "risk" && (() => {
+              const liveOn = agents.data?.live_execution_enabled ?? false;
+              const govFail = prod.data && !prod.data.governance_status.passed;
+              const budgetOver = data.risk_budget && !data.risk_budget.within_budget;
+              const sepBroken = sep && !sep.separated;
+              const hasWarning = govFail || budgetOver || sepBroken;
+              return (
+                <div className="space-y-4">
+                  <div className={`flex flex-col items-center justify-center gap-1.5 py-7 rounded-ap-lg border ${
+                    liveOn ? "border-ap-up/50 bg-ap-up/10" : "border-ap-line bg-ap-surface"}`}>
+                    <span className={`w-3 h-3 rounded-full ${liveOn ? "bg-ap-up" : "bg-ap-ink-3"}`} />
+                    <span className={`text-2xl font-bold tracking-wide ${liveOn ? "text-ap-up" : "text-ap-ink-2"}`}>
+                      라이브 집행 {agents.data ? (liveOn ? "켜짐" : "꺼짐") : "—"}
+                    </span>
+                    <span className="text-xs text-ap-ink-3">
+                      게이트 {data.gates.passed ? "통과" : "차단"} · 컴플라이언스 {data.compliance.compliant ? "통과" : "실패"}
+                    </span>
                   </div>
-                </ApPanel>
 
-                <ApPanel>
-                  <ApPanelHead kicker="risk" title="리스크 거버너" right={riskGov.data && <ApBadge tone="mute">{riskGov.data.governor}</ApBadge>} />
-                  {riskGov.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
-                  {riskGov.data && (
-                    <div className="p-4 space-y-1.5 text-xs text-ap-ink-2">
-                      <div>실행 리스크 이벤트: <span className="font-data text-ap-ink-1">{riskGov.data.execution_risk_events}</span></div>
-                      <div>자율성 레벨 {riskGov.data.autonomy.level} · 라이브 집행 활성화: {riskGov.data.autonomy.live_execution_enabled ? "켜짐" : "꺼짐"}</div>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(riskGov.data.limits).map(([k, v]) => <ApBadge key={k} tone="mute">{k}: {String(v)}</ApBadge>)}
+                  {hasWarning && (
+                    <div className="flex items-start gap-2 px-3 py-2.5 rounded-ap-lg border border-ap-down/50 bg-ap-down/10">
+                      <span className="w-2 h-2 mt-1 rounded-full bg-ap-down shrink-0" />
+                      <div className="text-xs text-ap-down space-y-0.5">
+                        {govFail && <div>거버넌스 실패: {prod.data!.governance_status.checks.filter(c => !c.ok).map(c => c.check).join(", ")}</div>}
+                        {budgetOver && <div>리스크 예산 한도 초과 — {data.risk_budget.summary}</div>}
+                        {sepBroken && <div>아키텍처 분리 위반 — 검토 필요</div>}
                       </div>
                     </div>
                   )}
-                </ApPanel>
 
-                <ApPanel>
-                  <ApPanelHead kicker="production-readiness" title="거버넌스" right={prod.data && <ApBadge tone={prod.data.governance_status.passed ? "pos" : "neg"}>{prod.data.governance_status.governance}</ApBadge>} />
-                  {prod.loading && <div className="p-4"><ApSkeletonLines rows={4} /></div>}
-                  {prod.data && (
-                    <div className="p-4 space-y-1.5">
-                      {prod.data.governance_status.checks.map((c) => (
-                        <div key={c.check} className="flex items-center gap-1.5 text-xs">
-                          <ApDot tone={c.ok ? "pos" : "neg"} />
-                          <span className="text-ap-ink-1">{c.check}</span>
-                          <span className="text-ap-ink-3">{c.detail}</span>
-                        </div>
-                      ))}
-                      <div className="text-xs text-ap-ink-3 pt-1">프로덕션 헬스: {prod.data.production_health.overall_severity}</div>
+                  <ApPanel>
+                    <ApPanelHead kicker="agents + council" title="협의회" />
+                    <div className="p-4">
+                      {agents.loading && <ApSkeletonLines rows={3} />}
+                      {agents.data && <AgentTree node={agents.data.council} />}
                     </div>
-                  )}
-                </ApPanel>
+                  </ApPanel>
 
-                <ApPanel>
-                  <ApPanelHead kicker="agents + council" title="협의회 / 승인" right={agents.data && <ApBadge tone="neg">라이브 집행: {agents.data.live_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
-                  <div className="p-4 space-y-2">
-                    {agents.loading && <ApSkeletonLines rows={3} />}
-                    {agents.data && <AgentTree node={agents.data.council} />}
-                    {council.data && council.data.decisions.length > 0 && (
-                      <div className="pt-2 border-t border-ap-line">
-                        <button onClick={() => setShowDecisions(s => !s)} className="w-full flex items-center justify-between text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase py-1 active:opacity-70">
-                          <span>최근 결정 {council.data.decisions.length}건</span>
-                          <span>{showDecisions ? "접기" : "펼치기"}</span>
-                        </button>
-                        {showDecisions && (
-                          <div className="space-y-1 pt-1">
-                            {council.data.decisions.slice(0, 5).map((d, i) => (
-                              <div key={i} className="text-xs font-data text-ap-ink-3 truncate">{JSON.stringify(d)}</div>
+                  <ApPanel>
+                    <button onClick={() => setShowDetail(s => !s)} className="w-full flex items-center justify-between px-4 h-10 active:bg-ap-bg">
+                      <span className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">상세 지표</span>
+                      <span className="text-[11px] text-ap-ink-3">{showDetail ? "접기" : "펼치기"}</span>
+                    </button>
+                    {showDetail && (
+                      <div className="p-4 space-y-3 border-t border-ap-line text-xs">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div><div className="text-ap-ink-3 text-[10px] uppercase">최대비중</div><div className="font-data text-ap-ink-1">{((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%</div></div>
+                          <div><div className="text-ap-ink-3 text-[10px] uppercase">포지션</div><div className="font-data text-ap-ink-1">{data.exposure.n_positions ?? 0}</div></div>
+                          <div><div className="text-ap-ink-3 text-[10px] uppercase">HHI</div><div className="font-data text-ap-ink-1">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
+                        </div>
+                        {riskGov.data && (
+                          <div className="text-ap-ink-2">자율성 레벨 {riskGov.data.autonomy.level} · 실행 리스크 이벤트 {riskGov.data.execution_risk_events}</div>
+                        )}
+                        {prod.data && (
+                          <div className="space-y-1">
+                            {prod.data.governance_status.checks.map((c) => (
+                              <div key={c.check} className="flex items-center gap-1.5">
+                                <ApDot tone={c.ok ? "pos" : "neg"} />
+                                <span className="text-ap-ink-1">{c.check}</span>
+                              </div>
                             ))}
                           </div>
                         )}
                       </div>
                     )}
-                  </div>
-                </ApPanel>
-
-                <ApPanel>
-                  <button onClick={() => setShowLogs(s => !s)} className="w-full flex items-center justify-between px-4 h-10 border-b border-ap-line active:bg-ap-bg">
-                    <span className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">감사 로그</span>
-                    <span className="flex items-center gap-2">
-                      {logs.data && <ApBadge tone="mute">{logs.data.count}건</ApBadge>}
-                      <span className="text-[11px] text-ap-ink-3">{showLogs ? "접기" : "펼치기"}</span>
-                    </span>
-                  </button>
-                  {showLogs && (
-                    <div className="p-4 space-y-1">
-                      {logs.loading && <ApSkeletonLines rows={5} />}
-                      {logs.data && logs.data.logs.slice(0, 10).map((l, i) => (
-                        <div key={i} className="text-xs font-data text-ap-ink-3 truncate border-b border-ap-line last:border-0 py-1">{JSON.stringify(l)}</div>
-                      ))}
-                    </div>
-                  )}
-                </ApPanel>
-
-                <ApPanel>
-                  <ApPanelHead kicker="아키텍처 분리" title="Research OS ⟂ Investment OS ⟂ Execution" right={sep && <ApBadge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</ApBadge>} />
-                  <div className="p-4 space-y-1.5">
-                    {(sep?.invariants ?? []).map((i) => (
-                      <div key={i.check} className="flex items-center gap-2">
-                        <ApDot tone={i.ok ? "pos" : "neg"} />
-                        <span className="text-xs text-ap-ink-1">{i.check}</span>
-                      </div>
-                    ))}
-                  </div>
-                </ApPanel>
-              </div>
-            )}
+                  </ApPanel>
+                </div>
+              );
+            })()}
 
             {tab === "ops" && (
               <div className="space-y-4">
