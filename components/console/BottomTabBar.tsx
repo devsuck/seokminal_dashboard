@@ -74,7 +74,7 @@ export function BottomTabBar() {
         <button onClick={() => setMoreOpen(true)}
           className="flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent cursor-pointer">
           <MoreIcon active={moreActive} />
-          <span className={`text-[11px] tracking-wide ${moreActive ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>더보기</span>
+          <span className={`text-[10px] tracking-wide ${moreActive ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>더보기</span>
         </button>
       </nav>
 

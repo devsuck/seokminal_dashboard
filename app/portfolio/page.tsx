@@ -262,14 +262,15 @@ function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy
 
 export interface MobilePosition {
   key: string; symbol: string; qty: string; avgPrice: string; currentPrice: string;
-  pnlPct: number; venue: string;
+  pnlPct: number; venue: string; pnlAmount?: string;
 }
 
 export function alpacaToMobile(p: AlpacaPosition): MobilePosition {
   return {
-    key: p.symbol, symbol: p.symbol, qty: `${p.qty}주`,
+    key: p.symbol, symbol: p.symbol, qty: `${p.side === "long" ? "롱" : "숏"} ${p.qty}주`,
     avgPrice: `$${p.avg_entry_price.toFixed(2)}`, currentPrice: `$${p.current_price.toFixed(2)}`,
     pnlPct: p.unrealized_plpc * 100, venue: "Alpaca",
+    pnlAmount: `${p.unrealized_pl >= 0 ? "+" : ""}$${p.unrealized_pl.toFixed(2)}`,
   };
 }
 
@@ -277,11 +278,13 @@ export function hlToMobile(p: HLAssetPosition, venue: string): MobilePosition {
   const pos = p.position;
   const szi = parseFloat(pos.szi);
   const roe = parseFloat(pos.returnOnEquity) * 100;
+  const pnl = parseFloat(pos.unrealizedPnl);
   return {
-    key: pos.coin, symbol: pos.coin, qty: `${Math.abs(szi)}`,
+    key: pos.coin, symbol: pos.coin, qty: `${szi >= 0 ? "롱" : "숏"} ${Math.abs(szi)}`,
     avgPrice: pos.entryPx ? `$${parseFloat(pos.entryPx).toFixed(2)}` : "—",
     currentPrice: `평가 $${parseFloat(pos.positionValue).toFixed(2)}`,
     pnlPct: roe, venue,
+    pnlAmount: `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`,
   };
 }
 
@@ -552,8 +555,9 @@ function AccountsTab() {
           <div className="flex justify-between text-sm"><span className="text-ap-ink-3">현재가</span><span className="text-ap-ink-1 font-mono">{selected.currentPrice}</span></div>
           <div className="flex justify-between text-sm"><span className="text-ap-ink-3">수량</span><span className="text-ap-ink-1 font-mono">{selected.qty}</span></div>
           <div className="flex justify-between text-sm">
-            <span className="text-ap-ink-3">평가손익률</span>
+            <span className="text-ap-ink-3">평가손익</span>
             <span className={`font-mono font-semibold ${selected.pnlPct >= 0 ? "text-ap-up" : "text-ap-down"}`}>
+              {selected.pnlAmount && <>{selected.pnlAmount} </>}
               {selected.pnlPct >= 0 ? "+" : ""}{selected.pnlPct.toFixed(2)}%
             </span>
           </div>
