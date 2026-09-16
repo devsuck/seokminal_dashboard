@@ -1,7 +1,7 @@
 "use client";
 // P69 — Conversational Research Workspace. 채팅이 주 조작 인터페이스.
 // 질문 → Decision Memo + Evidence + Memory Recall + Suggested actions. READ ONLY · 분석/회상만, 결정/집행 없음.
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   getAssistant, getDecisionMemo, getExplainability,
@@ -14,7 +14,7 @@ import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines } from "@/components/ui/
 const CONF_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
 const SUGGESTIONS = ["어제 리서치 이어서 진행해줘", "모멘텀 시도해본 적 있어?", "밸류 로테이션 리서치 해볼까?", "TSMOM은 왜 실패했어?"];
 
-export default function ResearchChat() {
+function ResearchChatInner() {
   const [q, setQ] = useState("");
   const [turn, setTurn] = useState<{ q: string; memo: DecisionMemoResp; ev: ExplainabilityResp; recall: AssistantResp } | null>(null);
   const [history, setHistory] = useState<{ q: string; a: string }[]>([]);
@@ -327,5 +327,13 @@ export default function ResearchChat() {
           </div>
         </div>
     </>
+  );
+}
+
+export default function ResearchChat() {
+  return (
+    <Suspense fallback={null}>
+      <ResearchChatInner />
+    </Suspense>
   );
 }
