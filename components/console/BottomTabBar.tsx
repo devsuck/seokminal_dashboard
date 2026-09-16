@@ -10,10 +10,12 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-const PRIMARY_TABS = [
+const PRIMARY_TABS: { href: string; label: string; matchPrefix?: string }[] = [
   { href: "/hud/summary", label: "홈" },
   { href: "/portfolio", label: "포트폴리오" },
+  { href: "/research-os/chat", label: "Research OS", matchPrefix: "/research-os" },
   { href: "/investment-os", label: "Investment OS" },
+  { href: "/performance", label: "성과" },
 ];
 
 function TabIcon({ href, active }: { href: string; active: boolean }) {
@@ -26,6 +28,10 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
       return <svg {...props}><rect x="1.5" y="2.5" width="13" height="9" rx="1" /><path d="M1.5 13.5h13M6 11.5v2M10 11.5v2" /></svg>;
     case "/investment-os":
       return <svg {...props}><circle cx="8" cy="8" r="3" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13" /></svg>;
+    case "/research-os/chat":
+      return <svg {...props}><rect x="2" y="3" width="12" height="7.5" rx="1.5" /><path d="M5 10.5v3l3-3" /></svg>;
+    case "/performance":
+      return <svg {...props}><path d="M2 12l4-4 3 3 5-6" /><path d="M11 5h3v3" /></svg>;
     default:
       return null;
   }
@@ -50,18 +56,18 @@ export function BottomTabBar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const swipeStartY = useRef<number | null>(null);
-  const inPrimary = PRIMARY_TABS.some((t) => isActivePath(pathname, t.href));
+  const inPrimary = PRIMARY_TABS.some((t) => isActivePath(pathname, t.matchPrefix ?? t.href));
   const moreActive = moreOpen || !inPrimary;
 
   return (
     <>
       <nav className="rail-ap fixed bottom-0 inset-x-0 z-40 flex md:hidden items-stretch h-14 pb-[env(safe-area-inset-bottom)] border-t border-[var(--c-border)] bg-[var(--c-panel)]/95 backdrop-blur">
         {PRIMARY_TABS.map((t) => {
-          const active = isActivePath(pathname, t.href);
+          const active = isActivePath(pathname, t.matchPrefix ?? t.href);
           return (
             <Link key={t.href} href={t.href} className="flex-1 flex flex-col items-center justify-center gap-0.5 no-underline">
               <TabIcon href={t.href} active={active} />
-              <span className={`text-[11px] tracking-wide ${active ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>{t.label}</span>
+              <span className={`text-[10px] leading-tight text-center px-0.5 ${active ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>{t.label}</span>
             </Link>
           );
         })}
