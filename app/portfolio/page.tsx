@@ -341,6 +341,8 @@ function AccountsTab() {
   const [loading, setLoading] = useState(true);
   // 느린 balances(KIS 최대 30초)가 도착 전까지 "계좌 없음" 오표시 방지
   const [balancesPending, setBalancesPending] = useState(true);
+  const [selected, setSelected] = useState<MobilePosition | null>(null);
+  const router = useRouter();
 
   const load = useCallback(() => {
     // Fast: Alpaca + LKG paper — show UI immediately
@@ -405,9 +407,6 @@ function AccountsTab() {
       <LoadingState message="계좌 잔고 조회 중…" hint="브로커 6곳 순차 조회 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
     </div>
   );
-
-  const [selected, setSelected] = useState<MobilePosition | null>(null);
-  const router = useRouter();
 
   const krwMobile: MobilePosition[] = [
     ...kisMockHoldings.map((h) => kisToMobile(h, "한투 모의")),
