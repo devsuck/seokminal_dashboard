@@ -151,6 +151,9 @@ function InvestmentOsInner() {
   const [conn, setConn] = useState<DataConnectionResp | null>(null);
   const [acct, setAcct] = useState<ResearchAccountabilityResp | null>(null);
   const [sideLoading, setSideLoading] = useState(true);
+  // 모바일 리스크 탭 — 원시 로그/결정 레코드는 기본 접힘(정보 최소화)
+  const [showDecisions, setShowDecisions] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   // 재무제표 실측 조회 패널 (financials_live 직접 배선) — 사용자 입력 트리거, 탭 활성화와 무관
   const [finQuery, setFinQuery] = useState("");
   const [finData, setFinData] = useState<FinancialsLiveResp | null>(null);
@@ -1294,25 +1297,40 @@ function InvestmentOsInner() {
                   <div className="p-4 space-y-2">
                     {agents.loading && <ApSkeletonLines rows={3} />}
                     {agents.data && <AgentTree node={agents.data.council} />}
-                    {council.data && (
-                      <div className="pt-2 border-t border-ap-line space-y-1">
-                        <div className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">최근 결정</div>
-                        {council.data.decisions.slice(0, 5).map((d, i) => (
-                          <div key={i} className="text-xs font-data text-ap-ink-3 truncate">{JSON.stringify(d)}</div>
-                        ))}
+                    {council.data && council.data.decisions.length > 0 && (
+                      <div className="pt-2 border-t border-ap-line">
+                        <button onClick={() => setShowDecisions(s => !s)} className="w-full flex items-center justify-between text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase py-1 active:opacity-70">
+                          <span>최근 결정 {council.data.decisions.length}건</span>
+                          <span>{showDecisions ? "접기" : "펼치기"}</span>
+                        </button>
+                        {showDecisions && (
+                          <div className="space-y-1 pt-1">
+                            {council.data.decisions.slice(0, 5).map((d, i) => (
+                              <div key={i} className="text-xs font-data text-ap-ink-3 truncate">{JSON.stringify(d)}</div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="logs" title="감사 로그" right={logs.data && <ApBadge tone="mute">{logs.data.count}건</ApBadge>} />
-                  <div className="p-4 space-y-1">
-                    {logs.loading && <ApSkeletonLines rows={5} />}
-                    {logs.data && logs.data.logs.slice(0, 10).map((l, i) => (
-                      <div key={i} className="text-xs font-data text-ap-ink-3 truncate border-b border-ap-line last:border-0 py-1">{JSON.stringify(l)}</div>
-                    ))}
-                  </div>
+                  <button onClick={() => setShowLogs(s => !s)} className="w-full flex items-center justify-between px-4 h-10 border-b border-ap-line active:bg-ap-bg">
+                    <span className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">감사 로그</span>
+                    <span className="flex items-center gap-2">
+                      {logs.data && <ApBadge tone="mute">{logs.data.count}건</ApBadge>}
+                      <span className="text-[11px] text-ap-ink-3">{showLogs ? "접기" : "펼치기"}</span>
+                    </span>
+                  </button>
+                  {showLogs && (
+                    <div className="p-4 space-y-1">
+                      {logs.loading && <ApSkeletonLines rows={5} />}
+                      {logs.data && logs.data.logs.slice(0, 10).map((l, i) => (
+                        <div key={i} className="text-xs font-data text-ap-ink-3 truncate border-b border-ap-line last:border-0 py-1">{JSON.stringify(l)}</div>
+                      ))}
+                    </div>
+                  )}
                 </ApPanel>
 
                 <ApPanel>
