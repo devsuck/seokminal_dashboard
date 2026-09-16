@@ -155,3 +155,36 @@ export function ApGainBar({ pct, maxAbs }: { pct: number; maxAbs: number }) {
     </div>
   );
 }
+
+// ── List row (범용 리스트 항목 — leading/title/subtitle + trailing/trailingSub) ──
+export function ApListRow({
+  leading, title, subtitle, trailing, trailingSub, onClick,
+}: {
+  leading?: ReactNode; title: ReactNode; subtitle?: ReactNode;
+  trailing?: ReactNode; trailingSub?: ReactNode; onClick?: () => void;
+}) {
+  const content = (
+    <>
+      {leading && <div className="shrink-0">{leading}</div>}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-ap-ink-1 truncate">{title}</div>
+        {subtitle && <div className="text-xs text-ap-ink-3 truncate mt-0.5">{subtitle}</div>}
+      </div>
+      {(trailing || trailingSub) && (
+        <div className="shrink-0 text-right">
+          {trailing && <div className="text-sm font-mono font-semibold text-ap-ink-1">{trailing}</div>}
+          {trailingSub && <div className="mt-1">{trailingSub}</div>}
+        </div>
+      )}
+    </>
+  );
+  if (onClick) {
+    return (
+      <button onClick={onClick}
+        className="flex items-center gap-3 w-full min-h-11 py-2 px-3 text-left border-0 bg-transparent cursor-pointer active:bg-ap-bg">
+        {content}
+      </button>
+    );
+  }
+  return <div className="flex items-center gap-3 w-full min-h-11 py-2 px-3">{content}</div>;
+}
