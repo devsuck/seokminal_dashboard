@@ -1,7 +1,8 @@
 "use client";
 // P69 — Conversational Research Workspace. 채팅이 주 조작 인터페이스.
 // 질문 → Decision Memo + Evidence + Memory Recall + Suggested actions. READ ONLY · 분석/회상만, 결정/집행 없음.
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   getAssistant, getDecisionMemo, getExplainability,
   type AssistantResp, type DecisionMemoResp, type ExplainabilityResp,
@@ -31,6 +32,13 @@ export default function ResearchChat() {
       setHistory((h) => [{ q: question, a: memo.recommendation ?? recall.answer }, ...h].slice(0, 8));
     } catch (e) { setErr((e as Error).message); }
     finally { setLoading(false); }
+  }, []);
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const initial = searchParams.get("q");
+    if (initial) { setQ(initial); run(initial); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
