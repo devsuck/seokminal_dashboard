@@ -22,7 +22,7 @@ export function ApPanelHead({
         {kicker && <span className="text-[9px] font-semibold tracking-[0.22em] text-ap-brand uppercase">{kicker}</span>}
         <span className="text-[13px] font-semibold tracking-wide text-ap-ink-1 truncate">{title}</span>
       </div>
-      {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
+      {right && <div className="flex flex-wrap items-center gap-2 text-ap-ink-2 text-[11px] font-data">{right}</div>}
     </div>
   );
 }

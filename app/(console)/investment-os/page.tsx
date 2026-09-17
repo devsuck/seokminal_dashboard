@@ -126,7 +126,14 @@ const DECISION_TONE: Record<string, "pos" | "warn" | "neg" | "mute"> = {
 // 호출부(211-226행)는 시그니처 그대로라 변경 없음.
 function useTabFetch<T>(active: boolean, fetcher: (signal: AbortSignal) => Promise<T>) {
   const id = useId();
-  const { data, error, isLoading } = useSWR<T>(active ? id : null, () => fetcher(new AbortController().signal));
+  const ctrlRef = useRef<AbortController | null>(null);
+  const { data, error, isLoading } = useSWR<T>(active ? id : null, () => {
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
+    return fetcher(ctrl.signal);
+  });
+  useEffect(() => () => ctrlRef.current?.abort(), []);
   return { data: data ?? null, err: error ? (error as Error).message : null, loading: isLoading };
 }
 
