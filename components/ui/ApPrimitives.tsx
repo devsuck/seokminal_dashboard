@@ -220,3 +220,33 @@ export function ApBottomSheet({
     </div>
   );
 }
+
+export function ApHeroCard({
+  label, value, valueCls, sub, rows,
+}: {
+  label: string;
+  value: string;
+  valueCls?: string;
+  sub?: string;
+  rows?: { label: string; value: string; cls?: string }[];
+}) {
+  return (
+    <div className="bg-ap-surface rounded-ap-lg shadow-ap-sm overflow-hidden">
+      <div className="bg-ap-ink-1 px-4 py-4">
+        <div className="text-[11px] uppercase tracking-wide text-white/50">{label}</div>
+        <div className={`text-2xl font-bold font-data mt-1 text-white ${valueCls ?? ""}`}>{value}</div>
+        {sub && <div className="text-xs text-white/50 mt-0.5">{sub}</div>}
+      </div>
+      {rows && rows.length > 0 && (
+        <div className="divide-y divide-ap-line px-4">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center justify-between py-2.5 text-sm">
+              <span className="text-ap-ink-3">{r.label}</span>
+              <span className={`font-data ${r.cls ?? "text-ap-ink-1"}`}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
