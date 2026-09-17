@@ -185,7 +185,7 @@ export function AgentTree({
   const statusTone = STATUS_MAP[node.status] ?? "mute";
   const c = TONEHEX[statusTone];
   const isRoot = depth === 0;
-  const [expanded, setExpanded] = useState(depth <= 1);
+  const [expanded, setExpanded] = useState(depth === 0);
   const borderCls = tone === "ap" ? "border-ap-line" : "border-[var(--c-border)]";
   const connectorCls = tone === "ap" ? "before:bg-ap-line" : "before:bg-[var(--c-border)]";
   const roleCls = tone === "ap" ? "text-ap-brand" : "text-[var(--c-hud)]";
