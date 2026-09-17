@@ -28,7 +28,7 @@ import {
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
 import { Panel, PanelHead, StatTile, Badge, Skeleton, SkeletonStatTile, SkeletonLines } from "@/components/console/primitives";
-import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -1246,15 +1246,12 @@ function InvestmentOsInner() {
               const hasWarning = govFail || budgetOver || sepBroken;
               return (
                 <div className="space-y-5">
-                  <div className="flex flex-col items-center gap-2 py-9">
-                    <span className={`w-3.5 h-3.5 rounded-full ${liveOn ? "bg-ap-up" : "bg-ap-ink-3"}`} />
-                    <span className={`text-[34px] leading-none font-bold tracking-tight ${liveOn ? "text-ap-up" : "text-ap-ink-2"}`}>
-                      {agents.data ? (liveOn ? "라이브 집행 중" : "집행 대기") : "—"}
-                    </span>
-                    <span className="text-xs text-ap-ink-3">
-                      게이트 {data.gates.passed ? "통과" : "차단"} · 컴플라이언스 {data.compliance.compliant ? "통과" : "실패"}
-                    </span>
-                  </div>
+                  <ApHeroCard
+                    label="집행 상태"
+                    value={agents.data ? (liveOn ? "라이브 집행 중" : "집행 대기") : "—"}
+                    valueCls={liveOn ? "text-ap-up" : "text-ap-ink-2"}
+                    sub={`게이트 ${data.gates.passed ? "통과" : "차단"} · 컴플라이언스 ${data.compliance.compliant ? "통과" : "실패"}`}
+                  />
 
                   {hasWarning && (
                     <div className="flex items-start gap-2 px-3 py-2.5 rounded-ap-lg border border-ap-down/50 bg-ap-down/10">

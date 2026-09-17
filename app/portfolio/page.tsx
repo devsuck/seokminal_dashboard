@@ -10,7 +10,7 @@ import {
 } from "@/lib/api";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
-import { ApPanel, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
@@ -303,11 +303,12 @@ function MobileGroup({ title, ccy, total, items, emptyHint, onSelect }: {
 }) {
   const maxAbs = Math.max(1, ...items.map((p) => Math.abs(p.pnlPct)));
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-2 px-1">
-        <span className="text-ap-ink-1 text-sm font-semibold">{title}</span>
-        {total != null && <span className="text-ap-brand text-sm font-mono font-bold">{fmt(total, ccy)}</span>}
-      </div>
+    <div className="space-y-2">
+      {total != null ? (
+        <ApHeroCard label={title} value={fmt(total, ccy)} />
+      ) : (
+        <span className="text-ap-ink-1 text-sm font-semibold px-1 block">{title}</span>
+      )}
       <ApPanel>
         {items.length === 0 ? (
           <p className="text-ap-ink-3 text-xs p-3">{emptyHint}</p>

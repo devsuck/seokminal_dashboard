@@ -6,6 +6,7 @@ import { useHudFeed } from "@/components/hud/useHudFeed";
 import { deriveAttentionItems } from "@/lib/attention";
 import PortfolioTab from "@/components/hud/PortfolioTab";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { ApHeroCard } from "@/components/ui/ApPrimitives";
 
 function subscribeToMobileQuery(cb: () => void) {
   const m = matchMedia("(max-width: 767px)");
@@ -123,13 +124,15 @@ export default function HudSummaryPage() {
         )}
 
         <div className="flex flex-col gap-3 px-4 pb-4 max-w-md mx-auto">
-          <div className={`flex flex-col items-center justify-center gap-2 py-8 rounded-ap-lg border ${
-            liveOn ? "border-ap-up/50 bg-ap-up/10" : "border-ap-line bg-ap-surface"}`}>
-            <span className={`w-3 h-3 rounded-full ${liveOn ? "bg-ap-up" : "bg-ap-ink-3"}`} />
-            <span className={`text-3xl font-bold tracking-wide ${liveOn ? "text-ap-up" : "text-ap-ink-2"}`}>
-              실거래 {liveLabel}
-            </span>
-          </div>
+          <ApHeroCard
+            label="SEOKMINAL"
+            value={`실거래 ${liveLabel}`}
+            valueCls={liveOn ? "text-ap-up" : "text-ap-ink-2"}
+            rows={[
+              { label: "상태", value: busy ? "처리 중" : active ? "가동 중" : "대기", cls: busy ? "text-ap-brand" : active ? "text-ap-up" : "text-ap-ink-2" },
+              { label: "정합성", value: health ? (health.ok ? "이상없음" : `오류 ${health.n_errors}`) : "로딩 중", cls: (health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3" },
+            ]}
+          />
 
           {critical && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-ap-lg border border-ap-down/50 bg-ap-down/10">
@@ -139,20 +142,6 @@ export default function HudSummaryPage() {
               </span>
             </div>
           )}
-
-          <div className="flex items-center justify-center gap-3 px-1 text-xs text-ap-ink-3">
-            <span>
-              상태 ▸ <span className={busy ? "text-ap-brand" : active ? "text-ap-up" : "text-ap-ink-2"}>
-                {busy ? "처리 중" : active ? "가동 중" : "대기"}
-              </span>
-            </span>
-            <span className="text-ap-ink-3">·</span>
-            <span>
-              정합성 ▸ <span className={(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}>
-                {health ? (health.ok ? "이상없음" : `오류 ${health.n_errors}`) : "로딩 중"}
-              </span>
-            </span>
-          </div>
 
           <Card>
             <CardHeader right={`${attentionItems.length}건`}>판단 필요</CardHeader>

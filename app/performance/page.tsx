@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getPerformance, type PerfSummary } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
+import { ApHeroCard } from "@/components/ui/ApPrimitives";
 
 const PERIODS = ["1W", "1M", "3M", "1A"] as const;
 const PERIOD_LABEL: Record<string, string> = { "1W": "1주", "1M": "1개월", "3M": "3개월", "1A": "1년" };
@@ -97,8 +98,12 @@ export default function PerformancePage() {
         : !data ? <EmptyState message="데이터 없음" textClass="text-ap-ink-3" />
         : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Metric label="수익률" value={`${data.return_pct > 0 ? "+" : ""}${data.return_pct}%`} cls={pnlCls(data.return_pct)} />
+            <ApHeroCard
+              label="수익률"
+              value={`${data.return_pct > 0 ? "+" : ""}${data.return_pct}%`}
+              valueCls={pnlCls(data.return_pct)}
+            />
+            <div className="grid grid-cols-3 gap-2">
               <Metric label="최대낙폭 (MDD)" value={`${data.mdd_pct}%`} cls="text-ap-down" />
               <Metric label="Sharpe" value={`${data.sharpe}`} cls={data.sharpe >= 1 ? "text-ap-up" : "text-ap-ink-1"} />
               <Metric label="vs SPY (초과)"value={data.excess_pct != null ? `${data.excess_pct > 0 ? "+" : ""}${data.excess_pct}%` : "—"}
