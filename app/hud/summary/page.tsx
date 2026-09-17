@@ -5,8 +5,7 @@ import { useSyncExternalStore } from "react";
 import { useHudFeed } from "@/components/hud/useHudFeed";
 import { deriveAttentionItems } from "@/lib/attention";
 import PortfolioTab from "@/components/hud/PortfolioTab";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApHeroCard } from "@/components/ui/ApPrimitives";
 
 function subscribeToMobileQuery(cb: () => void) {
   const m = matchMedia("(max-width: 767px)");
@@ -143,8 +142,8 @@ export default function HudSummaryPage() {
             </div>
           )}
 
-          <Card>
-            <CardHeader right={`${attentionItems.length}건`}>판단 필요</CardHeader>
+          <ApPanel>
+            <ApPanelHead title="판단 필요" right={`${attentionItems.length}건`} />
             {attentionItems.length === 0 ? (
               <div className="px-3 py-3 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${attnLoading ? "bg-ap-ink-3" : "bg-ap-up"}`} />
@@ -163,7 +162,7 @@ export default function HudSummaryPage() {
                 ))}
               </div>
             )}
-          </Card>
+          </ApPanel>
 
           <Link href="/hud" className="block text-center text-sm text-ap-ink-3 no-underline active:opacity-70">
             전체 대시보드 →

@@ -8,9 +8,8 @@ import {
   type AccountRow, type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
   type OmsOrder, type VenuePnl,
 } from "@/lib/api";
-import { Card, CardHeader } from "@/components/ui/Card";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
-import { ApPanel, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
@@ -489,8 +488,8 @@ function AccountsTab() {
       </div>
 
       {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
-      <Card>
-        <CardHeader>거래소별 분포 <span className="text-ap-ink-3 text-[11px] font-normal">(구성)</span></CardHeader>
+      <ApPanel>
+        <ApPanelHead title="거래소별 분포" right={<span className="text-ap-ink-3 text-[11px] font-normal">(구성)</span>} />
         <div className="p-1">
           {compositionRows.length === 0 ? (
             <p className="text-ap-ink-3 text-xs p-2">연동 계좌 없음</p>
@@ -514,7 +513,7 @@ function AccountsTab() {
         <p className="px-3 pb-3 text-[11px] text-ap-ink-3 leading-relaxed">
           통화 내 venue 잔고 구성비 · 손익 귀속(attribution)이 아닌 배분 현황 표시.
         </p>
-      </Card>
+      </ApPanel>
     </div>
 
     <div className="md:hidden space-y-6">
@@ -661,8 +660,8 @@ function OrdersTab() {
         : !orders || orders.length === 0 ? <EmptyState message="추적 중인 주문 없음" textClass="text-ap-ink-3" />
         : (
           <>
-            <Card className="hidden md:block">
-              <CardHeader right={<span>{orders.length}건</span>}>주문 목록</CardHeader>
+            <ApPanel className="hidden md:block">
+              <ApPanelHead title="주문 목록" right={<span>{orders.length}건</span>} />
               <div className="divide-y divide-ap-line/60 text-sm">
                 {orders.map(o => {
                   const key = `${o.venue}:${o.order_id}`;
@@ -703,7 +702,7 @@ function OrdersTab() {
                   );
                 })}
               </div>
-            </Card>
+            </ApPanel>
 
             <ApPanel className="md:hidden">
               <div className="px-4 py-3 border-b border-ap-line flex items-center justify-between">
@@ -793,8 +792,8 @@ function VenueCard({ v }: { v: VenuePnl }) {
   })();
 
   return (
-    <Card>
-      <CardHeader right={<span>체결 {v.trades.length}건</span>}>{v.venue}</CardHeader>
+    <ApPanel>
+      <ApPanelHead title={v.venue} right={<span>체결 {v.trades.length}건</span>} />
       <div className="p-4 grid grid-cols-3 gap-4 text-sm border-b border-ap-line/60">
         <div>
           <div className="text-ap-ink-3 text-xs mb-0.5">총 실현손익</div>
@@ -859,7 +858,7 @@ function VenueCard({ v }: { v: VenuePnl }) {
           ))}
         </div>
       )}
-    </Card>
+    </ApPanel>
   );
 }
 
@@ -988,15 +987,15 @@ export default function PortfolioPage() {
 
         {tab === "optimizer" && (
           <div className="max-w-2xl mx-auto">
-            <Card className="mb-4">
-              <CardHeader>교육용 · 실전 배분 아님</CardHeader>
+            <ApPanel className="mb-4">
+              <ApPanelHead title="교육용 · 실전 배분 아님" />
               <div className="p-4">
                 <p className="text-ap-ink-2 text-xs leading-relaxed">
                   마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
                   실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
                 </p>
               </div>
-            </Card>
+            </ApPanel>
             <a href="/portfolio/optimizer"
               className="block text-center py-3 border border-ap-line rounded-ap-lg text-ap-ink-3 text-sm hover:text-ap-ink-2 hover:border-ap-ink-3 transition-colors">
               최적화 도구 열기 →

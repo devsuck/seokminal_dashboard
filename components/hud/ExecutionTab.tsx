@@ -6,7 +6,7 @@ import {
   type ExecutionConsole, type ExecutionEdge, type PortfolioBook, type ExecutionReadiness,
 } from "@/lib/api";
 import { LivePulse } from "@/components/Jarvis";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { ApPanel, ApPanelHead } from "@/components/ui/ApPrimitives";
 
 /* 집행 콘솔 — 질문 하나: "지금 arm해도 되나?"
    ARM 판정(GO/WAIT/KILL)을 최상단에 크게. 그 판단 근거(엣지 생존·기대치·제약)가 아래로.
@@ -107,8 +107,8 @@ export default function ExecutionTab() {
 
       {/* 3전략 arm 진행률 — buyback/tsmom/tom 한 화면 */}
       {readiness && (
-        <Card>
-          <CardHeader>arm 대기중 전략 {readiness.strategies.length}개 — 페이퍼 시계 진행률</CardHeader>
+        <ApPanel>
+          <ApPanelHead title={`arm 대기중 전략 ${readiness.strategies.length}개 — 페이퍼 시계 진행률`} />
           <div className="p-4 grid gap-2 sm:grid-cols-3">
             {readiness.strategies.map(s => (
               <div key={s.registry_id} className={`rounded-ap-md border p-3 ${
@@ -136,7 +136,7 @@ export default function ExecutionTab() {
               </div>
             ))}
           </div>
-        </Card>
+        </ApPanel>
       )}
 
       {/* 엣지 생존 (OOS vs envelope) */}
@@ -192,8 +192,8 @@ export default function ExecutionTab() {
       </div>
 
       {/* 정직한 엣지 (기대치) */}
-      <Card>
-        <CardHeader>엣지 기대치 (정직)</CardHeader>
+      <ApPanel>
+        <ApPanelHead title="엣지 기대치 (정직)" />
         <div className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Kv k="중앙값(기대)" v={pct(d.edge.net_median)} tone={d.edge.net_median >= 0 ? "pos" : "neg"} />
@@ -203,14 +203,12 @@ export default function ExecutionTab() {
           </div>
           <div className="mt-2 text-[11px] text-ap-caution leading-relaxed">⚠ {d.edge.honest_note}</div>
         </div>
-      </Card>
+      </ApPanel>
 
       {/* 생존자 포트폴리오 (돈=조합) */}
       {book && book.combined && (
-        <Card>
-          <CardHeader right={<a href="/hud?tab=ops" className="no-underline hover:underline">전체 →</a>}>
-            생존자 포트폴리오 (무상관 조합)
-          </CardHeader>
+        <ApPanel>
+          <ApPanelHead title="생존자 포트폴리오 (무상관 조합)" right={<a href="/hud?tab=ops" className="no-underline hover:underline">전체 →</a>} />
           <div className="p-4">
             <div className="flex flex-wrap gap-2 mb-2">
               {book.sleeves.map(s => (
@@ -225,12 +223,12 @@ export default function ExecutionTab() {
               <Kv k="등가중 MDD" v={pct(book.combined.equal_weight.mdd, 0)} tone="neg" />
             </div>
           </div>
-        </Card>
+        </ApPanel>
       )}
 
       {/* 실전 준비 제약 */}
-      <Card>
-        <CardHeader>실전 준비 제약 (동결)</CardHeader>
+      <ApPanel>
+        <ApPanelHead title="실전 준비 제약 (동결)" />
         <div className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Kv k="월 수용력(소자본)" v={`${lr.monthly_capacity_eok}억`} />
@@ -239,7 +237,7 @@ export default function ExecutionTab() {
           </div>
           <div className="mt-2 text-[11px] text-ap-ink-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
         </div>
-      </Card>
+      </ApPanel>
 
     </div>
   );

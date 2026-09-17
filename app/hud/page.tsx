@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type CollectorKey } from "@/lib/api";
 import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { ApPanel, ApPanelHead } from "@/components/ui/ApPrimitives";
 import { SegmentedToggle } from "@/components/ui/SegmentedToggle";
 import { FreshnessBar } from "@/components/ui/FreshnessBar";
 import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
@@ -239,8 +239,8 @@ function HomeTab() {
   return (
     <div className="min-h-screen p-1 sm:p-1.5 font-data">
       {/* 시스템개요 — 시스템상태+정합성감시 병합, 시계는 우측에 얹어 한 줄 절약 */}
-      <Card className="mb-1">
-        <CardHeader right={<WorldClock now={now} />}>시스템개요</CardHeader>
+      <ApPanel className="mb-1">
+        <ApPanelHead title="시스템개요" right={<WorldClock now={now} />} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 border-b border-ap-line">
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
@@ -276,13 +276,11 @@ function HomeTab() {
             ))}
           </div>
         )}
-      </Card>
+      </ApPanel>
 
       {/* 판단 필요 — 사람 결정 걸리는 것만. 0건이면 한 줄로 접힘 */}
-      <Card className="mb-1">
-        <CardHeader right={<span className="tabular-nums">{attentionItems.length}건</span>}>
-          판단 필요
-        </CardHeader>
+      <ApPanel className="mb-1">
+        <ApPanelHead title="판단 필요" right={<span className="tabular-nums">{attentionItems.length}건</span>} />
         {attentionItems.length === 0 ? (
           <div className="px-2 py-1.5">
             <StatusDot tone="pos" label="판단 대기 항목 없음" />
@@ -298,17 +296,15 @@ function HomeTab() {
             ))}
           </div>
         )}
-      </Card>
+      </ApPanel>
 
       {/* 인프라상태 — 전략(AI·봇)과 데이터 수집기 통합. 고장 의미가 달라서 절 구분은 유지 */}
-      <Card className="mb-1">
-        <CardHeader right={
+      <ApPanel className="mb-1">
+        <ApPanelHead title="인프라상태" right={
           <span className="tabular-nums">
             {nRunning}/{units.length} 가동 · 수집 {collectorUnits.length > 0 ? `${nHealthy}/${collectorUnits.length}` : "…"}
           </span>
-        }>
-          인프라상태
-        </CardHeader>
+        } />
         <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3">전략</div>
         <div className="grid grid-cols-1 sm:grid-cols-2">
           {units.map((u, i) => (
@@ -324,17 +320,15 @@ function HomeTab() {
           </span>
           <span className="ml-auto text-[11px] text-ap-ink-3">설정에서 확인 →</span>
         </Link>
-      </Card>
+      </ApPanel>
 
       {/* 계좌 + 돈길 핵심 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 items-start">
         {bal ? <Balances bal={bal} /> : (
           <div className="bg-ap-surface border border-ap-line p-2 text-ap-ink-3 text-[11px]">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
         )}
-        <Card>
-          <CardHeader right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>}>
-            돈길
-          </CardHeader>
+        <ApPanel>
+          <ApPanelHead title="돈길" right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>} />
           {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
           <div className="flex pt-1">
             <LadderStep label="1 엣지" value={edgeLabel}
@@ -348,20 +342,18 @@ function HomeTab() {
               state={jarvis?.live_execution === "disabled" ? "blocked"
                 : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
           </div>
-        </Card>
+        </ApPanel>
       </div>
 
       {/* 최근활동 — 알림/LAB 로그/페이퍼 체결을 토글 1카드로 통합 */}
-      <Card className="mt-1">
-        <CardHeader right={
+      <ApPanel className="mt-1">
+        <ApPanelHead title="최근활동" right={
           <span className="tabular-nums">
             {activityView === "alerts" ? `${alerts?.length ?? 0}건`
               : activityView === "log" ? `${lab?.log?.length ?? 0}줄`
               : `${exec?.paper?.recent_closed?.length ?? 0}건`}
           </span>
-        }>
-          최근활동
-        </CardHeader>
+        } />
         <div className="px-2 pt-2">
           <SegmentedToggle
             size="sm"
@@ -424,7 +416,7 @@ function HomeTab() {
             </>
           )}
         </div>
-      </Card>
+      </ApPanel>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getRiskStatus, setKillSwitch, type RiskStatus } from "@/lib/api";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { ApPanel, ApPanelHead } from "@/components/ui/ApPrimitives";
 import { EmptyState, LoadingState, Bar } from "@/components/ui";
 
 const won = (n: number) => `₩${n.toLocaleString()}`;
@@ -73,7 +73,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
           <EmptyState message="데이터 없음" textClass="text-ap-ink-3" />
         ) : (
           <div className="space-y-4">
-            <Card className={killed ? "border-ap-down/40" : ""}>
+            <ApPanel className={killed ? "border-ap-down/40" : ""}>
               <div className="flex items-center justify-between gap-4 p-4">
                 <div className="flex items-start gap-3">
                   <span className={`mt-1 h-1.5 w-1.5 rounded-full shrink-0 ${killed ? "bg-ap-down animate-pulse" : "bg-ap-up"}`} />
@@ -93,16 +93,14 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                   {killed ? "해제" : "긴급 정지"}
                 </button>
               </div>
-            </Card>
+            </ApPanel>
 
-            <Card>
-              <CardHeader right={
+            <ApPanel>
+              <ApPanelHead title="최대 낙폭 (고점 대비)" right={
                 <span className={data.drawdown_breached ? "text-ap-down" : dd != null && dd < 0 ? "text-ap-caution" : "text-ap-ink-2"}>
                   {dd != null ? `${dd}%` : "—"} / 한도 -{limit}%
                 </span>
-              }>
-                최대 낙폭 (고점 대비)
-              </CardHeader>
+              } />
               <div className="p-4">
                 <Bar
                   ratio={ddFrac}
@@ -116,10 +114,10 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                   </p>
                 )}
               </div>
-            </Card>
+            </ApPanel>
 
-            <Card>
-              <CardHeader>주문 한도 (서버 강제)</CardHeader>
+            <ApPanel>
+              <ApPanelHead title="주문 한도 (서버 강제)" />
               <div className="p-4">
                 <KVRow k="1회 주문 최대 수량" v={data.limits.max_order_qty.toLocaleString()} />
                 <KVRow k="1회 주문 최대 금액" v={won(data.limits.max_order_notional)} />
@@ -127,7 +125,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                 <KVRow k="일일 손실 한도" v={won(data.limits.daily_loss_limit)} />
                 <div className="pt-2 mt-1 text-[11px] text-ap-ink-3">※ 한도는 .env(MAX_ORDER_*, DAILY_LOSS_LIMIT, MAX_DRAWDOWN_PCT)에서 조정.</div>
               </div>
-            </Card>
+            </ApPanel>
           </div>
         )}
       </div>

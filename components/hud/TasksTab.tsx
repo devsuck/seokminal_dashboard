@@ -6,7 +6,7 @@ import {
   type LabTask, type LabTaskMonthly, type PortfolioBook, type BookMonthly, type V2Shadow, type V2Seg,
   type BuybackBot,
 } from "@/lib/api";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { ApPanel, ApPanelHead } from "@/components/ui/ApPrimitives";
 
 // 막대 폭: style={{}} 금지 → 리터럴 Tailwind 폭 클래스(10% 스텝)
 const WIDTHS = ["w-[0%]", "w-[10%]", "w-[20%]", "w-[30%]", "w-[40%]", "w-[50%]",
@@ -88,8 +88,8 @@ export default function TasksTab() {
 
 function BuybackBotCard({ bot }: { bot: BuybackBot }) {
   return (
-    <Card>
-      <CardHeader right={
+    <ApPanel>
+      <ApPanelHead title="Buyback 봇 · 페이퍼 실행" right={
         <span className="flex items-center gap-2">
           <span className="relative flex h-2 w-2 text-ap-up">
             <span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-70 animate-ping" />
@@ -98,9 +98,7 @@ function BuybackBotCard({ bot }: { bot: BuybackBot }) {
           <span className="px-1.5 py-0.5 rounded border border-ap-up/40 text-ap-up bg-ap-up/10">검증된 v1 엣지</span>
           <span>live: {bot.live}</span>
         </span>
-      }>
-        Buyback 봇 · 페이퍼 실행
-      </CardHeader>
+      } />
       <div className="p-4 space-y-3">
         <div className="text-[11px] text-ap-ink-3">
           {bot.version} · 진입 {bot.config.entry} · {bot.config.hold_days}일 보유 · {bot.config.cost_bps}bps
@@ -145,22 +143,20 @@ function BuybackBotCard({ bot }: { bot: BuybackBot }) {
            검증된 엣지만 실행(노이즈 매매 아님) · 실주문 없음 · paper→live는 사람 게이트
         </div>
       </div>
-    </Card>
+    </ApPanel>
   );
 }
 
 function V2ShadowCard({ v2 }: { v2: V2Shadow }) {
   const hasForward = v2.forward.n_v2 > 0;
   return (
-    <Card>
-      <CardHeader right={
+    <ApPanel>
+      <ApPanelHead title="buyback v2 · 레짐 필터" right={
         <span className="flex items-center gap-2">
           <span className="px-1.5 py-0.5 rounded border border-ap-note/40 text-ap-note bg-ap-note/10">SHADOW (v1 동결)</span>
           <span className="font-data">등록 {v2.frozen_date}</span>
         </span>
-      }>
-        buyback v2 · 레짐 필터
-      </CardHeader>
+      } />
       <div className="p-4 space-y-3">
         <p className="text-[11px] text-ap-ink-3">{v2.rule}</p>
 
@@ -174,7 +170,7 @@ function V2ShadowCard({ v2 }: { v2: V2Shadow }) {
           {!hasForward && " — forward 쌓이는 중, 아직 승격 근거 없음."}
         </div>
       </div>
-    </Card>
+    </ApPanel>
   );
 }
 
@@ -214,15 +210,13 @@ function PortfolioBookCard({ book }: { book: PortfolioBook }) {
   const finalCum = monthly.length ? monthly[monthly.length - 1].cum : null;
   const bestIndivMdd = Math.min(...book.sleeves.map(s => s.mdd));
   return (
-    <Card>
-      <CardHeader right={
+    <ApPanel>
+      <ApPanelHead title="멀티엣지 포트폴리오 북" right={
         <span className="flex items-center gap-2">
           <span className="px-1.5 py-0.5 rounded border border-ap-brand/40 text-ap-brand bg-ap-brand/10">A · 실제 굴릴 책</span>
           <span className="font-data">{book.range ?? ""}</span>
         </span>
-      }>
-        멀티엣지 포트폴리오 북
-      </CardHeader>
+      } />
       <div className="p-4 space-y-3">
         {/* 슬리브 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -290,7 +284,7 @@ function PortfolioBookCard({ book }: { book: PortfolioBook }) {
 
         <div className="text-[11px] text-ap-ink-3 border-t border-ap-line pt-2">{book.note}</div>
       </div>
-    </Card>
+    </ApPanel>
   );
 }
 
@@ -335,15 +329,13 @@ function TaskCard({ task }: { task: LabTask }) {
   const maxMag = Math.max(0.001, ...recent.map(m => Math.abs(m.return ?? 0)));
 
   return (
-    <Card>
-      <CardHeader right={
+    <ApPanel>
+      <ApPanelHead title={task.strategy_id} right={
         <span className="flex items-center gap-2">
           <span className={`px-1.5 py-0.5 rounded border ${statusStyle(task.status)}`}>{task.status}</span>
           <span className="font-data">{task.runner ? task.runner.split(":")[0].split(".").pop() : "미배포"}</span>
         </span>
-      }>
-        {task.strategy_id}
-      </CardHeader>
+      } />
       <div className="p-4 space-y-3">
         {!fw && <div className="text-xs text-ap-ink-3">배포 전 — forward 러너 미연결.</div>}
         {fw?.error && <div className="text-xs text-ap-caution">{fw.error}</div>}
@@ -383,7 +375,7 @@ function TaskCard({ task }: { task: LabTask }) {
           </>
         )}
       </div>
-    </Card>
+    </ApPanel>
   );
 }
 
