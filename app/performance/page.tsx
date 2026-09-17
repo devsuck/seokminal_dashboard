@@ -17,9 +17,10 @@ function Metric({ label, value, cls }: { label: string; value: string; cls?: str
   );
 }
 
-function pnlCls(v: number | null | undefined) {
-  if (v == null) return "text-ap-ink-1";
-  return v > 0 ? "text-ap-up" : v < 0 ? "text-ap-down" : "text-ap-ink-2";
+// onDark: use on ApHeroCard's dark chip background instead of the default light-surface tokens
+function pnlCls(v: number | null | undefined, onDark = false) {
+  if (v == null) return onDark ? "text-white" : "text-ap-ink-1";
+  return v > 0 ? "text-ap-up" : v < 0 ? "text-ap-down" : onDark ? "text-white/60" : "text-ap-ink-2";
 }
 
 // 의존성 없는 SVG 라인차트 (전략 vs 벤치마크)
@@ -101,7 +102,7 @@ export default function PerformancePage() {
             <ApHeroCard
               label="수익률"
               value={`${data.return_pct > 0 ? "+" : ""}${data.return_pct}%`}
-              valueCls={pnlCls(data.return_pct)}
+              valueCls={pnlCls(data.return_pct, true)}
             />
             <div className="grid grid-cols-3 gap-2">
               <Metric label="최대낙폭 (MDD)" value={`${data.mdd_pct}%`} cls="text-ap-down" />

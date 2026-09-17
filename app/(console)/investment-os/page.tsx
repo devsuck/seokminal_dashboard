@@ -1249,7 +1249,7 @@ function InvestmentOsInner() {
                   <ApHeroCard
                     label="집행 상태"
                     value={agents.data ? (liveOn ? "라이브 집행 중" : "집행 대기") : "—"}
-                    valueCls={liveOn ? "text-ap-up" : "text-ap-ink-2"}
+                    valueCls={liveOn ? "text-ap-up" : "text-white/60"}
                     sub={`게이트 ${data.gates.passed ? "통과" : "차단"} · 컴플라이언스 ${data.compliance.compliant ? "통과" : "실패"}`}
                   />
 

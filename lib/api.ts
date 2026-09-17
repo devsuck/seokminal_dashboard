@@ -183,6 +183,9 @@ export async function getFxRate(signal?: AbortSignal): Promise<FxRate> {
   const raw = await handleResponse<{ rates: { KRW: number } }>(
     await fetch("https://open.er-api.com/v6/latest/USD", { signal })
   );
+  if (!Number.isFinite(raw.rates.KRW)) {
+    throw new Error("getFxRate: invalid rate in response");
+  }
   const rate: FxRate = { usdkrw: raw.rates.KRW, fetched_at: new Date().toISOString() };
   fxCache = { rate, at: Date.now() };
   return rate;

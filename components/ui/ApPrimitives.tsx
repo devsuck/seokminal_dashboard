@@ -234,7 +234,7 @@ export function ApHeroCard({
     <div className="bg-ap-surface rounded-ap-lg shadow-ap-sm overflow-hidden">
       <div className="bg-ap-ink-1 px-4 py-4">
         <div className="text-[11px] uppercase tracking-wide text-white/50">{label}</div>
-        <div className={`text-2xl font-bold font-data mt-1 text-white ${valueCls ?? ""}`}>{value}</div>
+        <div className={`text-2xl font-bold font-data mt-1 ${valueCls ?? "text-white"}`}>{value}</div>
         {sub && <div className="text-xs text-white/50 mt-0.5">{sub}</div>}
       </div>
       {rows && rows.length > 0 && (

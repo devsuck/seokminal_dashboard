@@ -127,7 +127,7 @@ export default function HudSummaryPage() {
           <ApHeroCard
             label="SEOKMINAL"
             value={`실거래 ${liveLabel}`}
-            valueCls={liveOn ? "text-ap-up" : "text-ap-ink-2"}
+            valueCls={liveOn ? "text-ap-up" : "text-white/60"}
             rows={[
               { label: "상태", value: busy ? "처리 중" : active ? "가동 중" : "대기", cls: busy ? "text-ap-brand" : active ? "text-ap-up" : "text-ap-ink-2" },
               { label: "정합성", value: health ? (health.ok ? "이상없음" : `오류 ${health.n_errors}`) : "로딩 중", cls: (health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3" },

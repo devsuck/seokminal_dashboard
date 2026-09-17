@@ -7,6 +7,7 @@ const AP_PILL_INACTIVE = "text-ap-ink-3";
 export interface SegmentedOption<T extends string | boolean> {
   value: T;
   label: string;
+  /** CSS classes applied to the active/selected option */
   activeClass?: string;
 }
 
@@ -15,6 +16,7 @@ interface SegmentedToggleProps<T extends string | boolean> {
   value: T;
   onChange: (value: T) => void;
   size?: "sm" | "md";
+  /** CSS classes applied to inactive/unselected options */
   inactiveClass?: string;
   variant?: "default" | "ap-pill";
 }
