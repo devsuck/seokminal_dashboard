@@ -7,12 +7,10 @@ import {
   type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding, type FxRate,
 } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
-import { BarChart, type BarItem } from "@/components/charts/BarChart";
-import { TOKEN } from "@/lib/chart-colors";
+import { ApHeroCard } from "@/components/ui/ApPrimitives";
 
-/* 자산군 3타일 요약(국내주식/해외주식/코인) — 에이전트 전부 미가동 상태라
-   에이전트 중심 뷰(listAgents) 대신 실제 보유자산 기준으로 재작성. 상세 종목 리스트는
-   여기 안 넣음(그건 /portfolio가 이미 함) — 타일은 합계·수익률만. */
+/* 자산군 요약(국내주식/해외주식/코인) — 상세 종목 리스트는 /portfolio가 담당.
+   여기는 ApHeroCard 하나(총액+자산군별 비중)와 링크로 축소. */
 
 function fmt(v: number | null, ccy: string): string {
   if (v == null) return "—";
@@ -32,45 +30,6 @@ function weightedReturnPct(parts: WeightedPart[]): number | null {
 
 function pctLabel(p: number | null): string {
   return p == null ? "—" : `${p >= 0 ? "+" : ""}${p.toFixed(1)}%`;
-}
-
-// KRW/USD/USDC 잔고를 USD로 환산해 비중(%) 바 1개로 통합 — 통화 합산 불가 문제 해결.
-// usdkrw==null(FX 미조회)이면 빈 배열 반환 → 호출부가 기존 수익률 바로 폴백.
-export function computeAssetWeightBars(
-  krwTotal: number | null, usdValue: number, usdcTotal: number | null, usdkrw: number | null,
-): BarItem[] {
-  if (usdkrw == null) return [];
-  const krwAsUsd = (krwTotal ?? 0) / usdkrw;
-  const usdcAsUsd = usdcTotal ?? 0;
-  const usdEquiv = krwAsUsd + usdValue + usdcAsUsd;
-  if (usdEquiv <= 0) return [];
-  return [
-    { label: "국내주식", value: (krwAsUsd / usdEquiv) * 100, href: "/portfolio", color: TOKEN.accent },
-    { label: "해외주식", value: (usdValue / usdEquiv) * 100, href: "/portfolio", color: TOKEN.accent },
-    { label: "코인", value: (usdcAsUsd / usdEquiv) * 100, href: "/portfolio", color: TOKEN.accent },
-  ].filter((b) => b.value > 0);
-}
-
-interface AssetTileData {
-  label: string;
-  value: number | null;
-  ccy: string;
-  returnPct: number | null;
-  href: string;
-}
-
-function AssetTile({ data }: { data: AssetTileData }) {
-  const pos = data.returnPct != null && data.returnPct >= 0;
-  return (
-    <Link href={data.href}
-      className="block min-w-0 bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4 no-underline hover:border-ap-ink-3 transition-colors">
-      <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide">{data.label}</p>
-      <p className="text-ap-ink-1 text-xl font-mono font-bold mt-1 truncate">{fmt(data.value, data.ccy)}</p>
-      <p className={`text-xs font-mono mt-1 ${data.returnPct == null ? "text-ap-ink-3" : pos ? "text-ap-up" : "text-ap-down"}`}>
-        {pctLabel(data.returnPct)}
-      </p>
-    </Link>
-  );
 }
 
 export default function PortfolioTab() {
@@ -160,36 +119,39 @@ export default function PortfolioTab() {
     })),
   );
 
-  const tiles: AssetTileData[] = [
-    { label: "국내주식", value: krwTotal, ccy: "KRW", returnPct: krwReturn, href: "/portfolio" },
-    { label: "해외주식", value: usdValue, ccy: "USD", returnPct: usdReturn, href: "/portfolio" },
-    { label: "코인", value: usdcTotal, ccy: "USDC", returnPct: hlReturn, href: "/portfolio" },
+  const tiles = [
+    { label: "국내주식", value: krwTotal, ccy: "KRW", returnPct: krwReturn },
+    { label: "해외주식", value: usdValue, ccy: "USD", returnPct: usdReturn },
+    { label: "코인", value: usdcTotal, ccy: "USDC", returnPct: hlReturn },
   ];
 
-  // 통화 단위 다른 잔고(KRW/USD/USDC) — FX 조회 성공 시 통합 비중 바, 실패/로딩 중엔 기존 수익률 바 폴백
-  const weightBars = computeAssetWeightBars(krwTotal, usdValue, usdcTotal, fx?.usdkrw ?? null);
-  const returnBars: BarItem[] = tiles
-    .filter(t => t.returnPct != null)
-    .map(t => ({ label: t.label, value: t.returnPct as number, href: t.href }));
-  const showWeightBars = !fxError && weightBars.length > 0;
+  // KRW/USD/USDC 잔고를 USD로 환산한 총액 — 히어로 카드 상단 값
+  const usdkrw = fx?.usdkrw ?? null;
+  const totalUsdEquiv = usdkrw != null
+    ? (krwTotal ?? 0) / usdkrw + usdValue + (usdcTotal ?? 0)
+    : null;
+  const heroValue = totalUsdEquiv != null
+    ? `$${totalUsdEquiv.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+    : "—";
+  const heroRows = tiles.map(t => ({
+    label: t.label,
+    value: `${fmt(t.value, t.ccy)} ${pctLabel(t.returnPct)}`,
+    cls: t.returnPct == null ? undefined : t.returnPct >= 0 ? "text-ap-up" : "text-ap-down",
+  }));
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-3">
       <h1 className="text-xl font-semibold text-ap-ink-1 tracking-wide">총 포트폴리오</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {tiles.map(t => <AssetTile key={t.label} data={t} />)}
-      </div>
-      {showWeightBars ? (
-        <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
-          <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide mb-2">자산 비중</p>
-          <BarChart items={weightBars} valueFmt={(v) => `${v.toFixed(0)}%`} />
-        </div>
-      ) : returnBars.length > 0 && (
-        <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
-          <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide mb-2">자산군별 수익률</p>
-          <BarChart items={returnBars} valueFmt={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`} />
-        </div>
-      )}
+      <ApHeroCard
+        label="USD 환산 총액"
+        value={heroValue}
+        sub={fxError ? "환율 조회 실패 — 자산군별 개별 표시" : undefined}
+        rows={heroRows}
+      />
+      <Link href="/portfolio"
+        className="block text-center text-[13px] text-ap-ink-3 hover:text-ap-ink-1 no-underline py-1">
+        포트폴리오 상세 보기 →
+      </Link>
     </div>
   );
 }
