@@ -24,7 +24,7 @@ interface WeightedPart { weight: number; pct: number }
 /** 포지션별 return%/P&L%를 포지션 가치로 가중평균 — 계좌 레벨 return% 필드가 없는 벤더 대응 */
 function weightedReturnPct(parts: WeightedPart[]): number | null {
   const totalWeight = parts.reduce((s, p) => s + p.weight, 0);
-  if (totalWeight <= 0) return null;
+  if (!(totalWeight > 0)) return null;
   return parts.reduce((s, p) => s + p.pct * p.weight, 0) / totalWeight;
 }
 
@@ -127,12 +127,13 @@ export default function PortfolioTab() {
 
   // KRW/USD/USDC 잔고를 USD로 환산한 총액 — 히어로 카드 상단 값
   const usdkrw = fx?.usdkrw ?? null;
-  const totalUsdEquiv = usdkrw != null
+  const totalUsdEquiv = usdkrw != null && usdkrw > 0
     ? (krwTotal ?? 0) / usdkrw + usdValue + (usdcTotal ?? 0)
     : null;
   const heroValue = totalUsdEquiv != null
     ? `$${totalUsdEquiv.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
     : "—";
+  const missingClass = tiles.some(t => t.value == null);
   const heroRows = tiles.map(t => ({
     label: t.label,
     value: `${fmt(t.value, t.ccy)} ${pctLabel(t.returnPct)}`,
@@ -145,7 +146,7 @@ export default function PortfolioTab() {
       <ApHeroCard
         label="USD 환산 총액"
         value={heroValue}
-        sub={fxError ? "환율 조회 실패 — 자산군별 개별 표시" : undefined}
+        sub={missingClass ? "일부 자산군 조회 실패 — 총액 과소 표시" : fxError ? "환율 조회 실패 — 자산군별 개별 표시" : undefined}
         rows={heroRows}
       />
       <Link href="/portfolio"

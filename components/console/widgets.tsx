@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { ApPanel, ApDot } from "@/components/ui/ApPrimitives";
+import { ApDot } from "@/components/ui/ApPrimitives";
 import type { AgentNode } from "@/lib/console-api";
 
 // ── manually-triggered fetch hook (검색창 등 사용자 입력으로 재실행, in-flight 요청 취소) ──

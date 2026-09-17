@@ -147,7 +147,7 @@ function ValidationTab() {
               </ApPanel>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 2. Validation ApPanel */}
+                {/* 2. Validation Panel */}
                 <ApPanel>
                   <ApPanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
                     right={vp && <ApBadge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</ApBadge>} />
@@ -176,7 +176,7 @@ function ValidationTab() {
                   </div>
                 </ApPanel>
 
-                {/* 3. Quality ApPanel */}
+                {/* 3. Quality Panel */}
                 <ApPanel>
                   <ApPanelHead kicker="3 · 품질" title="리서치 품질"
                     right={qp && <ApBadge tone={qp.grade === "A" || qp.grade === "B" ? "pos" : "warn"}>등급 {qp.grade}</ApBadge>} />
@@ -285,7 +285,7 @@ function ValidationTab() {
                 </div>
               </ApPanel>
 
-              {/* 2. Validation ApPanel */}
+              {/* 2. Validation Panel */}
               <ApPanel>
                 <ApPanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
                   right={vp && <ApBadge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</ApBadge>} />
@@ -314,7 +314,7 @@ function ValidationTab() {
                 </div>
               </ApPanel>
 
-              {/* 3. Quality ApPanel */}
+              {/* 3. Quality Panel */}
               <ApPanel>
                 <ApPanelHead kicker="3 · 품질" title="리서치 품질"
                   right={qp && <ApBadge tone={qp.grade === "A" || qp.grade === "B" ? "pos" : "warn"}>등급 {qp.grade}</ApBadge>} />
