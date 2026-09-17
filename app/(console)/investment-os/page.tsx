@@ -1268,7 +1268,7 @@ function InvestmentOsInner() {
                     <ApPanelHead kicker="agents + council" title="협의회" />
                     <div className="p-4">
                       {agents.loading && <ApSkeletonLines rows={3} />}
-                      {agents.data && <AgentTree node={agents.data.council} />}
+                      {agents.data && <AgentTree node={agents.data.council} tone="ap" />}
                     </div>
                   </ApPanel>
 
