@@ -171,6 +171,23 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export interface FxRate { usdkrw: number; fetched_at: string; }
+
+let fxCache: { rate: FxRate; at: number } | null = null;
+const FX_TTL_MS = 24 * 60 * 60 * 1000;
+
+// 서드파티 FX API(open.er-api.com) 직접 호출 — 사내 API_URL 베이스가 아니므로
+// "raw fetch 금지" 규칙의 유일한 예외. USDC는 1:1 USD 고정이라 환율 조회 불필요.
+export async function getFxRate(signal?: AbortSignal): Promise<FxRate> {
+  if (fxCache && Date.now() - fxCache.at < FX_TTL_MS) return fxCache.rate;
+  const raw = await handleResponse<{ rates: { KRW: number } }>(
+    await fetch("https://open.er-api.com/v6/latest/USD", { signal })
+  );
+  const rate: FxRate = { usdkrw: raw.rates.KRW, fetched_at: new Date().toISOString() };
+  fxCache = { rate, at: Date.now() };
+  return rate;
+}
+
 export async function getBars(
   instrumentId: string,
   start: string,
