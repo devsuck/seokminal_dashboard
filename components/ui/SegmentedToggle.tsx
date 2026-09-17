@@ -1,10 +1,12 @@
 const DEFAULT_ACTIVE_CLASS = "border-accent text-accent bg-accent/10";
 const INACTIVE_CLASS = "border-border text-text-3 hover:text-text-2";
+const AP_PILL_WRAP = "flex gap-1 p-1 bg-ap-bg rounded-full border border-ap-line";
+const AP_PILL_ACTIVE = "bg-ap-ink-1 text-white";
+const AP_PILL_INACTIVE = "text-ap-ink-3";
 
 export interface SegmentedOption<T extends string | boolean> {
   value: T;
   label: string;
-  /** Overrides DEFAULT_ACTIVE_CLASS when this option is selected (e.g. buy/sell coloring). */
   activeClass?: string;
 }
 
@@ -13,8 +15,8 @@ interface SegmentedToggleProps<T extends string | boolean> {
   value: T;
   onChange: (value: T) => void;
   size?: "sm" | "md";
-  /** Overrides INACTIVE_CLASS for every option (e.g. light-surface token set). */
   inactiveClass?: string;
+  variant?: "default" | "ap-pill";
 }
 
 const SIZE_CLASS = {
@@ -22,7 +24,27 @@ const SIZE_CLASS = {
   md: "text-sm py-1.5",
 };
 
-export function SegmentedToggle<T extends string | boolean>({ options, value, onChange, size = "md", inactiveClass }: SegmentedToggleProps<T>) {
+export function SegmentedToggle<T extends string | boolean>({
+  options, value, onChange, size = "md", inactiveClass, variant = "default",
+}: SegmentedToggleProps<T>) {
+  if (variant === "ap-pill") {
+    return (
+      <div className={AP_PILL_WRAP}>
+        {options.map(opt => {
+          const active = opt.value === value;
+          return (
+            <button
+              key={String(opt.value)}
+              onClick={() => onChange(opt.value)}
+              className={`flex-1 rounded-full font-medium font-data ${SIZE_CLASS[size]} ${active ? AP_PILL_ACTIVE : AP_PILL_INACTIVE}`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="flex gap-2">
       {options.map(opt => {
