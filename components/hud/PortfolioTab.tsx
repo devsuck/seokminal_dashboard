@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings,
-  type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding,
+  getAccountBalances, getAlpacaPositions, getAlpacaAccount, getPaperState, getHLPositions, getKisHoldings, getFxRate,
+  type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding, type FxRate,
 } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
 import { BarChart, type BarItem } from "@/components/charts/BarChart";
+import { TOKEN } from "@/lib/chart-colors";
 
 /* 자산군 3타일 요약(국내주식/해외주식/코인) — 에이전트 전부 미가동 상태라
    에이전트 중심 뷰(listAgents) 대신 실제 보유자산 기준으로 재작성. 상세 종목 리스트는
@@ -31,6 +32,23 @@ function weightedReturnPct(parts: WeightedPart[]): number | null {
 
 function pctLabel(p: number | null): string {
   return p == null ? "—" : `${p >= 0 ? "+" : ""}${p.toFixed(1)}%`;
+}
+
+// KRW/USD/USDC 잔고를 USD로 환산해 비중(%) 바 1개로 통합 — 통화 합산 불가 문제 해결.
+// usdkrw==null(FX 미조회)이면 빈 배열 반환 → 호출부가 기존 수익률 바로 폴백.
+export function computeAssetWeightBars(
+  krwTotal: number | null, usdValue: number, usdcTotal: number | null, usdkrw: number | null,
+): BarItem[] {
+  if (usdkrw == null) return [];
+  const krwAsUsd = (krwTotal ?? 0) / usdkrw;
+  const usdcAsUsd = usdcTotal ?? 0;
+  const usdEquiv = krwAsUsd + usdValue + usdcAsUsd;
+  if (usdEquiv <= 0) return [];
+  return [
+    { label: "국내주식", value: (krwAsUsd / usdEquiv) * 100, href: "/portfolio", color: TOKEN.accent },
+    { label: "해외주식", value: (usdValue / usdEquiv) * 100, href: "/portfolio", color: TOKEN.accent },
+    { label: "코인", value: (usdcAsUsd / usdEquiv) * 100, href: "/portfolio", color: TOKEN.accent },
+  ].filter((b) => b.value > 0);
 }
 
 interface AssetTileData {
@@ -63,6 +81,8 @@ export default function PortfolioTab() {
   const [paper, setPaper] = useState<PaperState | null>(null);
   const [hlPositions, setHlPositions] = useState<HLAssetPosition[]>([]);
   const [usdcTotal, setUsdcTotal] = useState<number | null>(null);
+  const [fx, setFx] = useState<FxRate | null>(null);
+  const [fxError, setFxError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -75,7 +95,8 @@ export default function PortfolioTab() {
       getKisHoldings(true),
       getKisHoldings(false),
       getAccountBalances(),
-    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes, kisMockRes, kisLiveRes, balRes]) => {
+      getFxRate(),
+    ]).then(([acctRes, posRes, paperRes, hlTestRes, hlMainRes, kisMockRes, kisLiveRes, balRes, fxRes]) => {
       if (acctRes.status === "fulfilled") setAlpacaAcct(acctRes.value);
       if (posRes.status === "fulfilled") setAlpacaPositions(posRes.value);
       if (paperRes.status === "fulfilled") setPaper(paperRes.value);
@@ -100,6 +121,9 @@ export default function PortfolioTab() {
         setUsdcTotal(usdcAccounts.every(a => a.balance == null) ? null
           : usdcAccounts.reduce((s, a) => s + (a.balance ?? 0), 0));
       }
+
+      if (fxRes.status === "fulfilled") { setFx(fxRes.value); setFxError(false); }
+      else setFxError(true);
 
       setLoading(false);
     });
@@ -142,10 +166,12 @@ export default function PortfolioTab() {
     { label: "코인", value: usdcTotal, ccy: "USDC", returnPct: hlReturn, href: "/portfolio" },
   ];
 
-  // 통화 단위 다른 잔고(KRW/USD/USDC)는 합산 불가 — 수익률(%)만 자산군 비교 차트로
+  // 통화 단위 다른 잔고(KRW/USD/USDC) — FX 조회 성공 시 통합 비중 바, 실패/로딩 중엔 기존 수익률 바 폴백
+  const weightBars = computeAssetWeightBars(krwTotal, usdValue, usdcTotal, fx?.usdkrw ?? null);
   const returnBars: BarItem[] = tiles
     .filter(t => t.returnPct != null)
     .map(t => ({ label: t.label, value: t.returnPct as number, href: t.href }));
+  const showWeightBars = !fxError && weightBars.length > 0;
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
@@ -153,7 +179,12 @@ export default function PortfolioTab() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {tiles.map(t => <AssetTile key={t.label} data={t} />)}
       </div>
-      {returnBars.length > 0 && (
+      {showWeightBars ? (
+        <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
+          <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide mb-2">자산 비중</p>
+          <BarChart items={weightBars} valueFmt={(v) => `${v.toFixed(0)}%`} />
+        </div>
+      ) : returnBars.length > 0 && (
         <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
           <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide mb-2">자산군별 수익률</p>
           <BarChart items={returnBars} valueFmt={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`} />

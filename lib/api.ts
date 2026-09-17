@@ -1123,14 +1123,14 @@ export async function getForexCarry(
   );
 }
 
-export interface FxRate {
+export interface ForexOverviewRate {
   rate: number | null;
   change_pct: number | null;
   change_5d: number | null;
 }
 
-export async function getForexOverview(signal?: AbortSignal): Promise<Record<string, FxRate>> {
-  return handleResponse<Record<string, FxRate>>(
+export async function getForexOverview(signal?: AbortSignal): Promise<Record<string, ForexOverviewRate>> {
+  return handleResponse<Record<string, ForexOverviewRate>>(
     await fetch(`${API_URL}/forex/overview`, { signal })
   );
 }
