@@ -1,3 +1,37 @@
+## Phase 269 — 폰(Tailscale) CSS 안 먹는 버그 수정 (2026-09-17) ✅ FIXED
+
+### 배경
+사용자 폰 스크린샷: `http://100.108.67.7:3000` 접속 시 CSS 완전 미적용
+(raw HTML, 카드/레이아웃/색 없음). localhost는 정상.
+
+### 원인
+`next-server` 프로세스 2개가 동시에 포트 3000 바인딩:
+- PID 88279 — 아침 5:26부터 떠있던 좀비. 이전 세션에서 `kill 88297 88306`
+  했던 건 wrapper/child 프로세스였고, 실제 `next-server` 본체(88279)는
+  안 죽었음.
+- PID 42785 — 이후 재시작으로 새로 뜬 정상 프로세스.
+
+IPv4(88279)/IPv6(42785)로 소켓이 갈라져 있었음. `100.108.67.7`(Tailscale,
+IPv4) 요청은 좀비 프로세스로 라우팅 → 디스크에 존재하지 않는 stale CSS
+청크 파일명 참조 → 500. `localhost`는 IPv6 우선 해석 → 정상 프로세스로
+가서 문제없이 보임. 그래서 재시작을 여러 번 해도 폰에서는 계속 깨져
+보였던 것 — `lsof -nP -iTCP:3000 -sTCP:LISTEN`으로 두 프로세스 동시 LISTEN
+확인 전까진 원인 특정 안 됐음.
+
+### 조치
+`kill -9 88279`. 포트 3000에 프로세스 1개(42785, `next dev --webpack`
+모드)만 남음. `curl`로 localhost/`100.108.67.7` 양쪽 CSS 청크
+(`/_next/static/css/app/layout.css`) 200 + 117570 bytes 동일 확인.
+
+### 남은 것
+지금 서버는 webpack 모드로 떠있음 (디버깅 중 `--turbopack` → `--webpack`
+전환). 프로젝트 기본은 turbopack(`package.json`의 `next dev --turbopack`).
+사용자 자는 동안 추가 재시작 리스크 피하려고 일부러 안 건드림 — 다음에
+`npm run dev`로 정상 재시작하면 turbopack으로 돌아감, 그때 폰에서도 한 번
+더 확인 권장.
+
+---
+
 ## Phase 268 — 페이지 정보 최소화 + investment-os 리스크탭 재설계 (2026-09-17) ✅ SHIPPED, PUSHED
 
 ### 배경
