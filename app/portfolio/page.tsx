@@ -529,7 +529,7 @@ function AccountsTab() {
       {compositionRows.length > 0 && (
         <ApPanel>
           <div className="px-4 py-3 border-b border-ap-line">
-            <span className="text-sm font-semibold text-ap-ink-1">거래소별 분포</span>
+            <span className="text-sm font-semibold text-ap-ink-1">계좌 내 거래소 비중</span>
           </div>
           <div className="divide-y divide-ap-line/60 p-1">
             {[...compositionRows].sort((a, b) => b.balance - a.balance).map(r => (
@@ -978,6 +978,7 @@ export default function PortfolioPage() {
             { value: "pnl", label: "손익" },
             { value: "optimizer", label: "최적화 도구" },
           ]}
+          variant="ap-pill"
         />
       </header>
 
