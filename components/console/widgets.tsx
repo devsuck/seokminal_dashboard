@@ -179,26 +179,42 @@ export function DataTable<T>({ cols, rows, keyFn, onRow }:
 }
 
 // ── AI Council org tree (재귀) ────────────────────────────────────
-export function AgentTree({ node, depth = 0 }: { node: AgentNode; depth?: number }) {
-  const tone = STATUS_MAP[node.status] ?? "mute";
-  const c = TONEHEX[tone];
+export function AgentTree({
+  node, depth = 0, tone = "console",
+}: { node: AgentNode; depth?: number; tone?: "console" | "ap" }) {
+  const statusTone = STATUS_MAP[node.status] ?? "mute";
+  const c = TONEHEX[statusTone];
   const isRoot = depth === 0;
+  const [expanded, setExpanded] = useState(depth <= 1);
+  const borderCls = tone === "ap" ? "border-ap-line" : "border-[var(--c-border)]";
+  const connectorCls = tone === "ap" ? "before:bg-ap-line" : "before:bg-[var(--c-border)]";
+  const roleCls = tone === "ap" ? "text-ap-brand" : "text-[var(--c-hud)]";
+  const nameCls = tone === "ap" ? "text-ap-ink-1" : "text-[var(--c-text-1)]";
+  const detailCls = tone === "ap" ? "text-ap-ink-3" : "text-[var(--c-text-3)]";
+  const toggleCls = tone === "ap" ? "text-ap-brand" : "text-[var(--c-hud)]";
+  const hasChildren = !!node.children && node.children.length > 0;
   return (
-    <div className={depth > 0 ? "pl-5 border-l border-[var(--c-border)] ml-3" : ""}>
-      <div className={`relative flex items-start gap-3 py-2 ${isRoot ? "" : "before:content-[''] before:absolute before:left-[-20px] before:top-[18px] before:w-4 before:h-px before:bg-[var(--c-border)]"}`}>
+    <div className={depth > 0 ? `pl-5 border-l ${borderCls} ml-3` : ""}>
+      <div className={`relative flex items-start gap-3 py-2 ${isRoot ? "" : `before:content-[''] before:absolute before:left-[-20px] before:top-[18px] before:w-4 before:h-px ${connectorCls}`}`}>
         <span className="mt-1.5 h-2 w-2 rounded-full shrink-0" style={{ background: c, boxShadow: `0 0 8px ${c}` }} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            {node.role && <span className="text-[9px] font-semibold tracking-[0.18em] text-[var(--c-hud)] uppercase">{node.role}</span>}
-            <span className={`${isRoot ? "text-[15px]" : "text-[13px]"} font-medium text-[var(--c-text-1)]`}>{node.name}</span>
+            {node.role && <span className={`text-[9px] font-semibold tracking-[0.18em] uppercase ${roleCls}`}>{node.role}</span>}
+            <span className={`${isRoot ? "text-[15px]" : "text-[13px]"} font-medium ${nameCls}`}>{node.name}</span>
             <StatusPill status={node.status} />
           </div>
-          {node.detail && <div className="text-[11px] c-num text-[var(--c-text-3)] mt-0.5">{node.detail}</div>}
+          {node.detail && <div className={`text-[11px] c-num mt-0.5 ${detailCls}`}>{node.detail}</div>}
+          {hasChildren && depth === 1 && !expanded && (
+            <button onClick={() => setExpanded(true)}
+              className={`mt-1 text-[11px] border-0 bg-transparent cursor-pointer ${toggleCls}`}>
+              하위 {node.children!.length}개 보기 ›
+            </button>
+          )}
         </div>
       </div>
-      {node.children && node.children.length > 0 && (
+      {hasChildren && expanded && (
         <div className="mt-0.5">
-          {node.children.map((ch) => <AgentTree key={ch.id} node={ch} depth={depth + 1} />)}
+          {node.children!.map((ch) => <AgentTree key={ch.id} node={ch} depth={depth + 1} tone={tone} />)}
         </div>
       )}
     </div>
