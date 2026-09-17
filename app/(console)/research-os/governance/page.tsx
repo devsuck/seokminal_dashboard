@@ -2,7 +2,6 @@
 import { Suspense, useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader, TabBar, useAbortableRun } from "@/components/console/widgets";
-import { Panel, PanelHead, Badge } from "@/components/console/primitives";
 import {
   getCouncilExpanded, type CouncilExpandedResp,
   getDecisionMemo, type DecisionMemoResp,
@@ -50,9 +49,9 @@ function CommitteeTab() {
   return (
     <>
       <div className="hidden md:block min-h-full">
-        <PageHeader kicker="P93" title="투자 위원회" right={memo?.confidence && <Badge tone={CONF[memo.confidence] ?? "mute"} title={memo.confidence}>신뢰도 {CONF_LABEL[memo.confidence] ?? memo.confidence}</Badge>} />
+        <PageHeader kicker="P93" title="투자 위원회" right={memo?.confidence && <ApBadge tone={CONF[memo.confidence] ?? "mute"} title={memo.confidence}>신뢰도 {CONF_LABEL[memo.confidence] ?? memo.confidence}</ApBadge>} />
         <div className="p-5 space-y-4">
-          <Panel hud className="p-5">
+          <ApPanel className="p-5">
             <div className="text-[13px] font-semibold text-[var(--c-text-1)]">어떤 논제를 심의할까요?</div>
             <div className="mt-1 text-[11px] text-[var(--c-text-3)] leading-relaxed">
               투자 논제를 입력하면 7관점 협의체가 찬반 근거를 조직하고 Decision Memo 패킷을 만듭니다. 위원회는 증거만 조직할 뿐, 최종 결정·집행은 사람이 합니다.
@@ -75,14 +74,14 @@ function CommitteeTab() {
                 </button>
               ))}
             </div>
-          </Panel>
+          </ApPanel>
           {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
           {council && memo && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* 7관점 */}
               <div className="lg:col-span-2 space-y-4">
-                <Panel>
-                  <PanelHead kicker="P90 · 7가지 관점" title="협의회" right={<Badge tone="hud">{council.recommendation?.split("—")[0]?.trim()}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="P90 · 7가지 관점" title="협의회" right={<ApBadge tone="hud">{council.recommendation?.split("—")[0]?.trim()}</ApBadge>} />
                   <div className="p-4 space-y-2">
                     {(council.lenses ?? []).map((ln, i) => (
                       <div key={i} className="flex items-start gap-3 py-1.5 border-b border-[var(--c-border)] last:border-0">
@@ -94,9 +93,9 @@ function CommitteeTab() {
                       </div>
                     ))}
                   </div>
-                </Panel>
-                <Panel>
-                  <PanelHead kicker="위원회 패킷" title={q} />
+                </ApPanel>
+                <ApPanel>
+                  <ApPanelHead kicker="위원회 패킷" title={q} />
                   <div className="p-4 space-y-3">
                     <div className="text-[13px] font-medium text-[var(--c-hud)]">{memo.recommendation}</div>
                     <div className="grid grid-cols-2 gap-3">
@@ -104,24 +103,24 @@ function CommitteeTab() {
                       <div><div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">반박 근거</div>{(memo.counter_arguments ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· <b>{a.lens}</b> {a.rationale}</div>)}{(memo.counter_arguments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}</div>
                     </div>
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
               {/* 리스크·미지·이력 */}
               <div className="space-y-4">
-                <Panel>
-                  <PanelHead kicker="리스크" title="분석" />
+                <ApPanel>
+                  <ApPanelHead kicker="리스크" title="분석" />
                   <div className="p-4 space-y-1">
                     <div className="text-[11px] text-[var(--c-text-1)]">{memo.risk_summary?.label}</div>
                     <div className="text-[11px] text-[var(--c-text-3)]">주요 리스크: {memo.risk_summary?.main_risk} · 신뢰도 {memo.risk_summary?.confidence}</div>
                   </div>
-                </Panel>
-                <Panel>
-                  <PanelHead kicker="공백" title="남은 미지수" />
+                </ApPanel>
+                <ApPanel>
+                  <ApPanelHead kicker="공백" title="남은 미지수" />
                   <div className="p-4 space-y-1">
                     {(memo.remaining_unknowns ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}
                     {(memo.remaining_unknowns ?? []).map((u, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {u}</div>)}
                   </div>
-                </Panel>
+                </ApPanel>
                 <div className="c-panel p-3 text-[11px] text-[var(--c-text-3)] leading-relaxed">
                   위원회는 증거를 조직합니다. 결정·이유·시각은 사람이 입력하고 기존 감사(rwf_runs)에 기록됩니다. 엔진은 승인/집행하지 않습니다.
                 </div>
@@ -260,7 +259,7 @@ function ExplainTab() {
     <>
       <div className="hidden md:block min-h-full">
       <PageHeader kicker="P71" title="설명 가능성"
-        right={data?.confidence && <Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>신뢰도 {CONF_LABEL[data.confidence] ?? data.confidence}</Badge>} />
+        right={data?.confidence && <ApBadge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>신뢰도 {CONF_LABEL[data.confidence] ?? data.confidence}</ApBadge>} />
       <div className="p-5">
         <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2 mb-4">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
@@ -276,8 +275,8 @@ function ExplainTab() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             {/* 증거 사슬 그래프 */}
             <div className="lg:col-span-2">
-              <Panel>
-                <PanelHead kicker="증거 사슬" title="질문 → 권고" />
+              <ApPanel>
+                <ApPanelHead kicker="증거 사슬" title="질문 → 권고" />
                 <div className="p-4">
                   {data.chain.map((n, i) => {
                     const active = i === sel;
@@ -299,14 +298,14 @@ function ExplainTab() {
                     );
                   })}
                 </div>
-              </Panel>
+              </ApPanel>
             </div>
 
             {/* 노드 상세 + 신뢰도 분해 + 반증 */}
             <div className="lg:col-span-3 space-y-4">
               {node && (
-                <Panel>
-                  <PanelHead kicker={`노드 ${sel + 1}/${data.chain.length}`} title={node.stage} />
+                <ApPanel>
+                  <ApPanelHead kicker={`노드 ${sel + 1}/${data.chain.length}`} title={node.stage} />
                   <div className="p-4 space-y-2">
                     <div className="text-[13px] text-[var(--c-text-1)]">{node.label}</div>
                     {(node.refs ?? []).length > 0 && (
@@ -316,13 +315,13 @@ function ExplainTab() {
                       </div>
                     )}
                   </div>
-                </Panel>
+                </ApPanel>
               )}
 
               {/* 신뢰도 분해 */}
-              <Panel>
-                <PanelHead kicker="신뢰도" title="분해"
-                  right={<Badge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>{CONF_LABEL[data.confidence ?? ""] ?? data.confidence}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="신뢰도" title="분해"
+                  right={<ApBadge tone={data.confidence === "HIGH" ? "pos" : data.confidence === "LOW" ? "warn" : "hud"} title={data.confidence}>{CONF_LABEL[data.confidence ?? ""] ?? data.confidence}</ApBadge>} />
                 <div className="p-4 space-y-1.5">
                   {Object.entries(data.confidence_breakdown ?? {}).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3 py-1 border-b border-[var(--c-border)] last:border-0">
@@ -331,33 +330,33 @@ function ExplainTab() {
                     </div>
                   ))}
                 </div>
-              </Panel>
+              </ApPanel>
 
               {/* 왜 이 결론 / 왜 틀릴 수 있나 / 대안 / 누락 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Panel>
-                  <PanelHead kicker="이유" title="이 결론인 이유" />
+                <ApPanel>
+                  <ApPanelHead kicker="이유" title="이 결론인 이유" />
                   <div className="p-4 text-[11px] text-[var(--c-text-2)] leading-relaxed">{data.why_this_conclusion}</div>
-                </Panel>
-                <Panel>
-                  <PanelHead kicker="이유" title="틀릴 수 있는 이유" />
+                </ApPanel>
+                <ApPanel>
+                  <ApPanelHead kicker="이유" title="틀릴 수 있는 이유" />
                   <div className="p-4 space-y-1">
                     {(data.why_it_may_be_wrong ?? []).map((w, i) => <div key={i} className="text-[11px] text-[var(--c-warn)]">· {w}</div>)}
                   </div>
-                </Panel>
-                <Panel>
-                  <PanelHead kicker="대안" title="대안적 관점" />
+                </ApPanel>
+                <ApPanel>
+                  <ApPanelHead kicker="대안" title="대안적 관점" />
                   <div className="p-4 space-y-1">
                     {(data.alternative_interpretations ?? []).map((a, i) => <div key={i} className="text-[11px] text-[var(--c-text-2)]">· {a}</div>)}
                   </div>
-                </Panel>
-                <Panel>
-                  <PanelHead kicker="공백" title="누락된 증거" />
+                </ApPanel>
+                <ApPanel>
+                  <ApPanelHead kicker="공백" title="누락된 증거" />
                   <div className="p-4 space-y-1">
                     {(data.missing_evidence ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">—</div>}
                     {(data.missing_evidence ?? []).map((m, i) => <div key={i} className="text-[11px] text-[var(--c-neg)]">· {m}</div>)}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
               <div className="text-[11px] text-[var(--c-text-3)]">증거 사슬 — 블랙박스 결정이 아니라 추적 가능한 근거. 최종 결정은 사람.</div>
             </div>
@@ -518,7 +517,7 @@ function GraphTab() {
     <>
       <div className="hidden md:block min-h-full">
         <PageHeader kicker="P79" title="지식 그래프"
-          right={data && <Badge tone="hud">{data.node_count} · {data.edge_count}</Badge>} />
+          right={data && <ApBadge tone="hud">{data.node_count} · {data.edge_count}</ApBadge>} />
         <div className="p-5 space-y-4">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
@@ -537,8 +536,8 @@ function GraphTab() {
                 ))}
                 <span className="text-[11px] text-[var(--c-text-3)] ml-2">엣지: {Object.entries(data.edge_kinds).map(([k, n]) => `${k}(${n})`).join(" · ")}</span>
               </div>
-              <Panel>
-                <PanelHead kicker="읽기 전용" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
+              <ApPanel>
+                <ApPanelHead kicker="읽기 전용" title="Experiment · Strategy · Failure · Lesson · Risk · Event" />
                 <div className="p-2 overflow-x-auto">
                   <svg width={PAD * 2 + W * COLW} height={height} className="min-w-full">
                     {data.edges.map((e, i) => {
@@ -559,7 +558,7 @@ function GraphTab() {
                     })}
                   </svg>
                 </div>
-              </Panel>
+              </ApPanel>
               <div className="text-[11px] text-[var(--c-text-3)]">{data.note} · 노드 클릭 → 연결 강조.</div>
             </>
           )}
@@ -642,7 +641,7 @@ function TimelineTab() {
     <>
       <div className="hidden md:block min-h-full">
         <PageHeader kicker="P78" title="리서치 타임라인"
-          right={data && <Badge tone="mute">이벤트 {data.count}건</Badge>} />
+          right={data && <ApBadge tone="mute">이벤트 {data.count}건</ApBadge>} />
         <div className="p-5 space-y-4">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
@@ -656,11 +655,11 @@ function TimelineTab() {
               {/* 스테이지 분포 */}
               <div className="flex flex-wrap gap-1.5">
                 {data.stage_order.filter((s) => data.by_stage[s]).map((s) => (
-                  <Badge key={s} tone="mute" title={s}>{STAGE_LABEL[s] ?? s} · {data.by_stage[s]}</Badge>
+                  <ApBadge key={s} tone="mute" title={s}>{STAGE_LABEL[s] ?? s} · {data.by_stage[s]}</ApBadge>
                 ))}
               </div>
-              <Panel>
-                <PanelHead kicker="재구성됨" title="아이디어 → … → 아카이브" />
+              <ApPanel>
+                <ApPanelHead kicker="재구성됨" title="아이디어 → … → 아카이브" />
                 <div className="p-4">
                   {data.count === 0 && !loading && <div className="text-[11px] text-[var(--c-text-3)] py-8 text-center">원장에서 재구성할 이벤트 없음 — 연구가 기록되면 타임라인이 채워집니다.</div>}
                   <div className="relative pl-4">
@@ -680,7 +679,7 @@ function TimelineTab() {
                     })}
                   </div>
                 </div>
-              </Panel>
+              </ApPanel>
               <div className="text-[11px] text-[var(--c-text-3)]">{data.note}</div>
             </>
           )}

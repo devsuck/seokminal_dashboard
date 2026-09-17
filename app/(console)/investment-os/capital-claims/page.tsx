@@ -9,7 +9,7 @@ import {
   getCapitalEnvelope, setCapitalEnvelope,
   type CapitalClaimQueueResp, type CapitalClaimHistoryResp, type CapitalEnvelope,
 } from "@/lib/console-api";
-import { Panel, PanelHead, Badge, SkeletonLines } from "@/components/console/primitives";
+import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines } from "@/components/ui/ApPrimitives";
 
 const inputCls =
   "bg-[var(--c-panel-2)] border border-[var(--c-border)] text-[11px] text-[var(--c-text-1)] " +
@@ -104,19 +104,19 @@ export default function CapitalClaimsPage() {
       {/* Safety banner — 미션 핵심 */}
       <div className="bg-[var(--c-panel-2)] p-3 flex flex-wrap items-center gap-2 text-[11px]">
         <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">보장 사항</span>
-        <Badge tone="mute">배정 장부만 — 브로커 자금이동/주문 없음</Badge>
-        <Badge tone="mute">LIVE 한도는 arm.py capital_limit 재사용(사람 이중게이트)</Badge>
-        <Badge tone="mute">엔벨로프 초과 청구는 사람 승인 전까지 자본 0</Badge>
+        <ApBadge tone="mute">배정 장부만 — 브로커 자금이동/주문 없음</ApBadge>
+        <ApBadge tone="mute">LIVE 한도는 arm.py capital_limit 재사용(사람 이중게이트)</ApBadge>
+        <ApBadge tone="mute">엔벨로프 초과 청구는 사람 승인 전까지 자본 0</ApBadge>
       </div>
 
       {!loading && err && <div className="text-[11px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
 
       {/* 엔벨로프 설정 */}
-      <Panel>
-        <PanelHead kicker="capital_envelope · 사람 전용" title="자율승인 엔벨로프"
-          right={env && <Badge tone="mute">풀 {env.pool_limit.toLocaleString()} · 기본 PAPER {env.default_paper_limit.toLocaleString()}</Badge>} />
+      <ApPanel>
+        <ApPanelHead kicker="capital_envelope · 사람 전용" title="자율승인 엔벨로프"
+          right={env && <ApBadge tone="mute">풀 {env.pool_limit.toLocaleString()} · 기본 PAPER {env.default_paper_limit.toLocaleString()}</ApBadge>} />
         <div className="p-4 space-y-3">
-          {loading && <SkeletonLines rows={2} />}
+          {loading && <ApSkeletonLines rows={2} />}
           {!loading && (
             <div className="flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1 w-40">
@@ -137,11 +137,11 @@ export default function CapitalClaimsPage() {
             LIVE 전략 한도는 여기서 관리하지 않음 — armed 전략은 arm() 호출 시 사람이 설정한 capital_limit 사용.
           </div>
         </div>
-      </Panel>
+      </ApPanel>
 
       {/* 수동 청구 제출 (테스트/운영자용 — 실제로는 AI가 event-triggered로 제출) */}
-      <Panel>
-        <PanelHead kicker="submit_claim · AI 또는 사람" title="청구 제출" />
+      <ApPanel>
+        <ApPanelHead kicker="submit_claim · AI 또는 사람" title="청구 제출" />
         <div className="p-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1 w-48">
@@ -158,14 +158,14 @@ export default function CapitalClaimsPage() {
             </button>
           </div>
         </div>
-      </Panel>
+      </ApPanel>
 
       {/* 대기열 */}
-      <Panel>
-        <PanelHead kicker="pending_queue · 사람 승인 대기" title="대기열"
-          right={queue && <Badge tone={queue.count > 0 ? "warn" : "mute"}>{queue.count}건</Badge>} />
+      <ApPanel>
+        <ApPanelHead kicker="pending_queue · 사람 승인 대기" title="대기열"
+          right={queue && <ApBadge tone={queue.count > 0 ? "warn" : "mute"}>{queue.count}건</ApBadge>} />
         <div className="p-4 space-y-2">
-          {loading && <SkeletonLines rows={3} />}
+          {loading && <ApSkeletonLines rows={3} />}
           {!loading && !err && queue?.count === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">대기 중인 청구 없음.</div>
           )}
@@ -174,7 +174,7 @@ export default function CapitalClaimsPage() {
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2 text-[11px]">
                   <span className="text-[var(--c-text-1)] font-semibold">{c.strategy_id}</span>
-                  <Badge tone="mute">{c.fulfillment_mode}</Badge>
+                  <ApBadge tone="mute">{c.fulfillment_mode}</ApBadge>
                   <span className="c-num text-[var(--c-text-2)]">제안 {c.proposed_amount?.toLocaleString() ?? "-"}</span>
                 </div>
                 <span className="text-[9px] text-[var(--c-text-3)] c-num">{c.created_at}</span>
@@ -200,13 +200,13 @@ export default function CapitalClaimsPage() {
             </div>
           ))}
         </div>
-      </Panel>
+      </ApPanel>
 
       {/* 이력 */}
-      <Panel>
-        <PanelHead kicker="claim_history" title="청구 이력" right={hist && <Badge tone="mute">{hist.count}건</Badge>} />
+      <ApPanel>
+        <ApPanelHead kicker="claim_history" title="청구 이력" right={hist && <ApBadge tone="mute">{hist.count}건</ApBadge>} />
         <div className="p-4 space-y-1.5">
-          {loading && <SkeletonLines rows={3} />}
+          {loading && <ApSkeletonLines rows={3} />}
           {!loading && !err && (hist?.count ?? 0) === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">이력 없음.</div>
           )}
@@ -215,13 +215,13 @@ export default function CapitalClaimsPage() {
               <span className="text-[var(--c-text-1)]">{r.strategy_id}</span>
               <span>{r.fulfillment_mode}</span>
               <span>{r.allocated_capital.toLocaleString()}</span>
-              <Badge tone={r.status === "approved" ? "pos" : r.status === "queued" ? "warn" : "neg"}>{r.status}</Badge>
+              <ApBadge tone={r.status === "approved" ? "pos" : r.status === "queued" ? "warn" : "neg"}>{r.status}</ApBadge>
               <span className="text-[9px] text-[var(--c-text-3)]">{r.decided_by ?? "-"}</span>
               <span className="text-[9px]">{r.created_at}</span>
             </div>
           ))}
         </div>
-      </Panel>
+      </ApPanel>
     </div>
   );
 }

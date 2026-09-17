@@ -1,7 +1,7 @@
 "use client";
 import { getValidation } from "@/lib/console-api";
 import { useConsole, PageHeader, StateBlock, StatusPill } from "@/components/console/widgets";
-import { Panel, PanelHead, Badge, Dot } from "@/components/console/primitives";
+import { ApPanel, ApPanelHead, ApBadge, ApDot } from "@/components/ui/ApPrimitives";
 
 const GATE_LABEL: Record<string, string> = {
   walk_forward: "워크포워드", monte_carlo: "몬테카를로", bh_fdr: "BH-FDR (다중검정)",
@@ -19,17 +19,17 @@ export default function ValidationReport() {
   return (
     <div className="min-h-full">
       <PageHeader kicker="퀀트 랩" title="전략 검증 리포트"
-        right={<Badge tone={allAgree ? "pos" : "warn"}>{allAgree ? "레드팀 ✓ 합의" : "검토 필요"}</Badge>} />
+        right={<ApBadge tone={allAgree ? "pos" : "warn"}>{allAgree ? "레드팀 ✓ 합의" : "검토 필요"}</ApBadge>} />
       <div className="p-5 space-y-5 max-w-[1200px]">
         <StateBlock loading={loading} err={err}>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-5">
             {/* Robustness gates */}
-            <Panel grid className="overflow-hidden">
-              <PanelHead kicker="강건성" title="검증 게이트" />
+            <ApPanel className="overflow-hidden">
+              <ApPanelHead kicker="강건성" title="검증 게이트" />
               <div className="p-4 space-y-2.5">
                 {(data?.gates ?? []).map((g) => (
                   <div key={g} className="flex items-center gap-3 py-1.5">
-                    <Dot tone="pos" />
+                    <ApDot tone="pos" />
                     <span className="text-[13px] text-[var(--c-text-1)] flex-1">{GATE_LABEL[g] ?? g}</span>
                     <StatusPill status="PASS" />
                   </div>
@@ -38,11 +38,11 @@ export default function ValidationReport() {
                   검증 프레임워크는 다중검정 보정(BH-FDR)·비용 스트레스·레드팀 적대 감사를 강제합니다. 게이트 통과 시에만 paper trading 승격.
                 </div>
               </div>
-            </Panel>
+            </ApPanel>
 
             {/* Redteam consensus */}
-            <Panel className="overflow-hidden">
-              <PanelHead kicker="적대적 검증" title="레드팀 vs 사람" right={<span className="c-num text-[11px] text-[var(--c-hud)]">{agree}/{n} 일치</span>} />
+            <ApPanel className="overflow-hidden">
+              <ApPanelHead kicker="적대적 검증" title="레드팀 vs 사람" right={<span className="c-num text-[11px] text-[var(--c-hud)]">{agree}/{n} 일치</span>} />
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead><tr className="border-b border-[var(--c-border)]">
@@ -63,12 +63,12 @@ export default function ValidationReport() {
                   </tbody>
                 </table>
               </div>
-            </Panel>
+            </ApPanel>
           </div>
 
           {/* Experiment status distribution */}
-          <Panel className="overflow-hidden">
-            <PanelHead kicker="코호트" title="실험 상태 분포" />
+          <ApPanel className="overflow-hidden">
+            <ApPanelHead kicker="코호트" title="실험 상태 분포" />
             <div className="p-4 flex flex-wrap gap-2">
               {statuses.map(([s, c]) => (
                 <div key={s} className="flex items-center gap-2 px-2.5 py-1.5 border border-[var(--c-border)]">
@@ -77,7 +77,7 @@ export default function ValidationReport() {
                 </div>
               ))}
             </div>
-          </Panel>
+          </ApPanel>
         </StateBlock>
       </div>
     </div>

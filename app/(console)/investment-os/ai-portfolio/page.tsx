@@ -7,7 +7,7 @@ import {
   getAiPortfolioLatest, getAiPortfolioHistory,
   type AiPortfolioResp, type AiPortfolioHistoryResp,
 } from "@/lib/console-api";
-import { Panel, PanelHead, Badge, SkeletonLines } from "@/components/console/primitives";
+import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines } from "@/components/ui/ApPrimitives";
 
 export default function AiPortfolioPage() {
   const [latest, setLatest] = useState<AiPortfolioResp | null>(null);
@@ -55,16 +55,16 @@ export default function AiPortfolioPage() {
       {/* Safety banner — 미션 핵심, 패널과 무관하게 항상 표시 */}
       <div className="bg-[var(--c-panel-2)] p-3 flex flex-wrap items-center gap-2 text-[11px]">
         <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">보장 사항</span>
-        <Badge tone="mute">추천 · 실배분/주문 아님 — 사람이 최종 결정</Badge>
+        <ApBadge tone="mute">추천 · 실배분/주문 아님 — 사람이 최종 결정</ApBadge>
       </div>
 
-      <Panel>
-        <PanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천" />
+      <ApPanel>
+        <ApPanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천" />
         <div className="p-4 space-y-2">
-          {loading && <SkeletonLines rows={4} />}
+          {loading && <ApSkeletonLines rows={4} />}
           {!loading && err && <div className="text-[11px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
           {!loading && !err && latest?.fallback_used && (
-            <Badge tone="warn">AI 응답 실패 — 규칙 기반(evidence_weighted) 폴백</Badge>
+            <ApBadge tone="warn">AI 응답 실패 — 규칙 기반(evidence_weighted) 폴백</ApBadge>
           )}
           {!loading && !err && weights.length === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">{latest?.note ?? "추천 없음"}</div>
@@ -89,12 +89,12 @@ export default function AiPortfolioPage() {
             </div>
           )}
         </div>
-      </Panel>
+      </ApPanel>
 
-      <Panel>
-        <PanelHead kicker="이력" title="최근 추천 이력" right={hist && <Badge tone="mute">{hist.records.length}건</Badge>} />
+      <ApPanel>
+        <ApPanelHead kicker="이력" title="최근 추천 이력" right={hist && <ApBadge tone="mute">{hist.records.length}건</ApBadge>} />
         <div className="p-4 space-y-1.5">
-          {loading && <SkeletonLines rows={3} />}
+          {loading && <ApSkeletonLines rows={3} />}
           {!loading && err && <div className="text-[11px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
           {!loading && !err && (hist?.records.length ?? 0) === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">이력 없음.</div>
@@ -106,7 +106,7 @@ export default function AiPortfolioPage() {
             </div>
           ))}
         </div>
-      </Panel>
+      </ApPanel>
     </div>
   );
 }

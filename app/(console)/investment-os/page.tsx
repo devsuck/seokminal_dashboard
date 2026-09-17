@@ -8,8 +8,9 @@
 // — 신규 API 없음, 신규 계산 없음. write action이 있는 페이지(research-os/workflow의 세션 제어,
 // research-os/committee의 memo 생성 등)는 병합하지 않고 "↗" 링크로만 참조(기능 유실 방지).
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useCallback, useEffect, useId, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import useSWR from "swr";
 import {
   getInvestmentOs, advanceLadder, getForwardLearning, getDataConnection, getResearchAccountability,
   getResearchOrganization, getAllocation, getPositions,
@@ -27,7 +28,6 @@ import {
   type MonitorResp, type OrdersResp, type LiveIntelligenceResp,
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
-import { Panel, PanelHead, StatTile, Badge, Skeleton, SkeletonStatTile, SkeletonLines } from "@/components/console/primitives";
 import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
@@ -42,7 +42,7 @@ const STATUS_LABEL: Record<string, string> = {
   draft: "초안", data_audit_passed: "데이터 감사 통과", blocked_by_data: "데이터 문제로 차단",
   sanity_check_only: "정합성 점검만 완료", backtested: "백테스트 완료", watchlist: "워치리스트",
   rejected: "반려됨", paper_candidate: "페이퍼 후보",
-  paper_candidate_forward_test_required: "페이퍼 후보 · Forward 테스트 필요",
+  paper_candidate_forward_test_required: "페이퍼 후보 · 포워드 테스트 필요",
   paper_active: "페이퍼 운용중", paper_failed: "페이퍼 실패", paper_retired: "페이퍼 은퇴",
   live_candidate: "실거래 후보", micro_live: "소액 실거래", constrained_live: "제한적 실거래",
   retired: "은퇴",
@@ -55,9 +55,41 @@ const GRADE_LABEL: Record<string, string> = {
 const SCORE_STATUS_LABEL: Record<string, string> = {
   PROVISIONAL: "미확정", SCORED: "계산됨",
 };
+// 포트폴리오 가중 방식 — jarvis/investment_os/portfolio_construction.py (기본값 evidence_weighted, 그 외는 동일가중 폴백)
+const PORTFOLIO_METHOD_LABEL: Record<string, string> = {
+  evidence_weighted: "근거등급 가중",
+};
 // data_health 상태 — jarvis/research_workflow/data_quality.py (system_health와 별개 도메인)
 const DATA_HEALTH_LABEL: Record<string, string> = {
   ok: "정상", DEGRADED: "저하됨", LIMITED: "제한됨",
+};
+// 페이퍼 포지션 필드 — jarvis/paper_execution/models.py PaperPosition (dataclass, asdict 순서 고정)
+const POSITION_FIELD_LABEL: Record<string, string> = {
+  strategy_id: "전략 ID", quantity: "수량", average_price: "평균단가",
+  market_value: "평가금액", unrealized_pnl: "미실현 손익", realized_pnl: "실현 손익",
+};
+// 리스크 한도 필드 — jarvis/risk/governor.py RiskLimits
+const RISK_LIMIT_LABEL: Record<string, string> = {
+  max_notional: "최대 명목가치", max_order_qty: "최대 주문수량", max_leverage: "최대 레버리지",
+  kill_switch: "킬스위치", require_human_approval: "사람 승인 필수",
+};
+// 재무제표 필드 — api_server/console_api.py financials-live (Finnhub/DART 매핑)
+const FINANCIALS_FIELD_LABEL: Record<string, string> = {
+  year: "회계연도", pe_ttm: "PER(TTM)", roe_ttm: "ROE(TTM)", debt_to_equity: "부채비율",
+  current_ratio: "유동비율", net_margin_ttm: "순이익률(TTM)", revenue_growth_yoy: "매출성장률(YoY)",
+};
+// 예측 캡처 출처 — jarvis/research_workflow/prediction_registry.py SOURCES(고정 enum)
+const PREDICTION_SOURCE_LABEL: Record<string, string> = {
+  committee: "위원회", agent: "에이전트", human_hypothesis: "사람 가설", automatic_discovery: "자동 발견",
+};
+// 실험 상태값 — research/agents/experiment_registry.py 에 자유 문자열로 기록(폐쇄 enum 아님, 관측된 값 기준)
+const EXPERIMENT_STATUS_LABEL: Record<string, string> = {
+  rejected: "반려됨", watchlist: "워치리스트", underpowered: "검정력 부족", candidate: "후보",
+  weak: "약함", v2_shadow: "v2 섀도우", no_effect: "효과 없음", analysis: "분석중",
+};
+// 검증 게이트 — api_server/console_api.py /validation 고정 목록
+const GATE_LABEL: Record<string, string> = {
+  walk_forward: "워크포워드", monte_carlo: "몬테카를로", bh_fdr: "BH-FDR", cost_stress: "비용 스트레스", redteam: "레드팀",
 };
 
 // STEP4-B 원칙: 단순 ranking/숫자 스코어 금지 — Evidence Quality + Validation Status + Forward Progress + Risk State
@@ -89,27 +121,13 @@ const DECISION_TONE: Record<string, "pos" | "warn" | "neg" | "mute"> = {
 };
 
 // ── 탭 최초 활성화 시 1회만 fetch, 이후 캐시(동시 다건 로드 방지) ──────
+// SWR로 교체 — 탭 재방문 시 자동 재검증(stale-while-revalidate), 창 포커스 복귀 시 갱신,
+// 실패 시 재시도. key는 훅 인스턴스별 고유(useId)라 인스턴스 간 충돌 없음 — 탭별 fetcher
+// 호출부(211-226행)는 시그니처 그대로라 변경 없음.
 function useTabFetch<T>(active: boolean, fetcher: (signal: AbortSignal) => Promise<T>) {
-  const [data, setData] = useState<T | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const fetchedRef = useRef(false);
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    if (!active || fetchedRef.current) return;
-    fetchedRef.current = true;
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true);
-    fetcher(ctrl.signal)
-      .then((r) => { if (!ctrl.signal.aborted) setData(r); })
-      .catch((e) => { if (!(e instanceof DOMException && e.name === "AbortError")) setErr((e as Error).message); })
-      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
-    return () => { ctrl.abort(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
-  return { data, err, loading };
+  const id = useId();
+  const { data, error, isLoading } = useSWR<T>(active ? id : null, () => fetcher(new AbortController().signal));
+  return { data: data ?? null, err: error ? (error as Error).message : null, loading: isLoading };
 }
 
 type TabKey = "overview" | "strategy" | "research" | "risk" | "ops";
@@ -253,8 +271,8 @@ function InvestmentOsInner() {
     <div className="hidden md:block min-h-full">
       <PageHeader kicker="Investment OS · 분리 계층" title="Investment OS"
         right={<div className="flex gap-1.5">
-          {sep && <Badge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</Badge>}
-          <Badge tone="neg">AUTO-EXEC OFF</Badge>
+          {sep && <ApBadge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</ApBadge>}
+          <ApBadge tone="neg">AUTO-EXEC OFF</ApBadge>
         </div>} />
       <div className="p-5 space-y-5">
         {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
@@ -262,42 +280,42 @@ function InvestmentOsInner() {
         {/* Safety banner — 미션 핵심, 탭과 무관하게 항상 표시 */}
         <div className="bg-[var(--c-panel-2)] p-3 flex flex-wrap items-center gap-2 text-[11px]">
           <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">보장 사항</span>
-          <Badge tone="pos">연구=생산 · 투자=소비</Badge>
-          <Badge tone="pos">Research OS 무변경</Badge>
-          <Badge tone="neg">AUTO_EXECUTION 영구 OFF</Badge>
-          <Badge tone="warn">사람 승인 필수</Badge>
-          <Badge tone="warn">Risk/Compliance/Portfolio/Kill 우회 불가</Badge>
-          <Badge tone="mute">모두 추천/시뮬레이션 · 실행 없음</Badge>
+          <ApBadge tone="pos">연구=생산 · 투자=소비</ApBadge>
+          <ApBadge tone="pos">Research OS 무변경</ApBadge>
+          <ApBadge tone="neg">AUTO_EXECUTION 영구 OFF</ApBadge>
+          <ApBadge tone="warn">사람 승인 필수</ApBadge>
+          <ApBadge tone="warn">Risk/Compliance/Portfolio/Kill 우회 불가</ApBadge>
+          <ApBadge tone="mute">모두 추천/시뮬레이션 · 실행 없음</ApBadge>
         </div>
 
         {!data && !err && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)}
+              {Array.from({ length: 4 }).map((_, i) => <ApSkeletonStatTile key={i} />)}
             </div>
             <div className="flex flex-wrap gap-1 border-b border-[var(--c-border)]">
               {TABS.map((t) => (
                 <div key={t.key} className="px-3.5 h-9 flex items-center">
-                  <Skeleton className="h-2.5 w-16" />
+                  <ApSkeleton className="h-2.5 w-16" />
                 </div>
               ))}
             </div>
-            <Panel>
+            <ApPanel>
               <div className="px-4 h-10 border-b border-[var(--c-border)] flex items-center">
-                <Skeleton className="h-2.5 w-40" />
+                <ApSkeleton className="h-2.5 w-40" />
               </div>
-              <div className="p-4"><SkeletonLines rows={4} /></div>
-            </Panel>
+              <div className="p-4"><ApSkeletonLines rows={4} /></div>
+            </ApPanel>
           </div>
         )}
 
         {data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`research 무변경: ${!data.knowledge.research_os_modified ? "예" : "아니오"}`} tone="hud" />
-              <StatTile label="포트폴리오 포지션" value={String(Object.keys(weights).length)} sub={data.portfolio.method} tone="pos" />
-              <StatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`override 불가: ${!data.compliance.human_can_override ? "예" : "아니오"}`} tone={data.compliance.compliant ? "pos" : "neg"} />
-              <StatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`bypass: ${data.gates.bypass_possible ? "가능" : "불가"}`} tone={data.gates.passed ? "pos" : "warn"} />
+              <ApStatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`리서치 원본 변경: ${data.knowledge.research_os_modified ? "있음" : "없음"}`} tone="hud" />
+              <ApStatTile label="포트폴리오 포지션" value={String(Object.keys(weights).length)} sub={PORTFOLIO_METHOD_LABEL[data.portfolio.method] ?? data.portfolio.method} tone="pos" />
+              <ApStatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`사람 개입: ${data.compliance.human_can_override ? "가능" : "불가"}`} tone={data.compliance.compliant ? "pos" : "neg"} />
+              <ApStatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`우회: ${data.gates.bypass_possible ? "가능" : "불가"}`} tone={data.gates.passed ? "pos" : "warn"} />
             </div>
 
             {/* Tab bar — STEP4-D 5-view consolidation */}
@@ -316,11 +334,11 @@ function InvestmentOsInner() {
               <div className="space-y-4">
                 <div className="flex justify-end"><TabLink href="/research-os/cockpit" label="리서치 홈" /></div>
 
-                <Panel>
-                  <PanelHead kicker="monthly-review · Phase 5-C (READ ONLY, 새 원장 없음)" title="월간 의사결정 루프"
-                    right={<Badge tone="mute">제안 라벨 — 자동 결정 아님, 사람이 최종 선택</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="월간 리뷰" title="월간 의사결정 루프"
+                    right={<ApBadge tone="mute">제안 라벨 — 자동 결정 아님, 사람이 최종 선택</ApBadge>} />
                   <div className="p-4 space-y-2">
-                    {monthly.loading && <SkeletonLines rows={3} />}
+                    {monthly.loading && <ApSkeletonLines rows={3} />}
                     {monthly.data && monthly.data.strategies.length === 0 && (
                       <div className="text-[11px] text-[var(--c-text-3)]">추적 대상 전략 없음.</div>
                     )}
@@ -333,7 +351,7 @@ function InvestmentOsInner() {
                             <div className="text-[11px] text-[var(--c-text-1)] font-semibold">{s.strategy_id}</div>
                             <div className="text-[11px] text-[var(--c-text-3)] truncate">{dr.reason}</div>
                           </div>
-                          <Badge tone={tone}>{dr.suggested_label ?? "—"}</Badge>
+                          <ApBadge tone={tone}>{dr.suggested_label ?? "—"}</ApBadge>
                         </div>
                       );
                     })}
@@ -343,10 +361,10 @@ function InvestmentOsInner() {
                           예측 무결성
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          <StatTile label="유효" value={String(monthly.data.prediction_integrity.valid)} tone="pos" />
-                          <StatTile label="레거시" value={String(monthly.data.prediction_integrity.legacy_capture)} tone="text-1" />
-                          <StatTile label="무효화" value={String(monthly.data.prediction_integrity.invalidated)} tone="neg" />
-                          <StatTile label="재포착 필요" value={String(monthly.data.prediction_integrity.recapture_required)} tone="warn" />
+                          <ApStatTile label="유효" value={String(monthly.data.prediction_integrity.valid)} tone="pos" />
+                          <ApStatTile label="레거시" value={String(monthly.data.prediction_integrity.legacy_capture)} tone="ink-1" />
+                          <ApStatTile label="무효화" value={String(monthly.data.prediction_integrity.invalidated)} tone="neg" />
+                          <ApStatTile label="재포착 필요" value={String(monthly.data.prediction_integrity.recapture_required)} tone="warn" />
                         </div>
                       </div>
                     )}
@@ -358,37 +376,37 @@ function InvestmentOsInner() {
                       </div>
                     )}
                   </div>
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="research-organization (기존 API)" title="시스템 헬스" />
-                  {org.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="연구 조직 현황" title="시스템 헬스" />
+                  {org.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {org.err && <div className="p-4 text-[11px] text-[var(--c-neg)]">{org.err}</div>}
                   {org.data && (
                     <div className="p-4 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge tone={org.data.operational_status.operational ? "pos" : "warn"}>{org.data.operational_status.operational ? "가동 중" : "검토 필요"}</Badge>
-                        <Badge tone="mute" title={org.data.knowledge_health.grade}>지식 헬스: {GRADE_LABEL[org.data.knowledge_health.grade] ?? org.data.knowledge_health.grade}</Badge>
-                        {org.data.strategy_health.review_needed_count > 0 && <Badge tone="warn">review 필요 {org.data.strategy_health.review_needed_count}</Badge>}
+                        <ApBadge tone={org.data.operational_status.operational ? "pos" : "warn"}>{org.data.operational_status.operational ? "가동 중" : "검토 필요"}</ApBadge>
+                        <ApBadge tone="mute" title={org.data.knowledge_health.grade}>지식 헬스: {GRADE_LABEL[org.data.knowledge_health.grade] ?? org.data.knowledge_health.grade}</ApBadge>
+                        {org.data.strategy_health.review_needed_count > 0 && <ApBadge tone="warn">review 필요 {org.data.strategy_health.review_needed_count}</ApBadge>}
                       </div>
                       {org.data.strategy_health.strategies.map((s) => (
                         <div key={s.strategy} className="flex items-center justify-between text-[11px]">
                           <span className="text-[var(--c-text-1)]">{s.strategy}</span>
                           <span className="flex items-center gap-2">
                             <span className="c-num text-[var(--c-text-2)]">{s.health_score}</span>
-                            <Badge tone={s.review_needed ? "warn" : "pos"} title={s.grade}>{GRADE_LABEL[s.grade] ?? s.grade}</Badge>
+                            <ApBadge tone={s.review_needed ? "warn" : "pos"} title={s.grade}>{GRADE_LABEL[s.grade] ?? s.grade}</ApBadge>
                           </span>
                         </div>
                       ))}
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <Panel>
-                    <PanelHead kicker="포트폴리오 구성" title="추천 비중"
+                  <ApPanel>
+                    <ApPanelHead kicker="포트폴리오 구성" title="추천 비중"
                       right={<div className="flex items-center gap-2">
-                        <Badge tone="mute">추천 · 실배분 아님</Badge>
+                        <ApBadge tone="mute">추천 · 실배분 아님</ApBadge>
                         <TabLink href="/investment-os/ai-portfolio" label="AI 추천 보기" />
                         <TabLink href="/investment-os/capital-claims" label="자본 청구" />
                       </div>} />
@@ -402,7 +420,7 @@ function InvestmentOsInner() {
                           <span className="text-[9px] c-num text-[var(--c-text-3)] w-24 text-right">{(sizes[sid] ?? 0).toLocaleString()}</span>
                         </div>
                       ))}
-                      <div className="text-[9px] text-[var(--c-text-3)] pt-1">우측 금액 = position sizing 추천(notional 1M 기준). 자본 배분/집행 아님.</div>
+                      <div className="text-[9px] text-[var(--c-text-3)] pt-1">우측 금액 = 포지션 사이징 추천(명목가치 100만 기준). 자본 배분/집행 아님.</div>
                       {alloc.data && (alloc.data.derived_proposal?.length ?? 0) > 0 && (
                         <div className="pt-2 border-t border-[var(--c-border)] space-y-1">
                           <div className="text-[9px] tracking-[0.2em] text-[var(--c-text-3)] uppercase">배분 파생 제안</div>
@@ -415,20 +433,20 @@ function InvestmentOsInner() {
                         </div>
                       )}
                     </div>
-                  </Panel>
+                  </ApPanel>
 
-                  <Panel>
-                    <PanelHead kicker="/console/positions (기존 API)" title="포지션" right={positions.data && <Badge tone="mute">{positions.data.count}건</Badge>} />
+                  <ApPanel>
+                    <ApPanelHead kicker="보유 포지션" title="포지션" right={positions.data && <ApBadge tone="mute">{positions.data.count}건</ApBadge>} />
                     <div className="p-4 space-y-1.5">
-                      {positions.loading && <SkeletonLines rows={4} />}
+                      {positions.loading && <ApSkeletonLines rows={4} />}
                       {positions.data && positions.data.count === 0 && <div className="text-[11px] text-[var(--c-text-3)]">{positions.data.note}</div>}
                       {positions.data && positions.data.positions.slice(0, 8).map((p, i) => (
                         <div key={i} className="flex flex-wrap gap-x-3 text-[11px] c-num text-[var(--c-text-2)] border-b border-[var(--c-border)] last:border-0 py-1">
-                          {Object.entries(p).slice(0, 5).map(([k, v]) => <span key={k}>{k}: {String(v)}</span>)}
+                          {Object.entries(p).slice(0, 5).map(([k, v]) => <span key={k}>{POSITION_FIELD_LABEL[k] ?? k}: {String(v)}</span>)}
                         </div>
                       ))}
                     </div>
-                  </Panel>
+                  </ApPanel>
                 </div>
               </div>
             )}
@@ -444,21 +462,21 @@ function InvestmentOsInner() {
                 </div>
 
                 {/* Forward Learning + Validation — STEP4. "왜 믿는가 · 어디까지 검증됐는가 · 실제가 thesis와 맞는가 · 다음 판단·승인자" */}
-                <Panel>
-                  <PanelHead kicker="Forward Learning · STEP4 (READ ONLY, 파생 데이터)" title="전략별 검증 상태"
-                    right={<Badge tone="mute">registry+experiment_registry+prediction_registry+paper.deploy 조인 · 새 원장 없음</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="포워드 러닝 검증" title="전략별 검증 상태"
+                    right={<ApBadge tone="mute">registry+experiment_registry+prediction_registry+paper.deploy 조인 · 새 원장 없음</ApBadge>} />
                   <div className="p-4 space-y-3">
-                    {sideLoading && <SkeletonLines rows={4} />}
+                    {sideLoading && <ApSkeletonLines rows={4} />}
                     {!sideLoading && acct && (
                       <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">Edge Score</span>
+                        <span className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase">엣지 스코어</span>
                         {acct.edge_score.status === "PROVISIONAL"
-                          ? <Badge tone="mute" title="PROVISIONAL">미확정 — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨 (표본 부족, 랭킹 아님)</Badge>
-                          : <Badge tone="pos" title="SCORED">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</Badge>}
+                          ? <ApBadge tone="mute" title="PROVISIONAL">미확정 — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨 (표본 부족, 랭킹 아님)</ApBadge>
+                          : <ApBadge tone="pos" title="SCORED">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</ApBadge>}
                         {conn && (
-                          <Badge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"} title={conn.validation_score.status}>
-                            Validation Score: {SCORE_STATUS_LABEL[conn.validation_score.status ?? ""] ?? conn.validation_score.status}
-                          </Badge>
+                          <ApBadge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"} title={conn.validation_score.status}>
+                            검증 스코어: {SCORE_STATUS_LABEL[conn.validation_score.status ?? ""] ?? conn.validation_score.status}
+                          </ApBadge>
                         )}
                       </div>
                     )}
@@ -469,20 +487,20 @@ function InvestmentOsInner() {
                         <div key={r.strategy_id} className="bg-[var(--c-panel-2)] p-3 space-y-1.5">
                           <div className="flex items-center justify-between flex-wrap gap-1.5">
                             <span className="text-[11px] text-[var(--c-text-1)] font-semibold">{r.strategy_id}</span>
-                            <Badge tone="hud">{STATUS_LABEL[r.validation_status ?? ""] ?? r.validation_status ?? "—"}</Badge>
+                            <ApBadge tone="hud">{STATUS_LABEL[r.validation_status ?? ""] ?? r.validation_status ?? "—"}</ApBadge>
                           </div>
                           {r.thesis && <div className="text-[11px] text-[var(--c-text-2)]">{r.thesis}</div>}
                           <div className="flex flex-wrap gap-1.5">
-                            <Badge tone={eq.tone}>근거: {eq.label}</Badge>
-                            <Badge tone={fp.tone}>Forward: {fp.label}</Badge>
-                            <Badge tone={rs.tone}>리스크: {rs.label}</Badge>
-                            {!r.prediction_captured && <Badge tone="warn" title="P201 미기록">Thesis 사전등록 안 됨</Badge>}
+                            <ApBadge tone={eq.tone}>근거: {eq.label}</ApBadge>
+                            <ApBadge tone={fp.tone}>포워드: {fp.label}</ApBadge>
+                            <ApBadge tone={rs.tone}>리스크: {rs.label}</ApBadge>
+                            {!r.prediction_captured && <ApBadge tone="warn" title="P201 미기록">가설 사전등록 안 됨</ApBadge>}
                           </div>
                           {(r.next_possible?.length ?? 0) > 0 && (
                             <div className="text-[11px] text-[var(--c-text-3)]">
-                              다음 가능 상태: {r.next_possible!.join(", ")}
+                              다음 가능 상태: {r.next_possible!.map((s) => STATUS_LABEL[s] ?? s).join(", ")}
                               {(r.human_approval_required_next?.length ?? 0) > 0 &&
-                                <span className="text-[var(--c-warn)]"> · 사람 승인 필요: {r.human_approval_required_next!.join(", ")}</span>}
+                                <span className="text-[var(--c-warn)]"> · 사람 승인 필요: {r.human_approval_required_next!.map((s) => STATUS_LABEL[s] ?? s).join(", ")}</span>}
                             </div>
                           )}
                         </div>
@@ -490,47 +508,47 @@ function InvestmentOsInner() {
                     })}
                     {fwd && (
                       <div className="text-[11px] text-[var(--c-text-3)] pt-1">
-                        커버리지 갭(STEP4-C, 숨기지 않음): thesis 없음 {fwd.coverage_gaps.missing_thesis} ·
-                        thesis 사전등록 안 됨 {fwd.coverage_gaps.missing_prediction_capture} ·
-                        forward 데이터 없음 {fwd.coverage_gaps.missing_forward_data} / {fwd.count}
+                        커버리지 갭: 가설 없음 {fwd.coverage_gaps.missing_thesis} ·
+                        가설 사전등록 안 됨 {fwd.coverage_gaps.missing_prediction_capture} ·
+                        포워드 데이터 없음 {fwd.coverage_gaps.missing_forward_data} / {fwd.count}
                       </div>
                     )}
                   </div>
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="validation-loop (기존 API)" title="라이프사이클 보드"
-                    right={valLoop.data && <Badge tone={valLoop.data.loop_status.release_ready ? "pos" : "mute"}>{valLoop.data.loop_status.release_ready ? "출시 준비 완료" : "진행 중"}</Badge>} />
-                  {valLoop.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="검증 루프" title="라이프사이클 보드"
+                    right={valLoop.data && <ApBadge tone={valLoop.data.loop_status.release_ready ? "pos" : "mute"}>{valLoop.data.loop_status.release_ready ? "출시 준비 완료" : "진행 중"}</ApBadge>} />
+                  {valLoop.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {valLoop.data && (
                     <div className="p-4 space-y-1.5">
                       {valLoop.data.lifecycle_board.strategies.map((s) => (
                         <div key={s.strategy} className="flex items-center justify-between text-[11px]">
                           <span className="text-[var(--c-text-1)]">{s.strategy}</span>
-                          <Badge tone="hud">{s.current_state}</Badge>
+                          <ApBadge tone="hud">{s.current_state}</ApBadge>
                         </div>
                       ))}
                       <div className="pt-1.5 flex items-center gap-2 text-[11px] text-[var(--c-text-3)]">
                         <span>품질: {valLoop.data.quality_panel.quality_score ?? "—"} ({valLoop.data.quality_panel.grade})</span>
-                        {valLoop.data.validation_panel.divergence_detected && <Badge tone="warn">편차 감지됨</Badge>}
+                        {valLoop.data.validation_panel.divergence_detected && <ApBadge tone="warn">편차 감지됨</ApBadge>}
                       </div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="validation (기존 API)" title="검증 게이트" />
-                  {val.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="검증" title="검증 게이트" />
+                  {val.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {val.data && (
                     <div className="p-4 space-y-1.5">
-                      <div className="flex flex-wrap gap-1.5">{val.data.gates.map((g) => <Badge key={g} tone="mute">{g}</Badge>)}</div>
+                      <div className="flex flex-wrap gap-1.5">{val.data.gates.map((g) => <ApBadge key={g} tone="mute">{GATE_LABEL[g] ?? g}</ApBadge>)}</div>
                       <div className="text-[11px] text-[var(--c-text-3)]">레드팀 n={val.data.redteam.n} · 사람 동의={val.data.redteam.human_redteam_agree ?? "—"}</div>
                       <div className="flex flex-wrap gap-2 text-[11px] text-[var(--c-text-2)]">
-                        {Object.entries(val.data.experiment_status).map(([k, v]) => <span key={k} className="c-num">{k}: {v}</span>)}
+                        {Object.entries(val.data.experiment_status).map(([k, v]) => <span key={k} className="c-num">{EXPERIMENT_STATUS_LABEL[k] ?? k}: {v}</span>)}
                       </div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
               </div>
             )}
 
@@ -548,28 +566,28 @@ function InvestmentOsInner() {
                   <TabLink href="/research-os/chat" label="리서치 챗" />
                 </div>
 
-                <Panel>
-                  <PanelHead kicker="market-cockpit (기존 API)" title="마켓 / 리서치 인텔리전스"
-                    right={market.data && <Badge tone="hud">{market.data.market_state.regime}</Badge>} />
-                  {market.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="시장 현황" title="마켓 / 리서치 인텔리전스"
+                    right={market.data && <ApBadge tone="hud">{market.data.market_state.regime}</ApBadge>} />
+                  {market.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {market.data && (
                     <div className="p-4 space-y-1.5">
-                      <div className="flex flex-wrap gap-1.5">{market.data.market_state.labels.map((l) => <Badge key={l} tone="mute">{l}</Badge>)}</div>
+                      <div className="flex flex-wrap gap-1.5">{market.data.market_state.labels.map((l) => <ApBadge key={l} tone="mute">{l}</ApBadge>)}</div>
                       {market.data.top_opportunities.map((o, i) => (
                         <div key={i} className="flex items-center justify-between text-[11px]">
                           <span className="text-[var(--c-text-1)]">{o.name} <span className="text-[var(--c-text-3)]">· {o.kind}</span></span>
-                          <span className="c-num text-[var(--c-text-3)]">{o.confidence} · EV {o.expected_value}</span>
+                          <span className="c-num text-[var(--c-text-3)]">{o.confidence} · 기대값 {o.expected_value}</span>
                         </div>
                       ))}
                       <div className="text-[11px] text-[var(--c-text-3)]">헬스 스코어 {market.data.health_score} · 상위 리스크 {market.data.risk.top_category ?? "—"}</div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="institutional-intelligence (기존 API)" title="기관 인텔리전스"
-                    right={inst.data && <Badge tone="mute">{inst.data.data_production_health.overall_status}</Badge>} />
-                  {inst.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="기관 데이터" title="기관 인텔리전스"
+                    right={inst.data && <ApBadge tone="mute">{inst.data.data_production_health.overall_status}</ApBadge>} />
+                  {inst.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {inst.data && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>데이터 품질 평균: <span className="c-num text-[var(--c-text-1)]">{inst.data.data_production_health.average_quality}</span></div>
@@ -577,24 +595,24 @@ function InvestmentOsInner() {
                       <div>매크로 상태: {inst.data.macro_context.macro_state}</div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="data-connection (기존 API, 재사용)" title="예측 커버리지" />
-                  {sideLoading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="예측 데이터 연결" title="예측 커버리지" />
+                  {sideLoading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {!sideLoading && conn && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>총 예측 수: <span className="c-num text-[var(--c-text-1)]">{conn.prediction_coverage.total ?? 0}</span></div>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(conn.prediction_coverage.by_source ?? {}).map(([k, v]) => <Badge key={k} tone="mute">{k}: {v}</Badge>)}
+                        {Object.entries(conn.prediction_coverage.by_source ?? {}).map(([k, v]) => <ApBadge key={k} tone="mute">{PREDICTION_SOURCE_LABEL[k] ?? k}: {v}</ApBadge>)}
                       </div>
-                      <div>Invalidation 누락: {conn.prediction_coverage.missing_invalidation_pct ?? "—"}% · Horizon 누락: {conn.prediction_coverage.missing_horizon_pct ?? "—"}%</div>
+                      <div>무효화 조건 누락: {conn.prediction_coverage.missing_invalidation_pct ?? "—"}% · 기간(호라이즌) 누락: {conn.prediction_coverage.missing_horizon_pct ?? "—"}%</div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="/console/financials-live (실측, 신규 배선)" title="재무제표 실측 조회" />
+                <ApPanel>
+                  <ApPanelHead kicker="실시간 재무제표" title="재무제표 실측 조회" />
                   <div className="p-4 space-y-3">
                     <form
                       className="flex flex-wrap gap-2"
@@ -617,7 +635,7 @@ function InvestmentOsInner() {
                     {finErr && <div className="text-[11px] text-neg">조회 실패: {finErr}</div>}
                     {finLoading && (
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        {Array.from({ length: 4 }).map((_, i) => <SkeletonStatTile key={i} />)}
+                        {Array.from({ length: 4 }).map((_, i) => <ApSkeletonStatTile key={i} />)}
                       </div>
                     )}
                     {finData && (
@@ -625,7 +643,7 @@ function InvestmentOsInner() {
                         {Object.entries(finData)
                           .filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined)
                           .map(([k, v]) => (
-                            <StatTile key={k} label={k} value={typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v)} tone="hud" />
+                            <ApStatTile key={k} label={FINANCIALS_FIELD_LABEL[k] ?? k} value={typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v)} tone="hud" />
                           ))}
                       </div>
                     )}
@@ -633,7 +651,7 @@ function InvestmentOsInner() {
                       <div className="text-[11px] text-text-3">데이터 없음</div>
                     )}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
             )}
 
@@ -645,13 +663,13 @@ function InvestmentOsInner() {
                   <TabLink href="/research-os/production" label="위원회 & 프로덕션 (전체)" />
                 </div>
 
-                <Panel>
-                  <PanelHead kicker="리스크 & 시나리오" title="예산 · 스트레스" right={data?.risk_budget && <Badge tone={data.risk_budget.within_budget ? "pos" : "warn"}>{data.risk_budget.within_budget ? "예산 내" : "한도 초과"}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="리스크 & 시나리오" title="예산 · 스트레스" right={data?.risk_budget && <ApBadge tone={data.risk_budget.within_budget ? "pos" : "warn"}>{data.risk_budget.within_budget ? "예산 내" : "한도 초과"}</ApBadge>} />
                   <div className="p-4 space-y-2">
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">최대 비중</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%</div></div>
                       <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">포지션</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{data.exposure.n_positions ?? 0}</div></div>
-                      <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">HHI</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
+                      <div className="bg-[var(--c-panel-2)] p-2"><div className="text-[9px] tracking-[0.15em] text-[var(--c-text-3)] uppercase">쏠림 지수(HHI)</div><div className="text-[13px] c-num text-[var(--c-text-1)]">{(data.exposure.herfindahl ?? 0).toFixed(2)}</div></div>
                     </div>
                     <div className="bg-[var(--c-panel-2)] p-2.5">
                       <div className="text-[9px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-0.5">최악 시나리오</div>
@@ -663,26 +681,26 @@ function InvestmentOsInner() {
                     </div>
                     <div className="text-[9px] text-[var(--c-text-3)]">{data.risk_budget.summary}</div>
                   </div>
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="risk (기존 API)" title="리스크 거버너" right={riskGov.data && <Badge tone="mute">{riskGov.data.governor}</Badge>} />
-                  {riskGov.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="리스크 한도 (기존 API)" title="리스크 거버너" right={riskGov.data && <ApBadge tone="mute">{riskGov.data.governor}</ApBadge>} />
+                  {riskGov.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {riskGov.data && (
                     <div className="p-4 space-y-1.5 text-[11px] text-[var(--c-text-2)]">
                       <div>실행 리스크 이벤트: <span className="c-num text-[var(--c-text-1)]">{riskGov.data.execution_risk_events}</span></div>
                       <div>자율성 레벨 {riskGov.data.autonomy.level} · 라이브 집행 활성화: {riskGov.data.autonomy.live_execution_enabled ? "켜짐" : "꺼짐"}</div>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(riskGov.data.limits).map(([k, v]) => <Badge key={k} tone="mute">{k}: {String(v)}</Badge>)}
+                        {Object.entries(riskGov.data.limits).map(([k, v]) => <ApBadge key={k} tone="mute">{RISK_LIMIT_LABEL[k] ?? k}: {String(v)}</ApBadge>)}
                       </div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="production-readiness (기존 API)" title="거버넌스"
-                    right={prod.data && <Badge tone={prod.data.governance_status.passed ? "pos" : "neg"}>{prod.data.governance_status.governance}</Badge>} />
-                  {prod.loading && <div className="p-4"><SkeletonLines rows={4} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="프로덕션 준비도 (기존 API)" title="거버넌스"
+                    right={prod.data && <ApBadge tone={prod.data.governance_status.passed ? "pos" : "neg"}>{prod.data.governance_status.governance}</ApBadge>} />
+                  {prod.loading && <div className="p-4"><ApSkeletonLines rows={4} /></div>}
                   {prod.data && (
                     <div className="p-4 space-y-1.5">
                       {prod.data.governance_status.checks.map((c) => (
@@ -695,13 +713,13 @@ function InvestmentOsInner() {
                       <div className="text-[11px] text-[var(--c-text-3)] pt-1">프로덕션 헬스: {prod.data.production_health.overall_severity}</div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <Panel>
-                    <PanelHead kicker="agents + council (기존 API)" title="협의회 / 승인" right={agents.data && <Badge tone="neg">라이브 집행: {agents.data.live_execution_enabled ? "켜짐" : "꺼짐"}</Badge>} />
+                  <ApPanel>
+                    <ApPanelHead kicker="에이전트 협의회 (기존 API)" title="협의회 / 승인" right={agents.data && <ApBadge tone="neg">라이브 집행: {agents.data.live_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
                     <div className="p-4 space-y-2">
-                      {agents.loading && <SkeletonLines rows={3} />}
+                      {agents.loading && <ApSkeletonLines rows={3} />}
                       {agents.data && <AgentTree node={agents.data.council} />}
                       {council.data && (
                         <div className="pt-2 border-t border-[var(--c-border)] space-y-1">
@@ -712,23 +730,23 @@ function InvestmentOsInner() {
                         </div>
                       )}
                     </div>
-                  </Panel>
+                  </ApPanel>
 
-                  <Panel>
-                    <PanelHead kicker="logs (기존 API)" title="감사 로그" right={logs.data && <Badge tone="mute">{logs.data.count}건</Badge>} />
+                  <ApPanel>
+                    <ApPanelHead kicker="시스템 로그 (기존 API)" title="감사 로그" right={logs.data && <ApBadge tone="mute">{logs.data.count}건</ApBadge>} />
                     <div className="p-4 space-y-1">
-                      {logs.loading && <SkeletonLines rows={5} />}
+                      {logs.loading && <ApSkeletonLines rows={5} />}
                       {logs.data && logs.data.logs.slice(0, 10).map((l, i) => (
                         <div key={i} className="text-[11px] c-num text-[var(--c-text-3)] truncate border-b border-[var(--c-border)] last:border-0 py-0.5">{JSON.stringify(l)}</div>
                       ))}
                     </div>
-                  </Panel>
+                  </ApPanel>
                 </div>
 
                 {/* Separation invariants — 미션 핵심 */}
-                <Panel>
-                  <PanelHead kicker="아키텍처 분리" title="Research OS ⟂ Investment OS ⟂ Execution"
-                    right={sep && <Badge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="아키텍처 분리" title="Research OS ⟂ Investment OS ⟂ Execution"
+                    right={sep && <ApBadge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</ApBadge>} />
                   <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1">
                     {(sep?.invariants ?? []).map((i) => (
                       <div key={i.check} className="flex items-center gap-2">
@@ -737,7 +755,7 @@ function InvestmentOsInner() {
                       </div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
             )}
 
@@ -750,9 +768,9 @@ function InvestmentOsInner() {
                 </div>
 
                 {/* Execution ladder — 인터랙티브 승인 워크플로 */}
-                <Panel>
-                  <PanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리"
-                    right={<Badge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리"
+                    right={<ApBadge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
                   <div className="p-4 space-y-3">
                     <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed bg-[var(--c-panel-2)] px-3 py-2">
                       전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
@@ -836,7 +854,7 @@ function InvestmentOsInner() {
                         {history.map((h, i) => (
                           <div key={i} className="flex items-center gap-2 text-[11px] c-num text-[var(--c-text-3)]">
                             <span className="w-16">{h.ts}</span>
-                            <Badge tone={h.advanced ? "pos" : "neg"}>{h.advanced ? "전진함" : "차단됨"}</Badge>
+                            <ApBadge tone={h.advanced ? "pos" : "neg"}>{h.advanced ? "전진함" : "차단됨"}</ApBadge>
                             <span>{RUNG_LABEL[h.from]} → {RUNG_LABEL[h.to]}</span>
                             {!h.advanced && <span className="text-[var(--c-warn)] truncate">{h.reason}</span>}
                           </div>
@@ -848,11 +866,11 @@ function InvestmentOsInner() {
                       각 전진에 사람 승인 필수 + 4게이트 통과. <span className="text-[var(--c-neg)]">AUTO_EXECUTION 은 영구 비활성 — 승인·게이트와 무관하게 차단.</span> 승인은 주문/실행이 아니라 준비도 상태 전이(자문). Kill switch 시 전부 페이퍼 강제.
                     </div>
                   </div>
-                </Panel>
+                </ApPanel>
 
-                <Panel>
-                  <PanelHead kicker="monitor (기존 API)" title="파이프라인 모니터" />
-                  {monitor.loading && <div className="p-4"><SkeletonLines rows={2} /></div>}
+                <ApPanel>
+                  <ApPanelHead kicker="파이프라인 상태" title="파이프라인 모니터" />
+                  {monitor.loading && <div className="p-4"><ApSkeletonLines rows={2} /></div>}
                   {monitor.data && (
                     <div className="p-4 space-y-1.5">
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -866,12 +884,12 @@ function InvestmentOsInner() {
                       <div className="text-[11px] text-[var(--c-text-3)]">제안 {monitor.data.proposals} · 승인 {monitor.data.approvals} · 익스포저 {monitor.data.capital.exposure_pct}%</div>
                     </div>
                   )}
-                </Panel>
+                </ApPanel>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <Panel>
-                    <PanelHead kicker="orders (기존 API)" title="주문" />
-                    {orders.loading && <div className="p-4"><SkeletonLines rows={3} /></div>}
+                  <ApPanel>
+                    <ApPanelHead kicker="주문 내역" title="주문" />
+                    {orders.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                     {orders.data && (
                       <div className="p-4 space-y-1 text-[11px] text-[var(--c-text-2)]">
                         <div>라이프사이클 이벤트: <span className="c-num text-[var(--c-text-1)]">{orders.data.lifecycle_events}</span></div>
@@ -879,19 +897,19 @@ function InvestmentOsInner() {
                         <div className="text-[11px] text-[var(--c-text-3)]">{orders.data.note}</div>
                       </div>
                     )}
-                  </Panel>
+                  </ApPanel>
 
-                  <Panel>
-                    <PanelHead kicker="live-intelligence (기존 API)" title="라이브 데이터 소스"
-                      right={live.data && <Badge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"} title={live.data.data_health.overall_status}>{DATA_HEALTH_LABEL[live.data.data_health.overall_status] ?? live.data.data_health.overall_status}</Badge>} />
-                    {live.loading && <div className="p-4"><SkeletonLines rows={2} /></div>}
+                  <ApPanel>
+                    <ApPanelHead kicker="라이브 데이터" title="라이브 데이터 소스"
+                      right={live.data && <ApBadge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"} title={live.data.data_health.overall_status}>{DATA_HEALTH_LABEL[live.data.data_health.overall_status] ?? live.data.data_health.overall_status}</ApBadge>} />
+                    {live.loading && <div className="p-4"><ApSkeletonLines rows={2} /></div>}
                     {live.data && (
                       <div className="p-4 space-y-1 text-[11px] text-[var(--c-text-2)]">
                         <div>소스 {live.data.data_sources.available_count}/{live.data.data_sources.count}개 사용 가능</div>
                         <div>이슈: {live.data.data_health.issue_count}</div>
                       </div>
                     )}
-                  </Panel>
+                  </ApPanel>
                 </div>
               </div>
             )}
@@ -944,12 +962,14 @@ function InvestmentOsInner() {
 
         {data && (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              <ApStatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`research 무변경: ${!data.knowledge.research_os_modified ? "예" : "아니오"}`} tone="hud" />
-              <ApStatTile label="포트폴리오 포지션" value={String(Object.keys(weights).length)} sub={data.portfolio.method} tone="pos" />
-              <ApStatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`override 불가: ${!data.compliance.human_can_override ? "예" : "아니오"}`} tone={data.compliance.compliant ? "pos" : "neg"} />
-              <ApStatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`bypass: ${data.gates.bypass_possible ? "가능" : "불가"}`} tone={data.gates.passed ? "pos" : "warn"} />
-            </div>
+            {tab !== "risk" && (
+              <div className="grid grid-cols-2 gap-3">
+                <ApStatTile label="소비된 리서치" value={String(data.knowledge.consumed_candidates)} sub={`리서치 원본 변경: ${data.knowledge.research_os_modified ? "있음" : "없음"}`} tone="hud" />
+                <ApStatTile label="포트폴리오 포지션" value={String(Object.keys(weights).length)} sub={PORTFOLIO_METHOD_LABEL[data.portfolio.method] ?? data.portfolio.method} tone="pos" />
+                <ApStatTile label="컴플라이언스" value={data.compliance.compliant ? "통과" : "실패"} sub={`사람 개입: ${data.compliance.human_can_override ? "가능" : "불가"}`} tone={data.compliance.compliant ? "pos" : "neg"} />
+                <ApStatTile label="필수 게이트" value={data.gates.passed ? "통과" : "차단"} sub={`우회: ${data.gates.bypass_possible ? "가능" : "불가"}`} tone={data.gates.passed ? "pos" : "warn"} />
+              </div>
+            )}
 
             <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1">
               {TABS.map((t) => (
@@ -964,7 +984,7 @@ function InvestmentOsInner() {
             {tab === "overview" && (
               <div className="space-y-4">
                 <ApPanel>
-                  <ApPanelHead kicker="monthly-review" title="월간 의사결정 루프" right={<ApBadge tone="mute">제안 라벨</ApBadge>} />
+                  <ApPanelHead kicker="월간 리뷰" title="월간 의사결정 루프" right={<ApBadge tone="mute">제안 라벨</ApBadge>} />
                   <div className="p-4 space-y-2">
                     {monthly.loading && <ApSkeletonLines rows={3} />}
                     {monthly.data && monthly.data.strategies.length === 0 && (
@@ -995,7 +1015,7 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="research-organization" title="시스템 헬스" />
+                  <ApPanelHead kicker="연구 조직 현황" title="시스템 헬스" />
                   {org.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {org.err && <div className="p-4 text-xs text-ap-down">{org.err}</div>}
                   {org.data && (
@@ -1031,7 +1051,7 @@ function InvestmentOsInner() {
                         <ApMeter value={w} tone="hud" />
                       </div>
                     ))}
-                    <div className="text-[11px] text-ap-ink-3 pt-1">우측 수치 = position sizing 추천(notional 1M 기준). 자본 배분/집행 아님.</div>
+                    <div className="text-[11px] text-ap-ink-3 pt-1">우측 수치 = 포지션 사이징 추천(명목가치 100만 기준). 자본 배분/집행 아님.</div>
                     {alloc.data && (alloc.data.derived_proposal?.length ?? 0) > 0 && (
                       <div className="pt-2 border-t border-ap-line space-y-1">
                         <div className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">배분 파생 제안</div>
@@ -1047,13 +1067,13 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="/console/positions" title="포지션" right={positions.data && <ApBadge tone="mute">{positions.data.count}건</ApBadge>} />
+                  <ApPanelHead kicker="보유 포지션" title="포지션" right={positions.data && <ApBadge tone="mute">{positions.data.count}건</ApBadge>} />
                   <div className="p-4 space-y-1.5">
                     {positions.loading && <ApSkeletonLines rows={4} />}
                     {positions.data && positions.data.count === 0 && <div className="text-xs text-ap-ink-3">{positions.data.note}</div>}
                     {positions.data && positions.data.positions.slice(0, 8).map((p, i) => (
                       <div key={i} className="text-xs font-data text-ap-ink-2 border-b border-ap-line last:border-0 py-1.5 space-y-0.5">
-                        {Object.entries(p).slice(0, 5).map(([k, v]) => <div key={k}>{k}: {String(v)}</div>)}
+                        {Object.entries(p).slice(0, 5).map(([k, v]) => <div key={k}>{POSITION_FIELD_LABEL[k] ?? k}: {String(v)}</div>)}
                       </div>
                     ))}
                   </div>
@@ -1064,18 +1084,18 @@ function InvestmentOsInner() {
             {tab === "strategy" && (
               <div className="space-y-4">
                 <ApPanel>
-                  <ApPanelHead kicker="Forward Learning · STEP4" title="전략별 검증 상태" right={<ApBadge tone="mute">조인 · 새 원장 없음</ApBadge>} />
+                  <ApPanelHead kicker="포워드 러닝 검증" title="전략별 검증 상태" right={<ApBadge tone="mute">조인 · 새 원장 없음</ApBadge>} />
                   <div className="p-4 space-y-3">
                     {sideLoading && <ApSkeletonLines rows={4} />}
                     {!sideLoading && acct && (
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-[11px] tracking-[0.2em] text-ap-brand uppercase">Edge Score</span>
+                        <span className="text-[11px] tracking-[0.2em] text-ap-brand uppercase">엣지 스코어</span>
                         {acct.edge_score.status === "PROVISIONAL"
                           ? <ApBadge tone="mute">미확정 — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨</ApBadge>
                           : <ApBadge tone="pos">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</ApBadge>}
                         {conn && (
                           <ApBadge tone={conn.validation_score.status === "PROVISIONAL" ? "mute" : "pos"}>
-                            Validation Score: {SCORE_STATUS_LABEL[conn.validation_score.status ?? ""] ?? conn.validation_score.status}
+                            검증 스코어: {SCORE_STATUS_LABEL[conn.validation_score.status ?? ""] ?? conn.validation_score.status}
                           </ApBadge>
                         )}
                       </div>
@@ -1092,15 +1112,15 @@ function InvestmentOsInner() {
                           {r.thesis && <div className="text-xs text-ap-ink-2">{r.thesis}</div>}
                           <div className="flex flex-wrap gap-1.5">
                             <ApBadge tone={eq.tone}>근거: {eq.label}</ApBadge>
-                            <ApBadge tone={fp.tone}>Forward: {fp.label}</ApBadge>
+                            <ApBadge tone={fp.tone}>포워드: {fp.label}</ApBadge>
                             <ApBadge tone={rs.tone}>리스크: {rs.label}</ApBadge>
-                            {!r.prediction_captured && <ApBadge tone="warn">Thesis 사전등록 안 됨</ApBadge>}
+                            {!r.prediction_captured && <ApBadge tone="warn">가설 사전등록 안 됨</ApBadge>}
                           </div>
                           {(r.next_possible?.length ?? 0) > 0 && (
                             <div className="text-xs text-ap-ink-3">
-                              다음 가능 상태: {r.next_possible!.join(", ")}
+                              다음 가능 상태: {r.next_possible!.map((s) => STATUS_LABEL[s] ?? s).join(", ")}
                               {(r.human_approval_required_next?.length ?? 0) > 0 &&
-                                <span className="text-ap-caution"> · 사람 승인 필요: {r.human_approval_required_next!.join(", ")}</span>}
+                                <span className="text-ap-caution"> · 사람 승인 필요: {r.human_approval_required_next!.map((s) => STATUS_LABEL[s] ?? s).join(", ")}</span>}
                             </div>
                           )}
                         </div>
@@ -1108,16 +1128,16 @@ function InvestmentOsInner() {
                     })}
                     {fwd && (
                       <div className="text-xs text-ap-ink-3 pt-1">
-                        커버리지 갭: thesis 없음 {fwd.coverage_gaps.missing_thesis} ·
-                        thesis 사전등록 안 됨 {fwd.coverage_gaps.missing_prediction_capture} ·
-                        forward 데이터 없음 {fwd.coverage_gaps.missing_forward_data} / {fwd.count}
+                        커버리지 갭: 가설 없음 {fwd.coverage_gaps.missing_thesis} ·
+                        가설 사전등록 안 됨 {fwd.coverage_gaps.missing_prediction_capture} ·
+                        포워드 데이터 없음 {fwd.coverage_gaps.missing_forward_data} / {fwd.count}
                       </div>
                     )}
                   </div>
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="validation-loop" title="라이프사이클 보드"
+                  <ApPanelHead kicker="검증 루프" title="라이프사이클 보드"
                     right={valLoop.data && <ApBadge tone={valLoop.data.loop_status.release_ready ? "pos" : "mute"}>{valLoop.data.loop_status.release_ready ? "출시 준비 완료" : "진행 중"}</ApBadge>} />
                   {valLoop.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {valLoop.data && (
@@ -1137,14 +1157,14 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="validation" title="검증 게이트" />
+                  <ApPanelHead kicker="검증" title="검증 게이트" />
                   {val.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {val.data && (
                     <div className="p-4 space-y-1.5">
-                      <div className="flex flex-wrap gap-1.5">{val.data.gates.map((g) => <ApBadge key={g} tone="mute">{g}</ApBadge>)}</div>
+                      <div className="flex flex-wrap gap-1.5">{val.data.gates.map((g) => <ApBadge key={g} tone="mute">{GATE_LABEL[g] ?? g}</ApBadge>)}</div>
                       <div className="text-xs text-ap-ink-3">레드팀 n={val.data.redteam.n} · 사람 동의={val.data.redteam.human_redteam_agree ?? "—"}</div>
                       <div className="flex flex-wrap gap-2 text-xs text-ap-ink-2">
-                        {Object.entries(val.data.experiment_status).map(([k, v]) => <span key={k} className="font-data">{k}: {v}</span>)}
+                        {Object.entries(val.data.experiment_status).map(([k, v]) => <span key={k} className="font-data">{EXPERIMENT_STATUS_LABEL[k] ?? k}: {v}</span>)}
                       </div>
                     </div>
                   )}
@@ -1155,7 +1175,7 @@ function InvestmentOsInner() {
             {tab === "research" && (
               <div className="space-y-4">
                 <ApPanel>
-                  <ApPanelHead kicker="market-cockpit" title="마켓 / 리서치 인텔리전스" right={market.data && <ApBadge tone="hud">{market.data.market_state.regime}</ApBadge>} />
+                  <ApPanelHead kicker="시장 현황" title="마켓 / 리서치 인텔리전스" right={market.data && <ApBadge tone="hud">{market.data.market_state.regime}</ApBadge>} />
                   {market.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {market.data && (
                     <div className="p-4 space-y-1.5">
@@ -1163,7 +1183,7 @@ function InvestmentOsInner() {
                       {market.data.top_opportunities.map((o, i) => (
                         <div key={i} className="flex items-center justify-between gap-2 text-xs">
                           <span className="text-ap-ink-1 truncate">{o.name} <span className="text-ap-ink-3">· {o.kind}</span></span>
-                          <span className="font-data text-ap-ink-3 shrink-0">{o.confidence} · EV {o.expected_value}</span>
+                          <span className="font-data text-ap-ink-3 shrink-0">{o.confidence} · 기대값 {o.expected_value}</span>
                         </div>
                       ))}
                       <div className="text-xs text-ap-ink-3">헬스 스코어 {market.data.health_score} · 상위 리스크 {market.data.risk.top_category ?? "—"}</div>
@@ -1172,7 +1192,7 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="institutional-intelligence" title="기관 인텔리전스" right={inst.data && <ApBadge tone="mute">{inst.data.data_production_health.overall_status}</ApBadge>} />
+                  <ApPanelHead kicker="기관 데이터" title="기관 인텔리전스" right={inst.data && <ApBadge tone="mute">{inst.data.data_production_health.overall_status}</ApBadge>} />
                   {inst.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {inst.data && (
                     <div className="p-4 space-y-1.5 text-xs text-ap-ink-2">
@@ -1184,21 +1204,21 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="data-connection" title="예측 커버리지" />
+                  <ApPanelHead kicker="예측 데이터 연결" title="예측 커버리지" />
                   {sideLoading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {!sideLoading && conn && (
                     <div className="p-4 space-y-1.5 text-xs text-ap-ink-2">
                       <div>총 예측 수: <span className="font-data text-ap-ink-1">{conn.prediction_coverage.total ?? 0}</span></div>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(conn.prediction_coverage.by_source ?? {}).map(([k, v]) => <ApBadge key={k} tone="mute">{k}: {v}</ApBadge>)}
+                        {Object.entries(conn.prediction_coverage.by_source ?? {}).map(([k, v]) => <ApBadge key={k} tone="mute">{PREDICTION_SOURCE_LABEL[k] ?? k}: {v}</ApBadge>)}
                       </div>
-                      <div>Invalidation 누락: {conn.prediction_coverage.missing_invalidation_pct ?? "—"}% · Horizon 누락: {conn.prediction_coverage.missing_horizon_pct ?? "—"}%</div>
+                      <div>무효화 조건 누락: {conn.prediction_coverage.missing_invalidation_pct ?? "—"}% · 기간(호라이즌) 누락: {conn.prediction_coverage.missing_horizon_pct ?? "—"}%</div>
                     </div>
                   )}
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="/console/financials-live" title="재무제표 실측 조회" />
+                  <ApPanelHead kicker="실시간 재무제표" title="재무제표 실측 조회" />
                   <div className="p-4 space-y-3">
                     <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); runFinLookup(); }}>
                       <input
@@ -1226,7 +1246,7 @@ function InvestmentOsInner() {
                         {Object.entries(finData)
                           .filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined)
                           .map(([k, v]) => (
-                            <ApStatTile key={k} label={k} value={typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v)} tone="hud" />
+                            <ApStatTile key={k} label={FINANCIALS_FIELD_LABEL[k] ?? k} value={typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v)} tone="hud" />
                           ))}
                       </div>
                     )}
@@ -1265,7 +1285,7 @@ function InvestmentOsInner() {
                   )}
 
                   <ApPanel>
-                    <ApPanelHead kicker="agents + council" title="협의회" />
+                    <ApPanelHead kicker="에이전트 협의회" title="협의회" />
                     <div className="p-4">
                       {agents.loading && <ApSkeletonLines rows={3} />}
                       {agents.data && <AgentTree node={agents.data.council} tone="ap" />}
@@ -1283,7 +1303,7 @@ function InvestmentOsInner() {
                       <div className="grid grid-cols-3 gap-2">
                         <ApStatTile label="최대비중" value={`${((data.exposure.max_weight ?? 0) * 100).toFixed(0)}%`} />
                         <ApStatTile label="포지션" value={data.exposure.n_positions ?? 0} />
-                        <ApStatTile label="HHI" value={(data.exposure.herfindahl ?? 0).toFixed(2)} />
+                        <ApStatTile label="쏠림 지수(HHI)" value={(data.exposure.herfindahl ?? 0).toFixed(2)} />
                       </div>
                       {riskGov.data && (
                         <div className="text-xs text-ap-ink-2">자율성 레벨 {riskGov.data.autonomy.level} · 실행 리스크 이벤트 {riskGov.data.execution_risk_events}</div>
@@ -1401,7 +1421,7 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="monitor" title="파이프라인 모니터" />
+                  <ApPanelHead kicker="파이프라인 상태" title="파이프라인 모니터" />
                   {monitor.loading && <div className="p-4"><ApSkeletonLines rows={2} /></div>}
                   {monitor.data && (
                     <div className="p-4 space-y-1.5">
@@ -1419,7 +1439,7 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="orders" title="주문" />
+                  <ApPanelHead kicker="주문 내역" title="주문" />
                   {orders.loading && <div className="p-4"><ApSkeletonLines rows={3} /></div>}
                   {orders.data && (
                     <div className="p-4 space-y-1 text-xs text-ap-ink-2">
@@ -1431,7 +1451,7 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="live-intelligence" title="라이브 데이터 소스" right={live.data && <ApBadge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"}>{DATA_HEALTH_LABEL[live.data.data_health.overall_status] ?? live.data.data_health.overall_status}</ApBadge>} />
+                  <ApPanelHead kicker="라이브 데이터" title="라이브 데이터 소스" right={live.data && <ApBadge tone={live.data.data_health.overall_status === "ok" ? "pos" : "warn"}>{DATA_HEALTH_LABEL[live.data.data_health.overall_status] ?? live.data.data_health.overall_status}</ApBadge>} />
                   {live.loading && <div className="p-4"><ApSkeletonLines rows={2} /></div>}
                   {live.data && (
                     <div className="p-4 space-y-1 text-xs text-ap-ink-2">

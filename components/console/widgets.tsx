@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Panel, Dot } from "@/components/console/primitives";
+import { ApPanel, ApDot } from "@/components/ui/ApPrimitives";
 import type { AgentNode } from "@/lib/console-api";
 
 // ── manually-triggered fetch hook (검색창 등 사용자 입력으로 재실행, in-flight 요청 취소) ──
@@ -134,7 +134,7 @@ export function StateBlock({ loading, err, empty, emptyNote, children }:
   );
   if (empty) return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Dot tone="mute" />
+      <ApDot tone="mute" />
       <div className="mt-3 text-[13px] text-[var(--c-text-2)]">데이터 없음</div>
       {emptyNote && <div className="mt-1 text-[11px] text-[var(--c-text-3)] max-w-md">{emptyNote}</div>}
     </div>
@@ -221,4 +221,3 @@ export function AgentTree({
   );
 }
 
-export { Panel };

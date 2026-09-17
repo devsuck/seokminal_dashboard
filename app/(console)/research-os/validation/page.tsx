@@ -2,7 +2,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader, TabBar, useAbortableRun } from "@/components/console/widgets";
-import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
 import {
   ApPanel, ApPanelHead, ApBadge, ApStatTile,
   ApSkeleton, ApSkeletonStatTile, ApSkeletonLines,
@@ -103,20 +102,20 @@ function ValidationTab() {
       <div className="hidden md:block min-h-full">
         <PageHeader kicker="P101-110" title="리서치 검증 루프"
           right={ls && <div className="flex gap-1.5">
-            <Badge tone={ls.loop_complete ? "pos" : "mute"}>{ls.loop_complete ? "루프 완료" : "루프"}</Badge>
-            <Badge tone={ls.safe ? "pos" : "neg"}>{ls.safe ? "안전" : "위험"}</Badge>
-            <Badge tone={ls.release_ready ? "pos" : "warn"}>v2.0 {ls.release_ready ? "준비완료" : "대기중"}</Badge>
+            <ApBadge tone={ls.loop_complete ? "pos" : "mute"}>{ls.loop_complete ? "루프 완료" : "루프"}</ApBadge>
+            <ApBadge tone={ls.safe ? "pos" : "neg"}>{ls.safe ? "안전" : "위험"}</ApBadge>
+            <ApBadge tone={ls.release_ready ? "pos" : "warn"}>v2.0 {ls.release_ready ? "준비완료" : "대기중"}</ApBadge>
           </div>} />
         <div className="p-5 space-y-5">
           {err && <div className="c-panel p-4 text-[13px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
-          {ls && <div className="flex flex-wrap gap-1.5">{ls.capabilities.map((c) => <Badge key={c} tone="hud">{c}</Badge>)}</div>}
+          {ls && <div className="flex flex-wrap gap-1.5">{ls.capabilities.map((c) => <ApBadge key={c} tone="hud">{c}</ApBadge>)}</div>}
 
           {data && (
             <>
               {/* 1. Strategy Lifecycle Board */}
-              <Panel>
-                <PanelHead kicker="1 · 라이프사이클" title="전략 라이프사이클 보드"
-                  right={<Badge tone="hud">전략 {data.lifecycle_board.count}개</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="1 · 라이프사이클" title="전략 라이프사이클 보드"
+                  right={<ApBadge tone="hud">전략 {data.lifecycle_board.count}개</ApBadge>} />
                 <div className="p-4">
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {data.lifecycle_board.lifecycle.map((s) => (
@@ -140,18 +139,18 @@ function ValidationTab() {
                                 boxShadow: c.current ? `0 0 6px ${STATE_TONE[c.state] ?? "var(--c-hud)"}` : "none" }} />
                           ))}
                         </div>
-                        <Badge tone="hud" title={row.current_state}>{STATE_LABEL[row.current_state] ?? row.current_state}</Badge>
+                        <ApBadge tone="hud" title={row.current_state}>{STATE_LABEL[row.current_state] ?? row.current_state}</ApBadge>
                       </div>
                     ))}
                   </div>
                 </div>
-              </Panel>
+              </ApPanel>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 2. Validation Panel */}
-                <Panel>
-                  <PanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
-                    right={vp && <Badge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</Badge>} />
+                {/* 2. Validation ApPanel */}
+                <ApPanel>
+                  <ApPanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
+                    right={vp && <ApBadge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</ApBadge>} />
                   <div className="p-4 space-y-3">
                     {vp?.is_demo && <div className="text-[11px] text-[var(--c-text-3)] uppercase tracking-[0.15em]">데모 · 데이터 소스 연결 시 실데이터</div>}
                     <div className="grid grid-cols-3 gap-2 text-center">
@@ -175,16 +174,16 @@ function ValidationTab() {
                       </div>
                     )}
                   </div>
-                </Panel>
+                </ApPanel>
 
-                {/* 3. Quality Panel */}
-                <Panel>
-                  <PanelHead kicker="3 · 품질" title="리서치 품질"
-                    right={qp && <Badge tone={qp.grade === "A" || qp.grade === "B" ? "pos" : "warn"}>등급 {qp.grade}</Badge>} />
+                {/* 3. Quality ApPanel */}
+                <ApPanel>
+                  <ApPanelHead kicker="3 · 품질" title="리서치 품질"
+                    right={qp && <ApBadge tone={qp.grade === "A" || qp.grade === "B" ? "pos" : "warn"}>등급 {qp.grade}</ApBadge>} />
                   <div className="p-4 space-y-3">
                     <div className="flex gap-3">
-                      <StatTile label="품질 점수" value={fmt(qp?.quality_score)} tone={((qp?.quality_score ?? 0) >= 65) ? "pos" : "warn"} />
-                      <StatTile label="게이트" value={qp?.gate === "ACCEPT" ? "ACCEPT" : "증거 필요"} tone={qp?.gate === "ACCEPT" ? "pos" : "warn"} />
+                      <ApStatTile label="품질 점수" value={fmt(qp?.quality_score)} tone={((qp?.quality_score ?? 0) >= 65) ? "pos" : "warn"} />
+                      <ApStatTile label="게이트" value={qp?.gate === "ACCEPT" ? "ACCEPT" : "증거 필요"} tone={qp?.gate === "ACCEPT" ? "pos" : "warn"} />
                     </div>
                     <div className="space-y-1">
                       {Object.entries(qp?.core_dimensions ?? {}).map(([k, v]) => (
@@ -205,26 +204,26 @@ function ValidationTab() {
                       <div className="text-[11px] text-[var(--c-text-3)]">누락된 증거: {qp.missing_validations.join(", ")}</div>
                     )}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
 
               {/* 4. Review Queue */}
-              <Panel>
-                <PanelHead kicker="4 · 검토 대기열" title="필요한 사람 조치"
-                  right={<Badge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="4 · 검토 대기열" title="필요한 사람 조치"
+                  right={<ApBadge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</ApBadge>} />
                 <div className="p-4 space-y-1.5">
                   {data.review_queue.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">사람 검토가 필요한 운영 이벤트가 없습니다(원장 파생). 검증 실패·페이퍼 괴리·결정 대기 시 여기에 표시됩니다.</div>}
                   {data.review_queue.map((e, i) => (
                     <div key={i} className="bg-[var(--c-panel-2)] p-2.5 flex items-center justify-between gap-2">
                       <span className="text-[11px] text-[var(--c-text-1)] truncate">{e.label || e.ref}</span>
-                      <div className="flex gap-1.5 shrink-0"><Badge tone={EV_TONE[e.event_type] ?? "mute"} title={e.event_type}>{EV_LABEL[e.event_type] ?? e.event_type}</Badge><span className="text-[9px] c-num text-[var(--c-text-3)]">{e.source}</span></div>
+                      <div className="flex gap-1.5 shrink-0"><ApBadge tone={EV_TONE[e.event_type] ?? "mute"} title={e.event_type}>{EV_LABEL[e.event_type] ?? e.event_type}</ApBadge><span className="text-[9px] c-num text-[var(--c-text-3)]">{e.source}</span></div>
                     </div>
                   ))}
                   {Object.keys(data.ops_by_type).length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-1">{Object.entries(data.ops_by_type).map(([k, n]) => <span key={k} className="text-[9px] c-num text-[var(--c-text-3)] px-1.5 py-0.5 border border-[var(--c-border)]">{k}: {n}</span>)}</div>
                   )}
                 </div>
-              </Panel>
+              </ApPanel>
               <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
             </>
           )}
@@ -286,7 +285,7 @@ function ValidationTab() {
                 </div>
               </ApPanel>
 
-              {/* 2. Validation Panel */}
+              {/* 2. Validation ApPanel */}
               <ApPanel>
                 <ApPanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
                   right={vp && <ApBadge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</ApBadge>} />
@@ -315,7 +314,7 @@ function ValidationTab() {
                 </div>
               </ApPanel>
 
-              {/* 3. Quality Panel */}
+              {/* 3. Quality ApPanel */}
               <ApPanel>
                 <ApPanelHead kicker="3 · 품질" title="리서치 품질"
                   right={qp && <ApBadge tone={qp.grade === "A" || qp.grade === "B" ? "pos" : "warn"}>등급 {qp.grade}</ApBadge>} />
@@ -395,8 +394,8 @@ function ProductionTab() {
       <div className="hidden md:block min-h-full">
         <PageHeader kicker="P161-170 · v2.0" title="위원회 & 프로덕션"
           right={ov && <div className="flex gap-1.5">
-            <Badge tone={ov.release_ready ? "pos" : "warn"}>{ov.release_ready ? "릴리스 준비완료" : "v2.0"}</Badge>
-            {ov.architecture_frozen && <Badge tone="hud">고정됨</Badge>}
+            <ApBadge tone={ov.release_ready ? "pos" : "warn"}>{ov.release_ready ? "릴리스 준비완료" : "v2.0"}</ApBadge>
+            {ov.architecture_frozen && <ApBadge tone="hud">고정됨</ApBadge>}
           </div>} />
         <div className="p-5 space-y-5">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
@@ -409,16 +408,16 @@ function ProductionTab() {
           {data && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatTile label="v2.0 릴리스" value={ov?.release_ready ? "준비완료" : "대기중"} sub={ov?.architecture_frozen ? "아키텍처 고정됨" : ""} tone={ov?.release_ready ? "pos" : "warn"} />
-                <StatTile label="확신도" value={cv?.level ? (CONV_LABEL[cv.level] ?? cv.level) : "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
-                <StatTile label="거버넌스" value={gov?.governance ?? "—"} sub={`${gov?.checks.filter((c) => c.ok).length ?? 0}/${gov?.checks.length ?? 0} 항목`} tone={gov?.passed ? "pos" : "warn"} />
-                <StatTile label="프로덕션" value={prod?.overall_severity ?? "—"} sub={`${prod?.counts?.OK ?? 0} OK · ${prod?.counts?.WARNING ?? 0} 경고`} tone={SEV_TONE[prod?.overall_severity ?? ""] ?? "warn"} />
+                <ApStatTile label="v2.0 릴리스" value={ov?.release_ready ? "준비완료" : "대기중"} sub={ov?.architecture_frozen ? "아키텍처 고정됨" : ""} tone={ov?.release_ready ? "pos" : "warn"} />
+                <ApStatTile label="확신도" value={cv?.level ? (CONV_LABEL[cv.level] ?? cv.level) : "—"} sub={`점수 ${cv?.score ?? 0}`} tone={CONV_TONE[cv?.level ?? ""] === "warn" ? "warn" : "pos"} />
+                <ApStatTile label="거버넌스" value={gov?.governance ?? "—"} sub={`${gov?.checks.filter((c) => c.ok).length ?? 0}/${gov?.checks.length ?? 0} 항목`} tone={gov?.passed ? "pos" : "warn"} />
+                <ApStatTile label="프로덕션" value={prod?.overall_severity ?? "—"} sub={`${prod?.counts?.OK ?? 0} OK · ${prod?.counts?.WARNING ?? 0} 경고`} tone={SEV_TONE[prod?.overall_severity ?? ""] ?? "warn"} />
               </div>
-              {ov && <div className="flex flex-wrap gap-1.5">{ov.capabilities.map((c) => <Badge key={c} tone="hud">{c}</Badge>)}</div>}
+              {ov && <div className="flex flex-wrap gap-1.5">{ov.capabilities.map((c) => <ApBadge key={c} tone="hud">{c}</ApBadge>)}</div>}
 
               {/* Committee Packet */}
-              <Panel>
-                <PanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 70) || "—"} right={<Badge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 70) || "—"} right={<ApBadge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</ApBadge>} />
                 <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
                     <div className="text-[9px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
@@ -429,22 +428,22 @@ function ProductionTab() {
                     {(cp?.limitations ?? []).map((l, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)]">· {l}</div>)}
                   </div>
                 </div>
-              </Panel>
+              </ApPanel>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Debate */}
-                <Panel>
-                  <PanelHead kicker="토론 패널" title="강세 / 약세 / 리스크" />
+                <ApPanel>
+                  <ApPanelHead kicker="토론 패널" title="강세 / 약세 / 리스크" />
                   <div className="p-4 space-y-2">
-                    <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="pos">강세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map(evidenceText).join("; ") || "—"}</div></div>
-                    <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="neg">약세</Badge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map(evidenceText).join("; ") || "—"}</div></div>
-                    {data.debate.historical_counterexamples.length > 0 && <div className="bg-[var(--c-panel-2)] p-2.5"><Badge tone="warn">반례</Badge>{data.debate.historical_counterexamples.map((c, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)] mt-1">{c.topic}: {c.study_a} vs {c.study_b} — {c.explanation}</div>)}</div>}
+                    <div className="bg-[var(--c-panel-2)] p-2.5"><ApBadge tone="pos">강세</ApBadge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bull_case.evidence ?? []).slice(0, 2).map(evidenceText).join("; ") || "—"}</div></div>
+                    <div className="bg-[var(--c-panel-2)] p-2.5"><ApBadge tone="neg">약세</ApBadge><div className="text-[11px] text-[var(--c-text-2)] mt-1">{(data.debate.bear_case.evidence ?? []).slice(0, 3).map(evidenceText).join("; ") || "—"}</div></div>
+                    {data.debate.historical_counterexamples.length > 0 && <div className="bg-[var(--c-panel-2)] p-2.5"><ApBadge tone="warn">반례</ApBadge>{data.debate.historical_counterexamples.map((c, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)] mt-1">{c.topic}: {c.study_a} vs {c.study_b} — {c.explanation}</div>)}</div>}
                   </div>
-                </Panel>
+                </ApPanel>
 
                 {/* Conviction factors */}
-                <Panel>
-                  <PanelHead kicker="확신도" title="연구 확신도" right={cv && <Badge tone={CONV_TONE[cv.level] ?? "mute"} title={cv.level}>{CONV_LABEL[cv.level] ?? cv.level}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="확신도" title="연구 확신도" right={cv && <ApBadge tone={CONV_TONE[cv.level] ?? "mute"} title={cv.level}>{CONV_LABEL[cv.level] ?? cv.level}</ApBadge>} />
                   <div className="p-4 space-y-1.5">
                     {Object.entries(cv?.factors ?? {}).map(([k, v]) => (
                       <div key={k} className="flex items-center gap-2">
@@ -455,13 +454,13 @@ function ProductionTab() {
                     ))}
                     <div className="text-[9px] text-[var(--c-text-3)] pt-1">연구 확신도 — 투자 등급 아님.</div>
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Governance */}
-                <Panel>
-                  <PanelHead kicker="거버넌스" title="컴플라이언스" right={gov && <Badge tone={gov.passed ? "pos" : "warn"}>{gov.governance}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="거버넌스" title="컴플라이언스" right={gov && <ApBadge tone={gov.passed ? "pos" : "warn"}>{gov.governance}</ApBadge>} />
                   <div className="p-4 space-y-1">
                     {(gov?.checks ?? []).map((c) => (
                       <div key={c.check} className="flex items-center gap-2">
@@ -471,42 +470,42 @@ function ProductionTab() {
                       </div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
 
                 {/* Production Health */}
-                <Panel>
-                  <PanelHead kicker="프로덕션 헬스" title="컴포넌트" right={prod && <Badge tone={SEV_TONE[prod.overall_severity] ?? "mute"}>{prod.overall_severity}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="프로덕션 헬스" title="컴포넌트" right={prod && <ApBadge tone={SEV_TONE[prod.overall_severity] ?? "mute"}>{prod.overall_severity}</ApBadge>} />
                   <div className="p-4 space-y-1">
                     {(prod?.components ?? []).map((c) => (
                       <div key={c.component} className="flex items-center gap-2">
-                        <Badge tone={SEV_TONE[c.severity] ?? "mute"}>{c.severity}</Badge>
+                        <ApBadge tone={SEV_TONE[c.severity] ?? "mute"}>{c.severity}</ApBadge>
                         <span className="text-[11px] text-[var(--c-text-1)] w-40">{c.component}</span>
                         <span className="text-[9px] text-[var(--c-text-3)] flex-1 truncate">{c.detail}</span>
                       </div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
 
               {/* Portfolio Research + Review Queue */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Panel>
-                  <PanelHead kicker="포트폴리오 리서치" title="전략 헬스" right={<Badge tone="hud">{data.portfolio_research.strategy_health.length}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="포트폴리오 리서치" title="전략 헬스" right={<ApBadge tone="hud">{data.portfolio_research.strategy_health.length}</ApBadge>} />
                   <div className="p-4 space-y-1.5">
                     {data.portfolio_research.strategy_health.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">전략이 축적되면 노출·중첩·상관 뷰가 나타납니다(배분 아님).</div>}
                     {data.portfolio_research.strategy_health.map((s) => (
-                      <div key={s.strategy} className="flex items-center gap-2"><span className="text-[11px] text-[var(--c-text-1)] w-36 truncate">{s.strategy}</span><div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${s.health_score}%`, background: s.health_score >= 65 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>{s.review_needed && <Badge tone="warn">검토</Badge>}</div>
+                      <div key={s.strategy} className="flex items-center gap-2"><span className="text-[11px] text-[var(--c-text-1)] w-36 truncate">{s.strategy}</span><div className="flex-1 h-1.5 bg-[var(--c-border)] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${s.health_score}%`, background: s.health_score >= 65 ? "var(--c-pos)" : "var(--c-warn)" }} /></div>{s.review_needed && <ApBadge tone="warn">검토</ApBadge>}</div>
                     ))}
                     <div className="text-[9px] text-[var(--c-text-3)] pt-1">배분 제안 아님 — 연구 관점.</div>
                   </div>
-                </Panel>
-                <Panel>
-                  <PanelHead kicker="검토 대기열" title="휴먼 액션" right={<Badge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</Badge>} />
+                </ApPanel>
+                <ApPanel>
+                  <ApPanelHead kicker="검토 대기열" title="휴먼 액션" right={<ApBadge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</ApBadge>} />
                   <div className="p-4 space-y-1.5">
                     {data.review_queue.length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">사람 검토 대기 항목 없음.</div>}
                     {data.review_queue.map((r, i) => <div key={i} className="bg-[var(--c-panel-2)] p-2.5 flex items-center justify-between gap-2"><span className="text-[11px] text-[var(--c-text-1)] truncate">{r.task}</span><span className="text-[9px] c-num text-[var(--c-text-3)]">{r.source}</span></div>)}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
               <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
             </>
@@ -676,8 +675,8 @@ function IntelligencePlusTab() {
       <div className="hidden md:block min-h-full">
         <PageHeader kicker="P171-180 · 인텔리전스 강화" title="자율 연구 인텔리전스"
           right={av && <div className="flex gap-1.5">
-            <Badge tone={av.validated ? "pos" : "warn"}>{av.validated ? "검증됨" : "검토 필요"}</Badge>
-            <Badge tone="hud">재사용 {av.reuse_count}</Badge>
+            <ApBadge tone={av.validated ? "pos" : "warn"}>{av.validated ? "검증됨" : "검토 필요"}</ApBadge>
+            <ApBadge tone="hud">재사용 {av.reuse_count}</ApBadge>
           </div>} />
         <div className="p-5 space-y-5">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
@@ -690,23 +689,23 @@ function IntelligencePlusTab() {
           {data && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatTile label="창의적 가설" value={String(ch?.count ?? 0)} sub={`소스 ${(ch?.diversity?.sources ?? []).length}개`} tone="hud" />
-                <StatTile label="리서치 큐" value={String(cq?.queue_size ?? 0)} sub="상시 백로그" tone="pos" />
-                <StatTile label="지식 커버리지" value={cov?.research_coverage != null ? `${Math.round(cov.research_coverage * 100)}%` : "—"} sub={`공백 ${cov?.knowledge_gap != null ? Math.round(cov.knowledge_gap * 100) : 0}%`} tone="warn" />
-                <StatTile label="자율성 감사" value={av?.validated ? "통과" : "검토 필요"} sub={`중복 ${av?.duplicated_logic.length ?? 0} · 재사용 ${av?.reuse_count ?? 0}`} tone={av?.validated ? "pos" : "warn"} />
+                <ApStatTile label="창의적 가설" value={String(ch?.count ?? 0)} sub={`소스 ${(ch?.diversity?.sources ?? []).length}개`} tone="hud" />
+                <ApStatTile label="리서치 큐" value={String(cq?.queue_size ?? 0)} sub="상시 백로그" tone="pos" />
+                <ApStatTile label="지식 커버리지" value={cov?.research_coverage != null ? `${Math.round(cov.research_coverage * 100)}%` : "—"} sub={`공백 ${cov?.knowledge_gap != null ? Math.round(cov.knowledge_gap * 100) : 0}%`} tone="warn" />
+                <ApStatTile label="자율성 감사" value={av?.validated ? "통과" : "검토 필요"} sub={`중복 ${av?.duplicated_logic.length ?? 0} · 재사용 ${av?.reuse_count ?? 0}`} tone={av?.validated ? "pos" : "warn"} />
               </div>
               <div className="text-[11px] text-[var(--c-text-3)] leading-relaxed">{data.disclaimer}</div>
 
               {/* Creative hypotheses (P171) */}
-              <Panel>
-                <PanelHead kicker="P171 · 창의적 가설 발굴" title="다중 소스 가설"
-                  right={ch && <Badge tone="hud">{ch.count}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="P171 · 창의적 가설 발굴" title="다중 소스 가설"
+                  right={ch && <ApBadge tone="hud">{ch.count}</ApBadge>} />
                 <div className="p-4 space-y-2">
                   {(ch?.hypotheses ?? []).slice(0, 6).map((h) => (
                     <div key={h.hypothesis_id} className="bg-[var(--c-panel-2)] p-3">
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-[13px] text-[var(--c-text-1)]">{h.statement}</span>
-                        <Badge tone="mute">{h.source}</Badge>
+                        <ApBadge tone="mute">{h.source}</ApBadge>
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] c-num text-[var(--c-text-3)]">
                         <span>참신성 {h.novelty_score.toFixed(2)}</span>
@@ -722,17 +721,17 @@ function IntelligencePlusTab() {
                     </div>
                   ))}
                 </div>
-              </Panel>
+              </ApPanel>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Continuous queue (P173) */}
-                <Panel>
-                  <PanelHead kicker="P173 · 상시 리서치 큐" title="우선순위 백로그"
-                    right={cq && <Badge tone="pos">{cq.queue_size}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="P173 · 상시 리서치 큐" title="우선순위 백로그"
+                    right={cq && <ApBadge tone="pos">{cq.queue_size}</ApBadge>} />
                   <div className="p-4 space-y-1.5">
                     {Object.entries(cq?.by_source ?? {}).length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-1">
-                        {Object.entries(cq?.by_source ?? {}).map(([s, n]) => <Badge key={s} tone="mute">{s} {n}</Badge>)}
+                        {Object.entries(cq?.by_source ?? {}).map(([s, n]) => <ApBadge key={s} tone="mute">{s} {n}</ApBadge>)}
                       </div>
                     )}
                     {(cq?.backlog ?? []).slice(0, 8).map((b, i) => (
@@ -743,12 +742,12 @@ function IntelligencePlusTab() {
                       </div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
 
                 {/* Experiment prioritization (P174) */}
-                <Panel>
-                  <PanelHead kicker="P174 · 실험 우선순위화" title="다음 추천"
-                    right={<Badge tone="hud">{ep?.recommendations.length ?? 0}</Badge>} />
+                <ApPanel>
+                  <ApPanelHead kicker="P174 · 실험 우선순위화" title="다음 추천"
+                    right={<ApBadge tone="hud">{ep?.recommendations.length ?? 0}</ApBadge>} />
                   <div className="p-4 space-y-1.5">
                     {(ep?.recommendations ?? []).slice(0, 6).map((r, i) => (
                       <div key={i} className="bg-[var(--c-panel-2)] p-2.5">
@@ -760,13 +759,13 @@ function IntelligencePlusTab() {
                     ))}
                     <div className="text-[9px] text-[var(--c-text-3)] pt-1">추천만 — 사람이 다음 실험을 결정.</div>
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Planning (P177) */}
-                <Panel>
-                  <PanelHead kicker="P177 · 기관 차원 계획" title="의제 & 로드맵" />
+                <ApPanel>
+                  <ApPanelHead kicker="P177 · 기관 차원 계획" title="의제 & 로드맵" />
                   <div className="p-4 space-y-2">
                     {Object.entries(data.research_planning ?? {}).map(([horizon, plan]) => (
                       <div key={horizon} className="bg-[var(--c-panel-2)] p-2.5">
@@ -776,11 +775,11 @@ function IntelligencePlusTab() {
                       </div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
 
                 {/* Productivity (P179) + Reflection (P176) */}
-                <Panel>
-                  <PanelHead kicker="P179 · 생산성 + P176 · 회고" title="지표 & 교훈" />
+                <ApPanel>
+                  <ApPanelHead kicker="P179 · 생산성 + P176 · 회고" title="지표 & 교훈" />
                   <div className="p-4 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(data.productivity?.metrics ?? {}).slice(0, 6).map(([k, m]) => (
@@ -792,7 +791,7 @@ function IntelligencePlusTab() {
                     </div>
                     {(data.productivity?.recommendations ?? []).slice(0, 3).map((r, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <Badge tone={PRIO_TONE[r.priority] ?? "mute"}>{r.priority}</Badge>
+                        <ApBadge tone={PRIO_TONE[r.priority] ?? "mute"}>{r.priority}</ApBadge>
                         <span className="text-[11px] text-[var(--c-text-2)] flex-1 truncate">{r.recommendation}</span>
                       </div>
                     ))}
@@ -800,13 +799,13 @@ function IntelligencePlusTab() {
                       <div key={`r${i}`} className="text-[11px] text-[var(--c-text-3)]">↳ 다음: {t}</div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
               </div>
 
               {/* Autonomy validation (P180) */}
-              <Panel>
-                <PanelHead kicker="P180 · 자율성 검증" title="안전성 & 재사용 감사"
-                  right={av && <Badge tone={av.validated ? "pos" : "warn"}>{av.validated ? "검증됨" : "검토 필요"}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="P180 · 자율성 검증" title="안전성 & 재사용 감사"
+                  right={av && <ApBadge tone={av.validated ? "pos" : "warn"}>{av.validated ? "검증됨" : "검토 필요"}</ApBadge>} />
                 <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-1">
                   {(av?.checks ?? []).map((c) => (
                     <div key={c.check} className="flex items-center gap-2">
@@ -822,7 +821,7 @@ function IntelligencePlusTab() {
                     {(av?.remaining_limitations ?? []).map((l, i) => <div key={i} className="text-[11px] text-[var(--c-text-3)]">· {l}</div>)}
                   </div>
                 )}
-              </Panel>
+              </ApPanel>
             </>
           )}
         </div>

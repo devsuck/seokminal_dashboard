@@ -8,7 +8,6 @@ import {
   type AssistantResp, type DecisionMemoResp, type ExplainabilityResp,
 } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
-import { Panel, PanelHead, Badge } from "@/components/console/primitives";
 import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines } from "@/components/ui/ApPrimitives";
 
 const CONF_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
@@ -78,9 +77,9 @@ function ResearchChatInner() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* 대화 + 답변 */}
             <div className="lg:col-span-2 space-y-4">
-              <Panel>
-                <PanelHead kicker="추천" title={turn.q}
-                  right={turn.memo.confidence && <Badge tone={CONF_TONE[turn.memo.confidence] ?? "mute"}>{turn.memo.confidence}</Badge>} />
+              <ApPanel>
+                <ApPanelHead kicker="추천" title={turn.q}
+                  right={turn.memo.confidence && <ApBadge tone={CONF_TONE[turn.memo.confidence] ?? "mute"}>{turn.memo.confidence}</ApBadge>} />
                 <div className="p-4 space-y-3">
                   <div className="text-[13px] font-medium text-[var(--c-hud)]">{turn.memo.recommendation ?? turn.recall.answer}</div>
                   {turn.memo.rationale && <div className="text-[11px] text-[var(--c-text-2)] leading-relaxed">{turn.memo.rationale}</div>}
@@ -102,12 +101,12 @@ function ResearchChatInner() {
                     </div>
                   </div>
                 </div>
-              </Panel>
+              </ApPanel>
 
               {/* 대화 히스토리 */}
               {history.length > 1 && (
-                <Panel>
-                  <PanelHead kicker="대화" title="히스토리" />
+                <ApPanel>
+                  <ApPanelHead kicker="대화" title="히스토리" />
                   <div className="p-4 space-y-2">
                     {history.map((h, i) => (
                       <div key={i} className="text-[11px]">
@@ -116,21 +115,21 @@ function ResearchChatInner() {
                       </div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
               )}
             </div>
 
             {/* 연구 컨텍스트 */}
             <div className="space-y-4">
-              <Panel>
-                <PanelHead kicker="메모리" title="회상" />
+              <ApPanel>
+                <ApPanelHead kicker="메모리" title="회상" />
                 <div className="p-4">
                   <div className="text-[11px] text-[var(--c-text-2)]">{turn.recall.answer}</div>
                   {turn.recall.topic && <div className="text-[11px] text-[var(--c-text-3)] mt-1">주제: {turn.recall.topic}</div>}
                 </div>
-              </Panel>
-              <Panel>
-                <PanelHead kicker="설명가능성" title="참조 실험" />
+              </ApPanel>
+              <ApPanel>
+                <ApPanelHead kicker="설명가능성" title="참조 실험" />
                 <div className="p-4 space-y-1">
                   {(turn.ev.references_experiments ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">참조된 과거 실험 없음.</div>}
                   {(turn.ev.references_experiments ?? []).map((r, i) => (
@@ -138,9 +137,9 @@ function ResearchChatInner() {
                   ))}
                   <div className="text-[11px] text-[var(--c-text-3)] mt-1.5">확신도: <b style={{ color: `var(--c-${turn.ev.confidence === "HIGH" ? "pos" : turn.ev.confidence === "LOW" ? "warn" : "hud"})` }}>{turn.ev.confidence}</b></div>
                 </div>
-              </Panel>
-              <Panel>
-                <PanelHead kicker="제안" title="다음 액션" />
+              </ApPanel>
+              <ApPanel>
+                <ApPanelHead kicker="제안" title="다음 액션" />
                 <div className="p-4 space-y-1.5">
                   {(turn.memo.suggested_next_research ?? []).length === 0 && <div className="text-[11px] text-[var(--c-text-3)]">제안 없음.</div>}
                   {(turn.memo.suggested_next_research ?? []).map((s, i) => (
@@ -148,16 +147,16 @@ function ResearchChatInner() {
                       className="block text-left text-[11px] text-[var(--c-text-2)] hover:text-[var(--c-hud)] bg-transparent border-0 cursor-pointer p-0">→ {s}</button>
                   ))}
                 </div>
-              </Panel>
+              </ApPanel>
               {(turn.memo.remaining_unknowns ?? []).length > 0 && (
-                <Panel>
-                  <PanelHead kicker="공백" title="남은 불확실성" />
+                <ApPanel>
+                  <ApPanelHead kicker="공백" title="남은 불확실성" />
                   <div className="p-4 space-y-1">
                     {turn.memo.remaining_unknowns!.map((u, i) => (
                       <div key={i} className="text-[11px] text-[var(--c-warn)]">· {u}</div>
                     ))}
                   </div>
-                </Panel>
+                </ApPanel>
               )}
             </div>
           </div>
