@@ -2323,6 +2323,20 @@ export async function setKillSwitch(engaged: boolean, reason = "manual"): Promis
   return handleResponse(r);
 }
 
+// ── IB Gateway 상태 (헤드리스 VM, ibg-controller 프록시) ──────────────────────────
+
+export interface IBGatewayStatus {
+  connected: boolean;
+  last_auth_ts?: string | null;
+  next_reset_eta?: string | null;
+  needs_manual_action: boolean;
+  error?: string;
+}
+export async function getIBGatewayStatus(signal?: AbortSignal): Promise<IBGatewayStatus> {
+  const r = await fetch(`${API_URL}/ib/gateway/status`, { signal });
+  return handleResponse<IBGatewayStatus>(r);
+}
+
 // ── 스마트 시그널 (레짐+모멘텀+Kelly) ────────────────────────────────────────────
 
 export interface SmartSignal {
