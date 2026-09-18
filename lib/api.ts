@@ -2327,8 +2327,8 @@ export async function setKillSwitch(engaged: boolean, reason = "manual"): Promis
 
 export interface IBGatewayStatus {
   connected: boolean;
-  last_auth_ts?: string | null;
-  next_reset_eta?: string | null;
+  last_auth_ts: string | null;
+  next_reset_eta: string | null;
   needs_manual_action: boolean;
   error?: string;
 }

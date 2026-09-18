@@ -23,6 +23,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
   const [busy, setBusy] = useState(false);
   const ctrl = useRef<AbortController | null>(null);
   const [ibStatus, setIbStatus] = useState<IBGatewayStatus | null>(null);
+  const [ibError, setIbError] = useState<string | null>(null);
   const ibCtrl = useRef<AbortController | null>(null);
 
   const load = useCallback(() => {
@@ -34,9 +35,10 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
 
   const loadIB = useCallback(() => {
     ibCtrl.current?.abort(); const c = new AbortController(); ibCtrl.current = c;
+    setIbError(null); setIbStatus(null);
     getIBGatewayStatus(c.signal)
-      .then((d) => { if (!c.signal.aborted) setIbStatus(d); })
-      .catch(() => { if (!c.signal.aborted) setIbStatus(null); });
+      .then((d) => { if (!c.signal.aborted) { setIbStatus(d); setIbError(null); } })
+      .catch((e) => { if (!c.signal.aborted && e.name !== "AbortError") setIbError(e instanceof ApiError ? e.message : String(e)); });
   }, []);
 
   useEffect(() => {
@@ -140,7 +142,9 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
             <ApPanel>
               <ApPanelHead title="IB Gateway 연결" />
               <div className="p-4">
-                {!ibStatus ? (
+                {ibError ? (
+                  <div className="text-[13px] text-ap-down">상태 조회 실패: {ibError}</div>
+                ) : !ibStatus ? (
                   <div className="text-[13px] text-ap-ink-3">상태 조회 중…</div>
                 ) : (
                   <div className="flex items-center gap-2">
