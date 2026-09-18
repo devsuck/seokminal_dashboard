@@ -35,7 +35,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
 
   const loadIB = useCallback(() => {
     ibCtrl.current?.abort(); const c = new AbortController(); ibCtrl.current = c;
-    setIbError(null); setIbStatus(null);
+    setIbError(null);
     getIBGatewayStatus(c.signal)
       .then((d) => { if (!c.signal.aborted) { setIbStatus(d); setIbError(null); } })
       .catch((e) => { if (!c.signal.aborted && e.name !== "AbortError") setIbError(e instanceof ApiError ? e.message : String(e)); });
@@ -138,36 +138,36 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                 <div className="pt-2 mt-1 text-[11px] text-ap-ink-3">※ 한도는 .env(MAX_ORDER_*, DAILY_LOSS_LIMIT, MAX_DRAWDOWN_PCT)에서 조정.</div>
               </div>
             </ApPanel>
-
-            <ApPanel>
-              <ApPanelHead title="IB Gateway 연결" />
-              <div className="p-4">
-                {ibError ? (
-                  <div className="text-[13px] text-ap-down">상태 조회 실패: {ibError}</div>
-                ) : !ibStatus ? (
-                  <div className="text-[13px] text-ap-ink-3">상태 조회 중…</div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ibStatus.connected ? "bg-ap-up" : "bg-ap-down"}`} />
-                    <div className="text-[13px]">
-                      <span className={ibStatus.connected ? "text-ap-up font-semibold" : "text-ap-down font-semibold"}>
-                        {ibStatus.connected ? "연결됨" : "연결 안 됨"}
-                      </span>
-                      {ibStatus.last_auth_ts && (
-                        <span className="text-ap-ink-3 ml-2">마지막 인증: {ibStatus.last_auth_ts}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {ibStatus?.needs_manual_action && (
-                  <p className="text-ap-down text-[11px] mt-2">
-                    IBKR Mobile 앱에서 재인증 승인 필요
-                  </p>
-                )}
-              </div>
-            </ApPanel>
           </div>
         )}
+
+        <ApPanel>
+          <ApPanelHead title="IB Gateway 연결" />
+          <div className="p-4">
+            {ibError ? (
+              <div className="text-[13px] text-ap-down">상태 조회 실패: {ibError}</div>
+            ) : !ibStatus ? (
+              <div className="text-[13px] text-ap-ink-3">상태 조회 중…</div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ibStatus.connected ? "bg-ap-up" : "bg-ap-down"}`} />
+                <div className="text-[13px]">
+                  <span className={ibStatus.connected ? "text-ap-up font-semibold" : "text-ap-down font-semibold"}>
+                    {ibStatus.connected ? "연결됨" : "연결 안 됨"}
+                  </span>
+                  {ibStatus.last_auth_ts && (
+                    <span className="text-ap-ink-3 ml-2">마지막 인증: {ibStatus.last_auth_ts}</span>
+                  )}
+                </div>
+              </div>
+            )}
+            {ibStatus?.needs_manual_action && (
+              <p className="text-ap-down text-[11px] mt-2">
+                IBKR Mobile 앱에서 재인증 승인 필요
+              </p>
+            )}
+          </div>
+        </ApPanel>
       </div>
     </div>
   );
