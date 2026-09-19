@@ -320,6 +320,13 @@
   --c-warn:     #F5B301;
   --c-info:     #3B82F6;
 
+  /* Weak 변형: 같은 hex, alpha만 낮춤(Toss Fill/Weak 패턴). 배지·핀 배경용. */
+  --c-hud-weak:  color-mix(in srgb, var(--c-hud) 16%, transparent);
+  --c-pos-weak:  color-mix(in srgb, var(--c-pos) 16%, transparent);
+  --c-neg-weak:  color-mix(in srgb, var(--c-neg) 16%, transparent);
+  --c-warn-weak: color-mix(in srgb, var(--c-warn) 16%, transparent);
+  --c-info-weak: color-mix(in srgb, var(--c-info) 16%, transparent);
+
   background:
     radial-gradient(120% 80% at 82% -10%, rgba(34,211,238,0.05), transparent 55%),
     radial-gradient(90% 70% at 8% 110%, rgba(59,130,246,0.045), transparent 60%),

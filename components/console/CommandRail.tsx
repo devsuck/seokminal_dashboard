@@ -27,6 +27,7 @@ const CONSOLE_GROUPS: RailGroup[] = [
   ] },
   { label: "Investment OS", items: [
     { href: "/investment-os", label: "Investment OS" },
+    { href: "/investment-os/capital-claims", label: "자본 청구" },
   ] },
 ];
 

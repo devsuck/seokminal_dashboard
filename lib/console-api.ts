@@ -118,6 +118,53 @@ export const getRisk = (s?: AbortSignal) => get<RiskResp>("/console/risk", s);
 export const getOrders = (s?: AbortSignal) => get<OrdersResp>("/console/orders", s);
 export const getMonitor = (s?: AbortSignal) => get<MonitorResp>("/console/monitor", s);
 
+// ── /agents/* — 라이브 사이클링 에이전트(autopilot agent_loop.sh) ──────────
+export interface LiveAgentProfile {
+  label: string; cadence_seconds: number; position_pct?: number;
+  force_eod_close?: boolean; paper?: boolean; autonomy?: number;
+}
+export interface LiveAgent {
+  id: string; name: string; type: string; account_alloc: number; status: string;
+  created_at: string; paper: boolean; autonomy: number; market: string;
+  protected: boolean; god_mode: boolean; instrument_id?: string | null;
+  position_state: string; session_live: boolean; validated: boolean; validation_reason: string;
+  profile: LiveAgentProfile;
+}
+export interface LiveAgentsResp { agents: LiveAgent[]; profiles: Record<string, LiveAgentProfile> }
+export interface AgentCycle {
+  agent_id: string; cycle: number; ts: string; decision: string; symbol?: string | null;
+  score?: number | null; max_score?: number | null; action?: string | null;
+  next_trigger?: string | null; cash_pct?: number | null; note?: string | null;
+  fill?: { side: string; qty: number; price: number } | null;
+  gate?: Record<string, boolean> | null;
+}
+export interface AgentCyclesResp { cycles: AgentCycle[] }
+export interface AgentTrade { symbol: string; side: string; qty: number; price: number; realized_pnl: number | null }
+export interface AgentPosition { symbol: string; qty: number; avg_price: number; current_price: number | null; unrealized_pnl: number | null }
+export interface AgentPerformance {
+  agent_id: string; alloc: number; cash: number; invested: number;
+  realized_pnl: number; unrealized_pnl: number; total_pnl: number; return_pct: number;
+  open_positions: AgentPosition[]; trades: AgentTrade[];
+}
+export interface GodModeCondition { key: string; label: string; passed: boolean; detail: string }
+export interface GodModeEligibility { agent_id: string; eligible: boolean; conditions: GodModeCondition[]; window_days: number; as_of: string }
+
+export const getLiveAgents = (s?: AbortSignal) => get<LiveAgentsResp>("/agents", s);
+export const getLiveAgentCycles = (agentId: string, limit = 50, s?: AbortSignal) =>
+  get<AgentCyclesResp>(`/agents/${agentId}/cycles?limit=${limit}`, s);
+export const getLiveAgentPerformance = (agentId: string, s?: AbortSignal) =>
+  get<AgentPerformance>(`/agents/${agentId}/performance`, s);
+export const getGodModeEligibility = (agentId: string, s?: AbortSignal) =>
+  get<GodModeEligibility>(`/agents/${agentId}/god-mode/eligibility`, s);
+export const promoteGodMode = (agentId: string, s?: AbortSignal) =>
+  post<LiveAgent>(`/agents/${agentId}/god-mode/promote`, s);
+
+export interface GodModeCandidate { agent_id: string; name: string; eligible: boolean; conditions: GodModeCondition[]; window_days: number; as_of: string }
+export interface GodModeReverted { agent_id: string; name: string; reason: string; at: string | null }
+export interface GodModeCandidatesResp { promotable: GodModeCandidate[]; reverted: GodModeReverted[] }
+export const getGodModeCandidates = (s?: AbortSignal) =>
+  get<GodModeCandidatesResp>("/agents/god-mode/candidates", s);
+
 // ── /console/research-os (P41~P45 로컬 연구 환경 라이브) ──────────
 export interface ResearchOSSection { section: string; moduleCount: number; items: { item: string; moduleCount: number; modules?: string[] }[] }
 export interface ResearchOSGraph {
@@ -842,6 +889,11 @@ export interface CapitalClaimQueueResp {
 }
 export const getCapitalClaimQueue = (s?: AbortSignal) =>
   get<CapitalClaimQueueResp>(`/console/capital-claims/queue`, s);
+
+export interface CapitalClaimCandidate { strategy_id: string; suggested_amount: number | null; stale: boolean }
+export interface CapitalClaimCandidatesResp { candidates: CapitalClaimCandidate[]; count: number; is_advisory: boolean; is_decision: boolean }
+export const getCapitalClaimCandidates = (s?: AbortSignal) =>
+  get<CapitalClaimCandidatesResp>(`/console/capital-claims/candidates`, s);
 
 export const decideCapitalClaim = (claimId: string, approve: boolean, note = "", s?: AbortSignal) =>
   post<CapitalClaim>(

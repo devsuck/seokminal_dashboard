@@ -770,6 +770,7 @@ function InvestmentOsInner() {
             {tab === "ops" && (
               <div className="space-y-4">
                 <div className="flex flex-wrap justify-end gap-3">
+                  <TabLink href="/investment-os/live-agents" label="라이브 에이전트 (실시간 판단)" />
                   <TabLink href="/research-os/console" label="운영 콘솔" />
                   <TabLink href="/research-os/workflow" label="리서치 워크플로 (세션 제어)" />
                 </div>
@@ -1333,6 +1334,11 @@ function InvestmentOsInner() {
 
             {tab === "ops" && (
               <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link href="/investment-os/live-agents" className="text-xs text-ap-brand hover:underline">
+                    라이브 에이전트 (실시간 판단) →
+                  </Link>
+                </div>
                 <ApPanel>
                   <ApPanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리" right={<ApBadge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
                   <div className="p-4 space-y-3">

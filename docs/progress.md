@@ -1,3 +1,345 @@
+## Phase 273 — 하단바 IA 정리 + god_mode 게이트 버그 + capital_claims 자동청구 (2026-09-18) ✅ FIXED
+
+### 배경
+사용자 5-part 하단 네비 지적(포트폴리오 페이지 목적, 에이전트탭에 포지션 없음,
+더보기 중복, 자본청구 접근성, 거버넌스/챗 필요성) → 설계 제안 후 승인
+("거버넌스/챗 완전 제거" + 나머지 4건 "진행"). 이어서 "하단 4탭 vs 5탭"
+질문은 사용자 미답변 상태(보류). 마지막 "다 해줘" 지시로 (A) god_mode↔
+agent_gate 버그의 bounded 범위(레지스트리 매핑 우회 아님, god_mode 3조건
+심사로 대체)와 (C) paper_active 승격 시 capital_claims 자동 청구 배선을
+자율 진행. (D) 실제 자본 `arm()` 배포는 금융거래 실행이라 내 권한 밖 —
+시도 안 함.
+
+### 완료된 작업
+1. **하단 네비 IA 정리** (`seokminal-dashboard`) —
+   `components/console/CommandRail.tsx`: Investment OS 그룹에 "자본 청구"
+   (`/investment-os/capital-claims`) 링크 추가.
+   `components/console/BottomTabBar.tsx`: 에이전트 탭 타겟을
+   `/investment-os?tab=risk` → `/investment-os/live-agents`로 변경(아이콘
+   포함), 더보기 시트에서 거버넌스/챗 완전 숨김(`MORE_SHEET_HIDDEN_HREFS`),
+   더보기 시트 중복 항목(primary 탭과 겹치는 항목) 필터링(`moreGroups`).
+   데스크톱 `CommandRail` 사이드바/커맨드 팔레트는 영향 없음(거버넌스/챗
+   데스크톱에서는 그대로 접근 가능). `npx tsc --noEmit` 클린.
+   **미해결**: 4탭 유지 vs 자본청구 5번째 탭 추가 — 사용자 미답변, 다음
+   세션에서 확인 필요.
+2. **god_mode ↔ agent_gate 버그 수정** (`seokminal-multi-venue`) —
+   `api_server/agent_store.py.promote_to_god_mode()`가 `god_mode=1` 세팅해도
+   `jarvis/execution/agent_gate.py.enforce_paper()`가 그 필드를 전혀 안 봐서
+   God Mode 승급이 실질적으로 무효였던 버그. God Mode는 `api_server/god_mode.py`
+   의 독립적 3조건 실적 심사(순수익>벤치마크, MDD≤15%, 워크포워드 후반≥전반)를
+   이미 통과한 것이므로 `enforce_paper()`에 registry 매핑과 무관한 bypass 추가.
+   테스트 1건 추가(`test_god_mode_bypasses_unvalidated_registry`), 7 passed.
+   **미착수 범위**: 오프라인 리서치 파이프라인 출력을 라이브 에이전트 판단에
+   배선하는 더 큰 아키텍처 작업은 범위 밖으로 보류(브레인스토밍 하드게이트
+   필요한 architectural 스코프).
+3. **capital_claims 자동 청구 배선** (`seokminal-multi-venue`) —
+   `jarvis/paper/deploy.py.deploy()`에서 `paper_active` 전이 직후
+   `capital_claims.submit_claim(strategy_id, LIVE_PROPOSAL_AGENT)` 자동 호출
+   추가(장부 기록만, `moves_real_capital=False` 불변식 유지). `PAPER_AGENT`가
+   아니라 `LIVE_PROPOSAL_AGENT` Principal 필요함을 `policy.py`/기존 테스트로
+   사전 확인 후 구현. 테스트 1건 추가(`test_deploy_auto_submits_capital_claim`).
+
+### 이번 세션에서 발견/수정한 별개 버그: 테스트가 실제 프로덕션 state 파일 오염
+- **원인**: `jarvis.boot()`(`jarvis/__init__.py`)가 `seed_from_experiment_registry()`
+  로 **실제** experiment_registry 데이터(진짜 전략 ID들 — `futures_tsmom`,
+  `kr_dart_buyback_drift_v1`, `auto_fac_kr_*`, `polymarket_*` 등)를 레지스트리에
+  시드한 뒤 `auto_deploy_all()`을 호출하는데, `tests/test_jarvis.py`,
+  `tests/test_jarvis_pipeline.py`의 `_isolate_state` fixture가
+  `jarvis.paper.deploy`/`jarvis.execution.{arm,capital_envelope,capital_claims}`
+  의 `state_path`를 격리 목록에서 빠뜨려서 실 `jarvis/_state/capital_claims.jsonl`
+  (+ 기존부터 있던 `forward_deployments.jsonl`, 2775줄 — 이건 내 세션 이전부터
+  있던 pre-existing 누수)에 실제 테스트 실행 때마다 기록이 쌓이고 있었음.
+  `capital_claims.submit_claim()`을 `deploy()`에 새로 연결하면서(위 3번) 이
+  누수가 처음으로 "승인된 자본 청구"처럼 보이는 레코드를 실 상태 파일에
+  남기기 시작해 발견됨(`allocated_capital: 0.0`이라 실자본 이동은 없었음).
+  **수정**: `test_jarvis.py`, `test_jarvis_pipeline.py`,
+  `test_lab_service_jarvis_bridge.py` 세 fixture 모두 위 4개 모듈의
+  `state_path` 패치 추가. 오염된 실 `capital_claims.jsonl` 빈 파일로 정리
+  완료. 재실행 후 실 파일 0줄 유지 확인(69 passed).
+- **별개로 확인된 pre-existing 무관 실패**: `jarvis/system_integration/tests/
+  test_system_integration.py` 162건 실패 — `jarvis.research_monitoring.models`
+  모듈이 존재하지 않아서(`ModuleNotFoundError`) 발생, 이번 세션 변경과 무관.
+  CLAUDE.md의 "pre-existing failures 없음(2026-09-03 확인)" 기록이 stale —
+  다음 세션에서 언제부터 깨졌는지 확인 필요.
+
+### 변경된 파일
+- `seokminal-dashboard/components/console/CommandRail.tsx`
+- `seokminal-dashboard/components/console/BottomTabBar.tsx`
+- `seokminal-multi-venue/jarvis/execution/agent_gate.py`
+- `seokminal-multi-venue/jarvis/execution/tests/test_agent_gate.py`
+- `seokminal-multi-venue/jarvis/paper/deploy.py`
+- `seokminal-multi-venue/tests/test_jarvis_deploy.py`
+- `seokminal-multi-venue/tests/test_jarvis_research_queue.py`
+- `seokminal-multi-venue/tests/test_jarvis.py` (state 격리 갭 수정)
+- `seokminal-multi-venue/tests/test_jarvis_pipeline.py` (state 격리 갭 수정)
+- `seokminal-multi-venue/tests/test_lab_service_jarvis_bridge.py` (state 격리 갭 수정)
+- `seokminal-multi-venue/jarvis/_state/capital_claims.jsonl` (오염 정리, 빈 파일)
+
+### 다음 할 일
+1. 사용자 확인: 하단 4탭 유지 vs 자본청구 5번째 탭 추가(질문 미답변 상태).
+2. `test_system_integration.py` 162건 실패 — 원인(`jarvis.research_monitoring.models`
+   누락) 확인하고 사용자에게 의도적 제거인지 확인 필요.
+3. (A) 큰 스코프 — 오프라인 리서치 파이프라인 → 라이브 에이전트 판단 배선은
+   브레인스토밍부터 다시 시작해야 함(architectural, bounded 아님).
+4. (D) 실제 자본 `arm()` 라이브 배포는 여전히 사람이 직접 해야 함(AI 실행 불가,
+   Prohibited action).
+
+### 막힌 부분/결정사항
+- (D)는 어떤 지시로도 내가 실행할 수 없음(금융거래 실행 = Prohibited action
+  카테고리, "다 해줘" 같은 포괄 지시로도 우회 안 됨) — 재확인만 하고 시도 안 함.
+- 실 상태파일 오염 발견 시 조용히 되돌리지 않고 원인 조사 후 보고하라는
+  지침(자동 리마인더)에 따라 root cause 특정 후에만 정리함.
+
+---
+
+## Phase 272 — 폴리마켓 정리 + 에이전트탭 문구 + SWR 전환 (2026-09-17) ✅ FIXED
+
+### 배경
+사용자: "전략 인텔리전스에 폴리마켓 섞여있는데 한국 지오블록으로 폐기한 거
+아니었나" → 확인 후 "운영면에서 삭제" 승인. 이어서 "5탭 문구가 사람이 읽기
+어렵다" 지적 → 하나씩 허락 맡으며 진행 요청. 첫 탭(에이전트/리스크) 승인
+받고 진행, 이어서 "SWR부터 붙여줘"로 별도 승인돼있던 데이터 로딩 개선 착수.
+이후 "나머지도 다 지금 작업해줘"로 페이싱 해제 → 남은 4탭 문구 정리 전부
+일괄 진행.
+
+### 완료된 작업
+1. **폴리마켓 좀비 레지스트리 정리** (`seokminal-multi-venue`) — 코드는 이미
+   삭제됐는데(`c985dac`, 2026-08-25) `jarvis/_state/registry.jsonl`에 남은
+   3개 전략(`polymarket_sharp_wallet_convergence_v1` 등)이 `paper_active`
+   상태로 남아 전략 인텔리전스 탭(`forward_learning.py`)에 계속 노출되던
+   문제. append-only FSM이라 직접 편집 대신 `StrategyRegistry.transition()`
+   으로 `paper_active → paper_retired` 정식 전이(감사 로그 보존, 조회에서만
+   제외). `build_forward_learning_records()` 재확인 — 폴리마켓 문자열 0건.
+2. **에이전트(리스크) 탭 문구 정리** (`app/(console)/investment-os/page.tsx`) —
+   `kicker="agents + council"` → `"에이전트 협의회"`(모바일+데스크톱),
+   `label="HHI"` → `"쏠림 지수(HHI)"`(모바일 ApStatTile+데스크톱). 거버넌스
+   체크리스트(`c.check`, 영어 raw 식별자)는 백엔드 라벨맵 없인 못 고쳐 범위 밖
+   으로 보류.
+3. **`useTabFetch` → SWR 전환** (`app/(console)/investment-os/page.tsx`) —
+   기존 훅은 탭 활성화 시 딱 1회만 fetch(`fetchedRef` 가드), 재검증/재시도
+   없음. `useSWR(active ? useId() : null, ...)`로 내부만 교체, 외부 시그니처
+   `{data, err, loading}` 그대로라 17개 호출부(211-226행) 무변경. `useId()`로
+   훅 인스턴스별 고유 key라 인스턴스간 충돌 없음. `npm install swr` 완료.
+   포커스 복귀 시 자동 재검증 + 실패 재시도 확보. 다른 탭 데이터 훅에도
+   같은 패턴 적용 여지 있음(현재는 investment-os 페이지 전용 훅 하나만 교체
+   — 그 안의 17개 호출부가 전부 이 훅을 쓰므로 사실상 페이지 전체 적용됨).
+4. **나머지 4탭(개요/전략/리서치/운영) 문구 일괄 정리** (모바일+데스크톱 둘 다) —
+   - kicker 28건 raw 영어 문자열 → 한글 (`monthly-review`→"월간 리뷰",
+     `research-organization`→"연구 조직 현황", `/console/positions`→"보유 포지션",
+     `Forward Learning · STEP4`→"포워드 러닝 검증", `validation-loop`→"검증 루프",
+     `market-cockpit`→"시장 현황", `institutional-intelligence`→"기관 데이터",
+     `data-connection`→"예측 데이터 연결", `/console/financials-live`→"실시간
+     재무제표", `monitor`→"파이프라인 상태", `orders`→"주문 내역",
+     `live-intelligence`→"라이브 데이터" 등). "Edge Score"→"엣지 스코어".
+     브랜딩용 kicker(`Investment OS · 분리 계층`, 아키텍처 다이어그램 라벨)는
+     의도적으로 유지.
+   - 최상단 통계 타일 4개 이중부정/원시값 표기 정리: `research 무변경: 아니오`
+     류 이중부정 → "리서치 원본 변경: 없음"으로 긍정 표현 전환,
+     `data.portfolio.method` 원시값(`evidence_weighted`) → 신설
+     `PORTFOLIO_METHOD_LABEL` 맵으로 "근거등급 가중" 표시, `override 불가: 예`
+     류 → "사람 개입: 가능/불가", `bypass:` → "우회:".
+   - 전략 인텔리전스 탭 6건: `Validation Score:`→"검증 스코어:",
+     `Forward: {fp.label}`→"포워드: {fp.label}", `Thesis 사전등록 안 됨`→"가설
+     사전등록 안 됨", `next_possible`/`human_approval_required_next` 원시 FSM
+     상태코드 join() → 기존 `STATUS_LABEL` 맵 재사용해 한글 변환,
+     커버리지 갭 라인에서 `(STEP4-C, 숨기지 않음)` 내부 주석 제거 +
+     thesis/forward 잔여 영어 단어 한글화.
+   - 의도적으로 보류: `{r.thesis}`(백엔드/LLM 생성 영어 메모 원문, 프론트 문구
+     아님 — 범위 밖), 5개 패널의 원시 `key: value` 덤프(positions,
+     experiment_status, prediction_coverage by_source, financials, risk
+     limits) — 실제 필드명→한글 라벨 매핑표가 필요해 후속 작업으로 분리.
+   - 리서치 근거/운영 두 탭 본문도 정독 검토 완료 — 놓쳤던 kicker 3건 추가 수정
+     (`kicker="risk (기존 API)"`→"리스크 한도 (기존 API)", `production-readiness
+     (기존 API)`→"프로덕션 준비도 (기존 API)", `logs (기존 API)`→"시스템 로그
+     (기존 API)" — title과 중복 안 되게 명명), "Invalidation 누락"/"Horizon
+     누락"→"무효화 조건 누락"/"기간(호라이즌) 누락", "EV {value}"→"기대값
+     {value}". 운영 탭 본문은 이미 한글화 잘 되어 있어 추가 수정 없음.
+   - 의도적으로 보류(위 항목과 동일 사유): 시장 현황 패널의 `{o.name}·{o.kind}·
+     {o.confidence}` 및 상태 배지(`UNKNOWN`/`UNCLASSIFIED` 등) — 백엔드가 주는
+     동적 원시값이라 고정된 enum 라벨맵을 만들 근거가 부족함.
+
+### 검증
+- `npx tsc --noEmit` 클린(기존 알려진 `alpacaToMobile` pre-existing 에러 제외)
+- `npm test` 12 files / 53 tests 전부 pass (총 2회, 4번 작업 반영 후 재확인 포함)
+- 브라우저 확인(`/investment-os?tab=risk`, 모바일 뷰): "에이전트 협의회" kicker,
+  상세지표 바텀시트 "쏠림 지수(HHI)" 정상 표시. SWR 전환 후 데이터 정상 로드
+  (JARVIS Governance 협의회 트리, HHI 0.09 등).
+- 브라우저 확인(`/investment-os?tab=overview`): 4개 통계 타일 "리서치 원본
+  변경: 없음" / "근거등급 가중" / "사람 개입: 불가" / "우회: 불가" 정상 표시.
+- 브라우저 확인(`/investment-os?tab=strategy`): "포워드 러닝 검증" kicker,
+  "검증 스코어: 미확정", "포워드: ENVELOPE 내 진행 중" 배지, "다음 가능 상태:
+  실거래 후보, 페이퍼 실패, 페이퍼 은퇴 · 사람 승인 필요: 실거래 후보",
+  "커버리지 갭: 가설 없음 0 · 가설 사전등록 안 됨 0 · 포워드 데이터 없음
+  9 / 11" 전부 정상 표시.
+
+### 변경 파일
+- `seokminal-multi-venue/jarvis/_state/registry.jsonl` (커밋 안 함)
+- `seokminal-dashboard/app/(console)/investment-os/page.tsx`
+- `seokminal-dashboard/package.json`, `package-lock.json` (swr 의존성 추가)
+- `seokminal-dashboard/docs/progress.md`
+
+### 다음 할 일
+- 누적 미커밋 변경 있음(폴리마켓 registry.jsonl, next.config.js 삭제,
+  PortfolioTab.tsx, investment-os/page.tsx, progress.md, swr 의존성) — 커밋은
+  사용자가 명시적으로 요청할 때만
+- (아래 addendum에서 해소됨) 5개 덤프 패널 라벨맵 — 완료.
+
+### Addendum (같은 날, "음... 다 해보자" 승인 후) — 5개 보류 패널 + gates 배열 라벨맵 완료
+백엔드 실제 필드명 확인 후(추측 금지 원칙) 6개 `Record<string,string>` 라벨맵
+`DATA_HEALTH_LABEL` 뒤에 신설, `page.tsx` 내 10개 렌더 지점(모바일+데스크톱)에 적용:
+- `POSITION_FIELD_LABEL` — `jarvis/paper_execution/models.py` `PaperPosition` dataclass 필드
+- `RISK_LIMIT_LABEL` — `jarvis/risk/governor.py` `RiskLimits`
+- `FINANCIALS_FIELD_LABEL` — `console_api.py` financials-live 매핑(프론트 `FinancialsLiveResp`와 필드명 일치 확인)
+- `PREDICTION_SOURCE_LABEL` — `prediction_registry.py`의 `SOURCES` 고정 4값 enum(`capture_prediction()`에서 검증됨, 미지값 불가능하나 관례상 `?? key` 유지)
+- `EXPERIMENT_STATUS_LABEL` — `research/agents/experiment_registry.py`, 자유 문자열 기록(폐쇄 enum 아님, `?? key` 폴백 필수)
+- `GATE_LABEL` — `/validation` 게이트 고정 목록(신규 발견, 기존 5개 항목에 없었음)
+- 부가: "position sizing 추천(notional 1M 기준)" 잔여 영어 표현 → "포지션 사이징
+  추천(명목가치 100만 기준)" (모바일+데스크톱 둘 다에 있었음, 데스크톱만 기존에 지적됐던 것)
+
+**검증**: `npx tsc --noEmit` 클린, `npm test` 53/53 pass. 브라우저(desktop
+1400x1000, `/investment-os?tab=research`):
+- 전략 인텔리전스 탭 — GATE_LABEL 5개(워크포워드/몬테카를로/BH-FDR/비용 스트레스/
+  레드팀), EXPERIMENT_STATUS_LABEL 8개(반려됨/워치리스트/검정력 부족/후보/약함/
+  v2 섀도우/효과 없음/분석중) DOM에서 전부 확인.
+- 리스크 & 거버넌스 탭 — RISK_LIMIT_LABEL 5개 전부 확인(최대 명목가치: 1000,
+  최대 주문수량: 1, 최대 레버리지: 1, 킬스위치: FALSE, 사람 승인 필수: TRUE).
+- Item 1(POSITION_FIELD_LABEL, 보유 포지션 패널) — 현재 페이퍼 포지션 0건("오픈
+  포지션 없음")이라 실물 렌더 시각 확인은 불가. 코드 레벨(tsc/test)만 검증됨.
+- Item 3(PREDICTION_SOURCE_LABEL), Item 4(FINANCIALS_FIELD_LABEL)는 이전 세션
+  구간에서 이미 브라우저 확인 완료("위원회: 19", AAPL 조회 시 재무 라벨 6개 전부).
+
+**보류 유지(범위 밖, 이번에도 손 안 댐)**: 리스크 탭 "상세 지표 보기" 바텀시트
+내부의 `permissions, audit_trail, append_only_integrity, human_checkpoints,
+architecture_compliance, safety_rules` 원시 영어 덤프 — 별도 승인 필요.
+
+**변경 파일**: `app/(console)/investment-os/page.tsx`만 추가 수정. 커밋 안 함
+(사용자 명시 요청 시에만).
+
+---
+
+## Phase 271 — Phase 270 보류 3건 후속 수정 (2026-09-17) ✅ FIXED
+
+### 배경
+사용자 재보고: "에이전트 페이지 더 단순화, 왼쪽아래 n아이콘 제거, 포트폴리오
+자산비중 전에 얘기한 거 아님/선택한 게 반영 안 됨". 조사 결과 Phase 270의
+보류 항목 2건(자산비중바 3개바 구조모순, BarChart 폴라리티색 전부초록)이
+원인 재확인, "n아이콘"은 Phase 270 범위 밖의 별도 버그로 신규 발견.
+
+### 완료된 작업
+1. **`next.config.js` 삭제** — 2026-09-16 Tailscale CORS 픽스로 추가된 파일이
+   Next.js 설정파일 탐색순서(`.js` > `.ts`)상 `next.config.ts`를 완전히
+   가려서 그쪽의 `devIndicators:false`가 무효화돼 있었음(dev-only 우측하단
+   "N" 원형 로고 = Next Dev Tools indicator, 앱 자체 UI 아님). `.ts` 쪽이
+   `allowedDevOrigins`를 이미 상위호환으로 포함하고 있어 삭제만으로 해결.
+   dev 서버 재기동 필요(설정파일은 핫리로드 안 됨) — 재기동 후 확인 완료.
+2. **`PortfolioTab.tsx` 자산비중바 재설계** — 랭킹차트용 `BarChart`(항목별
+   독립 스케일링) 재사용이 원인이라 3개 분리막대+전부초록으로 보였던 문제.
+   `WeightStackBar` 컴포넌트 신규(같은 파일 내 인라인) — 세그먼트 폭 합산
+   100% 단일 바 + `categoricalColor(i)`로 구간별 구분색 + 범례. `TOKEN.accent`
+   participants → `categoricalColor(0/1/2)`로 교체. `returnBars`/`BarChart`
+   폴백 분기(FX 실패시)는 랭킹차트가 맞는 용도라 안 건드림.
+3. **`investment-os/page.tsx` 모바일 에이전트(risk)탭 단순화** — 사용자가
+   설계 위임("미니멀, 에이전틱 트레이딩에 맞게, 관제탑이 확인할 것만").
+   risk탭 바디 자체는 Phase 268에서 이미 2차례 축약된 상태라 추가로 뺄 게
+   없었음 — 남은 군더더기는 탭 전환 위 4카드(`ApStatTile`×4, 소비된
+   리서치/포지션수/컴플라이언스/게이트)가 전탭 공통 렌더였던 것. risk탭
+   hero카드가 컴플라이언스·게이트 상태를 이미 보여주므로 중복. `{tab !==
+   "risk" && (...)}`로 risk탭에서만 숨김, 탭 스위처 자체는 유지(모바일에서
+   다른 탭 도달하는 유일한 경로라 "더보기" 시트로 대체 불가 확인됨).
+
+### 변경된 파일
+- `next.config.js` (삭제)
+- `components/hud/PortfolioTab.tsx` (`WeightStackBar` 추가, import/색상 교체)
+- `app/(console)/investment-os/page.tsx` (4카드 그리드 `{tab!=="risk"}` 조건부)
+
+### 검증
+- `npx tsc --noEmit`: 수정 파일 관련 신규 에러 0건 (사전 존재하던
+  `app/portfolio/page.ts`의 `alpacaToMobile` 타입에러는 무관 — stash로 확인)
+- `npm test`: 53 passed
+- Chrome 모바일뷰(390×844) 실측: `/investment-os?tab=risk`에서 4카드 없음/
+  개요탭에선 있음 확인, N아이콘 미노출, `/hud?tab=portfolio`에서 단일
+  스택바(6%/93%/1%, 보라/핑크/청록 구분색+범례) 확인
+
+### 다음 할 일
+- 없음 (이번 재보고 3건 전부 해결)
+
+### 막힌 부분/결정사항
+- 없음
+
+---
+
+## Phase 270 — 모바일 디자인시스템 전면 재검토 (SDD 7-task) (2026-09-17) ✅ SHIPPED
+
+### 배경
+"조잡하다" 피드백 → brainstorming으로 스펙 확정(카드 C안 dark-hero,
+자산 수익률 B안 통합비중바, 포트폴리오 상단 A안 tab-switch) →
+`docs/superpowers/specs/2026-09-17-mobile-design-system-overhaul.md` →
+7-task 구현 플랜 → subagent-driven-development로 전체 실행(사용자 승인 "1").
+
+### 완료된 작업 (커밋 순, `5644e70`..`5f40827`)
+1. `830220a` — `ApHeroCard` 프리미티브 추가 (`components/ui/ApPrimitives.tsx`)
+2. `46f17e7` — `SegmentedToggle`에 `ap-pill` variant 추가
+3. `c816744`+`c8be4f8` — `AgentTree`에 `tone`/depth-2+ 기본접기 추가.
+   리뷰에서 플랜 코드 자체의 버그 발견(`useState(depth<=1)`이면 토글 영원히
+   안 열림) → `useState(depth===0)`로 수정, 재리뷰 통과
+4. `f952620`+`b3fa589` — `getFxRate()`(24h 캐시) + 다중통화 잔고를 단일
+   자산비중바로 통합(`PortfolioTab.tsx`). 구현자가 스스로 발견해 고친
+   버그 2개(기존 `FxRate` 인터페이스명 충돌 → `ForexOverviewRate`로 개명,
+   브리프의 테스트 코드 자체에 있던 캐시-누수 버그 → `vi.resetModules()`로
+   회피) — 둘 다 리뷰어가 독립 검증
+5. `86df4c6` — `ApHeroCard`를 4개 목적지(hud/summary, portfolio, investment-os
+   리스크탭, performance)에 롤아웃
+6. `057d395` — investment-os 리스크탭 모바일 `AgentTree` 호출부에 `tone="ap"` 적용
+7. `3b3f54d` — 포트폴리오 상단 탭 pill 스타일 + "거래소별 분포"→
+   "계좌 내 거래소 비중" 이름 변경
+
+### 최종 전체 브랜치 리뷰(opus) + 통합 수정 (`5f40827`)
+- **Critical**: `ApHeroCard`의 `valueCls` prop이 죽어있었음 — `text-white`
+  하드코딩과 동일 specificity라 컴파일된 CSS에서 알파벳순으로 `.text-white`가
+  항상 이김. 4개 목적지 중 3곳에서 실거래ON/OFF, 손익 색 신호가 전부
+  무효화돼 있었음(육안으로는 안 보이는 버그, opus가 컴파일된 CSS 순서까지
+  추적해서 찾음). `text-white`를 fallback으로 내리고 각 호출부 색상 재점검
+  해서 수정.
+- **Important**: Task 3의 접기 수정이 데스크톱 콘솔 트리(`tone="console"`,
+  기존과 동일해야 함)까지 망가뜨림 — 15개 노드 풀익스팬드였던 게 3개+토글로
+  줄어듦. `tone!=="ap"||depth===0`으로 수정해서 데스크톱만 복원.
+- Minor 3건도 같이 수정: FX 캐시에 NaN 검증 가드 추가, 죽은 prop 제거,
+  Task 2에서 빠졌던 JSDoc 2줄 복원.
+- 재리뷰(sonnet) 전건 ADDRESSED, 신규 파괴 없음 확인.
+
+### 보류(코드 수정 안 함, 판단 필요)
+- 자산비중바가 스펙 의도("통합 비중 바 1개")와 달리 여전히 3개 바로 나옴 —
+  스펙 자체의 프리스크라이브드 코드가 3개 바를 만드는 구조라 스펙 자체
+  모순. 위젯 재설계(단일 stacked bar) 필요하면 별도 태스크.
+- `AgentTree` depth≥2 토글 도달 불가/한쪽 방향만 열림 — 현재 백엔드 페이로드가
+  정확히 3레벨이라 지금은 안 나타남, latent
+- `ApHeroCard` 보더 없음(다른 `Ap*` 컴포넌트와 다름), portfolio 계좌현황
+  탭에 히어로 카드 3개 연달아 쌓임 — 스펙이 자체 경고했던 "포인트 없음"
+  반복 위험, 디자인 판단 필요
+- 포트폴리오 페이지 pill 탭이 전체 뷰포트에 적용됨(그 페이지엔 데스크톱
+  전용 분기가 아예 없어서 불가피) — 버그 아님, 태스크7 검증절차만 무의미
+- BarChart 폴라리티(초록/빨강) 색이 비중바에도 그대로 적용돼 전부 초록으로
+  보임 — 위젯 재설계와 같이 처리
+
+### 검증
+`npm test` 12 files/53 tests 전건 그린, `npx tsc --noEmit` 신규 에러 없음
+(기존 무관 `alpacaToMobile` 에러 1건만 잔존).
+
+### 변경된 파일
+`components/ui/ApPrimitives.tsx`, `components/ui/SegmentedToggle.tsx`,
+`components/console/widgets.tsx`, `lib/api.ts`, `components/hud/PortfolioTab.tsx`,
+`app/hud/summary/page.tsx`, `app/portfolio/page.tsx`,
+`app/(console)/investment-os/page.tsx`, `app/performance/page.tsx`,
+`tests/lib/api-fx.test.ts`(신규), `tests/lib/portfolioWeights.test.ts`(신규)
+
+### 다음 할 일
+- 자산비중바 단일 stacked bar 재설계 여부 결정 (위 보류 항목)
+- `ApHeroCard` 보더/카드 스태킹 디자인 정리 여부 결정
+- 나머지 "더보기" 페이지(overview/strategy/research/ops 등)는 이번 스펙
+  범위 밖 — 사용자가 아직 안 봤다고 했던 부분, 필요하면 별도 스펙
+
+---
+
 ## Phase 269 — 폰(Tailscale) CSS 안 먹는 버그 수정 (2026-09-17) ✅ FIXED
 
 ### 배경
@@ -6315,6 +6657,44 @@ swing/daytrade가 동일 일봉 멀티팩터 쓰던 문제 → daytrade 전용 *
 ## [이전 Phase 27~1 — progress.md 이전 버전 참조]
 
 Phase 27 이전 내용: 위에 있던 progress.md 하단 참조 (Portfolio Backtest, Backtest v3, Live Strategy Monitor, Orders, Alerts, Risk, Backtesting v2 등 Phase 20~27 모두 완료됨)
+
+---
+
+## Phase 35 — 라이브 사이클링 에이전트 프론트 (2026-09-18) ✅ SHIPPED
+
+autopilot(agent_loop.sh)이 posting하는 `/agents/*`(jarvis api_server/routers/agents.py) 데이터를
+보여주는 프론트가 전혀 없었음(council AgentTree는 오프라인 리서치 파이프라인용, 별개).
+백엔드 무변경, 프론트만 추가.
+
+### 완료된 작업
+- `lib/console-api.ts` — `/agents/*` 타입+fetch 함수 추가 (getLiveAgents, getLiveAgentCycles,
+  getLiveAgentPerformance, getGodModeEligibility, promoteGodMode)
+- `app/(console)/investment-os/live-agents/page.tsx` (신규) — 에이전트 목록 → 선택 시 성과
+  (ApHeroCard) + 보유 포지션 + God Mode 3조건 심사 + 최근 사이클 타임라인(decision/note/체결)
+- `investment-os` 페이지 ops 탭(데스크톱/모바일 둘 다)에 라이브 에이전트 링크 추가
+- 모바일: 새 디자인시스템 안 만들고 기존 `ApPanel`/`ApHeroCard`/`ApBadge` 재사용 (flex-wrap
+  단일 레이아웃 — capital-claims 페이지와 동일 패턴, 별도 데스크톱/모바일 분기 없음)
+
+### 검증
+- `npx tsc --noEmit` 클린
+- 백엔드 실제 JSON(`curl localhost:8000/agents/...`)과 타입 1:1 대조 — 사이클 레코드에 `id`
+  필드가 없는 걸 발견, `key={c.id}`가 전부 undefined였던 버그를 배포 전에 잡음(`key={c.cycle}`로 수정)
+- Chrome 스크린샷 도구가 이번 세션에 계속 에러(빈 페이지에서도 실패) — 픽셀 단위 시각 확인은
+  못 함. SSR HTML(`curl localhost:3000/...`)로 패널 구조는 확인됨
+
+### 겸사겸사 확인한 것
+- `investment-os/capital-claims` 페이지 모바일 반응 확인(390px 스크린샷) — 이미 flex-wrap +
+  Ap* 컴포넌트라 깨짐 없음. 별도 모바일 수정 불필요 (버튼 터치타겟이 32px인 건 사소한 폴리시,
+  구조적 문제 아님)
+
+### 다음 후보 (이번 세션에서 합의, 아직 미착수)
+- (A) god_mode↔agent_gate 불일치 수정: `agent_store.promote_to_god_mode()`가 `god_mode=1` 세팅해도
+  `jarvis/execution/agent_gate.py`의 `enforce_paper()`가 그 필드를 안 봐서 실질 효과 없음(방치된 버그)
+- (A) 오프라인 리서치 파이프라인(BH-FDR 검증 통과 전략)의 결과를 라이브 사이클링 에이전트 판단에
+  연결 — 지금은 매 사이클 처음부터 다시 추론
+- (C) `capital_claims` 시스템(코드/설정 다 있음, `capital_claims.jsonl` 비어있음)에 실제 트리거
+  연결 — 예: 전략이 paper_active로 승격될 때 자동 `submit_claim()`
+- (D) 실계좌: `arm()` 경로로 최고 트랙레코드 paper_active 전략 하나 배포 (운영 판단, 코드 아님)
 
 ---
 
