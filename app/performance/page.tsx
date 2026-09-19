@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getPerformance, type PerfSummary } from "@/lib/api";
 import { EmptyState, LoadingState } from "@/components/ui";
-import { ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApLightHero } from "@/components/ui/ApPrimitives";
 
 const PERIODS = ["1W", "1M", "3M", "1A"] as const;
 const PERIOD_LABEL: Record<string, string> = { "1W": "1주", "1M": "1개월", "3M": "3개월", "1A": "1년" };
@@ -17,10 +17,9 @@ function Metric({ label, value, cls }: { label: string; value: string; cls?: str
   );
 }
 
-// onDark: use on ApHeroCard's dark chip background instead of the default light-surface tokens
-function pnlCls(v: number | null | undefined, onDark = false) {
-  if (v == null) return onDark ? "text-white" : "text-ap-ink-1";
-  return v > 0 ? "text-ap-up" : v < 0 ? "text-ap-down" : onDark ? "text-white/60" : "text-ap-ink-2";
+function pnlCls(v: number | null | undefined) {
+  if (v == null) return "text-ap-ink-1";
+  return v > 0 ? "text-ap-up" : v < 0 ? "text-ap-down" : "text-ap-ink-2";
 }
 
 // 의존성 없는 SVG 라인차트 (전략 vs 벤치마크)
@@ -99,10 +98,10 @@ export default function PerformancePage() {
         : !data ? <EmptyState message="데이터 없음" textClass="text-ap-ink-3" />
         : (
           <>
-            <ApHeroCard
+            <ApLightHero
               label="수익률"
               value={`${data.return_pct > 0 ? "+" : ""}${data.return_pct}%`}
-              valueCls={pnlCls(data.return_pct, true)}
+              valueCls={pnlCls(data.return_pct)}
             />
             <div className="grid grid-cols-3 gap-2">
               <Metric label="최대낙폭 (MDD)" value={`${data.mdd_pct}%`} cls="text-ap-down" />

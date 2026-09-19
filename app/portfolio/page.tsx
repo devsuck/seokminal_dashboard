@@ -9,7 +9,7 @@ import {
   type OmsOrder, type VenuePnl,
 } from "@/lib/api";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
-import { ApPanel, ApPanelHead, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApLightHero } from "@/components/ui/ApPrimitives";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
@@ -304,7 +304,7 @@ function MobileGroup({ title, ccy, total, items, emptyHint, onSelect }: {
   return (
     <div className="space-y-2">
       {total != null ? (
-        <ApHeroCard label={title} value={fmt(total, ccy)} />
+        <ApLightHero label={title} value={fmt(total, ccy)} />
       ) : (
         <span className="text-ap-ink-1 text-sm font-semibold px-1 block">{title}</span>
       )}

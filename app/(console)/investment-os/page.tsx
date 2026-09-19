@@ -28,7 +28,7 @@ import {
   type MonitorResp, type OrdersResp, type LiveIntelligenceResp,
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
-import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApLightHero } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -1274,10 +1274,10 @@ function InvestmentOsInner() {
               const hasWarning = govFail || budgetOver || sepBroken;
               return (
                 <div className="space-y-5">
-                  <ApHeroCard
+                  <ApLightHero
                     label="집행 상태"
                     value={agents.data ? (liveOn ? "라이브 집행 중" : "집행 대기") : "—"}
-                    valueCls={liveOn ? "text-ap-up" : "text-white/60"}
+                    valueCls={liveOn ? "text-ap-up" : "text-ap-ink-3"}
                     sub={`게이트 ${data.gates.passed ? "통과" : "차단"} · 컴플라이언스 ${data.compliance.compliant ? "통과" : "실패"}`}
                   />
 

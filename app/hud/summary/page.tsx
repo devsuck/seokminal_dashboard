@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { useHudFeed } from "@/components/hud/useHudFeed";
 import { deriveAttentionItems } from "@/lib/attention";
 import PortfolioTab from "@/components/hud/PortfolioTab";
-import { ApPanel, ApPanelHead, ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApLightHero } from "@/components/ui/ApPrimitives";
 
 function subscribeToMobileQuery(cb: () => void) {
   const m = matchMedia("(max-width: 767px)");
@@ -123,10 +123,10 @@ export default function HudSummaryPage() {
         )}
 
         <div className="flex flex-col gap-3 px-4 pb-4 max-w-md mx-auto">
-          <ApHeroCard
+          <ApLightHero
             label="SEOKMINAL"
             value={`실거래 ${liveLabel}`}
-            valueCls={liveOn ? "text-ap-up" : "text-white/60"}
+            valueCls={liveOn ? "text-ap-up" : "text-ap-ink-3"}
             rows={[
               { label: "상태", value: busy ? "처리 중" : active ? "가동 중" : "대기", cls: busy ? "text-ap-brand" : active ? "text-ap-up" : "text-ap-ink-2" },
               { label: "정합성", value: health ? (health.ok ? "이상없음" : `오류 ${health.n_errors}`) : "로딩 중", cls: (health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3" },

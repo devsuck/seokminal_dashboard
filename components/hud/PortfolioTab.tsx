@@ -7,7 +7,7 @@ import {
   type AlpacaPosition, type AlpacaAccount, type PaperState, type HLAssetPosition, type KISHolding, type FxRate,
 } from "@/lib/api";
 import { LoadingState } from "@/components/ui";
-import { ApHeroCard } from "@/components/ui/ApPrimitives";
+import { ApLightHero } from "@/components/ui/ApPrimitives";
 
 /* 자산군 요약(국내주식/해외주식/코인) — 상세 종목 리스트는 /portfolio가 담당.
    여기는 ApHeroCard 하나(총액+자산군별 비중)와 링크로 축소. */
@@ -143,7 +143,7 @@ export default function PortfolioTab() {
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-3">
       <h1 className="text-xl font-semibold text-ap-ink-1 tracking-wide">총 포트폴리오</h1>
-      <ApHeroCard
+      <ApLightHero
         label="USD 환산 총액"
         value={heroValue}
         sub={missingClass ? "일부 자산군 조회 실패 — 총액 과소 표시" : fxError ? "환율 조회 실패 — 자산군별 개별 표시" : undefined}
