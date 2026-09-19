@@ -526,10 +526,12 @@ function AccountsTab() {
         emptyHint={balancesPending ? "HL 잔고 조회 중…" : "코인 보유 종목 없음"} onSelect={setSelected} />
 
       {compositionRows.length > 0 && (
-        <ApPanel>
-          <div className="px-4 py-3 border-b border-ap-line">
+        <details className="group rounded-ap-lg border border-ap-line bg-ap-surface shadow-ap-sm overflow-hidden">
+          <summary className="flex items-center justify-between gap-2 px-4 py-3 border-b border-ap-line cursor-pointer list-none">
             <span className="text-sm font-semibold text-ap-ink-1">계좌 내 거래소 비중</span>
-          </div>
+            <span className="text-ap-ink-3 text-xs group-open:hidden">펼치기 ▾</span>
+            <span className="text-ap-ink-3 text-xs hidden group-open:inline">접기 ▴</span>
+          </summary>
           <div className="divide-y divide-ap-line/60 p-1">
             {[...compositionRows].sort((a, b) => b.balance - a.balance).map(r => (
               <div key={`${r.venue}-${r.ccy}`} className="flex items-center justify-between gap-2 px-3 py-2">
@@ -544,7 +546,7 @@ function AccountsTab() {
               </div>
             ))}
           </div>
-        </ApPanel>
+        </details>
       )}
     </div>
 
