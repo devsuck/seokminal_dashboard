@@ -24,7 +24,7 @@ export interface HudFeed {
   godCandidates: GodModeCandidatesResp | null; claimCandidates: CapitalClaimCandidatesResp | null;
 }
 
-/** /hud와 /hud/summary 공용 폴링 — 두 페이지가 같은 15개 엔드포인트를 각자 호출하지 않도록 여기 하나로 뺌. */
+/** /hud 페이지 공용 폴링 — 15개 엔드포인트를 화면 곳곳에서 각자 호출하지 않도록 여기 하나로 뺌. */
 export function useHudFeed() {
   const [f, setF] = useState<HudFeed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, health: null, fleet: null, pipeline: null, risk: null, ios: null, godCandidates: null, claimCandidates: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);

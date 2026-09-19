@@ -174,11 +174,11 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
   const reverted = god?.reverted ?? [];
   const candidates = claims?.candidates ?? [];
   const total = promotable.length + reverted.length + candidates.length;
-  if (!total && !err) return null;
+  if (!total && !err && !lastResult) return null;
 
   return (
     <div className="space-y-2">
-      <div className="text-[11px] font-semibold text-ap-ink-3 px-1">승인 대기 · {total}</div>
+      <div className="px-1"><ApBadge tone="warn">승인 대기 · {total}</ApBadge></div>
       {err && <div className="text-[11px] text-ap-down px-1">{err}</div>}
       {lastResult && <div className="text-[11px] text-ap-brand px-1">{lastResult}</div>}
 
