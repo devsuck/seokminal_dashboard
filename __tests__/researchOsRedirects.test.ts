@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { OLD_TO_NEW } from "@/lib/researchOsRedirects";
 
 describe("OLD_TO_NEW redirect map", () => {
-  it("has exactly 19 entries", () => {
-    expect(Object.keys(OLD_TO_NEW)).toHaveLength(19);
+  it("has exactly 20 entries", () => {
+    expect(Object.keys(OLD_TO_NEW)).toHaveLength(20);
   });
 
   it("maps every old route to a shell route with a matching ?tab=", () => {
@@ -27,6 +27,7 @@ describe("OLD_TO_NEW redirect map", () => {
       "/portfolio-os/risk": "/investment-os?tab=risk",
       "/calendar": "/hud",
       "/insider": "/hud",
+      "/hud/summary": "/hud",
     };
     expect(OLD_TO_NEW).toEqual(expected);
   });

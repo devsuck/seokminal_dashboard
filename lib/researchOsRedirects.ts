@@ -28,4 +28,5 @@ export const OLD_TO_NEW: Record<string, string> = {
   // ── 컨텍스트 드릴다운(옛 /agents 흡수, 지금은 /agents 자체가 없어져 /hud로) ──
   "/calendar": "/hud",
   "/insider": "/hud",
+  "/hud/summary": "/hud",
 };
