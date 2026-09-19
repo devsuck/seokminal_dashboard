@@ -212,6 +212,8 @@ function HomeTab() {
     risk: risk ? { by_status: risk.by_status } : null,
     investmentOs: ios ? { gates: ios.gates, execution_ladder: ios.execution_ladder } : null,
     autoResearch: ar ? { n_candidates: ar.n_candidates } : null,
+    godCandidates: f.godCandidates ? { promotable: f.godCandidates.promotable, reverted: f.godCandidates.reverted } : null,
+    claimCandidates: f.claimCandidates ? { candidates: f.claimCandidates.candidates } : null,
   });
 
   const nRunning = units.filter(u => u.running).length;
