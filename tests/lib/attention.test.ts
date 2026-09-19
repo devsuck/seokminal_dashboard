@@ -88,6 +88,17 @@ describe("deriveAttentionItems", () => {
     });
   });
 
+  it("godCandidates.reverted > 0이면 god_mode 강제 복귀 카드", () => {
+    const items = deriveAttentionItems({
+      pipeline: null, risk: null, investmentOs: null, autoResearch: null,
+      godCandidates: { promotable: [], reverted: ["a1", "a2"] }, claimCandidates: null,
+    });
+    expect(items).toContainEqual({
+      id: "god-mode-reverted", label: "god_mode 강제 복귀 발생",
+      detail: "2건", href: "/investment-os/live-agents", tone: "neg",
+    });
+  });
+
   it("claimCandidates.candidates > 0이면 자본배정 승인 대기 카드", () => {
     const items = deriveAttentionItems({
       pipeline: null, risk: null, investmentOs: null, autoResearch: null,

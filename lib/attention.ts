@@ -60,6 +60,14 @@ export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
     });
   }
 
+  const godReverted = (input.godCandidates?.reverted.length ?? 0);
+  if (godReverted > 0) {
+    items.push({
+      id: "god-mode-reverted", label: "god_mode 강제 복귀 발생",
+      detail: `${godReverted}건`, href: "/investment-os/live-agents", tone: "neg",
+    });
+  }
+
   const claimPending = (input.claimCandidates?.candidates.length ?? 0);
   if (claimPending > 0) {
     items.push({

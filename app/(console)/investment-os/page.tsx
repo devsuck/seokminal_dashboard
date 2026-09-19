@@ -180,10 +180,13 @@ function InvestmentOsInner() {
   const [showDetail, setShowDetail] = useState(false);
   // 자본청구 대기열 — overview 탭 "추천 비중" 헤더에 배지로 노출
   const [claimQueue, setClaimQueue] = useState<CapitalClaimQueueResp | null>(null);
+  const claimQueueAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    let mounted = true;
-    getCapitalClaimQueue().then((q) => { if (mounted) setClaimQueue(q); }).catch(() => {});
-    return () => { mounted = false; };
+    claimQueueAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    claimQueueAbortRef.current = ctrl;
+    getCapitalClaimQueue(ctrl.signal).then((q) => { if (!ctrl.signal.aborted) setClaimQueue(q); }).catch(() => {});
+    return () => ctrl.abort();
   }, []);
   // 재무제표 실측 조회 패널 (financials_live 직접 배선) — 사용자 입력 트리거, 탭 활성화와 무관
   const [finQuery, setFinQuery] = useState("");
