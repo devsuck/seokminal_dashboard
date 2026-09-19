@@ -250,3 +250,19 @@ export function ApLightHero({
     </div>
   );
 }
+
+export function ApGateStep({ label, value, title, state }: {
+  label: string; value: string; title?: string; state: "done" | "current" | "blocked" | "pending";
+}) {
+  const tone = state === "done" ? "text-ap-up" : state === "blocked" ? "text-ap-down"
+    : state === "current" ? "text-ap-brand" : "text-ap-ink-3";
+  const bar = state === "done" ? "bg-ap-up" : state === "blocked" ? "bg-ap-down"
+    : state === "current" ? "bg-ap-brand" : "bg-ap-line";
+  return (
+    <div className="flex-1 min-w-0 px-1.5 pb-1.5">
+      <div className={`h-0.5 mb-1 ${bar}`} />
+      <p className="text-ap-ink-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
+      <p className={`font-data text-xs font-bold truncate ${tone}`} title={title}>{value}</p>
+    </div>
+  );
+}

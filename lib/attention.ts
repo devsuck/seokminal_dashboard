@@ -32,7 +32,7 @@ export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
   if (blocked > 0) {
     items.push({
       id: "risk-block", label: "리스크 차단 이벤트",
-      detail: `${blocked}건`, href: "/hud", tone: "neg",
+      detail: `${blocked}건`, href: "/investment-os?tab=risk", tone: "neg",
     });
   }
 

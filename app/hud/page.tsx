@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type CollectorKey } from "@/lib/api";
 import { deriveAttentionItems } from "@/lib/attention";
 import { Balances } from "@/components/AccountBalances";
-import { ApPanel, ApPanelHead } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApGateStep } from "@/components/ui/ApPrimitives";
 import { SegmentedToggle } from "@/components/ui/SegmentedToggle";
 import { FreshnessBar } from "@/components/ui/FreshnessBar";
 import { collectorMeta, VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/collectors";
@@ -111,23 +111,6 @@ function WorldClock({ now }: { now: Date }) {
           </span>
         </span>
       ))}
-    </div>
-  );
-}
-
-/** 돈길 = 순서 있는 관문. 텍스트 3칸으로는 "어디까지 왔나"가 안 보여서 스테퍼로. */
-function LadderStep({ label, value, title, state }: {
-  label: string; value: string; title?: string; state: "done" | "current" | "blocked" | "pending";
-}) {
-  const tone = state === "done" ? "text-ap-up" : state === "blocked" ? "text-ap-down"
-    : state === "current" ? "text-ap-brand" : "text-ap-ink-3";
-  const bar = state === "done" ? "bg-ap-up" : state === "blocked" ? "bg-ap-down"
-    : state === "current" ? "bg-ap-brand" : "bg-ap-line";
-  return (
-    <div className="flex-1 min-w-0 px-1.5 pb-1.5">
-      <div className={`h-0.5 mb-1 ${bar}`} />
-      <p className="text-ap-ink-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
-      <p className={`font-data text-xs font-bold truncate ${tone}`} title={title}>{value}</p>
     </div>
   );
 }
@@ -329,16 +312,17 @@ function HomeTab() {
         )}
         <ApPanel>
           <ApPanelHead title="돈길" right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>} />
+          <p className="px-2 pt-1 text-[10px] text-ap-ink-3">시스템 실제 상태 — 라이브 전환 게이트</p>
           {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
           <div className="flex pt-1">
-            <LadderStep label="1 엣지" value={edgeLabel}
+            <ApGateStep label="1 엣지" value={edgeLabel}
               state={edge?.status === "confirmed" ? "done" : edge?.status === "drifting" ? "blocked" : "current"} />
-            <LadderStep label="2 페이퍼" value={`${paperMo}/${paperMin}mo`}
+            <ApGateStep label="2 페이퍼" value={`${paperMo}/${paperMin}mo`}
               state={paperMo >= paperMin ? "done" : edge?.status === "confirmed" ? "current" : "pending"} />
-            <LadderStep label="3 ARM" value={armLabel} title={arm?.decision}
+            <ApGateStep label="3 ARM" value={armLabel} title={arm?.decision}
               state={arm?.decision === "GO" ? "done" : arm?.decision === "KILL" ? "blocked"
                 : paperMo >= paperMin ? "current" : "pending"} />
-            <LadderStep label="4 LIVE" value={liveLabel} title={jarvis?.live_execution}
+            <ApGateStep label="4 LIVE" value={liveLabel} title={jarvis?.live_execution}
               state={jarvis?.live_execution === "disabled" ? "blocked"
                 : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
           </div>

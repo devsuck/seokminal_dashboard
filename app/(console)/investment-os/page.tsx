@@ -28,7 +28,7 @@ import {
   type MonitorResp, type OrdersResp, type LiveIntelligenceResp,
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
-import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApLightHero } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApLightHero, ApGateStep } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -1342,24 +1342,21 @@ function InvestmentOsInner() {
                 <ApPanel>
                   <ApPanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리" right={<ApBadge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
                   <div className="p-4 space-y-3">
+                    <p className="text-[10px] text-ap-ink-3">포트폴리오 시뮬레이션(자문용) — 새로고침하면 리셋, 실제 상태 아님</p>
                     <div className="text-xs text-ap-ink-2 leading-relaxed bg-ap-bg rounded-ap-md px-3 py-2">
                       전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
                       승인해도 새로고침하면 PAPER로 리셋되고, 실제로 바뀌는 건 없습니다(AUTO_EXECUTION은 영구 비활성).
                       특정 전략을 실제 페이퍼 운용으로 올리는 "승격"은 여기가 아니라 <span className="text-ap-ink-1 font-semibold">Auto-Research</span>의 "🚀 페이퍼로 올리기" 버튼입니다.
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex">
                       {RUNGS.map((r) => {
                         const isAuto = r === "AUTO_EXECUTION";
                         const isCurrent = r === currentRung;
                         const isPast = RUNGS.indexOf(r) < RUNGS.indexOf(currentRung);
                         return (
-                          <span key={r} className={`text-xs px-2 py-1 rounded-ap-sm border ${
-                            isAuto ? "border-ap-down text-ap-down line-through"
-                            : isCurrent ? "border-ap-brand text-ap-brand font-semibold bg-ap-brand/10"
-                            : isPast ? "border-ap-up text-ap-up"
-                            : "border-ap-line text-ap-ink-3"}`}>
-                            {isAuto && "🔒 "}{isCurrent && "▶ "}{RUNG_LABEL[r] ?? r}
-                          </span>
+                          <ApGateStep key={r} label={RUNG_LABEL[r] ?? r}
+                            value={isAuto ? "🔒 잠김" : isCurrent ? "▶ 현재" : isPast ? "완료" : "대기"}
+                            state={isAuto ? "blocked" : isCurrent ? "current" : isPast ? "done" : "pending"} />
                         );
                       })}
                     </div>
