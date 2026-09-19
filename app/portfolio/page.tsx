@@ -487,9 +487,13 @@ function AccountsTab() {
         </CcySection>
       </div>
 
-      {/* RIGHT — composition (venue → 통화별 잔고 구성비) */}
-      <ApPanel>
-        <ApPanelHead title="거래소별 분포" right={<span className="text-ap-ink-3 text-[11px] font-normal">(구성)</span>} />
+      {/* RIGHT — composition (venue → 통화별 잔고 구성비), 기본 접힘 (스펙: accounts 탭 상단은 계좌현황+포지션만 기본 노출) */}
+      <details className="group rounded-ap-lg border border-ap-line bg-ap-surface shadow-ap-sm overflow-hidden">
+        <summary className="flex items-center justify-between gap-2 px-4 py-3 border-b border-ap-line cursor-pointer list-none">
+          <span className="text-sm font-semibold text-ap-ink-1">거래소별 분포 <span className="text-ap-ink-3 text-[11px] font-normal">(구성)</span></span>
+          <span className="text-ap-ink-3 text-xs group-open:hidden">펼치기 ▾</span>
+          <span className="text-ap-ink-3 text-xs hidden group-open:inline">접기 ▴</span>
+        </summary>
         <div className="p-1">
           {compositionRows.length === 0 ? (
             <p className="text-ap-ink-3 text-xs p-2">연동 계좌 없음</p>
@@ -513,7 +517,7 @@ function AccountsTab() {
         <p className="px-3 pb-3 text-[11px] text-ap-ink-3 leading-relaxed">
           통화 내 venue 잔고 구성비 · 손익 귀속(attribution)이 아닌 배분 현황 표시.
         </p>
-      </ApPanel>
+      </details>
     </div>
 
     <div className="md:hidden space-y-6">
