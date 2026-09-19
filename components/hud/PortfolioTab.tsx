@@ -10,7 +10,7 @@ import { LoadingState } from "@/components/ui";
 import { ApLightHero } from "@/components/ui/ApPrimitives";
 
 /* 자산군 요약(국내주식/해외주식/코인) — 상세 종목 리스트는 /portfolio가 담당.
-   여기는 ApHeroCard 하나(총액+자산군별 비중)와 링크로 축소. */
+   여기는 ApLightHero 하나(총액+자산군별 비중)와 링크로 축소. */
 
 function fmt(v: number | null, ccy: string): string {
   if (v == null) return "—";
