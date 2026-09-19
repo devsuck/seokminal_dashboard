@@ -10,8 +10,9 @@ import {
   type AccountBalances, type TriggeredAlert, type LabHealth, type FleetResponse,
 } from "@/lib/api";
 import {
-  getConsolePipeline, getRisk, getInvestmentOs,
+  getConsolePipeline, getRisk, getInvestmentOs, getGodModeCandidates, getCapitalClaimCandidates,
   type ConsolePipeline, type RiskResp, type InvestmentOsResp,
+  type GodModeCandidatesResp, type CapitalClaimCandidatesResp,
 } from "@/lib/console-api";
 
 export interface HudFeed {
@@ -20,11 +21,12 @@ export interface HudFeed {
   exec: ExecutionConsole | null; edge: ExecutionEdge | null; alerts: TriggeredAlert[] | null;
   health: LabHealth | null; fleet: FleetResponse | null;
   pipeline: ConsolePipeline | null; risk: RiskResp | null; ios: InvestmentOsResp | null;
+  godCandidates: GodModeCandidatesResp | null; claimCandidates: CapitalClaimCandidatesResp | null;
 }
 
 /** /hud와 /hud/summary 공용 폴링 — 두 페이지가 같은 15개 엔드포인트를 각자 호출하지 않도록 여기 하나로 뺌. */
 export function useHudFeed() {
-  const [f, setF] = useState<HudFeed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, health: null, fleet: null, pipeline: null, risk: null, ios: null });
+  const [f, setF] = useState<HudFeed>({ lab: null, jarvis: null, ar: null, bot: null, agents: null, sys: null, exec: null, edge: null, alerts: null, health: null, fleet: null, pipeline: null, risk: null, ios: null, godCandidates: null, claimCandidates: null });
   const [bal, setBal] = useState<AccountBalances | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -70,12 +72,14 @@ export function useHudFeed() {
         const b = await getAccountBalances();
         if (mounted) setBal(b);
       } catch { /* 이전 값 유지 */ }
-      const [pipeline, risk, ios] = await Promise.all([
+      const [pipeline, risk, ios, godCandidates, claimCandidates] = await Promise.all([
         getConsolePipeline().catch(() => null),
         getRisk().catch(() => null),
         getInvestmentOs(1_000_000).catch(() => null),
+        getGodModeCandidates().catch(() => null),
+        getCapitalClaimCandidates().catch(() => null),
       ]);
-      if (mounted) setF((prev) => ({ ...prev, pipeline, risk, ios }));
+      if (mounted) setF((prev) => ({ ...prev, pipeline, risk, ios, godCandidates, claimCandidates }));
       inFlight = false;
     }
     loadBal();

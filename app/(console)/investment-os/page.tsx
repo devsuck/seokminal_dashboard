@@ -17,7 +17,7 @@ import {
   getValidationLoop, getValidation,
   getMarketCockpit, getInstitutionalIntelligence, getFinancialsLive,
   getRisk, getProductionReadiness, getAgents, getConsoleCouncil, getLogs,
-  getMonitor, getOrders, getLiveIntelligence, getMonthlyReview,
+  getMonitor, getOrders, getLiveIntelligence, getMonthlyReview, getCapitalClaimQueue,
   type InvestmentOsResp, type LadderAdvanceResp, type ForwardLearningResp, type ForwardLearningRecord,
   type MonthlyReviewResp,
   type DataConnectionResp, type ResearchAccountabilityResp,
@@ -25,7 +25,7 @@ import {
   type ValidationLoopResp, type ValidationResp,
   type MarketCockpitResp, type InstitutionalIntelligenceResp, type FinancialsLiveResp,
   type RiskResp, type ProductionReadinessResp, type AgentsResp, type ConsoleCouncil, type LogsResp,
-  type MonitorResp, type OrdersResp, type LiveIntelligenceResp,
+  type MonitorResp, type OrdersResp, type LiveIntelligenceResp, type CapitalClaimQueueResp,
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
 import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApLightHero, ApGateStep } from "@/components/ui/ApPrimitives";
@@ -178,6 +178,13 @@ function InvestmentOsInner() {
   const [sideLoading, setSideLoading] = useState(true);
   // 모바일 리스크 탭 — 상세 지표는 기본 접힘(정보 최소화)
   const [showDetail, setShowDetail] = useState(false);
+  // 자본청구 대기열 — overview 탭 "추천 비중" 헤더에 배지로 노출
+  const [claimQueue, setClaimQueue] = useState<CapitalClaimQueueResp | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    getCapitalClaimQueue().then((q) => { if (mounted) setClaimQueue(q); }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
   // 재무제표 실측 조회 패널 (financials_live 직접 배선) — 사용자 입력 트리거, 탭 활성화와 무관
   const [finQuery, setFinQuery] = useState("");
   const [finData, setFinData] = useState<FinancialsLiveResp | null>(null);
@@ -1047,7 +1054,16 @@ function InvestmentOsInner() {
                 </ApPanel>
 
                 <ApPanel>
-                  <ApPanelHead kicker="포트폴리오 구성" title="추천 비중" right={<ApBadge tone="mute">추천 · 실배분 아님</ApBadge>} />
+                  <ApPanelHead kicker="포트폴리오 구성" title="추천 비중" right={
+                    <div className="flex items-center gap-2">
+                      <ApBadge tone="mute">규칙 기반 · 실배분 아님</ApBadge>
+                      {claimQueue && claimQueue.count > 0 && (
+                        <Link href="/investment-os/capital-claims" className="no-underline">
+                          <ApBadge tone="warn">승인 대기 {claimQueue.count}</ApBadge>
+                        </Link>
+                      )}
+                    </div>
+                  } />
                   <div className="p-4 space-y-2">
                     {Object.entries(weights).length === 0 && <div className="text-xs text-ap-ink-3">소비할 연구 후보 없음 — 지식 축적 필요.</div>}
                     {Object.entries(weights).map(([sid, w]) => (

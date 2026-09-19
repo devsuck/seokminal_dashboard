@@ -92,7 +92,7 @@ export default function CapitalClaimsPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div className="text-[9px] font-semibold tracking-[0.24em] uppercase text-[var(--c-text-3)]">
-            전략 자본 청구 · 사전 엔벨로프 내 AI 자율승인
+            초과분 승인대기 · 한도관리 · 이력
           </div>
           <div className="text-[13px] font-semibold text-[var(--c-text-1)]">자본 청구</div>
         </div>

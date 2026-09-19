@@ -113,7 +113,9 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [manualMode, setManualMode] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const run = useCallback(async () => {
     abortRef.current?.abort();
@@ -130,6 +132,7 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
     }
   }, []);
   useEffect(() => { run(); return () => abortRef.current?.abort(); }, [run]);
+  useEffect(() => () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); }, []);
 
   const promote = async (agentId: string) => {
     setBusy(agentId);
@@ -147,7 +150,17 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
   const claim = async (strategyId: string, amount?: number) => {
     setBusy(strategyId);
     try {
-      await submitCapitalClaim(strategyId, amount);
+      const res = await submitCapitalClaim(strategyId, amount);
+      const msg = res.status === "approved"
+        ? `자동 승인됨 · ${res.fulfillment_mode === "live" ? "live" : "paper"}`
+        : res.status === "queued"
+        ? "한도 초과 · 승인 대기열 등록됨"
+        : res.status === "rejected"
+        ? "거부됨"
+        : res.status;
+      if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+      setLastResult(msg);
+      resultTimerRef.current = setTimeout(() => setLastResult(null), 4000);
       await run();
       onActed();
     } catch (ex) {
@@ -167,6 +180,7 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
     <div className="space-y-2">
       <div className="text-[11px] font-semibold text-ap-ink-3 px-1">승인 대기 · {total}</div>
       {err && <div className="text-[11px] text-ap-down px-1">{err}</div>}
+      {lastResult && <div className="text-[11px] text-ap-brand px-1">{lastResult}</div>}
 
       {promotable.map((c) => (
         <div key={c.agent_id} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4">

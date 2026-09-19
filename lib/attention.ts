@@ -16,6 +16,8 @@ export interface AttentionInput {
     execution_ladder: { human_approval_mandatory: boolean };
   } | null;
   autoResearch: { n_candidates: number } | null;
+  godCandidates: { promotable: unknown[]; reverted: unknown[] } | null;
+  claimCandidates: { candidates: unknown[] } | null;
 }
 
 export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
@@ -47,6 +49,22 @@ export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
     items.push({
       id: "research-candidates", label: "리서치 후보 검토 대기",
       detail: `${input.autoResearch.n_candidates}건`, href: "/auto-research", tone: "info",
+    });
+  }
+
+  const godPending = (input.godCandidates?.promotable.length ?? 0);
+  if (godPending > 0) {
+    items.push({
+      id: "god-mode-promotable", label: "god_mode 승급 후보",
+      detail: `${godPending}건`, href: "/investment-os/live-agents", tone: "warn",
+    });
+  }
+
+  const claimPending = (input.claimCandidates?.candidates.length ?? 0);
+  if (claimPending > 0) {
+    items.push({
+      id: "capital-claim-candidates", label: "자본배정 승인 대기",
+      detail: `${claimPending}건`, href: "/investment-os/live-agents", tone: "warn",
     });
   }
 
