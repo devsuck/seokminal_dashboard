@@ -3,13 +3,17 @@ import { deriveAttentionItems } from "../../lib/attention";
 
 describe("deriveAttentionItems", () => {
   it("모든 입력 null이면 빈 배열", () => {
-    const items = deriveAttentionItems({ pipeline: null, risk: null, investmentOs: null, autoResearch: null });
+    const items = deriveAttentionItems({
+      pipeline: null, risk: null, investmentOs: null, autoResearch: null,
+      godCandidates: null, claimCandidates: null,
+    });
     expect(items).toEqual([]);
   });
 
   it("proposals > 0이면 파이프라인 승인 대기 카드", () => {
     const items = deriveAttentionItems({
       pipeline: { proposals: 3 }, risk: null, investmentOs: null, autoResearch: null,
+      godCandidates: null, claimCandidates: null,
     });
     expect(items).toContainEqual({
       id: "pipeline-proposals", label: "제안 승인 대기", detail: "3건", href: "/investment-os", tone: "warn",
@@ -19,6 +23,7 @@ describe("deriveAttentionItems", () => {
   it("proposals == 0이면 카드 없음", () => {
     const items = deriveAttentionItems({
       pipeline: { proposals: 0 }, risk: null, investmentOs: null, autoResearch: null,
+      godCandidates: null, claimCandidates: null,
     });
     expect(items.find((i) => i.id === "pipeline-proposals")).toBeUndefined();
   });
@@ -26,6 +31,7 @@ describe("deriveAttentionItems", () => {
   it("risk.by_status.BLOCK > 0이면 리스크 차단 카드", () => {
     const items = deriveAttentionItems({
       pipeline: null, risk: { by_status: { ALLOW: 10, BLOCK: 2 } }, investmentOs: null, autoResearch: null,
+      godCandidates: null, claimCandidates: null,
     });
     expect(items).toContainEqual({
       id: "risk-block", label: "리스크 차단 이벤트", detail: "2건", href: "/investment-os?tab=risk", tone: "neg",
@@ -35,6 +41,7 @@ describe("deriveAttentionItems", () => {
   it("BLOCK 없으면 카드 없음", () => {
     const items = deriveAttentionItems({
       pipeline: null, risk: { by_status: { ALLOW: 10 } }, investmentOs: null, autoResearch: null,
+      godCandidates: null, claimCandidates: null,
     });
     expect(items.find((i) => i.id === "risk-block")).toBeUndefined();
   });
@@ -43,6 +50,7 @@ describe("deriveAttentionItems", () => {
     const items = deriveAttentionItems({
       pipeline: null, risk: null, autoResearch: null,
       investmentOs: { gates: { passed: true }, execution_ladder: { human_approval_mandatory: true } },
+      godCandidates: null, claimCandidates: null,
     });
     expect(items).toContainEqual({
       id: "ladder-gate", label: "준비도 사다리 다음 단계 승인 가능",
@@ -54,6 +62,7 @@ describe("deriveAttentionItems", () => {
     const items = deriveAttentionItems({
       pipeline: null, risk: null, autoResearch: null,
       investmentOs: { gates: { passed: false }, execution_ladder: { human_approval_mandatory: true } },
+      godCandidates: null, claimCandidates: null,
     });
     expect(items.find((i) => i.id === "ladder-gate")).toBeUndefined();
   });
@@ -61,9 +70,32 @@ describe("deriveAttentionItems", () => {
   it("n_candidates > 0이면 리서치 후보 카드", () => {
     const items = deriveAttentionItems({
       pipeline: null, risk: null, investmentOs: null, autoResearch: { n_candidates: 5 },
+      godCandidates: null, claimCandidates: null,
     });
     expect(items).toContainEqual({
       id: "research-candidates", label: "리서치 후보 검토 대기", detail: "5건", href: "/auto-research", tone: "info",
+    });
+  });
+
+  it("godCandidates.promotable > 0이면 god_mode 승급 후보 카드", () => {
+    const items = deriveAttentionItems({
+      pipeline: null, risk: null, investmentOs: null, autoResearch: null,
+      godCandidates: { promotable: ["s1"], reverted: [] }, claimCandidates: null,
+    });
+    expect(items).toContainEqual({
+      id: "god-mode-promotable", label: "god_mode 승급 후보",
+      detail: "1건", href: "/investment-os/live-agents", tone: "warn",
+    });
+  });
+
+  it("claimCandidates.candidates > 0이면 자본배정 승인 대기 카드", () => {
+    const items = deriveAttentionItems({
+      pipeline: null, risk: null, investmentOs: null, autoResearch: null,
+      godCandidates: null, claimCandidates: { candidates: ["c1", "c2"] },
+    });
+    expect(items).toContainEqual({
+      id: "capital-claim-candidates", label: "자본배정 승인 대기",
+      detail: "2건", href: "/investment-os/live-agents", tone: "warn",
     });
   });
 });
