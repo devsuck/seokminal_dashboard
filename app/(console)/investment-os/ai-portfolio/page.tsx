@@ -59,13 +59,11 @@ export default function AiPortfolioPage() {
       </div>
 
       <ApPanel>
-        <ApPanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천" />
+        <ApPanelHead kicker="ai_portfolio · Claude CLI 배분 추천" title="최신 추천"
+          right={<ApBadge tone="mute">{latest?.fallback_used ? "규칙 기반 폴백" : "Claude AI"}</ApBadge>} />
         <div className="p-4 space-y-2">
           {loading && <ApSkeletonLines rows={4} />}
           {!loading && err && <div className="text-[11px] text-[var(--c-neg)]">백엔드 연결 실패: {err}</div>}
-          {!loading && !err && latest?.fallback_used && (
-            <ApBadge tone="warn">AI 응답 실패 — 규칙 기반(evidence_weighted) 폴백</ApBadge>
-          )}
           {!loading && !err && weights.length === 0 && (
             <div className="text-[11px] text-[var(--c-text-3)]">{latest?.note ?? "추천 없음"}</div>
           )}
