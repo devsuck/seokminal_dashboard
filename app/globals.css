@@ -65,6 +65,7 @@
   /* ── Autopilot 라이트 토큰 (ap-) ── additive, 위 다크 토큰과 별개 네임스페이스.
      CommandRail + /hud + /agents 전용. 13개 미전환 라우트는 위 다크 토큰만 계속 사용. */
   --color-ap-bg:       #FAFAFB;
+  --color-ap-bg-page:  #EEF1F4;  /* 카드(순백)와 대비 확실히 주는 페이지 배경 — ap-bg는 카드랑 너무 붙어보임 */
   --color-ap-surface:  #FFFFFF;
   --color-ap-line:     #E5E7EB;
   --color-ap-ink-1:    #111827;
