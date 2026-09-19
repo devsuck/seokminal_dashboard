@@ -9,7 +9,7 @@ import {
   type LiveAgent, type AgentCycle, type AgentPerformance, type GodModeEligibility,
   type GodModeCandidatesResp, type CapitalClaimCandidatesResp,
 } from "@/lib/console-api";
-import { ApBadge, ApSkeletonLines, ApDot } from "@/components/ui/ApPrimitives";
+import { ApBadge, ApSkeletonLines, ApDot, ApBottomSheet } from "@/components/ui/ApPrimitives";
 
 const DECISION_TONE: Record<string, "pos" | "neg" | "warn" | "mute" | "info"> = {
   BUY: "pos", SELL: "neg", HOLD: "mute", WATCH: "info", SKIP: "mute",
@@ -295,6 +295,7 @@ function AgentCardBody({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(async () => {
@@ -305,7 +306,7 @@ function AgentCardBody({
     setErr(null);
     try {
       const [c, g] = await Promise.all([
-        getLiveAgentCycles(agentId, 8, ctrl.signal),
+        getLiveAgentCycles(agentId, 50, ctrl.signal),
         getGodModeEligibility(agentId, ctrl.signal).catch(() => null),
       ]);
       if (!ctrl.signal.aborted) { setCycles(c.cycles); setGod(g); }
@@ -331,6 +332,7 @@ function AgentCardBody({
   };
 
   const recentCycles = cycles ? [...cycles].reverse() : [];
+  const previewCycles = recentCycles.slice(0, 3);
 
   return (
     <div className="border-t border-ap-line p-4 space-y-4">
@@ -391,12 +393,32 @@ function AgentCardBody({
       )}
 
       <div>
-        <div className="text-[10px] font-semibold text-ap-ink-3 uppercase tracking-wide mb-1.5">최근 사이클</div>
-        {!loading && recentCycles.length === 0 && (
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="text-[10px] font-semibold text-ap-ink-3 uppercase tracking-wide">최근 사이클</div>
+          {recentCycles.length > 3 && (
+            <button onClick={() => setHistoryOpen(true)}
+              className="text-[11px] text-ap-brand border-0 bg-transparent cursor-pointer">
+              전체 이력 보기 ({recentCycles.length})
+            </button>
+          )}
+        </div>
+        {!loading && previewCycles.length === 0 && (
           <div className="text-[11px] text-ap-ink-3">기록된 사이클 없음.</div>
         )}
         <div className="space-y-1">
-          {!loading && recentCycles.map((c) => (
+          {!loading && previewCycles.map((c) => (
+            <div key={c.cycle} className="flex items-center gap-2 text-[11px]">
+              <span className="text-ap-ink-3 font-data w-9 shrink-0">{fmtCycleTime(c.ts)}</span>
+              <ApBadge tone={DECISION_TONE[c.decision] ?? "mute"}>{c.decision}</ApBadge>
+              {c.symbol && <span className="text-ap-ink-1 font-semibold shrink-0">{c.symbol}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <ApBottomSheet open={historyOpen} onClose={() => setHistoryOpen(false)} title="전체 사이클 이력">
+        <div className="space-y-1.5">
+          {recentCycles.map((c) => (
             <div key={c.cycle} className="flex items-center gap-2 text-[11px]">
               <span className="text-ap-ink-3 font-data w-9 shrink-0">{fmtCycleTime(c.ts)}</span>
               <ApBadge tone={DECISION_TONE[c.decision] ?? "mute"}>{c.decision}</ApBadge>
@@ -405,7 +427,7 @@ function AgentCardBody({
             </div>
           ))}
         </div>
-      </div>
+      </ApBottomSheet>
     </div>
   );
 }
