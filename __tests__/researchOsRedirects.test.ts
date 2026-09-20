@@ -15,7 +15,7 @@ describe("OLD_TO_NEW redirect map", () => {
       "/research-os/explain": "/research-os/governance?tab=explain",
       "/research-os/graph": "/research-os/governance?tab=graph",
       "/research-os/timeline": "/research-os/governance?tab=timeline",
-      "/overview": "/hud?tab=portfolio",
+      "/overview": "/hud",
       "/auto-research": "/hud",
       "/council/agents": "/investment-os?tab=risk",
       "/council/decisions": "/investment-os?tab=risk",

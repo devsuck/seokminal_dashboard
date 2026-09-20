@@ -18,11 +18,11 @@ import { useHudFeed } from "@/components/hud/useHudFeed";
 import { StatusDot } from "@/components/hud/StatusDot";
 
 /* AI LAB 통제판(구 /lab, /research-os/pipeline)은 read-only 리뉴얼(2026-08-25)에서 삭제 —
-   집행콘솔·페이퍼모니터는 "운영" 한 탭 안에서 토글로 묶어 HOME 상단 탭 수를 줄임. */
-type TabKey = "home" | "portfolio" | "ops";
+   집행콘솔·페이퍼모니터는 "운영" 한 탭 안에서 토글로 묶어 HOME 상단 탭 수를 줄임.
+   "자산" 탭은 2026-09-21 HOME으로 흡수 — 별도 탭으로 분리하지 말고 홈 메인에서 바로 보이게. */
+type TabKey = "home" | "ops";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "home", label: "HOME" },
-  { key: "portfolio", label: "자산" },
   { key: "ops", label: "운영" },
 ];
 
@@ -69,7 +69,6 @@ function HudInner() {
         ))}
       </div>
       {tab === "home" && <HomeTab />}
-      {tab === "portfolio" && <PortfolioTab />}
       {tab === "ops" && <OpsTab />}
     </div>
   );
@@ -277,6 +276,9 @@ function HomeTab() {
           </div>
         )}
       </div>
+
+      {/* 자산 — 옛 "자산" 상단탭을 홈으로 흡수(2026-09-21). 상세는 /portfolio */}
+      <PortfolioTab />
 
       {/* 판단 필요 — 사람 결정 걸리는 것만. 0건이면 한 줄로 접힘 */}
       <ApPanel>

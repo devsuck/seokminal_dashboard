@@ -9,7 +9,7 @@ export const OLD_TO_NEW: Record<string, string> = {
   "/research-os/graph": "/research-os/governance?tab=graph",
   "/research-os/timeline": "/research-os/governance?tab=timeline",
   // ── HUD 탭쉘 흡수(2026-08-22 가지치기) ──
-  "/overview": "/hud?tab=portfolio",
+  "/overview": "/hud",
   // AI LAB 통제판(구 /lab, /research-os/pipeline) 자체는 read-only 리뉴얼(2026-08-25)에서
   // 삭제됐지만, 리서치 후보 검토 기능은 살아있음 — 거기로.
   "/auto-research": "/investment-os/research-candidates",

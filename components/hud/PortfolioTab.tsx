@@ -95,11 +95,7 @@ export default function PortfolioTab() {
   }, [load]);
 
   if (loading) {
-    return (
-      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-        <LoadingState message="포트폴리오 로딩 중…" hint="자산군별 보유내역 집계 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />
-      </div>
-    );
+    return <LoadingState message="포트폴리오 로딩 중…" hint="자산군별 보유내역 집계 — 5~10초 걸립니다" textClass="text-ap-ink-3" spinnerClass="border-ap-line border-t-ap-brand" />;
   }
 
   const lkgValue = paper ? paper.cash + paper.positions.reduce((s, p) => s + p.value, 0) : null;
@@ -141,8 +137,7 @@ export default function PortfolioTab() {
   }));
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-3">
-      <h1 className="text-xl font-semibold text-ap-ink-1 tracking-wide">총 포트폴리오</h1>
+    <div className="space-y-3">
       <ApLightHero
         label="USD 환산 총액"
         value={heroValue}
