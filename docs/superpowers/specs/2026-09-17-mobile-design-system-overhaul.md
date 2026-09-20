@@ -1,5 +1,8 @@
 # 모바일 디자인 시스템 통일 + 정보 밀도 정리
 
+> **계승됨:** 이 스펙의 태스크 1~10은 완료·커밋됨. 잔여 항목(버튼/타이포 미시스템화)은
+> `docs/superpowers/specs/2026-09-20-design-system-formalization-design.md`로 계승·대체됨.
+
 ## 배경
 
 Phase 265~268에 걸쳐 홈/포트폴리오/investment-os 리스크탭을 `ap-*` 토큰 기반 모바일 카드로
@@ -23,6 +26,28 @@ Phase 265~268에 걸쳐 홈/포트폴리오/investment-os 리스크탭을 `ap-*`
 - 자산군별 수익률 = **B (비중 바)**: 여러 개 바 대신 통합 비중 바 1개
 - 포트폴리오 상단 = **A (탭 전환)**: 기존 `SegmentedToggle` 유지, 시각 스타일만 교체
 
+### Addendum (같은 날, 스펙 보강) — 카드 시스템 중복 2건 + 홈 자산탭 중복 추가 발견
+
+스펙 1차 작성 이후 "페이지별 중복 내용" 점검 중 추가로 확인:
+
+1. **`components/ui/Card.tsx`가 `ApPanel`과 완전 중복** — 스타일 100% 동일(`rounded-ap-lg
+   border border-ap-line bg-ap-surface shadow-ap-sm`), 6개 파일(`app/hud/page.tsx`,
+   `app/hud/summary/page.tsx`, `app/portfolio/page.tsx`,
+   `components/console/SettingsDrawer.tsx`, `components/hud/ExecutionTab.tsx`,
+   `components/hud/TasksTab.tsx`)에서 `<Card>`/`<CardHeader>`로 쓰임.
+2. **`components/console/primitives.tsx`가 `ApPrimitives.tsx`와 export 이름만 다르고
+   구조 100% 동일**(`Panel`/`PanelHead`/`Dot`/`StatTile`/`Badge`/`Skeleton*`/`Meter` ↔
+   `ApPanel`/`ApPanelHead`/`ApDot`/`ApStatTile`/`ApBadge`/`ApSkeleton*`/`ApMeter`) — 단
+   `var(--c-*)` 다크 콘솔 토큰을 씀. 데스크톱 콘솔 8개 페이지(quant/validation,
+   research-os/chat·governance·validation, investment-os/page·ai-portfolio·capital-claims)
+   에서 사용 중. 사용자 확인: 데스크톱 다크 콘솔 톤 보존은 더 이상 우선순위 아님 — 그대로
+   `ApPrimitives.tsx`로 흡수, 다크→라이트 시각 변화 허용.
+3. **홈 "자산" 탭(`components/hud/PortfolioTab.tsx`)이 `/portfolio` 페이지 `AccountsTab`의
+   `CcyTotalTile`과 완전 동일한 합계(`krwTotal`/`usdTotal`/`usdcTotal`)를 같은 라벨로
+   중복 표시** — `/portfolio`가 이미 상세를 다 커버하므로, 홈 탭은 요약 1장 + 링크로 축소.
+
+이 3건을 아래 컴포넌트 섹션 5~7, 목표/비목표/마이그레이션 순서/테스트에 반영함.
+
 ## 목표
 
 - 모바일 4대 주요 목적지(홈/포트폴리오/에이전트/성과 — `BottomTabBar`의 `PRIMARY_TABS`)의
@@ -30,11 +55,16 @@ Phase 265~268에 걸쳐 홈/포트폴리오/investment-os 리스크탭을 `ap-*`
 - 자산군별 수익률 위젯을 통합 비중 바 1개로 교체 (KRW/USD/USDC 환산 필요 — 경량 FX fetch 추가)
 - 포트폴리오 상단 탭을 pill 형태로 재스타일, "거래소별 분포"를 `accounts` 탭 바디로 흡수
 - investment-os 리스크탭의 `AgentTree` 정보 과다·토큰 불일치 해소
+- `Card.tsx`/`console/primitives.tsx` 제거, `ApPrimitives.tsx` 하나로 프리미티브 시스템 통일
+- 홈 "자산" 탭의 자산 합계 중복(= `/portfolio` `AccountsTab`과 동일 수치 재노출) 제거
 
 ## 비목표 (Out of scope)
 
-- 데스크톱(`hidden md:block`) 마크업 — 이번 스펙은 `md:hidden` 모바일 경로만 다룸
-- 다크 콘솔 토큰 자체(`--radius:0` 등 "Bloomberg 무드") 변경 — 건드리지 않음
+- 데스크톱(`hidden md:block`) 마크업의 레이아웃/정보구조 변경 — 이번 스펙은 `md:hidden`
+  모바일 경로 + 프리미티브 통일(섹션 5~6)만 다룸. **예외**: 섹션 6의 `console/primitives.tsx`
+  → `ApPrimitives.tsx` 흡수는 데스크톱 8개 콘솔 페이지의 시각 톤(다크→라이트)에 영향을
+  주지만, 레이아웃/정보구조는 그대로 — 사용자 확인 완료(데스크톱 다크 톤 보존 더 이상
+  우선순위 아님).
 - bottom nav "더보기" 이하 페이지(overview/strategy/research/ops, council/, quant/,
   research-os/*) — 사용자가 아직 검토 안 함, 별도 스펙으로 후속
 - SWR 데이터 캐싱 — 승인된 별개 트랙, 이 스펙과 섞지 않음
@@ -100,6 +130,12 @@ export function ApHeroCard({
 
 ### 2. 자산군별 수익률 — 통합 비중 바
 
+> **주의 (스펙 보강 반영):** 이 섹션의 `PortfolioTab.tsx` 수정 부분(비중 바 렌더링)은
+> **섹션 7로 대체됨** — 홈 자산탭 자체를 요약+링크로 축소하면서 비중 바를 아예 제거하기로
+> 결정했기 때문. `getFxRate()` 추가(아래)는 그대로 유효 — 섹션 7의 `ApHeroCard` 값 계산에
+> 여전히 씀. 즉 이 섹션은 **`lib/api.ts`의 `getFxRate()` 추가만** 적용하고, `PortfolioTab.tsx`
+> 관련 코드(`weightBars`/`WeightStackBar`/`BarChart valueFmt` 변경)는 섹션 7로 가서 건너뜀.
+
 **`lib/api.ts`에 FX 조회 추가:**
 
 ```ts
@@ -124,31 +160,11 @@ export async function getFxRate(signal?: AbortSignal): Promise<FxRate> {
 `API_URL` 베이스가 아니므로 이 함수 내부에서만 raw `fetch` 사용, 호출부는 반드시 이 함수를
 거친다. USDC는 1:1 USD 고정(스테이블코인, 환율 변동 무시).
 
-**`components/hud/PortfolioTab.tsx` 수정:**
+**`components/hud/PortfolioTab.tsx` 수정 — (섹션 7로 이동, 여기선 스킵):**
 
-기존 `returnBars`(수익률 % 기준 개별 바 3개) 대신, KRW 자산을 USD로 환산해 비중(%) 1개
-통합 바로 표시:
-
-```tsx
-const fx = useTabFetch(true, (sig) => getFxRate(sig)); // 기존 useTabFetch 훅 재사용
-const usdEquiv = fx.data
-  ? krwTotal / fx.data.usdkrw + usdValue + usdcTotal
-  : null;
-const weightBars: BarItem[] = usdEquiv && usdEquiv > 0
-  ? [
-      { label: "국내주식", value: (krwTotal / fx.data!.usdkrw) / usdEquiv * 100, href: "/portfolio" },
-      { label: "해외주식", value: usdValue / usdEquiv * 100, href: "/portfolio" },
-      { label: "코인", value: usdcTotal / usdEquiv * 100, href: "/portfolio" },
-    ].filter((b) => b.value > 0)
-  : [];
-```
-
-`BarChart`의 `valueFmt`를 `${v.toFixed(0)}%`로 변경(수익률 %가 아닌 비중 %). 수익률은
-`ApHeroCard`의 `rows`로 각 자산군 행에 병기(`{ label: "국내주식", value: "+2.3%", cls:
-pnlCls(krwReturn) }`) — 정보 손실 없이 카드 1개로 통합.
-
-`fx.loading`/`fx.error` 시 기존 return-bar 방식으로 폴백(FX API 장애 시에도 화면이 비지
-않게).
+원래 여기 있던 "비중 바 렌더링" 계획(`weightBars`/`WeightStackBar`/`BarChart valueFmt` 변경,
+`fx.loading`/`fx.error` 폴백)은 섹션 7의 "홈 자산탭 축소" 결정으로 전부 무효 — 비중 바 자체를
+만들지 않고 `ApHeroCard` + 링크로 바로 감. 상세 구현은 섹션 7 참고.
 
 ### 3. 포트폴리오 상단 — pill 탭 + 거래소별 분포 흡수
 
@@ -205,6 +221,107 @@ const AP_PILL_INACTIVE = "text-ap-ink-3";
 - `app/(console)/investment-os/page.tsx` 1274행 호출부: `<AgentTree node={agents.data.council}
   tone="ap" />`로 교체.
 
+### 5. `Card.tsx` 제거 → `ApPanel`/`ApPanelHead` 통합
+
+`CardHeader`의 `children`(제목 텍스트)을 `ApPanelHead`의 `title` prop으로 옮기는 게
+핵심 차이. 6개 파일 전부 제목이 평문 문자열이라 기계적 치환 가능 — 유일한 예외는
+`app/portfolio/page.tsx:492-493`의 `거래소별 분포 <span>(구성)</span>`인데, 섹션 3에서
+이미 이 타이틀을 "계좌 내 거래소 비중" 평문 문자열로 바꾸므로 순서만 섹션 3 이후로
+잡으면 자연히 해소됨.
+
+```tsx
+// Before
+import { Card, CardHeader } from "@/components/ui/Card";
+<Card className="mb-1">
+  <CardHeader right={<WorldClock now={now} />}>시스템개요</CardHeader>
+  ...
+</Card>
+
+// After
+import { ApPanel, ApPanelHead } from "@/components/ui/ApPrimitives";
+<ApPanel className="mb-1">
+  <ApPanelHead title="시스템개요" right={<WorldClock now={now} />} />
+  ...
+</ApPanel>
+```
+
+**대상 파일**: `app/hud/page.tsx`(5곳), `app/hud/summary/page.tsx`(1곳),
+`app/portfolio/page.tsx`(5곳 — "거래소별 분포" 포함), `components/console/SettingsDrawer.tsx`
+(3곳), `components/hud/ExecutionTab.tsx`(4곳), `components/hud/TasksTab.tsx`(4곳).
+
+전부 이관 후 `components/ui/Card.tsx` 삭제.
+
+### 6. `console/primitives.tsx` 제거 → `ApPrimitives.tsx` 흡수
+
+export 1:1 대응이라 이름만 바꾸면 됨: `Panel`→`ApPanel`, `PanelHead`→`ApPanelHead`,
+`Dot`→`ApDot`, `StatTile`→`ApStatTile`, `Badge`→`ApBadge`, `Skeleton`→`ApSkeleton`,
+`SkeletonStatTile`→`ApSkeletonStatTile`, `SkeletonLines`→`ApSkeletonLines`,
+`Meter`→`ApMeter`. `tone` prop 값(`"hud"|"pos"|"neg"|"warn"|"text-1"|"mute"|"info"`)도
+`ApStatTile`/`ApBadge`/`ApMeter`/`ApDot`가 이미 동일하게 지원 — prop 이름 안 바뀜.
+
+`Panel`에만 있고 `ApPanel`엔 없는 `hud`/`grid` boolean prop 사용처는 2곳뿐
+(`app/(console)/quant/validation/page.tsx:27`의 `grid`,
+`app/(console)/research-os/governance/page.tsx:55`의 `hud`) — 둘 다 데스크톱 전용
+장식(그리드 헤어라인 오버레이, 시안 글로우 테두리)이라 새 prop 추가하지 않고 그냥
+드롭, 평범한 `<ApPanel>`로 이관 (데스크톱 톤 보존 비우선순위 방침과 일치).
+
+```tsx
+// Before (components/console/primitives.tsx 기반)
+import { Panel, PanelHead, StatTile, Badge } from "@/components/console/primitives";
+<Panel hud className="p-5"> ... </Panel>
+<StatTile label="컴플라이언스" value="통과" tone="pos" />
+
+// After
+import { ApPanel, ApPanelHead, ApStatTile, ApBadge } from "@/components/ui/ApPrimitives";
+<ApPanel className="p-5"> ... </ApPanel>
+<ApStatTile label="컴플라이언스" value="통과" tone="pos" />
+```
+
+**대상 파일(8개)**: `app/(console)/quant/validation/page.tsx`,
+`app/(console)/research-os/chat/page.tsx`, `app/(console)/research-os/governance/page.tsx`,
+`app/(console)/research-os/validation/page.tsx`, `app/(console)/investment-os/page.tsx`,
+`app/(console)/investment-os/ai-portfolio/page.tsx`,
+`app/(console)/investment-os/capital-claims/page.tsx`, `components/console/widgets.tsx`
+(섹션 4의 `AgentTree`가 이미 이 파일에서 `Panel`/`Dot`를 씀 — 섹션 4 작업과 같이 처리).
+
+전부 이관 후 `components/console/primitives.tsx` 삭제.
+
+### 7. 홈 "자산" 탭 축소 (`components/hud/PortfolioTab.tsx`)
+
+기존 `AssetTile` 3개 그리드 + `computeAssetWeightBars()` 비중 바를 전부 제거하고,
+`ApHeroCard` 1개(총자산 요약, 자산군별 값은 `rows`로 병기) + "포트폴리오 상세 보기 →"
+링크로 축소. 상세 수치·거래소별 구성은 `/portfolio`가 이미 전부 커버.
+
+```tsx
+// PortfolioTab() 리턴부 — AssetTile 그리드 + WeightStackBar/BarChart 블록을 아래로 교체
+const usdEquiv = fx.data
+  ? krwTotal! / fx.data.usdkrw + usdValue + usdcTotal!
+  : null;
+
+return (
+  <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
+    <h1 className="text-xl font-semibold text-ap-ink-1 tracking-wide">총 포트폴리오</h1>
+    <ApHeroCard
+      label="총 자산"
+      value={usdEquiv != null ? fmt(usdEquiv, "USD") : "—"}
+      rows={[
+        { label: "국내주식", value: fmt(krwTotal, "KRW") },
+        { label: "해외주식", value: fmt(usdValue, "USD") },
+        { label: "코인", value: fmt(usdcTotal, "USDC") },
+      ]}
+    />
+    <Link href="/portfolio"
+      className="block text-center text-sm text-ap-brand no-underline hover:underline py-2">
+      포트폴리오 상세 보기 →
+    </Link>
+  </div>
+);
+```
+
+`computeAssetWeightBars()`/`WeightStackBar`/`BarChart` 관련 import·헬퍼는 이 파일에서
+더 이상 안 쓰이므로 같이 제거. `AssetTile`도 제거(`PortfolioTab.tsx` 밖에서 참조 없음,
+확인 완료). `fx`(`useTabFetch` + `getFxRate()`) 호출은 이 요약 계산에 여전히 필요해 유지.
+
 ## 데이터 흐름
 
 - FX: `PortfolioTab`이 마운트 시 `getFxRate()` 1회 호출 → 모듈 캐시 24시간 재사용 →
@@ -230,6 +347,13 @@ const AP_PILL_INACTIVE = "text-ap-ink-3";
      확인
   5. 데스크톱(`hidden md:block`)에서 위 4개 페이지 전부 기존과 동일하게 렌더되는지 회귀 확인
      (특히 `SegmentedToggle` 데스크톱 인스턴스, `AgentTree` overview/strategy 탭 호출부)
+  6. `Card.tsx`/`console/primitives.tsx` 이관 대상 14개 파일(섹션 5~6) 전부 그대로 렌더되는지
+     확인 — 콘솔 8개 페이지는 다크→라이트 톤 변화가 "의도된 변화"이므로 레이아웃/정보만
+     깨지지 않았는지 확인(색 변화 자체는 회귀 아님)
+  7. 홈 "자산" 탭이 `ApHeroCard` 1장 + 링크로만 보이는지, 링크 클릭 시 `/portfolio`로
+     정상 이동하는지 확인
+- 삭제 확인: `components/ui/Card.tsx`, `components/console/primitives.tsx` 파일 자체가
+  git에서 삭제됐는지, 두 파일을 import하는 곳이 0곳인지 `grep -rl` 확인
 
 ## 마이그레이션 순서
 
@@ -240,5 +364,12 @@ const AP_PILL_INACTIVE = "text-ap-ink-3";
 5. 4대 페이지 모바일 카드를 `ApHeroCard`로 교체 (1 선행 필요)
 6. `investment-os` 리스크탭 `AgentTree` 호출부 `tone="ap"` 적용 (3 선행 필요)
 7. 포트폴리오 상단 pill 적용 + 거래소별 분포 이동 (2 선행 필요)
+8. `Card.tsx` → `ApPanel`/`ApPanelHead` 이관 6개 파일 (7 선행 필요 — portfolio 페이지
+   "거래소별 분포" 타이틀 변경 이후라야 예외 케이스 없이 기계적 치환 가능), 이관 후 `Card.tsx` 삭제
+9. `console/primitives.tsx` → `ApPrimitives.tsx` 이관 8개 파일 (3 선행 필요 —
+   `components/console/widgets.tsx`의 `AgentTree` 관련 `Panel`/`Dot` 이관을 같이 처리),
+   이관 후 `console/primitives.tsx` 삭제
+10. 홈 "자산" 탭(`PortfolioTab.tsx`) `ApHeroCard`+링크로 축소 (1 선행 필요)
 
-각 단계 독립 커밋 가능 — 순서 안 지켜도 동작하나, 1/2/3을 먼저 넣어야 5/6/7이 참조 가능.
+각 단계 독립 커밋 가능 — 순서 안 지켜도 대부분 동작하나, 1/2/3을 먼저 넣어야 5/6/7/8/9/10이
+참조 가능. 8은 7 이후, 9는 3 이후로 순서를 지켜야 예외 케이스가 안 생김.
