@@ -972,6 +972,7 @@ export default function PortfolioPage() {
           value={tab}
           onChange={setTab}
           size="sm"
+          inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
           options={[
             { value: "accounts", label: "계좌 현황" },
             { value: "orders", label: "주문" },

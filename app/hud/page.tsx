@@ -142,7 +142,7 @@ function UnitCard({ u }: { u: Unit }) {
       <span className="text-ap-body font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
       {u.fleet && (
         <span className="hidden sm:block">
-          <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
+          <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} trackClass="bg-ap-bg border-ap-line" />
         </span>
       )}
       <span className={`text-ap-body font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-14 sm:w-20" : "max-w-[30%] sm:max-w-[45%]"}`}>{u.detail}</span>

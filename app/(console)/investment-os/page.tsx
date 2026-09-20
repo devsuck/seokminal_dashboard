@@ -636,7 +636,7 @@ function InvestmentOsInner() {
                       onSubmit={(e) => { e.preventDefault(); runFinLookup(); }}
                     >
                       <input
-                        className="bg-bg border border-border text-text-1 text-[11px] px-2 py-1.5 rounded"
+                        className="bg-ap-bg-page border border-ap-line text-ap-ink-1 text-ap-body px-2 py-1.5 rounded"
                         placeholder="종목코드 (예: AAPL, 005930)"
                         value={finQuery}
                         onChange={(e) => setFinQuery(e.target.value)}
@@ -665,7 +665,7 @@ function InvestmentOsInner() {
                       </div>
                     )}
                     {finData && Object.entries(finData).filter(([k, v]) => !["symbol", "code"].includes(k) && v !== null && v !== undefined).length === 0 && (
-                      <div className="text-[11px] text-text-3">데이터 없음</div>
+                      <div className="text-ap-body text-ap-ink-3">데이터 없음</div>
                     )}
                   </div>
                 </ApPanel>
