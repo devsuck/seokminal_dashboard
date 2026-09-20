@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { type CollectorKey } from "@/lib/api";
 import { deriveAttentionItems } from "@/lib/attention";
-import { Balances } from "@/components/AccountBalances";
 import { ApPanel, ApPanelHead, ApGateStep } from "@/components/ui/ApPrimitives";
 import { SegmentedToggle } from "@/components/ui/SegmentedToggle";
 import { FreshnessBar } from "@/components/ui/FreshnessBar";
@@ -116,7 +115,7 @@ function WorldClock({ now }: { now: Date }) {
 }
 
 interface Unit {
-  kind: "AI" | "BOT" | "수집기"; name: string; running: boolean; detail: string; href: string;
+  kind: "AI" | "BOT" | "수집기"; name: string; running: boolean; detail: string; href?: string;
   collectorKey?: CollectorKey;
   /** 수집기 전용 — 신선도 정도. running 이진만으로는 "45초 전"과 "55분 전"이 구분 안 됨. */
   fleet?: { verdict: Verdict; ageSec: number | null; staleAfterS: number; reason: string };
@@ -137,31 +136,44 @@ function UnitCard({ u }: { u: Unit }) {
   const statusCls = tone
     ? `${tone.bg} ${tone.text}${v === "dead" || v === "stuck" ? " animate-blink" : ""}`
     : u.running ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/10 text-ap-ink-3";
+  const inner = (
+    <>
+      <StatusDot tone={v ? (v === "fresh" ? "pos" : v === "stale" ? "warn" : "neg") : u.running ? "pos" : "text-3"} />
+      <span className="text-ap-body font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
+      {u.fleet && (
+        <span className="hidden sm:block">
+          <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
+        </span>
+      )}
+      <span className={`text-ap-body font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-14 sm:w-20" : "max-w-[30%] sm:max-w-[45%]"}`}>{u.detail}</span>
+    </>
+  );
   return (
-    <div className={`flex items-center gap-2 border-b border-ap-line px-2 py-1 transition-colors ${
+    <div className={`flex flex-col border-b border-ap-line px-2 py-1 transition-colors ${
       broken ? "bg-ap-down/10" : v === "stale" ? "bg-ap-caution/5" : u.running ? "bg-ap-up/5" : ""}`}>
-      <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80"
-        title={u.fleet?.reason ?? undefined}>
-        <StatusDot tone={v ? (v === "fresh" ? "pos" : v === "stale" ? "warn" : "neg") : u.running ? "pos" : "text-3"} />
-        <span className="text-ap-body font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
-        {u.fleet && (
-          <span className="hidden sm:block">
-            <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
-          </span>
+      <div className="flex items-center gap-2">
+        {u.href ? (
+          <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80">
+            {inner}
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0">{inner}</div>
         )}
-        <span className={`text-ap-body font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-14 sm:w-20" : "max-w-[30%] sm:max-w-[45%]"}`}>{u.detail}</span>
-      </Link>
-      <span className={`hidden sm:inline-flex text-ap-micro px-1 border font-data shrink-0 ${
-        u.kind === "AI" ? "border-ap-brand/40 text-ap-brand" : "border-ap-line text-ap-ink-3"}`}>{u.kind}</span>
-      <span className={`text-ap-micro font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
-        {statusText}
-      </span>
+        <span className={`hidden sm:inline-flex text-ap-micro px-1 border font-data shrink-0 ${
+          u.kind === "AI" ? "border-ap-brand/40 text-ap-brand" : "border-ap-line text-ap-ink-3"}`}>{u.kind}</span>
+        <span className={`text-ap-micro font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
+          {statusText}
+        </span>
+      </div>
+      {broken && u.fleet?.reason && (
+        <div className="pl-6 pb-0.5 text-ap-micro text-ap-down truncate">{u.fleet.reason}</div>
+      )}
     </div>
   );
 }
 
 function HomeTab() {
-  const { feed: f, bal } = useHudFeed();
+  const { feed: f } = useHudFeed();
   const [now, setNow] = useState(new Date());
   const [activityView, setActivityView] = useState<"alerts" | "log" | "trades">("alerts");
 
@@ -171,6 +183,7 @@ function HomeTab() {
   }, []);
 
   const { lab, jarvis, ar, bot, agents, sys, exec, edge, alerts, health, fleet, pipeline, risk, ios } = f;
+  const homeAlerts = (alerts ?? []).filter((a) => a.condition_type !== "insider_convergence");
   const busy = lab?.busy ?? false;
   const active = busy || (lab?.autopilot ?? false);
 
@@ -185,15 +198,17 @@ function HomeTab() {
   const armLabel = arm?.decision === "GO" ? "진입 가능" : arm?.decision === "KILL" ? "중단" : arm?.decision === "WAIT" ? "대기" : "—";
   const liveLabel = jarvis?.live_execution === "enabled" ? "가동" : jarvis?.live_execution === "disabled" ? "비활성" : "—";
 
-  // 전 유닛 로스터 — 트레이딩 AI + 시스템 봇
+  // 전 유닛 로스터 — 트레이딩 AI(라이브만) + 시스템 봇. 페이퍼 에이전트는 실계좌 아니라 홈에서 제외 — 전체는 /investment-os/live-agents
+  const liveAgents = (agents ?? []).filter(a => !a.paper);
+  const paperAgentCount = (agents ?? []).length - liveAgents.length;
   const units: Unit[] = [];
-  (agents ?? []).forEach(a => units.push({
+  liveAgents.forEach(a => units.push({
     kind: "AI", name: a.name, running: a.status === "running",
-    detail: `${a.market} · ${a.paper ? "페이퍼" : "라이브"} · Lv${displayLevel(a)}`,
+    detail: `${a.market} · Lv${displayLevel(a)}`,
     href: "/overview",
   }));
   units.push({ kind: "BOT", name: "AI LAB 엔진", running: active, detail: `stage ${lab?.stage ?? "—"}`, href: "/investment-os" });
-  units.push({ kind: "BOT", name: "Auto-Research", running: busy, detail: `검증 ${ar?.n_tested ?? 0} · 후보 ${ar?.n_candidates ?? 0}`, href: "/auto-research" });
+  units.push({ kind: "BOT", name: "Auto-Research", running: busy, detail: `검증 ${ar?.n_tested ?? 0} · 후보 ${ar?.n_candidates ?? 0}`, href: "/investment-os/research-candidates" });
   units.push({ kind: "BOT", name: "Buyback 봇", running: (bot?.open ?? 0) > 0, detail: `보유 ${bot?.open ?? 0}`, href: "/portfolio" });
   if (sys?.dart_bot) units.push({ kind: "BOT", name: "DART 자동매매", running: !!sys.dart_bot.running, detail: sys.dart_bot.enabled ? "사용" : "꺼짐", href: "/portfolio" });
   if (sys?.research_service) units.push({ kind: "BOT", name: "리서치 서비스", running: !!sys.research_service.running, detail: `${sys.research_service.ticks ?? 0} 틱`, href: "/investment-os" });
@@ -222,35 +237,35 @@ function HomeTab() {
   const wd = sys?.research_service?.watchdog;
 
   return (
-    <div className="min-h-screen p-1 sm:p-1.5 font-data">
-      {/* 시스템개요 — 시스템상태+정합성감시 병합, 시계는 우측에 얹어 한 줄 절약 */}
-      <ApPanel className="mb-1">
-        <ApPanelHead title="시스템개요" right={<WorldClock now={now} />} />
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 border-b border-ap-line">
-          <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
-          {arm && (
-            <Link href="/hud?tab=ops" title={arm.decision}
-              className={`no-underline text-ap-body px-2 py-0.5 border font-data font-bold tracking-wider ${
-                arm.decision === "GO" ? "border-ap-up/50 text-ap-up bg-ap-up/15" :
-                arm.decision === "KILL" ? "border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink" :
-                "border-ap-note/40 text-ap-note bg-ap-note/15"}`}>
-              ARM {armLabel}
-            </Link>
-          )}
-          {wd?.critical && (
-            <span className="text-ap-micro px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">감시견 경보</span>
-          )}
-          <span className={`ml-auto tabular-nums text-ap-body font-data ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
-            {health ? (health.ok ? "정합성 이상 없음" : `정합성 오류 ${health.n_errors} · 위반 ${health.n_violations}`) : "정합성 로딩 중…"}
-          </span>
+    <div className="min-h-screen p-3 sm:p-4 space-y-3">
+      {/* 상태 히어로 — "지금 안전한가?"에 한 눈에 답함. 평소엔 조용, 이상 있을 때만 커짐 */}
+      <div className="rounded-ap-xl bg-ap-surface shadow-ap-sm overflow-hidden">
+        <div className="flex items-center justify-between gap-3 flex-wrap p-4">
+          <div>
+            <div className="text-ap-micro uppercase tracking-wide text-ap-ink-3">시스템 판정</div>
+            <div className={`text-ap-hero font-bold font-data mt-0.5 ${
+              arm?.decision === "GO" ? "text-ap-up" : arm?.decision === "KILL" ? "text-ap-down" : "text-ap-note"}`}>
+              {armLabel}
+            </div>
+            <div className="text-ap-body text-ap-ink-3 mt-0.5">
+              <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
+            </div>
+          </div>
+          <WorldClock now={now} />
+        </div>
+        {wd?.critical && (
+          <div className="px-4 py-2 text-ap-body font-semibold text-ap-down bg-ap-down/15 animate-blink">감시견 경보 — 확인 필요</div>
+        )}
+        <div className={`px-4 py-2 text-ap-body border-t border-ap-line ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : "text-ap-ink-3"}`}>
+          {health ? (health.ok ? "정합성 이상 없음" : `정합성 오류 ${health.n_errors} · 위반 ${health.n_violations}`) : "정합성 로딩 중…"}
         </div>
         {health && health.violations.length > 0 && (
-          <div className="max-h-56 overflow-y-auto">
+          <div className="max-h-56 overflow-y-auto border-t border-ap-line">
             {health.violations.map((v, i) => (
               <Link
                 key={i}
                 href="/portfolio"
-                className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 border-b border-ap-line px-2 py-1.5 sm:py-0.5 text-ap-body hover:bg-ap-bg transition-colors">
+                className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 border-b border-ap-line px-4 py-2 text-ap-body hover:bg-ap-bg-page transition-colors last:border-0">
                 <span className="flex items-center gap-2 min-w-0">
                   <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
                   <span className="text-ap-ink-3 truncate sm:shrink-0 sm:w-32">{v.entity}</span>
@@ -261,11 +276,11 @@ function HomeTab() {
             ))}
           </div>
         )}
-      </ApPanel>
+      </div>
 
       {/* 판단 필요 — 사람 결정 걸리는 것만. 0건이면 한 줄로 접힘 */}
-      <ApPanel className="mb-1">
-        <ApPanelHead title="판단 필요" right={<span className="tabular-nums">{attentionItems.length}건</span>} />
+      <ApPanel>
+        <ApPanelHead title="판단 필요" right={<span className="tabular-nums font-data">{attentionItems.length}건</span>} />
         {attentionItems.length === 0 ? (
           <div className="px-2 py-1.5">
             <StatusDot tone="pos" label="판단 대기 항목 없음" />
@@ -284,9 +299,9 @@ function HomeTab() {
       </ApPanel>
 
       {/* 인프라상태 — 전략(AI·봇)과 데이터 수집기 통합. 고장 의미가 달라서 절 구분은 유지 */}
-      <ApPanel className="mb-1">
+      <ApPanel>
         <ApPanelHead title="인프라상태" right={
-          <span className="tabular-nums">
+          <span className="tabular-nums font-data">
             {nRunning}/{units.length} 가동 · 수집 {collectorUnits.length > 0 ? `${nHealthy}/${collectorUnits.length}` : "…"}
           </span>
         } />
@@ -295,53 +310,54 @@ function HomeTab() {
             <span className="group-open:hidden">전략 상세 ▾</span>
             <span className="hidden group-open:inline">전략 상세 ▴</span>
           </summary>
-          <div className="px-2 pt-1.5 pb-0.5 text-ap-micro uppercase tracking-wider text-ap-ink-3">전략</div>
+          <div className="px-2 pt-1.5 pb-0.5 text-ap-micro uppercase tracking-wider text-ap-ink-3">
+            전략 · 라이브만
+            {paperAgentCount > 0 && (
+              <Link href="/investment-os/live-agents" className="ml-1 text-ap-ink-3 hover:text-ap-brand no-underline">(페이퍼 {paperAgentCount}건 →)</Link>
+            )}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2">
             {units.map((u, i) => (
               <UnitCard key={`${u.name}-${i}`} u={u} />
             ))}
           </div>
-        </details>
-        <Link href="/hud"
-          className="flex items-center gap-2 border-t border-ap-line px-2 py-1.5 no-underline hover:bg-ap-bg transition-colors">
-          <StatusDot tone={collectorUnits.length === 0 ? "text-3" : nDegraded > 0 ? "warn" : "pos"} />
-          <span className="text-ap-body font-data text-ap-ink-1">
+          <div className="px-2 pt-1.5 pb-0.5 text-ap-micro uppercase tracking-wider text-ap-ink-3 border-t border-ap-line">
             수집기 {collectorUnits.length === 0 ? "로딩 중…" : `${nHealthy}/${collectorUnits.length} 정상`}
             {nDegraded > 0 && <span className="text-ap-caution"> · 이상 {nDegraded}</span>}
-          </span>
-          <span className="ml-auto text-ap-body text-ap-ink-3">설정에서 확인 →</span>
-        </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2">
+            {collectorUnits.map((u, i) => (
+              <UnitCard key={`${u.name}-${i}`} u={u} />
+            ))}
+          </div>
+        </details>
       </ApPanel>
 
-      {/* 계좌 + 돈길 핵심 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 items-start">
-        {bal ? <Balances bal={bal} /> : (
-          <div className="bg-ap-surface border border-ap-line p-2 text-ap-ink-3 text-ap-body">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
-        )}
-        <ApPanel>
-          <ApPanelHead title="돈길" right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>} />
-          <p className="px-2 pt-1 text-ap-caption text-ap-ink-3">시스템 실제 상태 — 라이브 전환 게이트</p>
-          {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
-          <div className="flex pt-1">
-            <ApGateStep label="1 엣지" value={edgeLabel}
-              state={edge?.status === "confirmed" ? "done" : edge?.status === "drifting" ? "blocked" : "current"} />
-            <ApGateStep label="2 페이퍼" value={`${paperMo}/${paperMin}mo`}
-              state={paperMo >= paperMin ? "done" : edge?.status === "confirmed" ? "current" : "pending"} />
-            <ApGateStep label="3 ARM" value={armLabel} title={arm?.decision}
-              state={arm?.decision === "GO" ? "done" : arm?.decision === "KILL" ? "blocked"
-                : paperMo >= paperMin ? "current" : "pending"} />
-            <ApGateStep label="4 LIVE" value={liveLabel} title={jarvis?.live_execution}
-              state={jarvis?.live_execution === "disabled" ? "blocked"
-                : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
-          </div>
-        </ApPanel>
-      </div>
+      {/* 돈길 — 계좌 잔액은 /portfolio에 있어서 중복 제거, 라이브 전환 게이트만 유지 */}
+      <ApPanel>
+        <ApPanelHead title="돈길" right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>} />
+        <p className="px-2 pt-1 text-ap-caption text-ap-ink-3">시스템 실제 상태 — 라이브 전환 게이트</p>
+        {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
+        <div className="flex pt-1">
+          <ApGateStep label="1 엣지" value={edgeLabel}
+            state={edge?.status === "confirmed" ? "done" : edge?.status === "drifting" ? "blocked" : "current"} />
+          <ApGateStep label="2 페이퍼" value={`${paperMo}/${paperMin}mo`}
+            state={paperMo >= paperMin ? "done" : edge?.status === "confirmed" ? "current" : "pending"} />
+          <ApGateStep label="3 ARM" value={armLabel} title={arm?.decision}
+            state={arm?.decision === "GO" ? "done" : arm?.decision === "KILL" ? "blocked"
+              : paperMo >= paperMin ? "current" : "pending"} />
+          <ApGateStep label="4 LIVE" value={liveLabel} title={jarvis?.live_execution}
+            state={jarvis?.live_execution === "disabled" ? "blocked"
+              : jarvis?.live_execution === "enabled" ? "done" : "pending"} />
+        </div>
+      </ApPanel>
 
       {/* 최근활동 — 알림/LAB 로그/페이퍼 체결을 토글 1카드로 통합 */}
-      <ApPanel className="mt-1">
+      {/* insider_convergence(컨버전스 하락/상승)는 너무 빈번해 액션 가치 없음 — 홈 알림에서 제외, 필요하면 설정>알림 규칙에서 직접 확인 */}
+      <ApPanel>
         <ApPanelHead title="최근활동" right={
-          <span className="tabular-nums">
-            {activityView === "alerts" ? `${alerts?.length ?? 0}건`
+          <span className="tabular-nums font-data">
+            {activityView === "alerts" ? `${homeAlerts.length}건`
               : activityView === "log" ? `${lab?.log?.length ?? 0}줄`
               : `${exec?.paper?.recent_closed?.length ?? 0}건`}
           </span>
@@ -362,14 +378,14 @@ function HomeTab() {
         <div className="max-h-64 overflow-y-auto mt-1">
           {activityView === "alerts" && (
             <>
-              {(alerts ?? []).slice(0, 14).map((a, i) => (
+              {homeAlerts.slice(0, 14).map((a, i) => (
                 <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-ap-body">
                   <span className="text-ap-ink-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
                   <span className="text-ap-caution truncate flex-1">{a.rule_label}</span>
                   <span className="text-ap-ink-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
                 </div>
               ))}
-              {(alerts?.length ?? 0) === 0 && (
+              {homeAlerts.length === 0 && (
                 <div className="px-2 py-3 text-ap-ink-3 text-ap-body">알림 없음</div>
               )}
             </>

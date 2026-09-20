@@ -17,7 +17,7 @@ import { TOKEN } from "@/lib/chart-colors";
 const AP_TEXT = "text-ap-ink-3";
 const AP_LEGEND = "text-ap-ink-3";
 
-type Tab = "accounts" | "orders" | "pnl" | "optimizer";
+type Tab = "accounts" | "orders" | "pnl";
 
 // ── 헬퍼 ────────────────────────────────────────────────────────────────────
 
@@ -648,14 +648,13 @@ function OrdersTab() {
           options={VENUES.map(v => ({ value: v, label: VENUE_LABEL[v] ?? v }))}
         />
         <div className="w-px bg-ap-line" />
-        <div className="flex flex-wrap gap-1">
-          {STATUSES.map(s => (
-            <button key={s} onClick={() => setStatus(s)}
-              className={`px-2.5 py-1 rounded border ${status === s ? "border-ap-brand text-ap-brand bg-ap-brand/10" : "border-ap-line text-ap-ink-3 hover:text-ap-ink-1"}`}>
-              {STATUS_LABEL[s] ?? s}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          value={status}
+          onChange={setStatus}
+          size="sm"
+          inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
+          options={STATUSES.map(s => ({ value: s, label: STATUS_LABEL[s] ?? s }))}
+        />
       </div>
 
       {error ? <div className="text-ap-down text-sm bg-ap-down/10 border border-ap-down/30 rounded px-3 py-2">{error}</div>
@@ -977,7 +976,6 @@ export default function PortfolioPage() {
             { value: "accounts", label: "계좌 현황" },
             { value: "orders", label: "주문" },
             { value: "pnl", label: "손익" },
-            { value: "optimizer", label: "최적화 도구" },
           ]}
           variant="ap-pill"
         />
@@ -987,24 +985,6 @@ export default function PortfolioPage() {
         {tab === "accounts" && <AccountsTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "pnl" && <PnlTab />}
-
-        {tab === "optimizer" && (
-          <div className="max-w-2xl mx-auto">
-            <ApPanel className="mb-4">
-              <ApPanelHead title="교육용 · 실전 배분 아님" />
-              <div className="p-4">
-                <p className="text-ap-ink-2 text-xs leading-relaxed">
-                  마코위츠 평균-분산 최적화는 교과서 방법. 노이즈 과적합·코너해·추정오차에 극불안정.
-                  실제 배분엔 리스크패리티/상관 기반 방법이 더 강건.
-                </p>
-              </div>
-            </ApPanel>
-            <a href="/portfolio/optimizer"
-              className="block text-center py-3 border border-ap-line rounded-ap-lg text-ap-ink-3 text-sm hover:text-ap-ink-2 hover:border-ap-ink-3 transition-colors">
-              최적화 도구 열기 →
-            </a>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -2,14 +2,16 @@
 // 라이브 사이클링 에이전트(autopilot agent_loop.sh, tmux 세션) 실시간 판단 화면.
 // /agents/*. jarvis 오프라인 리서치 파이프라인(council)과는 별도 — 여기는 실제 매 사이클 판단+체결.
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   getLiveAgents, getLiveAgentCycles, getLiveAgentPerformance, getGodModeEligibility, promoteGodMode,
-  getGodModeCandidates, getCapitalClaimCandidates, submitCapitalClaim,
+  getGodModeCandidates,
   type LiveAgent, type AgentCycle, type AgentPerformance, type GodModeEligibility,
-  type GodModeCandidatesResp, type CapitalClaimCandidatesResp,
+  type GodModeCandidatesResp,
 } from "@/lib/console-api";
 import { ApBadge, ApSkeletonLines, ApDot, ApBottomSheet, ApButton } from "@/components/ui/ApPrimitives";
+import { SegmentedToggle } from "@/components/ui/SegmentedToggle";
+
+type AgentFilter = "all" | "live" | "paper";
 
 const DECISION_TONE: Record<string, "pos" | "neg" | "warn" | "mute" | "info"> = {
   BUY: "pos", SELL: "neg", HOLD: "mute", WATCH: "info", SKIP: "mute",
@@ -31,6 +33,7 @@ export default function LiveAgentsPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [filter, setFilter] = useState<AgentFilter>("all");
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(async () => {
@@ -60,24 +63,34 @@ export default function LiveAgentsPage() {
 
   return (
     <div className="min-h-full p-4 space-y-3 bg-ap-bg-page">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <div className="text-ap-micro font-semibold tracking-[0.24em] uppercase text-ap-ink-3">
-            /agents · autopilot 사이클 · 실시간 판단
-          </div>
-          <div className="text-ap-title font-semibold text-ap-ink-1">라이브 에이전트</div>
+      <div>
+        <div className="text-ap-micro font-semibold tracking-[0.24em] uppercase text-ap-ink-3">
+          /agents · autopilot 사이클 · 실시간 판단
         </div>
-        <Link href="/investment-os" className="text-ap-body text-ap-brand hover:underline no-underline">
-          ← Investment OS
-        </Link>
+        <div className="text-ap-title font-semibold text-ap-ink-1">라이브 에이전트</div>
       </div>
 
       {!loading && err && <div className="text-ap-body text-ap-down">백엔드 연결 실패: {err}</div>}
 
       <ApprovalFeed onActed={run} />
 
-      <div className="text-ap-body font-semibold text-ap-ink-3 px-1 pt-1">
-        에이전트{agents ? ` · ${agents.length}` : ""}
+      <div className="flex items-center justify-between gap-2 px-1 pt-1 flex-wrap">
+        <div className="text-ap-body font-semibold text-ap-ink-3">
+          에이전트{agents ? ` · ${agents.length}` : ""}
+        </div>
+        {agents && agents.length > 0 && (
+          <SegmentedToggle
+            size="sm"
+            value={filter}
+            onChange={setFilter}
+            inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
+            options={[
+              { value: "all", label: `전체 ${agents.length}`, activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+              { value: "live", label: `라이브 ${agents.filter(a => !a.paper).length}`, activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+              { value: "paper", label: `페이퍼 ${agents.filter(a => a.paper).length}`, activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+            ]}
+          />
+        )}
       </div>
 
       {loading && (
@@ -91,7 +104,9 @@ export default function LiveAgentsPage() {
         </div>
       )}
       <div className="space-y-2">
-        {!loading && agents?.map((a) => (
+        {!loading && agents
+          ?.filter((a) => filter === "all" || (filter === "live" ? !a.paper : a.paper))
+          .map((a) => (
           <AgentCard
             key={a.id}
             agent={a}
@@ -108,31 +123,22 @@ export default function LiveAgentsPage() {
 
 function ApprovalFeed({ onActed }: { onActed: () => void }) {
   const [god, setGod] = useState<GodModeCandidatesResp | null>(null);
-  const [claims, setClaims] = useState<CapitalClaimCandidatesResp | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
-  const [manualMode, setManualMode] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
-  const [lastResult, setLastResult] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const run = useCallback(async () => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
-      const [g, c] = await Promise.all([
-        getGodModeCandidates(ctrl.signal),
-        getCapitalClaimCandidates(ctrl.signal),
-      ]);
-      if (!ctrl.signal.aborted) { setGod(g); setClaims(c); }
+      const g = await getGodModeCandidates(ctrl.signal);
+      if (!ctrl.signal.aborted) setGod(g);
     } catch (ex) {
       if (!(ex instanceof DOMException && ex.name === "AbortError")) setErr((ex as Error).message);
     }
   }, []);
   useEffect(() => { run(); return () => abortRef.current?.abort(); }, [run]);
-  useEffect(() => () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); }, []);
 
   const promote = async (agentId: string) => {
     setBusy(agentId);
@@ -147,40 +153,15 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
     }
   };
 
-  const claim = async (strategyId: string, amount?: number) => {
-    setBusy(strategyId);
-    try {
-      const res = await submitCapitalClaim(strategyId, amount);
-      const msg = res.status === "approved"
-        ? `자동 승인됨 · ${res.fulfillment_mode === "live" ? "live" : "paper"}`
-        : res.status === "queued"
-        ? "한도 초과 · 승인 대기열 등록됨"
-        : res.status === "rejected"
-        ? "거부됨"
-        : res.status;
-      if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
-      setLastResult(msg);
-      resultTimerRef.current = setTimeout(() => setLastResult(null), 4000);
-      await run();
-      onActed();
-    } catch (ex) {
-      setErr((ex as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const promotable = god?.promotable ?? [];
   const reverted = god?.reverted ?? [];
-  const candidates = claims?.candidates ?? [];
-  const total = promotable.length + reverted.length + candidates.length;
-  if (!total && !err && !lastResult) return null;
+  const total = promotable.length + reverted.length;
+  if (!total && !err) return null;
 
   return (
     <div className="space-y-2">
       <div className="px-1"><ApBadge tone="warn">승인 대기 · {total}</ApBadge></div>
       {err && <div className="text-ap-body text-ap-down px-1">{err}</div>}
-      {lastResult && <div className="text-ap-body text-ap-brand px-1">{lastResult}</div>}
 
       {promotable.map((c) => (
         <div key={c.agent_id} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4">
@@ -205,51 +186,6 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
           <div className="text-ap-body text-ap-ink-3">{r.reason} · {r.at}</div>
         </div>
       ))}
-
-      {candidates.map((c) => {
-        const sid = c.strategy_id;
-        const isManual = manualMode[sid];
-        return (
-          <div key={sid} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4">
-            <div className="text-ap-caption font-semibold text-ap-brand uppercase tracking-wide mb-1">자본배정 대기 · {sid}</div>
-            {!isManual && c.suggested_amount != null && (
-              <div className="text-ap-stat font-extrabold text-ap-ink-1 mb-3">
-                제안 {c.suggested_amount.toLocaleString()}원{c.stale ? " (오래됨)" : ""}
-              </div>
-            )}
-            {!isManual && c.suggested_amount == null && (
-              <div className="text-ap-title text-ap-ink-3 mb-3">제안 없음</div>
-            )}
-
-            {!isManual && (
-              <div className="flex gap-1.5">
-                {c.suggested_amount != null && (
-                  <ApButton onClick={() => claim(sid, c.suggested_amount ?? undefined)} loading={busy === sid} className="flex-1">
-                    예
-                  </ApButton>
-                )}
-                <ApButton variant="secondary" onClick={() => claim(sid, 0)} loading={busy === sid} className="flex-1">
-                  아니오
-                </ApButton>
-                <ApButton variant="ghost" onClick={() => setManualMode((prev) => ({ ...prev, [sid]: true }))} loading={busy === sid} className="flex-[1.3]">
-                  내가 마음대로 주기
-                </ApButton>
-              </div>
-            )}
-
-            {isManual && (
-              <div className="flex gap-1.5">
-                <input type="number" placeholder="배정액(원)" value={amounts[sid] ?? ""}
-                  onChange={(e) => setAmounts((prev) => ({ ...prev, [sid]: e.target.value }))}
-                  className="flex-1 h-9 px-3 text-ap-label rounded-ap-md border border-ap-line text-ap-ink-1" />
-                <ApButton onClick={() => claim(sid, amounts[sid] ? Number(amounts[sid]) : undefined)} loading={busy === sid}>
-                  제출
-                </ApButton>
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -272,8 +208,8 @@ function AgentCard({
           {perf ? `${perf.return_pct >= 0 ? "+" : ""}${perf.return_pct.toFixed(2)}%` : "—"}
         </span>
         {perf && (
-          <span className="w-full text-ap-body text-ap-ink-3 pl-5">
-            포지션 {perf.open_positions.length} · 배정 {perf.alloc.toLocaleString()}
+          <span className="w-full text-ap-body text-ap-ink-3 pl-5 font-data">
+            배정 {perf.alloc.toLocaleString()} → 현재 {(perf.cash + perf.invested).toLocaleString()} · 포지션 {perf.open_positions.length}
           </span>
         )}
       </button>
