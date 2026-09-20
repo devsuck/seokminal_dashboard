@@ -34,7 +34,7 @@ function fmt(v: number | null, ccy: string, compact = false): string {
 function ModeChip({ mode, paper }: { mode?: string | null; paper?: boolean }) {
   const isPaper = paper ?? mode?.includes("paper") ?? false;
   return (
-    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider ${isPaper ? "bg-ap-caution/10 text-ap-caution" : "bg-ap-up/10 text-ap-up"}`}>
+    <span className={`text-ap-micro px-1.5 py-0.5 rounded font-mono uppercase tracking-wider ${isPaper ? "bg-ap-caution/10 text-ap-caution" : "bg-ap-up/10 text-ap-up"}`}>
       {isPaper ? "페이퍼" : "실계좌"}
     </span>
   );
@@ -77,9 +77,9 @@ function AccountCard({
               <ModeChip mode={mode} paper={paper} />
             </div>
             {error ? (
-              <p className="text-ap-down text-[11px] mt-0.5 truncate" title={error}>{errorHint(error)}</p>
+              <p className="text-ap-down text-ap-body mt-0.5 truncate" title={error}>{errorHint(error)}</p>
             ) : (
-              <p className="text-ap-ink-3 text-[11px] mt-0.5">{ccy}</p>
+              <p className="text-ap-ink-3 text-ap-body mt-0.5">{ccy}</p>
             )}
           </div>
           <div className="text-right shrink-0">
@@ -114,7 +114,7 @@ function PositionRow({ name, side, sideLabel, pnlPositive, pnlLabel, detail }: {
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-ap-ink-1 font-medium min-w-0 truncate">{name}</span>
           {sideLabel && (
-            <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${side ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
+            <span className={`text-ap-micro px-1 py-0.5 rounded shrink-0 ${side ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
               {sideLabel}
             </span>
           )}
@@ -133,7 +133,7 @@ function PositionList<T>({ items, keyFn, empty, row }: {
 }) {
   if (items.length === 0) return <p className="text-ap-ink-3 text-xs">{empty}</p>;
   return (
-    <div className="divide-y divide-ap-line/60 text-[11px]">
+    <div className="divide-y divide-ap-line/60 text-ap-body">
       {items.map((item) => <PositionRow key={keyFn(item)} {...row(item)} />)}
     </div>
   );
@@ -196,13 +196,13 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
   return (
     <div className="space-y-3">
       {paper.positions.length > 0 && (
-        <div className="divide-y divide-ap-line/60 text-[11px]">
+        <div className="divide-y divide-ap-line/60 text-ap-body">
           {paper.positions.map(p => (
             <div key={p.node_id} className="py-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-ap-ink-1 font-medium">{p.symbol}</span>
-                  <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${p.side === "BUY" ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
+                  <span className={`text-ap-micro px-1 py-0.5 rounded shrink-0 ${p.side === "BUY" ? "bg-ap-up/10 text-ap-up" : "bg-ap-down/10 text-ap-down"}`}>
                     {p.side}
                   </span>
                 </div>
@@ -217,7 +217,7 @@ function LkgPaperDetail({ paper }: { paper: PaperState }) {
       )}
       {paper.closed.length > 0 && (
         <div className="pt-1">
-          <p className="text-ap-ink-3 text-[11px] mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
+          <p className="text-ap-ink-3 text-ap-body mb-1">실현 손익: <span className={`font-mono px-1 font-bold ${totalPnl >= 0 ? "bg-ap-up/20 text-ap-up" : "bg-ap-down/20 text-ap-down"}`}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</span></p>
         </div>
       )}
     </div>
@@ -251,7 +251,7 @@ interface CompositionRow { venue: string; ccy: string; balance: number; share: n
 function CcyTotalTile({ label, value, ccy }: { label: string; value: number; ccy: string }) {
   return (
     <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-3">
-      <p className="text-ap-ink-3 text-[11px] uppercase tracking-wide">{label}</p>
+      <p className="text-ap-ink-3 text-ap-body uppercase tracking-wide">{label}</p>
       <p className="text-ap-ink-1 text-lg font-mono font-bold mt-1">{fmt(value, ccy)}</p>
     </div>
   );
@@ -490,7 +490,7 @@ function AccountsTab() {
       {/* RIGHT — composition (venue → 통화별 잔고 구성비), 기본 접힘 (스펙: accounts 탭 상단은 계좌현황+포지션만 기본 노출) */}
       <details className="group rounded-ap-lg border border-ap-line bg-ap-surface shadow-ap-sm overflow-hidden">
         <summary className="flex items-center justify-between gap-2 px-4 py-3 border-b border-ap-line cursor-pointer list-none">
-          <span className="text-sm font-semibold text-ap-ink-1">거래소별 분포 <span className="text-ap-ink-3 text-[11px] font-normal">(구성)</span></span>
+          <span className="text-sm font-semibold text-ap-ink-1">거래소별 분포 <span className="text-ap-ink-3 text-ap-body font-normal">(구성)</span></span>
           <span className="text-ap-ink-3 text-xs group-open:hidden">펼치기 ▾</span>
           <span className="text-ap-ink-3 text-xs hidden group-open:inline">접기 ▴</span>
         </summary>
@@ -498,7 +498,7 @@ function AccountsTab() {
           {compositionRows.length === 0 ? (
             <p className="text-ap-ink-3 text-xs p-2">연동 계좌 없음</p>
           ) : (
-            <div className="divide-y divide-ap-line/60 text-[11px]">
+            <div className="divide-y divide-ap-line/60 text-ap-body">
               {[...compositionRows].sort((a, b) => b.balance - a.balance).map(r => (
                 <div key={`${r.venue}-${r.ccy}`} className="flex items-center justify-between gap-2 px-2 py-1.5">
                   <div className="min-w-0">
@@ -514,7 +514,7 @@ function AccountsTab() {
             </div>
           )}
         </div>
-        <p className="px-3 pb-3 text-[11px] text-ap-ink-3 leading-relaxed">
+        <p className="px-3 pb-3 text-ap-body text-ap-ink-3 leading-relaxed">
           통화 내 venue 잔고 구성비 · 손익 귀속(attribution)이 아닌 배분 현황 표시.
         </p>
       </details>
@@ -678,7 +678,7 @@ function OrdersTab() {
                       >
                         <span className="text-ap-ink-3 shrink-0 font-data">{o.venue}</span>
                         <span className="text-ap-ink-1 shrink-0 font-data truncate max-w-[8rem]">{o.order_id}</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
+                        <span className={`text-ap-body px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
                           {STATUS_LABEL[o.status] ?? o.status}
                         </span>
                         <div className="flex-1 min-w-[80px] flex items-center gap-2">
@@ -689,10 +689,10 @@ function OrdersTab() {
                       </button>
                       {expanded === key && (
                         <div className="px-4 pb-3 pl-8">
-                          <div className="text-ap-ink-3 text-[11px] mb-1">체결 이력 ({o.history.length}건)</div>
+                          <div className="text-ap-ink-3 text-ap-body mb-1">체결 이력 ({o.history.length}건)</div>
                           <div className="space-y-1">
                             {o.history.map((h, i) => (
-                              <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-[11px] text-ap-ink-3">
+                              <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-ap-body text-ap-ink-3">
                                 <span className="shrink-0">{fmtTs(h.ts)}</span>
                                 <span className={`shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
                                 <span>{h.filled}/{h.filled + h.remaining}</span>
@@ -721,7 +721,7 @@ function OrdersTab() {
                       className="w-full px-4 py-3 flex flex-col gap-1.5 text-left active:bg-ap-bg">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-ap-ink-1 text-sm font-data truncate">{o.venue} · {o.order_id}</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
+                        <span className={`text-ap-body px-2 py-0.5 rounded border shrink-0 ${STATUS_STYLE[o.status] ?? ""}`}>
                           {STATUS_LABEL[o.status] ?? o.status}
                         </span>
                       </div>
@@ -743,16 +743,16 @@ function OrdersTab() {
             <div className="flex justify-between text-sm"><span className="text-ap-ink-3">venue</span><span className="text-ap-ink-1 font-data">{selected.venue}</span></div>
             <div className="flex justify-between text-sm">
               <span className="text-ap-ink-3">상태</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded border ${STATUS_STYLE[selected.status] ?? ""}`}>{STATUS_LABEL[selected.status] ?? selected.status}</span>
+              <span className={`text-ap-body px-2 py-0.5 rounded border ${STATUS_STYLE[selected.status] ?? ""}`}>{STATUS_LABEL[selected.status] ?? selected.status}</span>
             </div>
             <div className="flex justify-between text-sm"><span className="text-ap-ink-3">체결</span><span className="text-ap-ink-1 font-data">{selected.filled}/{selected.filled + selected.remaining}</span></div>
             <div className="flex justify-between text-sm"><span className="text-ap-ink-3">업데이트</span><span className="text-ap-ink-1 font-data">{fmtTs(selected.updated_ts)}</span></div>
             {selected.history.length > 0 && (
               <div className="pt-2 border-t border-ap-line">
-                <div className="text-ap-ink-3 text-[11px] mb-1.5">체결 이력 ({selected.history.length}건)</div>
+                <div className="text-ap-ink-3 text-ap-body mb-1.5">체결 이력 ({selected.history.length}건)</div>
                 <div className="space-y-1">
                   {selected.history.map((h, i) => (
-                    <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-[11px] text-ap-ink-3">
+                    <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 font-data text-ap-body text-ap-ink-3">
                       <span className="shrink-0">{fmtTs(h.ts)}</span>
                       <span className={`shrink-0 ${STATUS_STYLE[h.status]?.split(" ")[0] ?? ""}`}>{STATUS_LABEL[h.status] ?? h.status}</span>
                       <span>{h.filled}/{h.filled + h.remaining}</span>
@@ -851,7 +851,7 @@ function VenueCard({ v }: { v: VenuePnl }) {
               <span className="text-ap-ink-1 font-data shrink-0">
                 {t.price}
                 {t.price_source === "estimated" && (
-                  <span className="ml-1 text-[11px] text-ap-caution" title="브로커 체결가 미제공 — 주문가로 추정">추정</span>
+                  <span className="ml-1 text-ap-body text-ap-caution" title="브로커 체결가 미제공 — 주문가로 추정">추정</span>
                 )}
               </span>
               <span className={`font-data flex-1 text-right ${t.realized_pnl == null ? "text-ap-ink-3" : pnlColor(t.realized_pnl)}`}>
@@ -966,8 +966,8 @@ export default function PortfolioPage() {
     <div className="min-h-full bg-ap-bg">
       <header className="sticky top-0 z-10 flex items-center justify-between gap-4 flex-wrap px-4 sm:px-5 py-3 border-b border-ap-line bg-ap-bg/85 backdrop-blur">
         <div className="flex items-baseline gap-2.5">
-          <span className="text-ap-ink-3 text-[9px] font-semibold tracking-[0.24em] uppercase">계좌현황 · 주문 · 손익</span>
-          <span className="text-ap-ink-1 text-[13px] font-semibold tracking-wide">포트폴리오</span>
+          <span className="text-ap-ink-3 text-ap-micro font-semibold tracking-[0.24em] uppercase">계좌현황 · 주문 · 손익</span>
+          <span className="text-ap-ink-1 text-ap-title font-semibold tracking-wide">포트폴리오</span>
         </div>
         <SegmentedToggle
           value={tab}

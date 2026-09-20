@@ -32,7 +32,7 @@ function ValidationInner() {
         <TabBar tabs={TABS} active={tab} onSelect={setTab} />
       </div>
       <div className="md:hidden sticky top-0 z-10 bg-ap-bg/90 backdrop-blur border-b border-ap-line px-4 py-3">
-        <span className="text-[13px] font-semibold text-ap-ink-1">리서치 검증</span>
+        <span className="text-ap-title font-semibold text-ap-ink-1">리서치 검증</span>
         <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 mt-2 pb-0.5">
           {TABS.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -232,7 +232,7 @@ function ValidationTab() {
 
       <div className="md:hidden min-h-full">
         <div className="p-4 space-y-4">
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
           {ls && <div className="flex flex-wrap gap-1.5">
             <ApBadge tone={ls.loop_complete ? "pos" : "mute"}>{ls.loop_complete ? "루프 완료" : "루프"}</ApBadge>
             <ApBadge tone={ls.safe ? "pos" : "neg"}>{ls.safe ? "안전" : "위험"}</ApBadge>
@@ -258,7 +258,7 @@ function ValidationTab() {
                 <div className="p-4 space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {data.lifecycle_board.lifecycle.map((s) => (
-                      <span key={s} className="text-[11px] uppercase font-data px-1.5 py-0.5 rounded-ap-sm border border-ap-line"
+                      <span key={s} className="text-ap-body uppercase font-data px-1.5 py-0.5 rounded-ap-sm border border-ap-line"
                         style={{ color: STATE_TONE[s] ?? "var(--c-text-3)" }} title={s}>{STATE_LABEL[s] ?? s}</span>
                     ))}
                   </div>
@@ -268,7 +268,7 @@ function ValidationTab() {
                   {data.lifecycle_board.strategies.map((row) => (
                     <div key={row.strategy} className="bg-ap-bg rounded-ap-md p-2.5">
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[13px] font-medium text-ap-ink-1 truncate">{row.strategy}</span>
+                        <span className="text-ap-title font-medium text-ap-ink-1 truncate">{row.strategy}</span>
                         <ApBadge tone="hud" title={row.current_state}>{STATE_LABEL[row.current_state] ?? row.current_state}</ApBadge>
                       </div>
                       <div className="flex items-center gap-1 flex-wrap">
@@ -290,11 +290,11 @@ function ValidationTab() {
                 <ApPanelHead kicker="2 · 검증" title="백테스트 vs 페이퍼"
                   right={vp && <ApBadge tone={vp.divergence_detected ? "neg" : "pos"} title={vp.status}>{VP_STATUS_LABEL[vp.status] ?? vp.status}</ApBadge>} />
                 <div className="p-4 space-y-3">
-                  {vp?.is_demo && <div className="text-[11px] text-ap-ink-3 uppercase tracking-[0.15em]">데모 · 데이터 소스 연결 시 실데이터</div>}
+                  {vp?.is_demo && <div className="text-ap-body text-ap-ink-3 uppercase tracking-[0.15em]">데모 · 데이터 소스 연결 시 실데이터</div>}
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="text-[11px] text-ap-ink-3 uppercase">지표</div>
-                    <div className="text-[11px] text-ap-ink-3 uppercase">백테스트</div>
-                    <div className="text-[11px] text-ap-ink-3 uppercase">페이퍼</div>
+                    <div className="text-ap-body text-ap-ink-3 uppercase">지표</div>
+                    <div className="text-ap-body text-ap-ink-3 uppercase">백테스트</div>
+                    <div className="text-ap-body text-ap-ink-3 uppercase">페이퍼</div>
                     {Object.entries(vp?.tracked_metrics ?? {}).map(([k, m]) => (
                       <div key={k} className="contents">
                         <div className="text-xs text-ap-ink-2 text-left">{k}</div>
@@ -305,7 +305,7 @@ function ValidationTab() {
                   </div>
                   {vp?.possible_causes && vp.possible_causes.length > 0 && (
                     <div className="pt-1">
-                      <div className="text-[11px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">가능한 원인</div>
+                      <div className="text-ap-body tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">가능한 원인</div>
                       {vp.possible_causes.map((c, i) => (
                         <div key={i} className="text-xs text-ap-ink-2">· <span className="text-[var(--c-warn)]">{c.cause}</span> — {c.why}</div>
                       ))}
@@ -353,11 +353,11 @@ function ValidationTab() {
                   {data.review_queue.map((e, i) => (
                     <div key={i} className="bg-ap-bg rounded-ap-md p-2.5 flex items-center justify-between gap-2">
                       <span className="text-xs text-ap-ink-1 truncate">{e.label || e.ref}</span>
-                      <div className="flex gap-1.5 shrink-0"><ApBadge tone={EV_TONE[e.event_type] ?? "mute"} title={e.event_type}>{EV_LABEL[e.event_type] ?? e.event_type}</ApBadge><span className="text-[11px] font-data text-ap-ink-3">{e.source}</span></div>
+                      <div className="flex gap-1.5 shrink-0"><ApBadge tone={EV_TONE[e.event_type] ?? "mute"} title={e.event_type}>{EV_LABEL[e.event_type] ?? e.event_type}</ApBadge><span className="text-ap-body font-data text-ap-ink-3">{e.source}</span></div>
                     </div>
                   ))}
                   {Object.keys(data.ops_by_type).length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">{Object.entries(data.ops_by_type).map(([k, n]) => <span key={k} className="text-[11px] font-data text-ap-ink-3 px-1.5 py-0.5 rounded-ap-sm border border-ap-line">{k}: {n}</span>)}</div>
+                    <div className="flex flex-wrap gap-1 pt-1">{Object.entries(data.ops_by_type).map(([k, n]) => <span key={k} className="text-ap-body font-data text-ap-ink-3 px-1.5 py-0.5 rounded-ap-sm border border-ap-line">{k}: {n}</span>)}</div>
                   )}
                 </div>
               </ApPanel>
@@ -520,7 +520,7 @@ function ProductionTab() {
               className="flex-1 bg-ap-surface border border-ap-line rounded-ap-md px-3 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand" />
             <ApButton type="submit" size="md" className="shrink-0">소집</ApButton>
           </form>
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
           {!data && !err && (
             <div className="space-y-4">
@@ -547,11 +547,11 @@ function ProductionTab() {
                 <ApPanelHead kicker="위원회 패킷" title={cp?.research_summary?.slice(0, 40) || "—"} right={<ApBadge tone={CONV_TONE[cp?.confidence ?? ""] ?? "mute"} title={cp?.confidence}>확신 {cp?.confidence ? (CONV_LABEL[cp.confidence] ?? cp.confidence) : "—"}</ApBadge>} />
                 <div className="p-4 space-y-3">
                   <div>
-                    <div className="text-[11px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
+                    <div className="text-ap-body tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">사람에게 질문</div>
                     {(cp?.questions_for_human ?? []).map((qq, i) => <div key={i} className="text-xs text-ap-ink-2">· {qq}</div>)}
                   </div>
                   <div>
-                    <div className="text-[11px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">제한사항</div>
+                    <div className="text-ap-body tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">제한사항</div>
                     {(cp?.limitations ?? []).map((l, i) => <div key={i} className="text-xs text-ap-ink-3">· {l}</div>)}
                   </div>
                 </div>
@@ -578,7 +578,7 @@ function ProductionTab() {
                       <span className="text-xs font-data text-ap-ink-3 w-8 text-right">{v.toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="text-[11px] text-ap-ink-3 pt-1">연구 확신도 — 투자 등급 아님.</div>
+                  <div className="text-ap-body text-ap-ink-3 pt-1">연구 확신도 — 투자 등급 아님.</div>
                 </div>
               </ApPanel>
 
@@ -595,7 +595,7 @@ function ProductionTab() {
                   {(gov?.checks ?? []).some((c) => c.detail) && (
                     <div className="pt-1 space-y-1">
                       {(gov?.checks ?? []).filter((c) => c.detail).map((c) => (
-                        <div key={c.check} className="text-[11px] text-ap-ink-3 truncate">{c.check}: {c.detail}</div>
+                        <div key={c.check} className="text-ap-body text-ap-ink-3 truncate">{c.check}: {c.detail}</div>
                       ))}
                     </div>
                   )}
@@ -615,7 +615,7 @@ function ProductionTab() {
                   {(prod?.components ?? []).some((c) => c.detail) && (
                     <div className="pt-1 space-y-1">
                       {(prod?.components ?? []).filter((c) => c.detail).map((c) => (
-                        <div key={c.component} className="text-[11px] text-ap-ink-3 truncate">{c.component}: {c.detail}</div>
+                        <div key={c.component} className="text-ap-body text-ap-ink-3 truncate">{c.component}: {c.detail}</div>
                       ))}
                     </div>
                   )}
@@ -634,7 +634,7 @@ function ProductionTab() {
                       {s.review_needed && <ApBadge tone="warn">검토</ApBadge>}
                     </div>
                   ))}
-                  <div className="text-[11px] text-ap-ink-3 pt-1">배분 제안 아님 — 연구 관점.</div>
+                  <div className="text-ap-body text-ap-ink-3 pt-1">배분 제안 아님 — 연구 관점.</div>
                 </div>
               </ApPanel>
 
@@ -643,7 +643,7 @@ function ProductionTab() {
                 <ApPanelHead kicker="검토 대기열" title="휴먼 액션" right={<ApBadge tone={data.review_queue.length ? "warn" : "pos"}>{data.review_queue.length}</ApBadge>} />
                 <div className="p-4 space-y-1.5">
                   {data.review_queue.length === 0 && <div className="text-xs text-ap-ink-3">사람 검토 대기 항목 없음.</div>}
-                  {data.review_queue.map((r, i) => <div key={i} className="bg-ap-bg rounded-ap-md p-2.5 flex items-center justify-between gap-2"><span className="text-xs text-ap-ink-1 truncate">{r.task}</span><span className="text-[11px] font-data text-ap-ink-3">{r.source}</span></div>)}
+                  {data.review_queue.map((r, i) => <div key={i} className="bg-ap-bg rounded-ap-md p-2.5 flex items-center justify-between gap-2"><span className="text-xs text-ap-ink-1 truncate">{r.task}</span><span className="text-ap-body font-data text-ap-ink-3">{r.source}</span></div>)}
                 </div>
               </ApPanel>
               <div className="text-xs text-ap-ink-3 leading-relaxed">{data.disclaimer}</div>
@@ -834,7 +834,7 @@ function IntelligencePlusTab() {
               className="flex-1 bg-ap-surface border border-ap-line rounded-ap-md px-3 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand" />
             <ApButton type="submit" size="md" className="shrink-0">탐색</ApButton>
           </form>
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
           {!data && !err && (
             <div className="space-y-4">
@@ -864,10 +864,10 @@ function IntelligencePlusTab() {
                   {(ch?.hypotheses ?? []).slice(0, 6).map((h) => (
                     <div key={h.hypothesis_id} className="bg-ap-bg rounded-ap-md p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[13px] text-ap-ink-1">{h.statement}</span>
+                        <span className="text-ap-title text-ap-ink-1">{h.statement}</span>
                         <ApBadge tone="mute">{h.source}</ApBadge>
                       </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] font-data text-ap-ink-3">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-ap-body font-data text-ap-ink-3">
                         <span>참신성 {h.novelty_score.toFixed(2)}</span>
                         <span>불확실성 {h.uncertainty.toFixed(2)}</span>
                         <span>신뢰도 {h.confidence}</span>
@@ -876,7 +876,7 @@ function IntelligencePlusTab() {
                         <span>상충 {h.conflicting_evidence.count}</span>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {h.required_validation.slice(0, 5).map((v) => <span key={v} className="text-[11px] px-1.5 py-0.5 rounded-ap-sm border border-ap-line text-ap-ink-3">{v}</span>)}
+                        {h.required_validation.slice(0, 5).map((v) => <span key={v} className="text-ap-body px-1.5 py-0.5 rounded-ap-sm border border-ap-line text-ap-ink-3">{v}</span>)}
                       </div>
                     </div>
                   ))}
@@ -895,9 +895,9 @@ function IntelligencePlusTab() {
                   )}
                   {(cq?.backlog ?? []).slice(0, 8).map((b, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-[11px] font-data text-ap-ink-3 w-5">{b.rank ?? i + 1}</span>
+                      <span className="text-ap-body font-data text-ap-ink-3 w-5">{b.rank ?? i + 1}</span>
                       <span className="text-xs text-ap-ink-1 flex-1 truncate">{b.statement}</span>
-                      <span className="text-[11px] font-data text-ap-brand">{typeof b.score === "number" ? b.score.toFixed(3) : ""}</span>
+                      <span className="text-ap-body font-data text-ap-brand">{typeof b.score === "number" ? b.score.toFixed(3) : ""}</span>
                     </div>
                   ))}
                 </div>
@@ -911,10 +911,10 @@ function IntelligencePlusTab() {
                   {(ep?.recommendations ?? []).slice(0, 6).map((r, i) => (
                     <div key={i} className="bg-ap-bg rounded-ap-md p-2.5 flex items-center justify-between gap-2">
                       <span className="text-xs text-ap-ink-1 truncate">{r.statement}</span>
-                      <span className="text-[11px] font-data text-ap-brand">{r.composite_score.toFixed(3)}</span>
+                      <span className="text-ap-body font-data text-ap-brand">{r.composite_score.toFixed(3)}</span>
                     </div>
                   ))}
-                  <div className="text-[11px] text-ap-ink-3 pt-1">추천만 — 사람이 다음 실험을 결정.</div>
+                  <div className="text-ap-body text-ap-ink-3 pt-1">추천만 — 사람이 다음 실험을 결정.</div>
                 </div>
               </ApPanel>
 
@@ -924,7 +924,7 @@ function IntelligencePlusTab() {
                 <div className="p-4 space-y-2">
                   {Object.entries(data.research_planning ?? {}).map(([horizon, plan]) => (
                     <div key={horizon} className="bg-ap-bg rounded-ap-md p-2.5">
-                      <div className="text-[11px] tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">{horizon}</div>
+                      <div className="text-ap-body tracking-[0.2em] text-[var(--c-hud)] uppercase mb-1">{horizon}</div>
                       {(plan.agenda ?? []).slice(0, 3).map((a, i) => <div key={i} className="text-xs text-ap-ink-2 truncate">· {a.item}</div>)}
                       {(plan.roadmap ?? []).map((r, i) => <div key={i} className="text-xs text-ap-ink-2 truncate">Q{r.quarter_slot}: {r.theme}</div>)}
                     </div>
@@ -939,8 +939,8 @@ function IntelligencePlusTab() {
                   <div className="grid grid-cols-2 gap-2">
                     {Object.entries(data.productivity?.metrics ?? {}).slice(0, 6).map(([k, m]) => (
                       <div key={k} className="bg-ap-bg rounded-ap-md p-2">
-                        <div className="text-[11px] tracking-[0.15em] text-ap-ink-3 uppercase truncate">{k}</div>
-                        <div className="text-[13px] font-data text-ap-ink-1">{String(m.value ?? "—")}</div>
+                        <div className="text-ap-body tracking-[0.15em] text-ap-ink-3 uppercase truncate">{k}</div>
+                        <div className="text-ap-title font-data text-ap-ink-1">{String(m.value ?? "—")}</div>
                       </div>
                     ))}
                   </div>
@@ -970,7 +970,7 @@ function IntelligencePlusTab() {
                 </div>
                 {(av?.remaining_limitations ?? []).length > 0 && (
                   <div className="px-4 pb-4">
-                    <div className="text-[11px] tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">남은 제약사항</div>
+                    <div className="text-ap-body tracking-[0.2em] text-[var(--c-warn)] uppercase mb-1">남은 제약사항</div>
                     {(av?.remaining_limitations ?? []).map((l, i) => <div key={i} className="text-xs text-ap-ink-3">· {l}</div>)}
                   </div>
                 )}

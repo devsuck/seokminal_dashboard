@@ -139,13 +139,13 @@ function CommitteeTab() {
       <div className="md:hidden min-h-full">
         <div className="px-4 py-3 space-y-3">
           <ApPanel className="p-4">
-            <div className="text-[13px] font-semibold text-ap-ink-1">어떤 논제를 심의할까요?</div>
+            <div className="text-ap-title font-semibold text-ap-ink-1">어떤 논제를 심의할까요?</div>
             <div className="mt-1 text-xs text-ap-ink-2 leading-relaxed">
               투자 논제를 입력하면 7관점 협의체가 찬반 근거를 조직하고 Decision Memo 패킷을 만듭니다. 위원회는 증거만 조직할 뿐, 최종 결정·집행은 사람이 합니다.
             </div>
             <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="mt-3 flex flex-col gap-2">
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
-                className="w-full bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+                className="w-full bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-ap-title text-ap-ink-1 outline-none focus:border-ap-brand" />
               <ApButton type="submit" size="md" className="gap-2" loading={loading}>
                 소집
               </ApButton>
@@ -161,7 +161,7 @@ function CommitteeTab() {
             </div>
           </ApPanel>
 
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
           {loading && !council && (
             <div className="space-y-3">
@@ -193,7 +193,7 @@ function CommitteeTab() {
               <ApPanel>
                 <ApPanelHead kicker="위원회 패킷" title={q} />
                 <div className="p-4 space-y-3">
-                  <div className="text-[13px] font-medium text-ap-brand">{memo.recommendation}</div>
+                  <div className="text-ap-title font-medium text-ap-brand">{memo.recommendation}</div>
                   <div className="space-y-1">
                     <div className="text-xs tracking-[0.2em] text-ap-up uppercase">지지 근거</div>
                     {(memo.supporting_arguments ?? []).map((a, i) => <div key={i} className="text-xs text-ap-ink-2">· <b>{a.lens}</b> {a.rationale}</div>)}
@@ -372,13 +372,13 @@ function ExplainTab() {
         <div className="px-4 py-3 space-y-3">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
-              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-ap-title text-ap-ink-1 outline-none focus:border-ap-brand" />
             <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 !text-ap-brand" disabled={!q.trim()} loading={loading}>
               설명
             </ApButton>
           </form>
 
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
           {loading && !data && (
             <div className="space-y-3">
@@ -419,7 +419,7 @@ function ExplainTab() {
                 <ApPanel>
                   <ApPanelHead kicker={`노드 ${sel + 1}/${data.chain.length}`} title={node.stage} />
                   <div className="p-4 space-y-2">
-                    <div className="text-[13px] text-ap-ink-1">{node.label}</div>
+                    <div className="text-ap-title text-ap-ink-1">{node.label}</div>
                     {(node.refs ?? []).length > 0 && (
                       <div className="pt-1">
                         <div className="text-xs tracking-[0.2em] text-ap-ink-3 uppercase mb-1">참조</div>
@@ -470,7 +470,7 @@ function ExplainTab() {
           )}
 
           {!data && !loading && (
-            <ApPanel className="p-8 text-center text-[13px] text-ap-ink-3">
+            <ApPanel className="p-8 text-center text-ap-title text-ap-ink-3">
               주제를 입력하면 Experiment → Validation → Failure → Memory → Council → Portfolio → Risk → Recommendation 증거 사슬을 시각화합니다.
             </ApPanel>
           )}
@@ -566,11 +566,11 @@ function GraphTab() {
         <div className="px-4 py-3 space-y-3">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
-              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-ap-title text-ap-ink-1 outline-none focus:border-ap-brand" />
             <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 !text-ap-brand">필터</ApButton>
           </form>
 
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
           {data && (
             <div className="space-y-3">
@@ -687,11 +687,11 @@ function TimelineTab() {
         <div className="px-4 py-3 space-y-3">
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
-              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
+              className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-ap-title text-ap-ink-1 outline-none focus:border-ap-brand" />
             <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 !text-ap-brand">필터</ApButton>
           </form>
 
-          {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+          {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
           {loading && !data && (
             <div className="space-y-3">

@@ -11,7 +11,7 @@ const PERIOD_LABEL: Record<string, string> = { "1W": "1주", "1M": "1개월", "3
 function Metric({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
     <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-3">
-      <div className="text-ap-ink-3 text-[11px] uppercase tracking-wider">{label}</div>
+      <div className="text-ap-ink-3 text-ap-body uppercase tracking-wider">{label}</div>
       <div className={`text-lg font-data font-bold mt-1 ${cls ?? "text-ap-ink-1"}`}>{value}</div>
     </div>
   );
@@ -111,7 +111,7 @@ export default function PerformancePage() {
             </div>
 
             <div className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-4">
-              <div className="flex items-center gap-4 mb-2 text-[11px]">
+              <div className="flex items-center gap-4 mb-2 text-ap-body">
                 <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-ap-brand inline-block" /> 내 전략</span>
                 <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-ap-ink-3 inline-block" style={{ borderTop: "1px dashed" }} /> SPY 매수보유</span>
                 <span className="ml-auto text-ap-ink-3 font-data">
@@ -123,7 +123,7 @@ export default function PerformancePage() {
               ) : <EquityChart data={data} />}
             </div>
 
-            <p className="hidden md:block text-ap-ink-3 text-[11px]">
+            <p className="hidden md:block text-ap-ink-3 text-ap-body">
               ※ Sharpe ≥ 1 이면 위험대비 수익 양호. 초과수익(vs SPY)이 (-)면 그냥 지수 드는 게 나음 — 전략 재검토 신호.
             </p>
           </>

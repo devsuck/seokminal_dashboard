@@ -150,7 +150,7 @@ export default function PortfolioTab() {
         rows={heroRows}
       />
       <Link href="/portfolio"
-        className="block text-center text-[13px] text-ap-ink-3 hover:text-ap-ink-1 no-underline py-1">
+        className="block text-center text-ap-title text-ap-ink-3 hover:text-ap-ink-1 no-underline py-1">
         포트폴리오 상세 보기 →
       </Link>
     </div>

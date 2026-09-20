@@ -79,11 +79,11 @@ export default function ExecutionTab() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-sm font-semibold text-ap-ink-1 uppercase tracking-wider">집행 콘솔 — 라이브 ARM 게이트</h1>
-                <span className={`text-[11px] px-2 py-0.5 rounded border ${g.armed ? "border-ap-up/50 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
+                <span className={`text-ap-body px-2 py-0.5 rounded border ${g.armed ? "border-ap-up/50 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
                   {g.armed ? "ARMED" : "DISARMED"}
                 </span>
               </div>
-              <div className="mt-0.5 font-data text-[11px] text-ap-ink-3">
+              <div className="mt-0.5 font-data text-ap-body text-ap-ink-3">
                 {d.strategy_id} · 동결 {d.frozen_at} · arm은 사람만
               </div>
             </div>
@@ -96,13 +96,13 @@ export default function ExecutionTab() {
           <Kv k="arm 자격" v={g.eligible ? "가능" : "불가"} tone={g.eligible ? "pos" : "neg"} />
         </div>
         {d.arm_decision && (
-          <div className="mt-2 text-[11px] text-ap-ink-3">
+          <div className="mt-2 text-ap-body text-ap-ink-3">
             사전등록 {d.arm_decision.version} · 첫 arm 상한 {(d.arm_decision.first_tranche_krw_max / 10_000).toLocaleString()}만원
             {d.arm_decision.reasons.length > 0 && <span> · {d.arm_decision.reasons.join(" · ")}</span>}
           </div>
         )}
-        {g.reasons.length > 0 && <div className="mt-2 text-[11px] text-ap-down">차단 사유: {g.reasons.join(" · ")}</div>}
-        <div className="mt-3 text-[13px] text-ap-caution border-t border-ap-caution/20 pt-2 leading-relaxed">{g.human_action}</div>
+        {g.reasons.length > 0 && <div className="mt-2 text-ap-body text-ap-down">차단 사유: {g.reasons.join(" · ")}</div>}
+        <div className="mt-3 text-ap-title text-ap-caution border-t border-ap-caution/20 pt-2 leading-relaxed">{g.human_action}</div>
       </div>
 
       {/* 3전략 arm 진행률 — buyback/tsmom/tom 한 화면 */}
@@ -115,17 +115,17 @@ export default function ExecutionTab() {
                 s.decision === "GO" ? "border-ap-up/50 bg-ap-up/5" :
                 s.decision === "KILL" ? "border-ap-down/50 bg-ap-down/5" : "border-ap-line bg-ap-bg"}`}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-data text-[11px] text-ap-ink-2 truncate">{s.strategy_id}</span>
+                  <span className="font-data text-ap-body text-ap-ink-2 truncate">{s.strategy_id}</span>
                   <span className={`font-data text-xs font-bold ${
                     s.decision === "GO" ? "text-ap-up" : s.decision === "KILL" ? "text-ap-down" : "text-ap-caution"}`}>
                     {s.decision}
                   </span>
                 </div>
-                <div className="mt-1.5 text-[11px] font-data text-ap-ink-3">
+                <div className="mt-1.5 text-ap-body font-data text-ap-ink-3">
                   페이퍼 {s.paper_months}mo / 최소 {s.min_paper_months}mo
                   {s.months_remaining > 0 && <span> · 잔여 {s.months_remaining}mo</span>}
                 </div>
-                <div className="mt-1 text-[11px]">
+                <div className="mt-1 text-ap-body">
                   <span className={`px-1.5 py-0.5 rounded border ${
                     (EDGE[s.edge_status] ?? EDGE.unavailable).tone === "pos" ? "border-ap-up/40 text-ap-up" :
                     (EDGE[s.edge_status] ?? EDGE.unavailable).tone === "neg" ? "border-ap-down/40 text-ap-down" :
@@ -159,7 +159,7 @@ export default function ExecutionTab() {
             {ea.oos.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {ea.oos.map(m => (
-                  <span key={m.month} className={`text-[11px] px-1.5 py-0.5 rounded border font-data ${
+                  <span key={m.month} className={`text-ap-body px-1.5 py-0.5 rounded border font-data ${
                     m.in_envelope ? "border-ap-up/40 text-ap-up bg-ap-up/10" : "border-ap-down/40 text-ap-down bg-ap-down/10"}`}>
                     {m.month} {pct(m.median)}
                   </span>
@@ -167,7 +167,7 @@ export default function ExecutionTab() {
               </div>
             )}
             {ea.event_level && (
-              <div className="mt-2 pt-2 border-t border-ap-line/50 text-[11px] font-data text-ap-ink-3">
+              <div className="mt-2 pt-2 border-t border-ap-line/50 text-ap-body font-data text-ap-ink-3">
                 이벤트 레벨(조기 신호): OOS {ea.event_level.n_oos}건
                 {ea.event_level.powered ? (
                   <>
@@ -186,7 +186,7 @@ export default function ExecutionTab() {
             )}
           </>
         )}
-        <div className={`mt-2 text-[11px] leading-relaxed ${edge.tone === "neg" ? "text-ap-down" : edge.tone === "pos" ? "text-ap-up" : "text-ap-ink-3"}`}>
+        <div className={`mt-2 text-ap-body leading-relaxed ${edge.tone === "neg" ? "text-ap-down" : edge.tone === "pos" ? "text-ap-up" : "text-ap-ink-3"}`}>
           {edge.note}
         </div>
       </div>
@@ -201,7 +201,7 @@ export default function ExecutionTab() {
             <Kv k="trimmed10%" v={pct(d.edge.trimmed10)} />
             <Kv k="p(중앙값)" v={String(d.edge.p_median)} tone="pos" />
           </div>
-          <div className="mt-2 text-[11px] text-ap-caution leading-relaxed">⚠ {d.edge.honest_note}</div>
+          <div className="mt-2 text-ap-body text-ap-caution leading-relaxed">⚠ {d.edge.honest_note}</div>
         </div>
       </ApPanel>
 
@@ -212,7 +212,7 @@ export default function ExecutionTab() {
           <div className="p-4">
             <div className="flex flex-wrap gap-2 mb-2">
               {book.sleeves.map(s => (
-                <span key={s.name} className="text-[11px] px-2 py-1 rounded border border-ap-line font-data text-ap-ink-2">
+                <span key={s.name} className="text-ap-body px-2 py-1 rounded border border-ap-line font-data text-ap-ink-2">
                   {s.name} <span className="text-ap-ink-1">Sh {s.sharpe.toFixed(2)}</span> <span className="px-1 font-bold bg-ap-down/20 text-ap-down">MDD {pct(s.mdd, 0)}</span>
                 </span>
               ))}
@@ -235,7 +235,7 @@ export default function ExecutionTab() {
             <Kv k="1일 지연 시" v={pct(lr.timing_delay_1d_pct / 100)} tone="neg" />
             <Kv k="분산" v={lr.diversification === "required" ? "필수" : lr.diversification} />
           </div>
-          <div className="mt-2 text-[11px] text-ap-ink-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
+          <div className="mt-2 text-ap-body text-ap-ink-3">타이밍 민감 = 즉시 체결 필수. 대자본이면 슬리피지로 엣지 소멸.</div>
         </div>
       </ApPanel>
 
@@ -247,7 +247,7 @@ function Kv({ k, v, tone }: { k: string; v: string; tone?: "pos" | "neg" | "warn
   const c = tone === "pos" ? "text-ap-up" : tone === "neg" ? "text-ap-down" : tone === "warn" ? "text-ap-caution" : "text-ap-ink-1";
   return (
     <div className="bg-ap-bg border border-ap-line rounded px-2.5 py-1.5">
-      <div className="text-[11px] uppercase tracking-wider text-ap-ink-3">{k}</div>
+      <div className="text-ap-body uppercase tracking-wider text-ap-ink-3">{k}</div>
       <div className={`font-data text-sm ${c}`}>{v}</div>
     </div>
   );

@@ -19,10 +19,10 @@ export function ApPanelHead({
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 min-h-10 py-1.5 px-4 border-b border-ap-line">
       <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
-        {kicker && <span className="text-[9px] font-semibold tracking-[0.22em] text-ap-brand uppercase">{kicker}</span>}
-        <span className="text-[13px] font-semibold tracking-wide text-ap-ink-1 truncate">{title}</span>
+        {kicker && <span className="text-ap-micro font-semibold tracking-[0.22em] text-ap-brand uppercase">{kicker}</span>}
+        <span className="text-ap-title font-semibold tracking-wide text-ap-ink-1 truncate">{title}</span>
       </div>
-      {right && <div className="flex flex-wrap items-center gap-2 text-ap-ink-2 text-[11px] font-data">{right}</div>}
+      {right && <div className="flex flex-wrap items-center gap-2 text-ap-ink-2 text-ap-body font-data">{right}</div>}
     </div>
   );
 }
@@ -57,12 +57,12 @@ export function ApStatTile({
   return (
     <ApPanel className="relative p-4">
       {accent && <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: AP_TONE[accent] }} />}
-      <div className="text-[11px] font-semibold tracking-[0.2em] text-ap-ink-3 uppercase">{label}</div>
+      <div className="text-ap-body font-semibold tracking-[0.2em] text-ap-ink-3 uppercase">{label}</div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className={`font-data text-[26px] leading-none font-semibold ${valColor}`}>{value}</span>
-        {unit && <span className="text-[11px] text-ap-ink-2">{unit}</span>}
+        <span className={`font-data text-ap-hero leading-none font-semibold ${valColor}`}>{value}</span>
+        {unit && <span className="text-ap-body text-ap-ink-2">{unit}</span>}
       </div>
-      {sub && <div className="mt-1.5 text-[11px] text-ap-ink-2">{sub}</div>}
+      {sub && <div className="mt-1.5 text-ap-body text-ap-ink-2">{sub}</div>}
     </ApPanel>
   );
 }
@@ -73,7 +73,7 @@ export function ApBadge({ children, tone = "mute", title }: { children: ReactNod
   return (
     <span
       title={title}
-      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-ap-sm text-[11px] font-semibold tracking-[0.14em] uppercase font-data whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-ap-sm text-ap-body font-semibold tracking-[0.14em] uppercase font-data whitespace-nowrap"
       style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
     >
       {children}
@@ -233,7 +233,7 @@ export function ApLightHero({
   return (
     <div className="rounded-ap-xl bg-ap-surface shadow-ap-sm overflow-hidden">
       <div className="p-4">
-        <div className="text-[11px] uppercase tracking-wide text-ap-ink-3">{label}</div>
+        <div className="text-ap-body uppercase tracking-wide text-ap-ink-3">{label}</div>
         <div className={`text-2xl font-bold font-data mt-1 ${valueCls ?? "text-ap-ink-1"}`}>{value}</div>
         {sub && <div className="text-xs text-ap-ink-3 mt-0.5">{sub}</div>}
       </div>
@@ -261,7 +261,7 @@ export function ApGateStep({ label, value, title, state }: {
   return (
     <div className="flex-1 min-w-0 px-1.5 pb-1.5">
       <div className={`h-0.5 mb-1 ${bar}`} />
-      <p className="text-ap-ink-3 text-[9px] uppercase tracking-wider truncate">{label}</p>
+      <p className="text-ap-ink-3 text-ap-micro uppercase tracking-wider truncate">{label}</p>
       <p className={`font-data text-xs font-bold truncate ${tone}`} title={title}>{value}</p>
     </div>
   );

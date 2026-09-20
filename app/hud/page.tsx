@@ -60,7 +60,7 @@ function HudInner() {
       <div className="flex gap-1 border-b border-ap-line px-5 pt-3 overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
+            className={`px-3 h-9 text-ap-body font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
               tab === t.key
                 ? "border-ap-brand text-ap-brand bg-ap-brand/10"
                 : "border-transparent text-ap-ink-2 hover:text-ap-ink-1"
@@ -104,9 +104,9 @@ function WorldClock({ now }: { now: Date }) {
     <div className="hidden sm:flex items-center justify-end gap-4 px-2 py-0.5">
       {WORLD_CITIES.map(c => (
         <span key={c.tz} className="inline-flex items-baseline gap-1">
-          <span className="text-ap-ink-3 text-[9px] uppercase tracking-widest">{c.label}</span>
+          <span className="text-ap-ink-3 text-ap-micro uppercase tracking-widest">{c.label}</span>
           {/* SSR 시각과 클라이언트 시각은 1초 차이로 어긋남 — 시계는 하이드레이션 비교 대상 아님 */}
-          <span className="text-ap-ink-2 text-[11px] font-data tabular-nums" suppressHydrationWarning>
+          <span className="text-ap-ink-2 text-ap-body font-data tabular-nums" suppressHydrationWarning>
             {now.toLocaleTimeString("en-GB", { timeZone: c.tz, hour12: false })}
           </span>
         </span>
@@ -143,17 +143,17 @@ function UnitCard({ u }: { u: Unit }) {
       <Link href={u.href} className="flex items-center gap-2 flex-1 min-w-0 no-underline hover:opacity-80"
         title={u.fleet?.reason ?? undefined}>
         <StatusDot tone={v ? (v === "fresh" ? "pos" : v === "stale" ? "warn" : "neg") : u.running ? "pos" : "text-3"} />
-        <span className="text-[11px] font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
+        <span className="text-ap-body font-data text-ap-ink-1 truncate flex-1">{u.name}</span>
         {u.fleet && (
           <span className="hidden sm:block">
             <FreshnessBar ageSec={u.fleet.ageSec} staleAfterS={u.fleet.staleAfterS} verdict={u.fleet.verdict} />
           </span>
         )}
-        <span className={`text-[11px] font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-14 sm:w-20" : "max-w-[30%] sm:max-w-[45%]"}`}>{u.detail}</span>
+        <span className={`text-ap-body font-data text-ap-ink-3 truncate text-right ${u.fleet ? "w-14 sm:w-20" : "max-w-[30%] sm:max-w-[45%]"}`}>{u.detail}</span>
       </Link>
-      <span className={`hidden sm:inline-flex text-[9px] px-1 border font-data shrink-0 ${
+      <span className={`hidden sm:inline-flex text-ap-micro px-1 border font-data shrink-0 ${
         u.kind === "AI" ? "border-ap-brand/40 text-ap-brand" : "border-ap-line text-ap-ink-3"}`}>{u.kind}</span>
-      <span className={`text-[9px] font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
+      <span className={`text-ap-micro font-data font-bold w-9 text-center shrink-0 ${statusCls}`}>
         {statusText}
       </span>
     </div>
@@ -230,7 +230,7 @@ function HomeTab() {
           <StatusDot tone={busy ? "accent" : active ? "pos" : "text-3"} label={busy ? "처리 중" : active ? "가동 중" : "대기"} />
           {arm && (
             <Link href="/hud?tab=ops" title={arm.decision}
-              className={`no-underline text-[11px] px-2 py-0.5 border font-data font-bold tracking-wider ${
+              className={`no-underline text-ap-body px-2 py-0.5 border font-data font-bold tracking-wider ${
                 arm.decision === "GO" ? "border-ap-up/50 text-ap-up bg-ap-up/15" :
                 arm.decision === "KILL" ? "border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink" :
                 "border-ap-note/40 text-ap-note bg-ap-note/15"}`}>
@@ -238,9 +238,9 @@ function HomeTab() {
             </Link>
           )}
           {wd?.critical && (
-            <span className="text-[9px] px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">감시견 경보</span>
+            <span className="text-ap-micro px-1.5 py-0.5 border border-ap-down/50 text-ap-down bg-ap-down/15 animate-blink font-data font-bold">감시견 경보</span>
           )}
-          <span className={`ml-auto tabular-nums text-[11px] font-data ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
+          <span className={`ml-auto tabular-nums text-ap-body font-data ${(health?.n_errors ?? 0) > 0 ? "text-ap-down" : health ? "text-ap-up" : "text-ap-ink-3"}`}>
             {health ? (health.ok ? "정합성 이상 없음" : `정합성 오류 ${health.n_errors} · 위반 ${health.n_violations}`) : "정합성 로딩 중…"}
           </span>
         </div>
@@ -250,7 +250,7 @@ function HomeTab() {
               <Link
                 key={i}
                 href="/portfolio"
-                className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 border-b border-ap-line px-2 py-1.5 sm:py-0.5 text-[11px] hover:bg-ap-bg transition-colors">
+                className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 border-b border-ap-line px-2 py-1.5 sm:py-0.5 text-ap-body hover:bg-ap-bg transition-colors">
                 <span className="flex items-center gap-2 min-w-0">
                   <StatusDot tone={v.severity === "error" ? "neg" : "accent"} />
                   <span className="text-ap-ink-3 truncate sm:shrink-0 sm:w-32">{v.entity}</span>
@@ -275,8 +275,8 @@ function HomeTab() {
             {attentionItems.map((it) => (
               <Link key={it.id} href={it.href} className="flex items-center gap-2 border-b border-ap-line px-2 py-1 no-underline hover:opacity-80">
                 <StatusDot tone={it.tone === "neg" ? "neg" : it.tone === "warn" ? "warn" : "info"} />
-                <span className="text-[11px] font-data text-ap-ink-1 truncate flex-1">{it.label}</span>
-                <span className="text-[11px] font-data text-ap-ink-3 truncate">{it.detail}</span>
+                <span className="text-ap-body font-data text-ap-ink-1 truncate flex-1">{it.label}</span>
+                <span className="text-ap-body font-data text-ap-ink-3 truncate">{it.detail}</span>
               </Link>
             ))}
           </div>
@@ -291,11 +291,11 @@ function HomeTab() {
           </span>
         } />
         <details className="group">
-          <summary className="flex items-center px-2 py-1.5 text-[11px] text-ap-ink-3 cursor-pointer list-none border-b border-ap-line">
+          <summary className="flex items-center px-2 py-1.5 text-ap-body text-ap-ink-3 cursor-pointer list-none border-b border-ap-line">
             <span className="group-open:hidden">전략 상세 ▾</span>
             <span className="hidden group-open:inline">전략 상세 ▴</span>
           </summary>
-          <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3">전략</div>
+          <div className="px-2 pt-1.5 pb-0.5 text-ap-micro uppercase tracking-wider text-ap-ink-3">전략</div>
           <div className="grid grid-cols-1 sm:grid-cols-2">
             {units.map((u, i) => (
               <UnitCard key={`${u.name}-${i}`} u={u} />
@@ -305,22 +305,22 @@ function HomeTab() {
         <Link href="/hud"
           className="flex items-center gap-2 border-t border-ap-line px-2 py-1.5 no-underline hover:bg-ap-bg transition-colors">
           <StatusDot tone={collectorUnits.length === 0 ? "text-3" : nDegraded > 0 ? "warn" : "pos"} />
-          <span className="text-[11px] font-data text-ap-ink-1">
+          <span className="text-ap-body font-data text-ap-ink-1">
             수집기 {collectorUnits.length === 0 ? "로딩 중…" : `${nHealthy}/${collectorUnits.length} 정상`}
             {nDegraded > 0 && <span className="text-ap-caution"> · 이상 {nDegraded}</span>}
           </span>
-          <span className="ml-auto text-[11px] text-ap-ink-3">설정에서 확인 →</span>
+          <span className="ml-auto text-ap-body text-ap-ink-3">설정에서 확인 →</span>
         </Link>
       </ApPanel>
 
       {/* 계좌 + 돈길 핵심 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 items-start">
         {bal ? <Balances bal={bal} /> : (
-          <div className="bg-ap-surface border border-ap-line p-2 text-ap-ink-3 text-[11px]">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
+          <div className="bg-ap-surface border border-ap-line p-2 text-ap-ink-3 text-ap-body">계좌 정보 로딩 중… (IB Gateway 응답 대기, 6~8초 정상)</div>
         )}
         <ApPanel>
           <ApPanelHead title="돈길" right={<Link href="/hud?tab=ops" className="no-underline uppercase tracking-wider hover:underline">집행 콘솔 →</Link>} />
-          <p className="px-2 pt-1 text-[10px] text-ap-ink-3">시스템 실제 상태 — 라이브 전환 게이트</p>
+          <p className="px-2 pt-1 text-ap-caption text-ap-ink-3">시스템 실제 상태 — 라이브 전환 게이트</p>
           {/* 엣지 → 페이퍼 → ARM → LIVE 순서. 앞 관문이 안 끝나면 뒤는 pending으로 흐림 */}
           <div className="flex pt-1">
             <ApGateStep label="1 엣지" value={edgeLabel}
@@ -363,21 +363,21 @@ function HomeTab() {
           {activityView === "alerts" && (
             <>
               {(alerts ?? []).slice(0, 14).map((a, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-ap-body">
                   <span className="text-ap-ink-3 shrink-0 w-16 truncate">{a.triggered_at?.slice(11, 19) ?? "--:--:--"}</span>
                   <span className="text-ap-caution truncate flex-1">{a.rule_label}</span>
                   <span className="text-ap-ink-2 shrink-0 truncate max-w-[40%]">{a.detail}</span>
                 </div>
               ))}
               {(alerts?.length ?? 0) === 0 && (
-                <div className="px-2 py-3 text-ap-ink-3 text-[11px]">알림 없음</div>
+                <div className="px-2 py-3 text-ap-ink-3 text-ap-body">알림 없음</div>
               )}
             </>
           )}
           {activityView === "log" && (
             <>
               {(lab?.log ?? []).slice(-14).reverse().map((l, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-ap-body">
                   <span className="text-ap-ink-3 shrink-0 w-16 truncate">{l.ts?.slice(11, 19) ?? "--:--:--"}</span>
                   <span className={`shrink-0 w-12 truncate ${
                     l.level === "error" ? "text-ap-down" : l.level === "warn" ? "text-ap-caution" : "text-ap-ink-3"}`}>{l.stage}</span>
@@ -385,14 +385,14 @@ function HomeTab() {
                 </div>
               ))}
               {(lab?.log?.length ?? 0) === 0 && (
-                <div className="px-2 py-3 text-ap-ink-3 text-[11px]">로그 없음</div>
+                <div className="px-2 py-3 text-ap-ink-3 text-ap-body">로그 없음</div>
               )}
             </>
           )}
           {activityView === "trades" && (
             <>
               {(exec?.paper?.recent_closed ?? []).slice(0, 14).map((t, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-[11px]">
+                <div key={i} className="flex items-center gap-2 border-b border-ap-line px-2 py-0.5 text-ap-body">
                   <span className="text-ap-ink-1 truncate flex-1">{t.corp}</span>
                   <span className="text-ap-ink-3 shrink-0 w-20 truncate">{t.entry_date}</span>
                   <span className="hidden sm:block text-ap-ink-3 shrink-0 w-20 truncate">{t.exit_date ?? "보유중"}</span>
@@ -403,7 +403,7 @@ function HomeTab() {
                 </div>
               ))}
               {(exec?.paper?.recent_closed?.length ?? 0) === 0 && (
-                <div className="px-2 py-3 text-ap-ink-3 text-[11px]">체결 없음</div>
+                <div className="px-2 py-3 text-ap-ink-3 text-ap-body">체결 없음</div>
               )}
             </>
           )}

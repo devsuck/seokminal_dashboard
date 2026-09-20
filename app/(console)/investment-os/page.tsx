@@ -940,7 +940,7 @@ function InvestmentOsInner() {
 
     <div className="md:hidden min-h-full bg-ap-bg">
       <div className="sticky top-0 z-10 bg-ap-bg/90 backdrop-blur border-b border-ap-line px-4 py-3 flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-ap-ink-1">Investment OS</span>
+        <span className="text-ap-title font-semibold text-ap-ink-1">Investment OS</span>
         <div className="flex gap-1.5">
           {sep && <ApBadge tone={sep.separated ? "pos" : "warn"}>{sep.separated ? "분리됨" : "검토 필요"}</ApBadge>}
           <ApBadge tone="neg">AUTO-EXEC OFF</ApBadge>
@@ -948,7 +948,7 @@ function InvestmentOsInner() {
       </div>
 
       <div className="p-4 space-y-4">
-        {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
+        {err && <ApPanel className="p-4 text-ap-title text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
         <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-0.5">
           <ApBadge tone="pos">연구=생산 · 투자=소비</ApBadge>
@@ -1078,10 +1078,10 @@ function InvestmentOsInner() {
                         <ApMeter value={w} tone="hud" />
                       </div>
                     ))}
-                    <div className="text-[11px] text-ap-ink-3 pt-1">우측 수치 = 포지션 사이징 추천(명목가치 100만 기준). 자본 배분/집행 아님.</div>
+                    <div className="text-ap-body text-ap-ink-3 pt-1">우측 수치 = 포지션 사이징 추천(명목가치 100만 기준). 자본 배분/집행 아님.</div>
                     {alloc.data && (alloc.data.derived_proposal?.length ?? 0) > 0 && (
                       <div className="pt-2 border-t border-ap-line space-y-1">
-                        <div className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">배분 파생 제안</div>
+                        <div className="text-ap-body tracking-[0.2em] text-ap-ink-3 uppercase">배분 파생 제안</div>
                         {alloc.data.derived_proposal!.map((a) => (
                           <div key={a.strategy_id} className="flex items-center justify-between text-xs">
                             <span className="text-ap-ink-2 truncate">{a.name} · {a.factor}</span>
@@ -1116,7 +1116,7 @@ function InvestmentOsInner() {
                     {sideLoading && <ApSkeletonLines rows={4} />}
                     {!sideLoading && acct && (
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-[11px] tracking-[0.2em] text-ap-brand uppercase">엣지 스코어</span>
+                        <span className="text-ap-body tracking-[0.2em] text-ap-brand uppercase">엣지 스코어</span>
                         {acct.edge_score.status === "PROVISIONAL"
                           ? <ApBadge tone="mute">미확정 — {acct.edge_score.graded_scorable ?? 0}/{acct.edge_score.needed ?? 20} 채점됨</ApBadge>
                           : <ApBadge tone="pos">계산됨 — {acct.edge_score.graded_scorable ?? 0} 채점됨</ApBadge>}
@@ -1249,7 +1249,7 @@ function InvestmentOsInner() {
                   <div className="p-4 space-y-3">
                     <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); runFinLookup(); }}>
                       <input
-                        className="flex-1 min-w-0 bg-ap-bg border border-ap-line text-ap-ink-1 text-[13px] px-3 py-2 rounded-ap-md"
+                        className="flex-1 min-w-0 bg-ap-bg border border-ap-line text-ap-ink-1 text-ap-title px-3 py-2 rounded-ap-md"
                         placeholder="종목코드 (예: AAPL, 005930)"
                         value={finQuery}
                         onChange={(e) => setFinQuery(e.target.value)}
@@ -1355,7 +1355,7 @@ function InvestmentOsInner() {
                 <ApPanel>
                   <ApPanelHead kicker="실행 레이어 · 승인 워크플로" title="준비도 사다리" right={<ApBadge tone="neg">자동 실행: {ladder?.auto_execution_enabled ? "켜짐" : "꺼짐"}</ApBadge>} />
                   <div className="p-4 space-y-3">
-                    <p className="text-[10px] text-ap-ink-3">포트폴리오 시뮬레이션(자문용) — 새로고침하면 리셋, 실제 상태 아님</p>
+                    <p className="text-ap-caption text-ap-ink-3">포트폴리오 시뮬레이션(자문용) — 새로고침하면 리셋, 실제 상태 아님</p>
                     <div className="text-xs text-ap-ink-2 leading-relaxed bg-ap-bg rounded-ap-md px-3 py-2">
                       전략 개별이 아니라 <b>포트폴리오 전체</b>가 다음 준비도 단계로 넘어가도 되는지 보여주는 자문용 시뮬레이션입니다.
                       승인해도 새로고침하면 PAPER로 리셋되고, 실제로 바뀌는 건 없습니다(AUTO_EXECUTION은 영구 비활성).
@@ -1375,7 +1375,7 @@ function InvestmentOsInner() {
                     </div>
 
                     <div className="bg-ap-bg rounded-ap-md p-3">
-                      <div className="text-[11px] tracking-[0.2em] text-ap-brand uppercase mb-1.5">필수 게이트 (우회 불가)</div>
+                      <div className="text-ap-body tracking-[0.2em] text-ap-brand uppercase mb-1.5">필수 게이트 (우회 불가)</div>
                       <div className="grid grid-cols-2 gap-2">
                         {(advResult?.gates ?? []).length > 0
                           ? advResult!.gates.map((g) => (
@@ -1423,7 +1423,7 @@ function InvestmentOsInner() {
 
                     {history.length > 0 && (
                       <div className="space-y-1">
-                        <div className="text-[11px] tracking-[0.2em] text-ap-ink-3 uppercase">승인 로그 (이번 세션)</div>
+                        <div className="text-ap-body tracking-[0.2em] text-ap-ink-3 uppercase">승인 로그 (이번 세션)</div>
                         {history.map((h, i) => (
                           <div key={i} className="flex flex-wrap items-center gap-2 text-xs font-data text-ap-ink-3">
                             <span>{h.ts}</span>
@@ -1449,8 +1449,8 @@ function InvestmentOsInner() {
                       <div className="grid grid-cols-2 gap-2">
                         {monitor.data.stages.map((s) => (
                           <div key={s.key} className="bg-ap-bg rounded-ap-md p-2">
-                            <div className="text-[11px] tracking-[0.15em] text-ap-ink-3 uppercase">{s.label}</div>
-                            <div className="text-[13px] font-data text-ap-ink-1">{s.count}</div>
+                            <div className="text-ap-body tracking-[0.15em] text-ap-ink-3 uppercase">{s.label}</div>
+                            <div className="text-ap-title font-data text-ap-ink-1">{s.count}</div>
                           </div>
                         ))}
                       </div>
