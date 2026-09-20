@@ -373,7 +373,7 @@ function ExplainTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
               className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 text-ap-brand" disabled={!q.trim()} loading={loading}>
+            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 !text-ap-brand" disabled={!q.trim()} loading={loading}>
               설명
             </ApButton>
           </form>
@@ -567,7 +567,7 @@ function GraphTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
               className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 text-ap-brand">필터</ApButton>
+            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 !text-ap-brand">필터</ApButton>
           </form>
 
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
@@ -688,7 +688,7 @@ function TimelineTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
               className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 text-ap-brand">필터</ApButton>
+            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 !text-ap-brand">필터</ApButton>
           </form>
 
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
