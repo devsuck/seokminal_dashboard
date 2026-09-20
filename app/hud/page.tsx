@@ -290,12 +290,18 @@ function HomeTab() {
             {nRunning}/{units.length} 가동 · 수집 {collectorUnits.length > 0 ? `${nHealthy}/${collectorUnits.length}` : "…"}
           </span>
         } />
-        <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3">전략</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2">
-          {units.map((u, i) => (
-            <UnitCard key={`${u.name}-${i}`} u={u} />
-          ))}
-        </div>
+        <details className="group">
+          <summary className="flex items-center px-2 py-1.5 text-[11px] text-ap-ink-3 cursor-pointer list-none border-b border-ap-line">
+            <span className="group-open:hidden">전략 상세 ▾</span>
+            <span className="hidden group-open:inline">전략 상세 ▴</span>
+          </summary>
+          <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-ap-ink-3">전략</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2">
+            {units.map((u, i) => (
+              <UnitCard key={`${u.name}-${i}`} u={u} />
+            ))}
+          </div>
+        </details>
         <Link href="/hud"
           className="flex items-center gap-2 border-t border-ap-line px-2 py-1.5 no-underline hover:bg-ap-bg transition-colors">
           <StatusDot tone={collectorUnits.length === 0 ? "text-3" : nDegraded > 0 ? "warn" : "pos"} />
