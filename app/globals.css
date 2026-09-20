@@ -77,6 +77,14 @@
   --color-ap-caution:  #D97706;
   --color-ap-note:     #2563EB;
 
+  --text-ap-micro:   9px;
+  --text-ap-caption: 10px;
+  --text-ap-body:    11px;
+  --text-ap-label:   12px;
+  --text-ap-title:   13px;
+  --text-ap-stat:    16px;
+  --text-ap-hero:    26px;
+
   --radius-ap-sm: 8px;
   --radius-ap-md: 12px;
   --radius-ap-lg: 16px;

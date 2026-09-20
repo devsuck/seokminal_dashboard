@@ -266,3 +266,43 @@ export function ApGateStep({ label, value, title, state }: {
     </div>
   );
 }
+
+// ── Button ────────────────────────────────────────────────────────
+export type ApButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ApButtonSize = "sm" | "md";
+
+const AP_BUTTON_VARIANT: Record<ApButtonVariant, string> = {
+  primary:   "bg-ap-brand text-white",
+  secondary: "bg-ap-bg text-ap-ink-1",
+  danger:    "border border-ap-down/30 text-ap-down/70 hover:bg-ap-down/8 hover:text-ap-down hover:border-ap-down/50 bg-transparent",
+  ghost:     "bg-transparent text-ap-ink-2",
+};
+
+const AP_BUTTON_SIZE: Record<ApButtonSize, string> = {
+  sm: "h-9 text-ap-label px-3",
+  md: "h-11 text-ap-title px-4",
+};
+
+export function ApButton({
+  variant = "primary",
+  size = "sm",
+  loading = false,
+  disabled,
+  className = "",
+  children,
+  ...rest
+}: {
+  variant?: ApButtonVariant;
+  size?: ApButtonSize;
+  loading?: boolean;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      disabled={disabled || loading}
+      className={`rounded-ap-md font-semibold border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${AP_BUTTON_VARIANT[variant]} ${AP_BUTTON_SIZE[size]} ${className}`}
+      {...rest}
+    >
+      {loading ? "…" : children}
+    </button>
+  );
+}
