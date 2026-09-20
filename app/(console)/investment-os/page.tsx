@@ -28,7 +28,7 @@ import {
   type MonitorResp, type OrdersResp, type LiveIntelligenceResp, type CapitalClaimQueueResp,
 } from "@/lib/console-api";
 import { PageHeader, AgentTree } from "@/components/console/widgets";
-import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApLightHero, ApGateStep } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApDot, ApStatTile, ApBadge, ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApMeter, ApBottomSheet, ApLightHero, ApGateStep, ApButton } from "@/components/ui/ApPrimitives";
 
 const RUNG_LABEL: Record<string, string> = {
   PAPER: "페이퍼", SHADOW: "섀도우", SMALL_CAPITAL: "스몰 캐피탈",
@@ -1254,13 +1254,7 @@ function InvestmentOsInner() {
                         value={finQuery}
                         onChange={(e) => setFinQuery(e.target.value)}
                       />
-                      <button
-                        type="submit"
-                        disabled={finLoading || !finQuery.trim()}
-                        className="bg-ap-brand text-white text-[13px] font-semibold px-4 py-2 rounded-ap-md disabled:opacity-50 shrink-0"
-                      >
-                        {finLoading ? "조회 중…" : "조회"}
-                      </button>
+                      <ApButton type="submit" disabled={!finQuery.trim()} loading={finLoading} className="shrink-0">조회</ApButton>
                     </form>
                     {finErr && <div className="text-xs text-ap-down">조회 실패: {finErr}</div>}
                     {finLoading && (
@@ -1412,12 +1406,10 @@ function InvestmentOsInner() {
                             <span className="text-xs text-ap-ink-2">Risk·Compliance·Portfolio 게이트와 시나리오를 검토했으며, 이 전진을 승인합니다.</span>
                           </label>
                           <div className="flex items-center gap-2">
-                            <button onClick={approveAndAdvance} disabled={!reviewed || busy}
-                              className={`px-4 h-11 rounded-ap-md text-xs font-semibold uppercase border ${
-                                reviewed && !busy ? "text-ap-up border-ap-up bg-ap-up/10" : "text-ap-ink-3 border-ap-line opacity-50"}`}>
-                              {busy ? "검증 중…" : `승인 & 전진 → ${RUNG_LABEL[nextRung]}`}
-                            </button>
-                            <button onClick={resetLadder} className="px-3 h-11 rounded-ap-md text-xs uppercase text-ap-ink-3 border border-ap-line">페이퍼로 리셋</button>
+                            <ApButton variant="primary" size="md" onClick={approveAndAdvance} disabled={!reviewed} loading={busy}>
+                              {`승인 & 전진 → ${RUNG_LABEL[nextRung]}`}
+                            </ApButton>
+                            <ApButton variant="secondary" size="md" className="border border-ap-line" onClick={resetLadder}>페이퍼로 리셋</ApButton>
                           </div>
                         </>
                       )}

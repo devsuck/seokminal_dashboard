@@ -9,7 +9,7 @@ import {
   type OmsOrder, type VenuePnl,
 } from "@/lib/api";
 import { SegmentedToggle, LoadingState, EmptyState, Bar } from "@/components/ui";
-import { ApPanel, ApPanelHead, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApLightHero } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApTickerBadge, ApGainBar, ApListRow, ApBottomSheet, ApLightHero, ApButton } from "@/components/ui/ApPrimitives";
 import { TimeSeries, type TSSeries } from "@/components/charts/TimeSeries";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { TOKEN } from "@/lib/chart-colors";
@@ -568,12 +568,9 @@ function AccountsTab() {
             </span>
           </div>
           <div className="flex justify-between text-sm"><span className="text-ap-ink-3">venue</span><span className="text-ap-ink-1">{selected.venue}</span></div>
-          <button
-            onClick={() => router.push(`/research-os/chat?q=${encodeURIComponent(selected.symbol)}`)}
-            className="w-full h-11 rounded-ap-md text-sm font-semibold text-white bg-ap-brand mt-2"
-          >
+          <ApButton size="md" className="w-full mt-2" onClick={() => router.push(`/research-os/chat?q=${encodeURIComponent(selected.symbol)}`)}>
             AI 판단 보러가기 →
-          </button>
+          </ApButton>
         </div>
       )}
     </ApBottomSheet>

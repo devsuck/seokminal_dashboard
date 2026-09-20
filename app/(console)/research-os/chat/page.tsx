@@ -8,7 +8,7 @@ import {
   type AssistantResp, type DecisionMemoResp, type ExplainabilityResp,
 } from "@/lib/console-api";
 import { PageHeader } from "@/components/console/widgets";
-import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines } from "@/components/ui/ApPrimitives";
+import { ApPanel, ApPanelHead, ApBadge, ApSkeletonLines, ApButton } from "@/components/ui/ApPrimitives";
 
 const CONF_TONE: Record<string, "pos" | "hud" | "warn"> = { HIGH: "pos", MEDIUM: "hud", LOW: "warn" };
 const SUGGESTIONS = ["어제 리서치 이어서 진행해줘", "모멘텀 시도해본 적 있어?", "밸류 로테이션 리서치 해볼까?", "TSMOM은 왜 실패했어?"];
@@ -182,13 +182,9 @@ function ResearchChatInner() {
                 placeholder="연구 질문… (예: 어제 리서치 이어서 진행해줘)"
                 className="w-full bg-ap-surface border border-ap-line rounded-ap-md px-3.5 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand"
               />
-              <button
-                type="submit" disabled={loading || !q.trim()}
-                className="flex items-center justify-center gap-2 w-full h-11 rounded-ap-md text-sm font-semibold text-white bg-ap-brand disabled:opacity-50 disabled:cursor-wait"
-              >
-                {loading && <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
-                {loading ? "생각 중…" : "질문"}
-              </button>
+              <ApButton type="submit" size="md" className="w-full gap-2" disabled={!q.trim()} loading={loading}>
+                질문
+              </ApButton>
             </form>
 
             <div className="flex flex-wrap items-center gap-1.5 mb-4">

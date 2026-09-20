@@ -11,7 +11,7 @@ import {
 } from "@/lib/console-api";
 import {
   ApPanel, ApPanelHead, ApDot, ApBadge,
-  ApSkeletonStatTile, ApSkeletonLines,
+  ApSkeletonStatTile, ApSkeletonLines, ApButton,
 } from "@/components/ui/ApPrimitives";
 
 type TabKey = "committee" | "explain" | "graph" | "timeline";
@@ -146,11 +146,9 @@ function CommitteeTab() {
             <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="mt-3 flex flex-col gap-2">
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
                 className="w-full bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-              <button type="submit" disabled={loading}
-                className="h-11 rounded-ap-md text-[13px] font-semibold text-white bg-ap-brand disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2">
-                {loading && <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
-                {loading ? "소집 중…" : "소집"}
-              </button>
+              <ApButton type="submit" size="md" className="gap-2" loading={loading}>
+                소집
+              </ApButton>
             </form>
             <div className="mt-3 flex flex-wrap gap-1.5">
               <span className="text-xs text-ap-ink-3 uppercase tracking-[0.14em] mr-1 self-center">예시</span>
@@ -375,10 +373,9 @@ function ExplainTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="결론을 설명할 주제… (예: momentum)"
               className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <button type="submit" disabled={loading || !q.trim()}
-              className="px-4 h-11 rounded-ap-md text-xs font-semibold tracking-wide uppercase text-ap-brand border border-ap-brand/40 bg-ap-brand/10 disabled:opacity-40">
-              {loading ? "…" : "설명"}
-            </button>
+            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 text-ap-brand" disabled={!q.trim()} loading={loading}>
+              설명
+            </ApButton>
           </form>
 
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
@@ -570,7 +567,7 @@ function GraphTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="주제로 필터…"
               className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-ap-brand border border-ap-brand/40 bg-ap-brand/10">필터</button>
+            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 text-ap-brand">필터</ApButton>
           </form>
 
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
@@ -691,7 +688,7 @@ function TimelineTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="전략/주제로 필터…"
               className="flex-1 bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-[13px] text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-ap-brand border border-ap-brand/40 bg-ap-brand/10">필터</button>
+            <ApButton type="submit" size="md" variant="secondary" className="border border-ap-brand/40 bg-ap-brand/10 text-ap-brand">필터</ApButton>
           </form>
 
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}

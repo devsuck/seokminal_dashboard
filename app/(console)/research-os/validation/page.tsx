@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader, TabBar, useAbortableRun } from "@/components/console/widgets";
 import {
   ApPanel, ApPanelHead, ApBadge, ApStatTile,
-  ApSkeleton, ApSkeletonStatTile, ApSkeletonLines,
+  ApSkeleton, ApSkeletonStatTile, ApSkeletonLines, ApButton,
 } from "@/components/ui/ApPrimitives";
 import {
   getValidationLoop, type ValidationLoopResp,
@@ -518,7 +518,7 @@ function ProductionTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="연구 질문…"
               className="flex-1 bg-ap-surface border border-ap-line rounded-ap-md px-3 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-white bg-ap-brand cursor-pointer shrink-0">소집</button>
+            <ApButton type="submit" size="md" className="shrink-0">소집</ApButton>
           </form>
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
@@ -832,7 +832,7 @@ function IntelligencePlusTab() {
           <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="flex gap-2">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="연구 질문…"
               className="flex-1 bg-ap-surface border border-ap-line rounded-ap-md px-3 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand" />
-            <button type="submit" className="px-4 h-11 rounded-ap-md text-xs font-semibold uppercase text-white bg-ap-brand cursor-pointer shrink-0">탐색</button>
+            <ApButton type="submit" size="md" className="shrink-0">탐색</ApButton>
           </form>
           {err && <ApPanel className="p-4 text-[13px] text-ap-down">백엔드 연결 실패: {err}</ApPanel>}
 
