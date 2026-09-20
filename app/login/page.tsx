@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login, ApiError } from "@/lib/api";
+import { ApButton } from "@/components/ui/ApPrimitives";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,25 +26,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center p-5">
-      <form onSubmit={submit} className="c-panel border border-border rounded-lg p-6 w-full max-w-xs flex flex-col gap-4">
-        <h1 className="text-[13px] tracking-wider text-text-1 uppercase">SEOKMINAL 로그인</h1>
+    <div className="rail-ap min-h-screen bg-ap-bg-page flex items-center justify-center p-5">
+      <form onSubmit={submit} className="bg-ap-surface border border-ap-line rounded-ap-lg shadow-ap-sm p-6 w-full max-w-xs flex flex-col gap-4">
+        <h1 className="text-ap-title tracking-wider text-ap-ink-1 uppercase">SEOKMINAL 로그인</h1>
         <input
           type="password"
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="비밀번호"
-          className="bg-bg border border-border rounded px-3 py-2 text-[13px] text-text-1 outline-none focus:border-accent"
+          className="bg-ap-bg-page border border-ap-line rounded-ap-md px-3 py-2 text-ap-title text-ap-ink-1 outline-none focus:border-ap-brand"
         />
-        {err && <p className="text-[12px] text-neg">{err}</p>}
-        <button
-          type="submit"
-          disabled={loading || !password}
-          className="bg-accent text-black rounded px-3 py-2 text-[13px] font-medium disabled:opacity-50"
-        >
-          {loading ? "로그인 중..." : "로그인"}
-        </button>
+        {err && <p className="text-ap-label text-ap-down">{err}</p>}
+        <ApButton type="submit" variant="primary" size="md" loading={loading} disabled={!password}>
+          로그인
+        </ApButton>
       </form>
     </div>
   );

@@ -30,11 +30,11 @@ export default function ValidationReport() {
                 {(data?.gates ?? []).map((g) => (
                   <div key={g} className="flex items-center gap-3 py-1.5">
                     <ApDot tone="pos" />
-                    <span className="text-[13px] text-[var(--c-text-1)] flex-1">{GATE_LABEL[g] ?? g}</span>
+                    <span className="text-ap-title text-ap-ink-1 flex-1">{GATE_LABEL[g] ?? g}</span>
                     <StatusPill status="PASS" />
                   </div>
                 ))}
-                <div className="pt-3 mt-2 border-t border-[var(--c-border)] text-[11px] text-[var(--c-text-3)] leading-relaxed">
+                <div className="pt-3 mt-2 border-t border-ap-line text-ap-body text-ap-ink-3 leading-relaxed">
                   검증 프레임워크는 다중검정 보정(BH-FDR)·비용 스트레스·레드팀 적대 감사를 강제합니다. 게이트 통과 시에만 paper trading 승격.
                 </div>
               </div>
@@ -42,21 +42,21 @@ export default function ValidationReport() {
 
             {/* Redteam consensus */}
             <ApPanel className="overflow-hidden">
-              <ApPanelHead kicker="적대적 검증" title="레드팀 vs 사람" right={<span className="c-num text-[11px] text-[var(--c-hud)]">{agree}/{n} 일치</span>} />
+              <ApPanelHead kicker="적대적 검증" title="레드팀 vs 사람" right={<span className="c-num text-ap-body text-ap-brand">{agree}/{n} 일치</span>} />
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
-                  <thead><tr className="border-b border-[var(--c-border)]">
-                    {["전략", "사람", "레드팀", "일치"].map((h) => <th key={h} className="text-[9px] font-semibold tracking-[0.14em] text-[var(--c-text-3)] uppercase px-3 py-2 text-left">{h}</th>)}
+                  <thead><tr className="border-b border-ap-line">
+                    {["전략", "사람", "레드팀", "일치"].map((h) => <th key={h} className="text-ap-micro font-semibold tracking-[0.14em] text-ap-ink-3 uppercase px-3 py-2 text-left">{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {(rt?.rows ?? []).map((row, i) => {
                       const r = row as Record<string, unknown>;
                       return (
-                        <tr key={i} className="border-b border-[var(--c-border)] last:border-0">
-                          <td className="px-3 py-2 text-[11px] text-[var(--c-text-1)]">{String(r.strategy ?? "—")}</td>
+                        <tr key={i} className="border-b border-ap-line last:border-0">
+                          <td className="px-3 py-2 text-ap-body text-ap-ink-1">{String(r.strategy ?? "—")}</td>
                           <td className="px-3 py-2"><StatusPill status={String(r.human_call ?? "?")} /></td>
                           <td className="px-3 py-2"><StatusPill status={String(r.redteam_verdict ?? "?")} /></td>
-                          <td className="px-3 py-2">{r.match ? <span className="text-[var(--c-pos)] c-num text-[11px]">✓</span> : <span className="text-[var(--c-neg)] c-num text-[11px]">✗</span>}</td>
+                          <td className="px-3 py-2">{r.match ? <span className="text-ap-up c-num text-ap-body">✓</span> : <span className="text-ap-down c-num text-ap-body">✗</span>}</td>
                         </tr>
                       );
                     })}
@@ -71,9 +71,9 @@ export default function ValidationReport() {
             <ApPanelHead kicker="코호트" title="실험 상태 분포" />
             <div className="p-4 flex flex-wrap gap-2">
               {statuses.map(([s, c]) => (
-                <div key={s} className="flex items-center gap-2 px-2.5 py-1.5 border border-[var(--c-border)]">
+                <div key={s} className="flex items-center gap-2 px-2.5 py-1.5 border border-ap-line">
                   <StatusPill status={s} />
-                  <span className="c-num text-[13px] font-semibold text-[var(--c-text-1)]">{c}</span>
+                  <span className="c-num text-ap-title font-semibold text-ap-ink-1">{c}</span>
                 </div>
               ))}
             </div>
