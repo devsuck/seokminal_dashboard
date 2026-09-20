@@ -182,7 +182,7 @@ function ResearchChatInner() {
                 placeholder="연구 질문… (예: 어제 리서치 이어서 진행해줘)"
                 className="w-full bg-ap-surface border border-ap-line rounded-ap-md px-3.5 h-11 text-sm text-ap-ink-1 outline-none focus:border-ap-brand"
               />
-              <ApButton type="submit" size="md" className="w-full gap-2" disabled={!q.trim()} loading={loading}>
+              <ApButton type="submit" size="md" className="w-full" disabled={!q.trim()} loading={loading}>
                 질문
               </ApButton>
             </form>

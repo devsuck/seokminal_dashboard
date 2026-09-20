@@ -146,7 +146,7 @@ function CommitteeTab() {
             <form onSubmit={(e) => { e.preventDefault(); run(q); }} className="mt-3 flex flex-col gap-2">
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="예: 모멘텀 전략을 배포해야 하는가?"
                 className="w-full bg-ap-bg border border-ap-line rounded-ap-md px-3.5 h-11 text-ap-title text-ap-ink-1 outline-none focus:border-ap-brand" />
-              <ApButton type="submit" size="md" className="gap-2" loading={loading}>
+              <ApButton type="submit" size="md" loading={loading}>
                 소집
               </ApButton>
             </form>

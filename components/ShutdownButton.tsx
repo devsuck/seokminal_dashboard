@@ -72,18 +72,18 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
                 {phase === "killing" ? "서버 종료 중..." : "Mr. Seokminal 인수인계"}
               </span>
               {phase === "handoff" && (
-                <button onClick={cancel} className="text-[11px] text-ap-ink-3 hover:text-ap-down bg-transparent border-0 cursor-pointer">
+                <button onClick={cancel} className="text-ap-body text-ap-ink-3 hover:text-ap-down bg-transparent border-0 cursor-pointer">
                   취소
                 </button>
               )}
             </div>
 
             {/* Phase label */}
-            <div className="px-6 py-2 text-[11px] text-ap-brand">{PHASE_LABEL[phase]}</div>
+            <div className="px-6 py-2 text-ap-body text-ap-brand">{PHASE_LABEL[phase]}</div>
 
             {/* Log */}
             {lines.length > 0 && (
-              <div className="flex-1 overflow-y-auto px-6 pb-4 font-mono text-[11px] text-ap-ink-2 leading-relaxed space-y-0.5 max-h-64">
+              <div className="flex-1 overflow-y-auto px-6 pb-4 font-mono text-ap-body text-ap-ink-2 leading-relaxed space-y-0.5 max-h-64">
                 {lines.map((l, i) => (
                   <div key={i} className={l.includes("HANDOFF_COMPLETE") ? "text-ap-up font-semibold" : ""}>{l}</div>
                 ))}
@@ -114,7 +114,7 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
           variant="danger"
           onClick={handleClick}
           disabled={phase !== "idle"}
-          className="w-full py-2 text-ap-body font-medium">
+          className="w-full py-2 !text-ap-body font-medium">
           {phase === "idle" ? "⏹ 종료" : "종료 중..."}
         </ApButton>
       )}

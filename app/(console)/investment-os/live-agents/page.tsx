@@ -62,21 +62,21 @@ export default function LiveAgentsPage() {
     <div className="min-h-full p-4 space-y-3 bg-ap-bg-page">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-[9px] font-semibold tracking-[0.24em] uppercase text-ap-ink-3">
+          <div className="text-ap-micro font-semibold tracking-[0.24em] uppercase text-ap-ink-3">
             /agents · autopilot 사이클 · 실시간 판단
           </div>
-          <div className="text-[13px] font-semibold text-ap-ink-1">라이브 에이전트</div>
+          <div className="text-ap-title font-semibold text-ap-ink-1">라이브 에이전트</div>
         </div>
-        <Link href="/investment-os" className="text-[11px] text-ap-brand hover:underline no-underline">
+        <Link href="/investment-os" className="text-ap-body text-ap-brand hover:underline no-underline">
           ← Investment OS
         </Link>
       </div>
 
-      {!loading && err && <div className="text-[11px] text-ap-down">백엔드 연결 실패: {err}</div>}
+      {!loading && err && <div className="text-ap-body text-ap-down">백엔드 연결 실패: {err}</div>}
 
       <ApprovalFeed onActed={run} />
 
-      <div className="text-[11px] font-semibold text-ap-ink-3 px-1 pt-1">
+      <div className="text-ap-body font-semibold text-ap-ink-3 px-1 pt-1">
         에이전트{agents ? ` · ${agents.length}` : ""}
       </div>
 
@@ -86,7 +86,7 @@ export default function LiveAgentsPage() {
         </div>
       )}
       {!loading && agents?.length === 0 && (
-        <div className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4 text-[11px] text-ap-ink-3">
+        <div className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4 text-ap-body text-ap-ink-3">
           등록된 에이전트 없음.
         </div>
       )}
@@ -179,14 +179,14 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
   return (
     <div className="space-y-2">
       <div className="px-1"><ApBadge tone="warn">승인 대기 · {total}</ApBadge></div>
-      {err && <div className="text-[11px] text-ap-down px-1">{err}</div>}
-      {lastResult && <div className="text-[11px] text-ap-brand px-1">{lastResult}</div>}
+      {err && <div className="text-ap-body text-ap-down px-1">{err}</div>}
+      {lastResult && <div className="text-ap-body text-ap-brand px-1">{lastResult}</div>}
 
       {promotable.map((c) => (
         <div key={c.agent_id} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4">
-          <div className="text-[10px] font-semibold text-ap-brand uppercase tracking-wide mb-1">god_mode · 승급 후보</div>
-          <div className="text-[13px] font-bold text-ap-ink-1 mb-1">{c.name} → live 전환?</div>
-          <div className="text-[11px] text-ap-ink-3 mb-3">승급 조건 충족 (최근 {c.window_days}일)</div>
+          <div className="text-ap-caption font-semibold text-ap-brand uppercase tracking-wide mb-1">god_mode · 승급 후보</div>
+          <div className="text-ap-title font-bold text-ap-ink-1 mb-1">{c.name} → live 전환?</div>
+          <div className="text-ap-body text-ap-ink-3 mb-3">승급 조건 충족 (최근 {c.window_days}일)</div>
           <div className="flex gap-1.5">
             <ApButton onClick={() => promote(c.agent_id)} loading={busy === c.agent_id} className="flex-1">
               승인
@@ -200,9 +200,9 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
 
       {reverted.map((r) => (
         <div key={r.agent_id} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4">
-          <div className="text-[10px] font-semibold text-ap-caution uppercase tracking-wide mb-1">god_mode → paper 강제복귀</div>
-          <div className="text-[13px] font-bold text-ap-ink-1 mb-1">{r.name}</div>
-          <div className="text-[11px] text-ap-ink-3">{r.reason} · {r.at}</div>
+          <div className="text-ap-caption font-semibold text-ap-caution uppercase tracking-wide mb-1">god_mode → paper 강제복귀</div>
+          <div className="text-ap-title font-bold text-ap-ink-1 mb-1">{r.name}</div>
+          <div className="text-ap-body text-ap-ink-3">{r.reason} · {r.at}</div>
         </div>
       ))}
 
@@ -211,14 +211,14 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
         const isManual = manualMode[sid];
         return (
           <div key={sid} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4">
-            <div className="text-[10px] font-semibold text-ap-brand uppercase tracking-wide mb-1">자본배정 대기 · {sid}</div>
+            <div className="text-ap-caption font-semibold text-ap-brand uppercase tracking-wide mb-1">자본배정 대기 · {sid}</div>
             {!isManual && c.suggested_amount != null && (
-              <div className="text-[16px] font-extrabold text-ap-ink-1 mb-3">
+              <div className="text-ap-stat font-extrabold text-ap-ink-1 mb-3">
                 제안 {c.suggested_amount.toLocaleString()}원{c.stale ? " (오래됨)" : ""}
               </div>
             )}
             {!isManual && c.suggested_amount == null && (
-              <div className="text-[13px] text-ap-ink-3 mb-3">제안 없음</div>
+              <div className="text-ap-title text-ap-ink-3 mb-3">제안 없음</div>
             )}
 
             {!isManual && (
@@ -241,7 +241,7 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
               <div className="flex gap-1.5">
                 <input type="number" placeholder="배정액(원)" value={amounts[sid] ?? ""}
                   onChange={(e) => setAmounts((prev) => ({ ...prev, [sid]: e.target.value }))}
-                  className="flex-1 h-9 px-3 text-[12px] rounded-ap-md border border-ap-line text-ap-ink-1" />
+                  className="flex-1 h-9 px-3 text-ap-label rounded-ap-md border border-ap-line text-ap-ink-1" />
                 <ApButton onClick={() => claim(sid, amounts[sid] ? Number(amounts[sid]) : undefined)} loading={busy === sid}>
                   제출
                 </ApButton>
@@ -262,9 +262,9 @@ function AgentCard({
     <div className="rounded-ap-xl bg-ap-surface shadow-ap-sm overflow-hidden">
       <button onClick={onToggle}
         className="w-full text-left p-4 flex items-center gap-2 flex-wrap border-0 bg-transparent cursor-pointer">
-        <span className="text-ap-ink-3 text-[11px] w-3">{expanded ? "▾" : "▸"}</span>
+        <span className="text-ap-ink-3 text-ap-body w-3">{expanded ? "▾" : "▸"}</span>
         <ApDot tone={agent.session_live ? "pos" : "mute"} pulse={agent.session_live} />
-        <span className="text-[13px] font-semibold text-ap-ink-1">{agent.name}</span>
+        <span className="text-ap-title font-semibold text-ap-ink-1">{agent.name}</span>
         {agent.god_mode && <ApBadge tone="pos">GOD MODE</ApBadge>}
         {!agent.god_mode && !agent.paper && <ApBadge tone="warn">LIVE</ApBadge>}
         {!agent.validated && <ApBadge tone="warn" title={agent.validation_reason}>미검증</ApBadge>}
@@ -272,7 +272,7 @@ function AgentCard({
           {perf ? `${perf.return_pct >= 0 ? "+" : ""}${perf.return_pct.toFixed(2)}%` : "—"}
         </span>
         {perf && (
-          <span className="w-full text-[11px] text-ap-ink-3 pl-5">
+          <span className="w-full text-ap-body text-ap-ink-3 pl-5">
             포지션 {perf.open_positions.length} · 배정 {perf.alloc.toLocaleString()}
           </span>
         )}
@@ -332,35 +332,35 @@ function AgentCardBody({
   return (
     <div className="border-t border-ap-line p-4 space-y-4">
       {loading && <ApSkeletonLines rows={3} />}
-      {!loading && err && <div className="text-[11px] text-ap-down">{err}</div>}
+      {!loading && err && <div className="text-ap-body text-ap-down">{err}</div>}
 
       {!loading && perf && (
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
-            <div className="text-[10px] text-ap-ink-3">실현 손익</div>
-            <div className={`font-data text-[13px] font-semibold ${perf.realized_pnl >= 0 ? "text-ap-up" : "text-ap-down"}`}>
+            <div className="text-ap-caption text-ap-ink-3">실현 손익</div>
+            <div className={`font-data text-ap-title font-semibold ${perf.realized_pnl >= 0 ? "text-ap-up" : "text-ap-down"}`}>
               {perf.realized_pnl.toLocaleString()}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-ap-ink-3">미실현 손익</div>
-            <div className={`font-data text-[13px] font-semibold ${perf.unrealized_pnl >= 0 ? "text-ap-up" : "text-ap-down"}`}>
+            <div className="text-ap-caption text-ap-ink-3">미실현 손익</div>
+            <div className={`font-data text-ap-title font-semibold ${perf.unrealized_pnl >= 0 ? "text-ap-up" : "text-ap-down"}`}>
               {perf.unrealized_pnl.toLocaleString()}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-ap-ink-3">현금</div>
-            <div className="font-data text-[13px] font-semibold text-ap-ink-1">{perf.cash.toLocaleString()}</div>
+            <div className="text-ap-caption text-ap-ink-3">현금</div>
+            <div className="font-data text-ap-title font-semibold text-ap-ink-1">{perf.cash.toLocaleString()}</div>
           </div>
         </div>
       )}
 
       {!loading && perf && perf.open_positions.length > 0 && (
         <div>
-          <div className="text-[10px] font-semibold text-ap-ink-3 uppercase tracking-wide mb-1.5">보유 포지션</div>
+          <div className="text-ap-caption font-semibold text-ap-ink-3 uppercase tracking-wide mb-1.5">보유 포지션</div>
           <div className="space-y-1">
             {perf.open_positions.map((p) => (
-              <div key={p.symbol} className="flex items-center justify-between text-[11px] font-data text-ap-ink-2">
+              <div key={p.symbol} className="flex items-center justify-between text-ap-body font-data text-ap-ink-2">
                 <span className="text-ap-ink-1 font-semibold">{p.symbol}</span>
                 <span>{p.qty} @ {p.avg_price.toLocaleString()}</span>
                 <span className={p.unrealized_pnl != null && p.unrealized_pnl >= 0 ? "text-ap-up" : "text-ap-down"}>
@@ -373,36 +373,33 @@ function AgentCardBody({
       )}
 
       {!loading && god && !god.eligible && (
-        <div className="text-[11px] text-ap-ink-3">god_mode 승급 미충족 (최근 {god.window_days}일)</div>
+        <div className="text-ap-body text-ap-ink-3">god_mode 승급 미충족 (최근 {god.window_days}일)</div>
       )}
       {!loading && god?.eligible && (
         <div>
-          <div className="text-[10px] font-semibold text-ap-ink-3 uppercase tracking-wide mb-1.5">
+          <div className="text-ap-caption font-semibold text-ap-ink-3 uppercase tracking-wide mb-1.5">
             승급 심사 충족 (최근 {god.window_days}일)
           </div>
-          <button onClick={promote} disabled={busy}
-            className="w-full h-9 rounded-ap-md text-[12px] font-semibold border-0 cursor-pointer disabled:opacity-50 bg-ap-brand text-white">
-            {busy ? "승급 중…" : "God Mode 승급 (사람 최종 확인)"}
-          </button>
+          <ApButton onClick={promote} loading={busy} className="w-full">God Mode 승급 (사람 최종 확인)</ApButton>
         </div>
       )}
 
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-[10px] font-semibold text-ap-ink-3 uppercase tracking-wide">최근 사이클</div>
+          <div className="text-ap-caption font-semibold text-ap-ink-3 uppercase tracking-wide">최근 사이클</div>
           {recentCycles.length > 3 && (
             <button onClick={() => setHistoryOpen(true)}
-              className="text-[11px] text-ap-brand border-0 bg-transparent cursor-pointer">
+              className="text-ap-body text-ap-brand border-0 bg-transparent cursor-pointer">
               전체 이력 보기 ({recentCycles.length})
             </button>
           )}
         </div>
         {!loading && previewCycles.length === 0 && (
-          <div className="text-[11px] text-ap-ink-3">기록된 사이클 없음.</div>
+          <div className="text-ap-body text-ap-ink-3">기록된 사이클 없음.</div>
         )}
         <div className="space-y-1">
           {!loading && previewCycles.map((c) => (
-            <div key={c.cycle} className="flex items-center gap-2 text-[11px]">
+            <div key={c.cycle} className="flex items-center gap-2 text-ap-body">
               <span className="text-ap-ink-3 font-data w-9 shrink-0">{fmtCycleTime(c.ts)}</span>
               <ApBadge tone={DECISION_TONE[c.decision] ?? "mute"}>{c.decision}</ApBadge>
               {c.symbol && <span className="text-ap-ink-1 font-semibold shrink-0">{c.symbol}</span>}
@@ -414,7 +411,7 @@ function AgentCardBody({
       <ApBottomSheet open={historyOpen} onClose={() => setHistoryOpen(false)} title="전체 사이클 이력">
         <div className="space-y-1.5">
           {recentCycles.map((c) => (
-            <div key={c.cycle} className="flex items-center gap-2 text-[11px]">
+            <div key={c.cycle} className="flex items-center gap-2 text-ap-body">
               <span className="text-ap-ink-3 font-data w-9 shrink-0">{fmtCycleTime(c.ts)}</span>
               <ApBadge tone={DECISION_TONE[c.decision] ?? "mute"}>{c.decision}</ApBadge>
               {c.symbol && <span className="text-ap-ink-1 font-semibold shrink-0">{c.symbol}</span>}

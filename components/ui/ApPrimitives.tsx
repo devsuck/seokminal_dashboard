@@ -271,6 +271,8 @@ export function ApGateStep({ label, value, title, state }: {
 export type ApButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 export type ApButtonSize = "sm" | "md";
 
+// Tailwind v4 emits utilities alphabetically by token name — a className override
+// that should win but sorts earlier in the compiled CSS will silently lose. Use `!token` to force it.
 const AP_BUTTON_VARIANT: Record<ApButtonVariant, string> = {
   primary:   "bg-ap-brand text-white",
   secondary: "bg-ap-bg text-ap-ink-1",
@@ -299,7 +301,7 @@ export function ApButton({
   return (
     <button
       disabled={disabled || loading}
-      className={`rounded-ap-md font-semibold border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${AP_BUTTON_VARIANT[variant]} ${AP_BUTTON_SIZE[size]} ${className}`}
+      className={`rounded-ap-md font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${AP_BUTTON_VARIANT[variant]} ${AP_BUTTON_SIZE[size]} ${className}`}
       {...rest}
     >
       {loading ? "…" : children}
