@@ -9,7 +9,7 @@ import {
   type LiveAgent, type AgentCycle, type AgentPerformance, type GodModeEligibility,
   type GodModeCandidatesResp, type CapitalClaimCandidatesResp,
 } from "@/lib/console-api";
-import { ApBadge, ApSkeletonLines, ApDot, ApBottomSheet } from "@/components/ui/ApPrimitives";
+import { ApBadge, ApSkeletonLines, ApDot, ApBottomSheet, ApButton } from "@/components/ui/ApPrimitives";
 
 const DECISION_TONE: Record<string, "pos" | "neg" | "warn" | "mute" | "info"> = {
   BUY: "pos", SELL: "neg", HOLD: "mute", WATCH: "info", SKIP: "mute",
@@ -188,13 +188,12 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
           <div className="text-[13px] font-bold text-ap-ink-1 mb-1">{c.name} → live 전환?</div>
           <div className="text-[11px] text-ap-ink-3 mb-3">승급 조건 충족 (최근 {c.window_days}일)</div>
           <div className="flex gap-1.5">
-            <button onClick={() => promote(c.agent_id)} disabled={busy === c.agent_id}
-              className="flex-1 h-9 rounded-ap-md text-[12px] font-semibold border-0 cursor-pointer disabled:opacity-50 bg-ap-brand text-white">
-              {busy === c.agent_id ? "승급 중…" : "승인"}
-            </button>
-            <button className="flex-1 h-9 rounded-ap-md text-[12px] font-semibold border-0 cursor-pointer bg-ap-bg text-ap-ink-1">
+            <ApButton onClick={() => promote(c.agent_id)} loading={busy === c.agent_id} className="flex-1">
+              승인
+            </ApButton>
+            <ApButton variant="secondary" className="flex-1">
               보류
-            </button>
+            </ApButton>
           </div>
         </div>
       ))}
@@ -225,19 +224,16 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
             {!isManual && (
               <div className="flex gap-1.5">
                 {c.suggested_amount != null && (
-                  <button onClick={() => claim(sid, c.suggested_amount ?? undefined)} disabled={busy === sid}
-                    className="flex-1 h-9 rounded-ap-md text-[12px] font-semibold border-0 cursor-pointer disabled:opacity-50 bg-ap-brand text-white">
+                  <ApButton onClick={() => claim(sid, c.suggested_amount ?? undefined)} loading={busy === sid} className="flex-1">
                     예
-                  </button>
+                  </ApButton>
                 )}
-                <button onClick={() => claim(sid, 0)} disabled={busy === sid}
-                  className="flex-1 h-9 rounded-ap-md text-[12px] font-semibold border-0 cursor-pointer disabled:opacity-50 bg-ap-bg text-ap-ink-1">
+                <ApButton variant="secondary" onClick={() => claim(sid, 0)} loading={busy === sid} className="flex-1">
                   아니오
-                </button>
-                <button onClick={() => setManualMode((prev) => ({ ...prev, [sid]: true }))} disabled={busy === sid}
-                  className="flex-[1.3] h-9 rounded-ap-md text-[11px] font-medium border-0 cursor-pointer disabled:opacity-50 bg-transparent text-ap-ink-2">
+                </ApButton>
+                <ApButton variant="ghost" onClick={() => setManualMode((prev) => ({ ...prev, [sid]: true }))} loading={busy === sid} className="flex-[1.3]">
                   내가 마음대로 주기
-                </button>
+                </ApButton>
               </div>
             )}
 
@@ -246,10 +242,9 @@ function ApprovalFeed({ onActed }: { onActed: () => void }) {
                 <input type="number" placeholder="배정액(원)" value={amounts[sid] ?? ""}
                   onChange={(e) => setAmounts((prev) => ({ ...prev, [sid]: e.target.value }))}
                   className="flex-1 h-9 px-3 text-[12px] rounded-ap-md border border-ap-line text-ap-ink-1" />
-                <button onClick={() => claim(sid, amounts[sid] ? Number(amounts[sid]) : undefined)} disabled={busy === sid}
-                  className="h-9 px-4 rounded-ap-md text-[12px] font-semibold border-0 cursor-pointer disabled:opacity-50 bg-ap-brand text-white">
-                  {busy === sid ? "제출 중…" : "제출"}
-                </button>
+                <ApButton onClick={() => claim(sid, amounts[sid] ? Number(amounts[sid]) : undefined)} loading={busy === sid}>
+                  제출
+                </ApButton>
               </div>
             )}
           </div>
@@ -273,7 +268,7 @@ function AgentCard({
         {agent.god_mode && <ApBadge tone="pos">GOD MODE</ApBadge>}
         {!agent.god_mode && !agent.paper && <ApBadge tone="warn">LIVE</ApBadge>}
         {!agent.validated && <ApBadge tone="warn" title={agent.validation_reason}>미검증</ApBadge>}
-        <span className={`ml-auto font-data font-extrabold text-[14px] ${deltaCls}`}>
+        <span className={`ml-auto font-data font-extrabold text-ap-title ${deltaCls}`}>
           {perf ? `${perf.return_pct >= 0 ? "+" : ""}${perf.return_pct.toFixed(2)}%` : "—"}
         </span>
         {perf && (

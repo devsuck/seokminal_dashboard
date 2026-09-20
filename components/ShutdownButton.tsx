@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { initiateShutdown, getShutdownStatus, executeShutdown } from "@/lib/api";
+import { ApButton } from "@/components/ui/ApPrimitives";
 
 type Phase = "idle" | "initiating" | "handoff" | "done" | "killing";
 
@@ -109,12 +110,13 @@ export function ShutdownButton({ collapsed }: { collapsed: boolean }) {
           </svg>
         </button>
       ) : (
-        <button
+        <ApButton
+          variant="danger"
           onClick={handleClick}
           disabled={phase !== "idle"}
-          className="w-full py-2 rounded border border-ap-down/30 text-ap-down/70 text-[11px] font-medium hover:bg-ap-down/8 hover:text-ap-down hover:border-ap-down/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer bg-transparent">
+          className="w-full py-2 text-ap-body font-medium">
           {phase === "idle" ? "⏹ 종료" : "종료 중..."}
-        </button>
+        </ApButton>
       )}
     </>
   );
