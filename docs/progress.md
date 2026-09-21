@@ -1,3 +1,73 @@
+## Phase 278 — 카테고리 네비 통일 + 자본청구 잔여금액/후보UI 재설계 (2026-09-22) ✅ SHIPPED
+
+### 배경
+Phase277에서 컬러 교체가 반영 안 됐던 문제(launchd `next start`가 `npm run
+build` 후에도 핫리로드 안 됨 — unload/load 필요) 고쳐 배포한 뒤, 유저가
+"색은 반영되었네"로 확인. 이어서 유저가 한 번에 8가지 요청: 홈/포폴/에이전트/
+성과 상단 카테고리 셀렉터 디자인 통일, 홈에는 라이브 계좌만, SIREN/자율형
+학습AI/KR거시경제AI/HL거래 에이전트가 왜 에이전트 페이지에 안 보이는지,
+자본청구 "자율승인 풀"을 "배정 가능한 남은 금액"(라이브/페이퍼 둘다)으로,
+제안후보 입력란을 제안/수정 2버튼으로, 한도조정 패널 필요성, 후보/대기열
+중복 여부.
+
+### 완료된 작업
+1. **카테고리 네비 통일** — hud/live-agents/portfolio/performance 4개 페이지
+   전부 `SegmentedToggle variant="ap-pill"`로 통일. 이전엔 4개가 서로 다른
+   구현(hand-rolled underline-tab, ap-pill, default+커스텀오버라이드,
+   hand-rolled 조인버튼그룹)이었고, `default` variant는 `--color-ap-brand`
+   리브랜딩 이전 다크테마 토큰(`border-accent text-accent`)을 그대로 쓰고
+   있어 라이트테마 `.rail-ap` 스코프에 안 걸리던 실제 색상 버그였음.
+2. **홈 라이브 계좌 요청 — 조사 결과 이미 충족, 코드 변경 없음**. `/hud`
+   HomeTab은 이미 `liveAgents = agents.filter(a => !a.paper)`로 필터링
+   중이고 계좌 잔액 자체를 홈에서 뺐음(포폴과 중복 제거 기존 설계). 유저가
+   "홈"이라 쓴 게 `/portfolio`를 가리켰을 가능성도 확인했으나, 그 페이지는
+   Alpaca 라이브 + LKG페이퍼를 섞어서 보여주는 게 아니라 카드마다
+   `ModeChip`으로 라이브/페이퍼 표시하는 의도된 전체-계좌 뷰라 손대지 않음.
+3. **에이전트 노출 4건 — 전부 설계상 정상, 버그 아님** (사용자에게 프로즈로
+   보고 예정): SIREN은 `/agents`(autopilot agent_loop.sh, tmux) 시스템과
+   완전히 별도인 jarvis 오프라인 리서치 파이프라인 — 원래부터 이 페이지
+   대상이 아님. "자율형 학습 AI"/"KR 거시경제 AI"는 `agent_store.py`
+   `AGENT_PROFILES`의 `autonomous`/`kr_macro` 프로필(각각 Lv3, 후자는
+   `human_in_loop=True`). HL 거래 에이전트는 프로필(`hl_daytrade`)만
+   코드에 있고 `agents.db`엔 인스턴스가 0개(전체 4개 인스턴스 다 paper —
+   swing/autonomous/kr_macro/trust) — 생성된 적이 없어서 안 보임.
+4. **자본청구 "배정 가능한 남은 금액"** — 백엔드에 `pool_capacity_by_mode()`
+   추가(LIVE는 armed 전략들 arm.py `capital_limit` 합, PAPER는 envelope
+   `pool_limit` 기준 — 두 한도체계가 원래 분리돼있어서 하나로 합쳐 보여줄
+   수 없었음). `/capital-claims/candidates` 응답에 `pool` 필드로 포함,
+   히어로에서 LIVE/PAPER 잔여 각각 표시.
+5. **제안후보 행 재설계** — 입력란 상시노출 제거, "제안대로 제출"/"수정"
+   2버튼으로. 수정 누르면 입력란 나오고, AI 제안 금액은 `text-ap-stat`
+   굵게로 강조.
+6. **한도조정/후보-대기열 — 유지 권장, 코드 변경 안 함**: 한도조정은
+   `pool_limit`/`default_paper_limit` 편집하는 유일한 UI라 지우면 DB 직접
+   수정 외엔 한도를 못 바꿈. 후보/대기열은 실제로 다른 생애주기 단계(제안·
+   미제출 vs 제출됨·승인대기)라 중복이 아님 — 프로즈로 보고, 유저 최종
+   판단 대기.
+
+### 변경된 파일
+- 백엔드: `jarvis/execution/capital_claims.py`(`pool_capacity_by_mode`),
+  `api_server/console_api.py`(candidates 응답에 `pool` 배선) — 커밋
+  `dbed6f6`, push, `scripts/restart_api.sh`로 배포·검증 완료.
+- 프론트: `app/hud/page.tsx`, `app/(console)/investment-os/live-agents/page.tsx`,
+  `app/portfolio/page.tsx`, `app/performance/page.tsx`(네비 통일),
+  `lib/console-api.ts`(`CapitalPoolByMode` 타입),
+  `app/(console)/investment-os/capital-claims/page.tsx`(히어로+후보UI) —
+  커밋 `0e4a42f`, push, `npm run build` + launchd unload/load로 배포·검증
+  완료.
+
+### 다음 할 일
+- 없음 — 유저의 8가지 요청 전부 처리(코드 4건 + 조사·보고 4건). 한도조정/
+  후보대기열 유지 권장은 유저 반응 보고 필요시 재논의.
+
+### 막힌 부분/결정사항
+- LIVE 자본은 애초에 전략별 arm.py 한도만 있고 전체 "라이브 풀" 개념이
+  없음 — `pool_capacity_by_mode()`의 `live_limit`은 현재 승인된 라이브
+  청구가 있는 전략들의 한도 합이라, 라이브 에이전트가 armed 안 된 지금은
+  0으로 뜸(정확한 반영이지만 직관적이진 않을 수 있음 — 유저에게 설명 필요).
+
+---
+
 ## Phase 277 — 로컬 38커밋 push + 자본청구 UI 정리 + 프라이머리 컬러 교체 (2026-09-22) ✅ SHIPPED
 
 ### 배경
