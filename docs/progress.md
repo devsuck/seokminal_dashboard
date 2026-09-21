@@ -1,4 +1,139 @@
-## Phase 273 — 하단바 IA 정리 + god_mode 게이트 버그 + capital_claims 자동청구 (2026-09-18) ✅ FIXED
+## Phase 275 — 자산 탭 HOME 흡수 + 다크 프래그먼트 정리 + 수집기 비활성화 원인 조사 (2026-09-21) ✅ SHIPPED
+
+### 배경
+"디자인가이드 토스/로빈후드 느낌으로 다 됐다고?" 재검증 요청 → 컴포넌트
+기본값(shared UI의 dark-by-default prop) 감사로 진짜 다크 vs 코스메틱
+문법빚 구분. 이어서 "`/hud` 상단 자산 탭이 옛날 버전 같다" 지적 → 실제론
+stale 아니고 의도된 코드였으나, 진짜 의도("LIVE는 홈 메인에서 바로 보이게")
+확인 후 AskUserQuestion으로 "자산 탭 없애고 통합" 선택받아 반영. 마지막으로
+"수집기(hl_orderflow_tick 등 3개) 왜 꺼져있냐" 질문 → 표면적 답에서 멈추지
+않고 launchd watchdog plist → ensure_collectors.sh 체인까지 추적해 근본
+원인 확정.
+
+### 완료된 작업
+1. **다크 프래그먼트 3곳 수정** — `app/portfolio/page.tsx`(계좌/주문/손익
+   토글), `app/hud/page.tsx`(FreshnessBar), `app/(console)/investment-os/
+   page.tsx`(input/텍스트) — 전부 `Bar`/`SegmentedToggle`/`FreshnessBar`의
+   dark-by-default prop(`trackClass`/`inactiveClass`)을 호출부에서 안 넘겨서
+   생긴 것. `ap-` 토큰 명시로 수정. 나머지는 `.rail-ap` 스코프 안이라 코스메틱
+   문법빚(`var(--c-*)`, magic-px)일 뿐 실제 다크 아님 — 그대로 둠. 커밋
+   `f9c69b2`.
+2. **"자산" 상단탭 → HOME 흡수** — `TabKey`에서 `"portfolio"` 제거,
+   `PortfolioTab`을 `HomeTab` 안(상태 히어로 바로 아래)에 직접 렌더. 위젯
+   자체도 독립 탭이 아니게 되면서 제목/래퍼 제거해 단순화. 연쇄로
+   `lib/researchOsRedirects.ts`의 `/overview → /hud?tab=portfolio` 죽은 쿼리
+   파라미터도 같이 수정(+ 테스트). 커밋 `8399017`.
+3. **수집기 비활성화 근본원인 확정** — `hl_orderflow_tick`/
+   `cross_venue_skew_tick`/`convergence_legs` 3개는 버그 아니라 **2026-09-03
+   의도적 비활성화**(`seokminal-multi-venue/scripts/deploy/
+   ensure_collectors.sh`의 `ENSURE` 배열 3줄 주석처리). 사유: 이 데이터는
+   실거래 3전략이 안 쓰고 autoresearch 가설발굴용 원료일 뿐인데, api_server
+   무인운영 중 메모리 경합(스왑 스래싱→헬스체크 타임아웃) 완화 위해 정리
+   (`docs/progress.md` 2026-09-02~03 항목). launchd watchdog(60초 간격)는
+   `ENSURE` 배열에 있는 세션만 되살리는 구조라 3개는 계속 안 돌아감 — 다시
+   켜려면 그 3줄 주석 해제.
+4. **와치독 로그 "unbound variable" 오판 정정** — 1차로 "아직 진행중인
+   버그"로 보고했으나("고쳐야지" 지시 받고) 재조사 결과 **2주 전
+   (`80b3706`, 2026-09-06)에 이미 고쳐진 버그**였고 로그 파일이 그 이후로
+   안 쌓인 채 옛날 에러 3253줄만 남아있던 것 — 실제 재실행해서 에러 없음
+   확인 후 로그만 truncate. 코드 변경 없음.
+
+### 변경된 파일
+`app/portfolio/page.tsx`, `app/hud/page.tsx`, `app/(console)/investment-os/
+page.tsx`, `components/hud/PortfolioTab.tsx`, `lib/researchOsRedirects.ts`,
+`__tests__/researchOsRedirects.test.ts`. 커밋 `f9c69b2`, `8399017`.
+(백엔드 `seokminal-multi-venue`는 읽기 전용 조사만 — 코드 변경 없음, 로그
+파일만 truncate.)
+
+### 이번에 같이 정리한 워킹트리 잔여 변경 (이전 세션에서 커밋 안 된 채 남아있던 것)
+"더 작업할 거 없어?" 질문에 `git status` 재확인하다 발견 — 실작업인데 커밋
+누락:
+- `app/layout.tsx` — `h-screen`→`h-dvh` + `safe-area-inset-bottom` 반영
+  (모바일 하단탭 겹침 픽스, Phase 274에서 "실기기 미검증"으로 남겼던 그 수정.
+  코드는 이제 반영됨, 실기기 검증은 여전히 안 함).
+- `lib/attention.ts` — `/auto-research`→`/investment-os/research-candidates`,
+  자본배정 승인 링크 `/investment-os/live-agents`→`/investment-os/
+  capital-claims` 정정.
+- `lib/collectors.ts` — 없는 페이지로 연결되던 수집기 라벨 링크
+  (hl_orderflow_tick 등 → `/hud`) 제거, `href` optional화.
+- `package.json`/`package-lock.json` — `swr` 의존성 추가. `investment-os/
+  page.tsx`가 이미 커밋된 코드에서 import 중이었는데 package.json엔 없어서
+  clean checkout하면 빌드 깨지는 상태였음 — 반영으로 해소.
+- `data/order_audit.jsonl` — 로컬 테스트 실행 산출물(9/17) 그대로 반영.
+
+### 다음 할 일 / 막힌 부분
+- `h-dvh` 하단탭 겹침 수정, 실기기 검증 여전히 안 함.
+- origin/main 대비 로컬 커밋 다수 앞섬 — push 지시 대기.
+- 예전 커밋 2개(`a2c7b17`, `4a05fd2`)에 Co-Authored-By/세션 URL trailer가
+  남아있음(유저 글로벌 CLAUDE.md 위반) — amend 안 하고 그대로 둠, 재요청
+  시 처리.
+- "운영" 탭(`/hud` OpsTab) 기능 변경 — 유저 명시적 보류 중, 건드리지 말 것.
+- 수집기 3개는 결정사항(비활성화 유지) — 재활성화 요청 없으면 그대로.
+
+---
+
+## Phase 274 — 홈 라이브 전용 필터 + 에이전트 라이브/페이퍼 토글 + 라우트 32→14 정리 (2026-09-21) ✅ SHIPPED
+
+### 배경
+"홈은 페이퍼 말고 라이브 계좌만", "에이전트도 라이브/페이퍼 구별", "운영 기능은
+아직 모르겠다(보류)", "풀 에이전트 트레이딩 플랫폼 위해 병합/삭제할 페이지
+있는지 확인, 페이지 적을수록 운영에 좋다" 순서로 요청. 감사 결과 레거시
+IA(옛 council/exec/portfolio-os/research-os 하위탭 등) 리다이렉트 전용
+page.tsx 스텁 19개(＋누락분 1개, 총 20개) 발견 → 삭제 승인("ㅇㅇ 그려") 받고
+진행. 이어서 "모바일 최적화 다 됐냐"는 질문에 답하며 디자인 시스템 정식화
+플랜(`docs/superpowers/plans/2026-09-20-design-system-formalization.md`)이
+체크박스 미갱신이라 "안 됐다"고 잘못 판단할 뻔했으나, `git log` 확인 결과
+2026-09-20 15:xx에 Task 1~5 전부 이미 커밋되어 있었음(4c91331~c0e8157) —
+재실행 안 하고 이 세션 변경분만 커밋.
+
+### 완료된 작업
+1. **홈(`app/hud/page.tsx`) 라이브 전용 필터** — 에이전트 로스터 `!a.paper`로
+   선필터링, "전략 상세" 아코디언에 숨은 페이퍼 건수 → `/investment-os/live-agents`
+   링크 노출.
+2. **에이전트 페이지(`app/(console)/investment-os/live-agents/page.tsx`) 라이브/
+   페이퍼 토글** — `SegmentedToggle` 재사용, 전체/라이브/페이퍼 카운트 표시,
+   리스트 필터링.
+3. **레거시 라우트 정리** — 리다이렉트 전용 `page.tsx` 20개 삭제(council/*,
+   exec/*, portfolio-os/*, research-os/{committee,explain,graph,
+   intelligence-plus,production,timeline}, auto-research, calendar, overview,
+   insider, hud/summary). Next 16 `middleware.ts`→`proxy.ts` 컨벤션으로
+   `lib/researchOsRedirects.ts`의 `OLD_TO_NEW` 맵 하나로 흡수(307 리다이렉트,
+   self-map 무한루프 가드). `/auto-research` 잘못된 타겟(`/hud`→
+   `/investment-os/research-candidates`)도 같이 수정. 32라우트 → 14 실페이지
+   + proxy 1개로 정리.
+4. **git 상태 오판 정정** — 환경 메타데이터가 "git 저장소 아님"으로 잘못
+   표시됐던 문제, `git rev-parse --is-inside-work-tree` 직접 확인해서 해소.
+   이 리포는 정상적으로 git 있고 `main` 직접 커밋 컨벤션대로 운영중(27 commits
+   ahead of origin/main, push는 안 함).
+5. **디자인 시스템 정식화 플랜 재확인** — 이미 완료돼 있었음(모바일 브랜치만
+   범위: ApButton 프리미티브, 타이포 토큰 7종, 버튼/매직넘버 스윕). 의도적으로
+   데스크톱 콘솔은 다크 유지. **범위 밖(전환 안 됨)**: `/investment-os/
+   ai-portfolio`, `/quant/validation`, `/login` — 플랜 Task 3 파일 목록에
+   애초에 없었음. 유저가 앱 전체 라이트 통일을 원하는지 아직 미확인.
+
+### 변경된 파일
+`app/hud/page.tsx`, `app/(console)/investment-os/live-agents/page.tsx`,
+`lib/researchOsRedirects.ts`, `proxy.ts`(신규), 스텁 20개 삭제. 커밋
+`a2c7b17`.
+
+### 다음 할 일 / 막힌 부분
+- `ai-portfolio` / `quant/validation` / `login` 3페이지 라이트 전환 여부 —
+  유저 확인 필요(플랜 확장 vs 의도적 제외).
+- "운영" 탭(`/hud` OpsTab) 기능 변경 — 유저 명시적 보류 중, 건드리지 말 것.
+- `h-dvh` 하단탭 오버랩 수정이 실기기에서 실제로 해결됐는지 미확인.
+- `git log` 상 origin/main보다 27 commits ahead — push 여부 유저 지시 대기.
+
+### 후속 — 3페이지 라이트 전환 (같은 세션, 유저 승인)
+"플랜 확장해서 라이트 전환" 선택받아 바로 진행. 조사 결과 실제 갭은 예상보다
+작았음: `ai-portfolio`/`quant/validation`은 둘 다 `(console)` 라우트그룹 —
+`app/(console)/layout.tsx`의 `.rail-ap` 스코프가 이미 `var(--c-*)`를 라이트
+값으로 리매핑하고 있어서 **시각적으로는 이미 라이트**였음, 그냥 구식
+`var(--c-*)`/`text-[Npx]` 구문이라 ap- 토큰 스캔에 안 걸렸던 것 — 순수
+문법 정리, 회귀 없음. `login`(`app/login/page.tsx`)만 `(console)` 밖이라
+진짜 다크 — `.rail-ap` 로컬 래핑 + `ApButton` 적용으로 실전환. `npx tsc
+--noEmit` / `npm run build` 클린. 커밋 `4a05fd2`.
+
+
 
 ### 배경
 사용자 5-part 하단 네비 지적(포트폴리오 페이지 목적, 에이전트탭에 포지션 없음,
