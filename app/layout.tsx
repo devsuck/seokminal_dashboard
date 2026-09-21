@@ -36,9 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-ap-bg text-ap-ink-1 font-ui antialiased m-0">
-        <div className="console-shell flex h-screen overflow-hidden">
+        <div className="console-shell flex h-dvh overflow-hidden">
           <CommandRail />
-          <main className="flex-1 min-w-0 min-h-0 overflow-y-auto pb-14 md:pb-0">
+          <main className="flex-1 min-w-0 min-h-0 overflow-y-auto pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
             <PageTransition>{children}</PageTransition>
           </main>
         </div>
