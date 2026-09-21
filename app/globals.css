@@ -71,7 +71,8 @@
   --color-ap-ink-1:    #111827;
   --color-ap-ink-2:    #6B7280;
   --color-ap-ink-3:    #9CA3AF;
-  --color-ap-brand:    #FF9F0A;
+  --color-ap-brand:    #3182F6;  /* Toss 블루 — 기존 주황(#FF9F0A)이 --color-ap-caution(#D97706)과 같은 계열이라
+     "주요 액션"과 "경고"가 헷갈리던 문제 해결. pos/neg/warn/info 어디와도 hue 안 겹침. */
   --color-ap-up:       #059669;
   --color-ap-down:     #DC2626;
   --color-ap-caution:  #D97706;

@@ -28,8 +28,6 @@ export default function CapitalClaimsPage() {
 
   const [poolLimit, setPoolLimit] = useState("");
   const [paperLimit, setPaperLimit] = useState("");
-  const [claimSid, setClaimSid] = useState("");
-  const [claimAmt, setClaimAmt] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [candAmts, setCandAmts] = useState<Record<string, string>>({});
 
@@ -86,18 +84,6 @@ export default function CapitalClaimsPage() {
       const amt = raw !== undefined && raw !== "" ? Number(raw) : suggested ?? undefined;
       await submitCapitalClaim(strategyId, amt);
       setCandAmts((n) => { const { [strategyId]: _drop, ...rest } = n; return rest; });
-      await run();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitClaim = async () => {
-    if (!claimSid.trim()) return;
-    setBusy(true);
-    try {
-      await submitCapitalClaim(claimSid.trim(), claimAmt ? Number(claimAmt) : undefined);
-      setClaimSid(""); setClaimAmt("");
       await run();
     } finally {
       setBusy(false);
@@ -249,25 +235,6 @@ export default function CapitalClaimsPage() {
         </div>
       </ApPanel>
 
-      {/* 수동 청구 제출 (테스트/운영자용 — 실제로는 AI가 event-triggered로 제출) */}
-      <ApPanel>
-        <ApPanelHead kicker="submit_claim · 테스트/운영자용" title="청구 제출" />
-        <div className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 w-48">
-              <span className="text-ap-micro uppercase tracking-wide text-ap-ink-3">strategy_id</span>
-              <input className={inputCls} value={claimSid} onChange={(e) => setClaimSid(e.target.value)} placeholder="예: S1" />
-            </label>
-            <label className="flex flex-col gap-1 w-40">
-              <span className="text-ap-micro uppercase tracking-wide text-ap-ink-3">요청 금액 (비우면 AI 제안치)</span>
-              <input className={inputCls} value={claimAmt} onChange={(e) => setClaimAmt(e.target.value)} inputMode="decimal" />
-            </label>
-            <ApButton variant="secondary" onClick={submitClaim} disabled={!claimSid.trim()} loading={busy}>
-              제출
-            </ApButton>
-          </div>
-        </div>
-      </ApPanel>
     </div>
   );
 }
