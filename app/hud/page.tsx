@@ -56,17 +56,14 @@ function HudInner() {
 
   return (
     <div className="min-h-full bg-ap-bg">
-      <div className="flex gap-1 border-b border-ap-line px-5 pt-3 overflow-x-auto">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 h-9 text-ap-body font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
-              tab === t.key
-                ? "border-ap-brand text-ap-brand bg-ap-brand/10"
-                : "border-transparent text-ap-ink-2 hover:text-ap-ink-1"
-            }`}>
-            {t.label}
-          </button>
-        ))}
+      <div className="px-5 pt-3">
+        <SegmentedToggle
+          value={tab}
+          onChange={setTab}
+          size="sm"
+          variant="ap-pill"
+          options={TABS.map((t) => ({ value: t.key, label: t.label }))}
+        />
       </div>
       {tab === "home" && <HomeTab />}
       {tab === "ops" && <OpsTab />}

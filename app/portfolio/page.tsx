@@ -644,15 +644,14 @@ function OrdersTab() {
           value={venue}
           onChange={setVenue}
           size="sm"
-          inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
+          variant="ap-pill"
           options={VENUES.map(v => ({ value: v, label: VENUE_LABEL[v] ?? v }))}
         />
-        <div className="w-px bg-ap-line" />
         <SegmentedToggle
           value={status}
           onChange={setStatus}
           size="sm"
-          inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
+          variant="ap-pill"
           options={STATUSES.map(s => ({ value: s, label: STATUS_LABEL[s] ?? s }))}
         />
       </div>

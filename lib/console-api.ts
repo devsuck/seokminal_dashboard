@@ -891,7 +891,14 @@ export const getCapitalClaimQueue = (s?: AbortSignal) =>
   get<CapitalClaimQueueResp>(`/console/capital-claims/queue`, s);
 
 export interface CapitalClaimCandidate { strategy_id: string; suggested_amount: number | null; stale: boolean }
-export interface CapitalClaimCandidatesResp { candidates: CapitalClaimCandidate[]; count: number; is_advisory: boolean; is_decision: boolean }
+export interface CapitalPoolByMode {
+  paper_limit: number; paper_used: number; paper_remaining: number;
+  live_limit: number; live_used: number; live_remaining: number;
+}
+export interface CapitalClaimCandidatesResp {
+  candidates: CapitalClaimCandidate[]; count: number; is_advisory: boolean; is_decision: boolean;
+  pool: CapitalPoolByMode;
+}
 export const getCapitalClaimCandidates = (s?: AbortSignal) =>
   get<CapitalClaimCandidatesResp>(`/console/capital-claims/candidates`, s);
 

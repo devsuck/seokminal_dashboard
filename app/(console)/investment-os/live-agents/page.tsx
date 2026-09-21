@@ -83,11 +83,11 @@ export default function LiveAgentsPage() {
             size="sm"
             value={filter}
             onChange={setFilter}
-            inactiveClass="border-ap-line text-ap-ink-3 hover:text-ap-ink-2"
+            variant="ap-pill"
             options={[
-              { value: "all", label: `전체 ${agents.length}`, activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
-              { value: "live", label: `라이브 ${agents.filter(a => !a.paper).length}`, activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
-              { value: "paper", label: `페이퍼 ${agents.filter(a => a.paper).length}`, activeClass: "border-ap-brand text-ap-brand bg-ap-brand/10" },
+              { value: "all", label: `전체 ${agents.length}` },
+              { value: "live", label: `라이브 ${agents.filter(a => !a.paper).length}` },
+              { value: "paper", label: `페이퍼 ${agents.filter(a => a.paper).length}` },
             ]}
           />
         )}

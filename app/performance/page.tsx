@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getPerformance, type PerfSummary } from "@/lib/api";
-import { EmptyState, LoadingState } from "@/components/ui";
+import { EmptyState, LoadingState, SegmentedToggle } from "@/components/ui";
 import { ApLightHero } from "@/components/ui/ApPrimitives";
 
 const PERIODS = ["1W", "1M", "3M", "1A"] as const;
@@ -83,14 +83,13 @@ export default function PerformancePage() {
             페이퍼 계좌(Alpaca) equity 곡선 · 수익률/MDD/Sharpe · <span className="text-ap-ink-2">SPY 매수보유</span> 벤치마크 대비. 전략이 그냥 지수 든 것보다 나은지 판단.
           </p>
         </div>
-        <div className="flex rounded overflow-hidden border border-ap-line">
-          {PERIODS.map(p => (
-            <button key={p} onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs ${period === p ? "bg-ap-brand/15 text-ap-brand" : "bg-ap-bg text-ap-ink-3 hover:text-ap-ink-2"}`}>
-              {PERIOD_LABEL[p]}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          value={period}
+          onChange={setPeriod}
+          size="sm"
+          variant="ap-pill"
+          options={PERIODS.map(p => ({ value: p, label: PERIOD_LABEL[p] }))}
+        />
       </div>
 
       {error ? <EmptyState message="성과 로드 실패" hint={error} textClass="text-ap-ink-3" />

@@ -30,6 +30,7 @@ export default function CapitalClaimsPage() {
   const [paperLimit, setPaperLimit] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [candAmts, setCandAmts] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<Record<string, boolean>>({});
 
   const run = useCallback(async () => {
     abortRef.current?.abort();
@@ -84,6 +85,7 @@ export default function CapitalClaimsPage() {
       const amt = raw !== undefined && raw !== "" ? Number(raw) : suggested ?? undefined;
       await submitCapitalClaim(strategyId, amt);
       setCandAmts((n) => { const { [strategyId]: _drop, ...rest } = n; return rest; });
+      setEditing((n) => { const { [strategyId]: _drop, ...rest } = n; return rest; });
       await run();
     } finally {
       setBusy(false);
@@ -106,16 +108,16 @@ export default function CapitalClaimsPage() {
 
       {!loading && err && <div className="text-ap-body text-ap-down">백엔드 연결 실패: {err}</div>}
 
-      {/* 자율승인 풀 현황 — hero */}
+      {/* 배정 가능 잔여 — hero. LIVE/PAPER는 서로 다른 한도 체계(arm.py capital_limit vs envelope pool_limit) 기준이라 분리 표시 */}
       {loading ? (
         <ApSkeletonLines rows={3} />
       ) : (
         <ApLightHero
-          label="자율승인 풀"
-          value={`${(env?.pool_limit ?? 0).toLocaleString()}`}
-          sub="LIVE 한도는 arm.py capital_limit 재사용(사람 이중게이트) · 여기선 관리 안 함"
+          label="배정 가능 잔여 (PAPER)"
+          value={`${(candidates?.pool.paper_remaining ?? env?.pool_limit ?? 0).toLocaleString()}`}
+          sub={`LIVE 잔여 ${(candidates?.pool.live_remaining ?? 0).toLocaleString()} · LIVE는 arm.py capital_limit 개별 한도(전략별) — armed 라이브 전략 없으면 0`}
           rows={[
-            { label: "기본 PAPER 한도", value: (env?.default_paper_limit ?? 0).toLocaleString() },
+            { label: "PAPER 풀 한도", value: (candidates?.pool.paper_limit ?? env?.pool_limit ?? 0).toLocaleString() },
             { label: "대기열", value: `${queue?.count ?? 0}건`, cls: (queue?.count ?? 0) > 0 ? "text-ap-brand" : undefined },
           ]}
         />
@@ -130,26 +132,37 @@ export default function CapitalClaimsPage() {
           {!loading && !err && (candidates?.count ?? 0) === 0 && (
             <div className="text-ap-body text-ap-ink-3">대기 중인 제안 후보 없음.</div>
           )}
-          {!loading && candidates?.candidates.map((c) => (
-            <div key={c.strategy_id} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4 space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2 text-ap-body">
+          {!loading && candidates?.candidates.map((c) => {
+            const isEditing = editing[c.strategy_id] ?? false;
+            return (
+              <div key={c.strategy_id} className="rounded-ap-xl bg-ap-surface shadow-ap-sm p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-ap-ink-1 font-semibold">{c.strategy_id}</span>
                   {c.stale && <ApBadge tone="warn">stale</ApBadge>}
-                  <span className="c-num text-ap-ink-2">AI 제안 {c.suggested_amount?.toLocaleString() ?? "-"}</span>
+                </div>
+                <div className="text-ap-ink-3 text-ap-body">AI 제안 금액</div>
+                <div className="c-num text-ap-stat font-bold text-ap-ink-1">
+                  {c.suggested_amount?.toLocaleString() ?? "-"}
+                </div>
+                {isEditing && (
+                  <input className={inputCls + " max-w-xs"} autoFocus
+                    placeholder={`제안대로면 비워둠 (${c.suggested_amount?.toLocaleString() ?? "-"})`}
+                    value={candAmts[c.strategy_id] ?? ""} inputMode="decimal"
+                    onChange={(e) => setCandAmts((n) => ({ ...n, [c.strategy_id]: e.target.value }))} />
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <ApButton onClick={() => submitCandidate(c.strategy_id, c.suggested_amount)} loading={busy}>
+                    {isEditing && candAmts[c.strategy_id] ? "수정한 금액 제출" : "제안대로 제출"}
+                  </ApButton>
+                  {!isEditing && (
+                    <ApButton variant="secondary" onClick={() => setEditing((n) => ({ ...n, [c.strategy_id]: true }))}>
+                      수정
+                    </ApButton>
+                  )}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <input className={inputCls + " max-w-xs"}
-                  placeholder={`제안대로면 비워둠 (${c.suggested_amount?.toLocaleString() ?? "-"})`}
-                  value={candAmts[c.strategy_id] ?? ""} inputMode="decimal"
-                  onChange={(e) => setCandAmts((n) => ({ ...n, [c.strategy_id]: e.target.value }))} />
-                <ApButton onClick={() => submitCandidate(c.strategy_id, c.suggested_amount)} loading={busy}>
-                  {candAmts[c.strategy_id] ? "수정해서 제출" : "제안대로 제출"}
-                </ApButton>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {!loading && (candidates?.count ?? 0) > 0 && (
             <div className="text-ap-micro text-ap-ink-3">
               거절(무시)은 그냥 제출 안 하면 됨 — 다음 갱신에도 계속 후보로 뜸. 제출하면 아래 대기열/자율승인으로 넘어감.
