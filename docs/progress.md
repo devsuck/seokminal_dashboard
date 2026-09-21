@@ -1,3 +1,47 @@
+## Phase 277 — 로컬 38커밋 push + 자본청구 UI 정리 + 프라이머리 컬러 교체 (2026-09-22) ✅ SHIPPED
+
+### 배경
+백엔드(seokminal-multi-venue) 아이템1/2/3/8 완료·커밋·push 후 "9번 진행해보자"로
+대시보드 넘어옴. `docs/progress.md` 확인해보니 Phase274~276(디자인시스템 정식화,
+카테고리버튼 다크프래그먼트, 레거시토큰 스윕)이 이미 로컬에 다 되어있었는데
+origin/main보다 38 commits 앞선 채 push가 계속 보류돼있었음 — 이전 세션들이
+남긴 "push 지시 대기"가 이번에 승인됨. 이어서 유저가 이전 세션서 지적했던
+자본청구 페이지 3건(주황 잔재버튼, 후보/대기열 중복 의심, 한도조정/청구제출
+필요성) 재조사 요청.
+
+### 완료된 작업
+1. **로컬 38커밋 push** — Phase274~276 전체(`a2c7b17`~`bd98b79`) origin/main
+   반영. 카테고리버튼 디자인 불일치 complaint는 이미 로컬에서 해결돼있었고
+   단순히 배포가 안 된 상태였음이 확인됨.
+2. **자본청구 페이지 3건 조사 결과**:
+   - 후보(candidates)/대기열(queue) — 중복 아님, 단계가 다른 퍼널(AI 제안·
+     미제출 → 제출 → 한도초과분만 대기열). 다만 백엔드 `deploy.py`에
+     paper_active 전이 시 자동 submit_claim 배선돼있어 대부분 자동으로
+     넘어감 — 후보 섹션이 거의 항상 비게 될 가능성 있음(정상).
+   - 주황 버튼 — 특정 잔재 아니고 `ApButton variant="primary"` = 디자인시스템
+     전체의 기본 CTA색(`--color-ap-brand` #FF9F0A)이었음.
+3. **프라이머리 컬러 교체** — `--color-ap-brand` #FF9F0A(주황) →
+   #3182F6(Toss 블루). 기존 값이 `--color-ap-caution`(#D97706)과 같은
+   주황 계열이라 "주요 액션"과 "경고"가 헷갈리던 구조적 문제도 해결.
+   다크테마 `--color-accent`(Ops탭 등, 유저 보류중)는 별개 토큰이라 무변경.
+4. **자본청구 '청구제출' 수동패널 제거** — 자동배선 이후 테스트용 죽은
+   기능이라 유저 승인 받고 제거(관련 state/함수 포함).
+   `npx tsc --noEmit` / `npm run build` 클린. 커밋 `64b5060`.
+
+### 변경된 파일
+`app/globals.css`, `app/(console)/investment-os/capital-claims/page.tsx`
+
+### 다음 할 일 / 막힌 부분
+- `ai-portfolio`/`quant/validation`/`login` 3페이지는 Phase274 후속으로
+  이미 라이트 전환 완료 확인됨(재확인 불필요).
+- 새 브랜드블루(#3182F6)가 `--color-ap-note`(#2563EB, info톤)와 같은
+  블루 계열이라 뱃지/버튼 나란히 있을 때 시각적으로 유사할 수 있음 — 실사용
+  중 구분 안 된다는 피드백 나오면 재조정.
+- untracked 상태로 남아있는 `AGENTS.md`(next dev 자동생성, 커밋 대상 아님),
+  `CLAUDE.md`, `catalog/`, `research/` — 이번 세션 작업과 무관, 손 안 댐.
+
+---
+
 ## Phase 276 — 잔여 legacy 토큰(var(--c-*)/text-[Npx]) → ap-토큰 코스메틱 정리 (2026-09-21) ✅ SHIPPED
 
 ### 배경
