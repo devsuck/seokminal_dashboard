@@ -21,7 +21,7 @@ const PRIMARY_TABS: { href: string; label: string; matchPrefix?: string }[] = [
 ];
 
 function TabIcon({ href, active }: { href: string; active: boolean }) {
-  const stroke = active ? "var(--c-hud)" : "var(--c-text-3)";
+  const stroke = active ? "var(--color-ap-brand)" : "var(--color-ap-ink-3)";
   const props = { width: 21, height: 21, viewBox: "0 0 16 16", fill: "none", stroke, strokeWidth: 1.3, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className: "shrink-0" };
   switch (href) {
     case "/hud":
@@ -40,7 +40,7 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
 }
 
 function SettingsIcon() {
-  const stroke = "var(--c-text-3)";
+  const stroke = "var(--color-ap-ink-3)";
   return (
     <svg width="19" height="19" viewBox="0 0 16 16" fill="none" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <circle cx="8" cy="8" r="2.2" />
@@ -60,18 +60,18 @@ export function BottomTabBar() {
     <>
       {isHome && (
         <button onClick={() => setSettingsOpen(true)} aria-label="설정 · 리스크 가드"
-          className="rail-ap fixed top-3 right-3 z-40 flex md:hidden items-center justify-center w-9 h-9 rounded-full border-0 bg-[var(--c-panel)]/90 backdrop-blur cursor-pointer">
+          className="rail-ap fixed top-3 right-3 z-40 flex md:hidden items-center justify-center w-9 h-9 rounded-full border-0 bg-ap-surface/90 backdrop-blur cursor-pointer">
           <SettingsIcon />
         </button>
       )}
 
-      <nav className="rail-ap fixed bottom-0 inset-x-0 z-40 flex md:hidden items-stretch h-14 pb-[env(safe-area-inset-bottom)] border-t border-[var(--c-border)] bg-[var(--c-panel)]/95 backdrop-blur">
+      <nav className="rail-ap fixed bottom-0 inset-x-0 z-40 flex md:hidden items-stretch h-14 pb-[env(safe-area-inset-bottom)] border-t border-ap-line bg-ap-surface/95 backdrop-blur">
         {PRIMARY_TABS.map((t) => {
           const active = isActivePath(pathname, t.matchPrefix ?? t.href);
           return (
             <Link key={t.href} href={t.href} className="flex-1 flex flex-col items-center justify-center gap-0.5 no-underline">
               <TabIcon href={t.href} active={active} />
-              <span className={`text-[10px] leading-tight text-center px-0.5 ${active ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)]"}`}>{t.label}</span>
+              <span className={`text-ap-caption leading-tight text-center px-0.5 ${active ? "text-ap-brand" : "text-ap-ink-3"}`}>{t.label}</span>
             </Link>
           );
         })}

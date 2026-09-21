@@ -28,13 +28,13 @@ export function useAbortableRun<T, A>(fetcher: (arg: A, signal: AbortSignal) => 
 // ── tab bar (URL 쿼리 파라미터 기반 탭 전환) ────────────────────────
 export function TabBar<K extends string>({ tabs, active, onSelect }: { tabs: { key: K; label: string }[]; active: K; onSelect: (k: K) => void }) {
   return (
-    <div className="flex gap-1 border-b border-[var(--c-border)] px-5 pt-3 overflow-x-auto">
+    <div className="flex gap-1 border-b border-ap-line px-5 pt-3 overflow-x-auto">
       {tabs.map((t) => (
         <button key={t.key} onClick={() => onSelect(t.key)}
-          className={`px-3 h-9 text-[11px] font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
+          className={`px-3 h-9 text-ap-body font-semibold uppercase tracking-wide border-b-2 -mb-px cursor-pointer whitespace-nowrap ${
             active === t.key
-              ? "border-[var(--c-hud)] text-[var(--c-hud)] bg-[var(--c-hud)]/10"
-              : "border-transparent text-[var(--c-text-2)] hover:text-[var(--c-text-1)]"
+              ? "border-ap-brand text-ap-brand bg-ap-brand/10"
+              : "border-transparent text-ap-ink-2 hover:text-ap-ink-1"
           }`}>
           {t.label}
         </button>
@@ -71,10 +71,10 @@ export function useConsole<T>(fn: (s: AbortSignal) => Promise<T>, deps: unknown[
 // ── page header ───────────────────────────────────────────────────
 export function PageHeader({ kicker, title, right }: { kicker?: string; title: string; right?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 min-h-12 py-2 px-5 border-b border-[var(--c-border)] bg-[color-mix(in_srgb,var(--c-bg)_85%,transparent)] backdrop-blur">
+    <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 min-h-12 py-2 px-5 border-b border-ap-line bg-[color-mix(in_srgb,var(--color-ap-bg)_85%,transparent)] backdrop-blur">
       <div className="flex items-baseline gap-2.5 flex-wrap min-w-0">
-        {kicker && <span className="text-[9px] font-semibold tracking-[0.24em] text-[var(--c-hud)] uppercase">{kicker}</span>}
-        <span className="text-[13px] font-semibold tracking-[0.14em] text-[var(--c-text-1)] uppercase">{title}</span>
+        {kicker && <span className="text-ap-micro font-semibold tracking-[0.24em] text-ap-brand uppercase">{kicker}</span>}
+        <span className="text-ap-title font-semibold tracking-[0.14em] text-ap-ink-1 uppercase">{title}</span>
       </div>
       {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
     </header>
@@ -91,15 +91,15 @@ const STATUS_MAP: Record<string, string> = {
   CLEARED: "pos", CLOSED: "warn", READY: "pos", BLOCKED: "warn",
 };
 const TONEHEX: Record<string, string> = {
-  pos: "var(--c-pos)", neg: "var(--c-neg)", warn: "var(--c-warn)", hud: "var(--c-hud)",
-  info: "var(--c-info)", mute: "var(--c-text-3)",
+  pos: "var(--color-ap-up)", neg: "var(--color-ap-down)", warn: "var(--color-ap-caution)", hud: "var(--color-ap-brand)",
+  info: "var(--color-ap-note)", mute: "var(--color-ap-ink-3)",
 };
 export function StatusPill({ status }: { status: string }) {
   const tone = STATUS_MAP[status] ?? "mute";
   const c = TONEHEX[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] font-semibold tracking-[0.1em] uppercase c-num whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 px-1.5 py-0.5 text-ap-body font-semibold tracking-[0.1em] uppercase c-num whitespace-nowrap"
       style={{ color: c, border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, background: `color-mix(in srgb, ${c} 8%, transparent)` }}
     >
       <span className="h-1 w-1 rounded-full" style={{ background: c }} />
@@ -111,9 +111,9 @@ export function StatusPill({ status }: { status: string }) {
 // ── key-value row ─────────────────────────────────────────────────
 export function KV({ k, v, mono = true }: { k: string; v: ReactNode; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5 border-b border-[var(--c-border)] last:border-0">
-      <span className="text-[11px] text-[var(--c-text-3)]">{k}</span>
-      <span className={`text-[13px] text-[var(--c-text-1)] text-right truncate ${mono ? "c-num" : ""}`}>{v}</span>
+    <div className="flex items-center justify-between gap-4 py-1.5 border-b border-ap-line last:border-0">
+      <span className="text-ap-body text-ap-ink-3">{k}</span>
+      <span className={`text-ap-title text-ap-ink-1 text-right truncate ${mono ? "c-num" : ""}`}>{v}</span>
     </div>
   );
 }
@@ -122,21 +122,21 @@ export function KV({ k, v, mono = true }: { k: string; v: ReactNode; mono?: bool
 export function StateBlock({ loading, err, empty, emptyNote, children }:
   { loading: boolean; err: string | null; empty?: boolean; emptyNote?: string; children: ReactNode }) {
   if (loading) return (
-    <div className="flex items-center justify-center py-16 gap-2 text-[var(--c-text-3)]">
-      <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-hud)] animate-pulse" />
-      <span className="text-[11px] tracking-wider">로딩 중…</span>
+    <div className="flex items-center justify-center py-16 gap-2 text-ap-ink-3">
+      <span className="h-1.5 w-1.5 rounded-full bg-ap-brand animate-pulse" />
+      <span className="text-ap-body tracking-wider">로딩 중…</span>
     </div>
   );
   if (err) return (
-    <div className="m-5 c-panel p-4 text-[13px] text-[var(--c-neg)]">
-      백엔드 연결 실패: {err} · <span className="text-[var(--c-text-3)]">api_server(:8000) 기동 확인</span>
+    <div className="m-5 c-panel p-4 text-ap-title text-ap-down">
+      백엔드 연결 실패: {err} · <span className="text-ap-ink-3">api_server(:8000) 기동 확인</span>
     </div>
   );
   if (empty) return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <ApDot tone="mute" />
-      <div className="mt-3 text-[13px] text-[var(--c-text-2)]">데이터 없음</div>
-      {emptyNote && <div className="mt-1 text-[11px] text-[var(--c-text-3)] max-w-md">{emptyNote}</div>}
+      <div className="mt-3 text-ap-title text-ap-ink-2">데이터 없음</div>
+      {emptyNote && <div className="mt-1 text-ap-body text-ap-ink-3 max-w-md">{emptyNote}</div>}
     </div>
   );
   return <>{children}</>;
@@ -150,9 +150,9 @@ export function DataTable<T>({ cols, rows, keyFn, onRow }:
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-[var(--c-border)]">
+          <tr className="border-b border-ap-line">
             {cols.map((c) => (
-              <th key={c.key} className={`text-[9px] font-semibold tracking-[0.16em] text-[var(--c-text-3)] uppercase px-3 py-2 ${c.align === "r" ? "text-right" : "text-left"}`} style={{ width: c.w }}>
+              <th key={c.key} className={`text-ap-micro font-semibold tracking-[0.16em] text-ap-ink-3 uppercase px-3 py-2 ${c.align === "r" ? "text-right" : "text-left"}`} style={{ width: c.w }}>
                 {c.label}
               </th>
             ))}
@@ -163,10 +163,10 @@ export function DataTable<T>({ cols, rows, keyFn, onRow }:
             <tr
               key={keyFn(r, i)}
               onClick={onRow ? () => onRow(r) : undefined}
-              className={`border-b border-[var(--c-border)] transition-colors ${onRow ? "cursor-pointer hover:bg-[var(--c-panel-2)]" : ""}`}
+              className={`border-b border-ap-line transition-colors ${onRow ? "cursor-pointer hover:bg-ap-bg" : ""}`}
             >
               {cols.map((c) => (
-                <td key={c.key} className={`px-3 py-2 text-[13px] text-[var(--c-text-2)] ${c.align === "r" ? "text-right c-num" : ""}`}>
+                <td key={c.key} className={`px-3 py-2 text-ap-title text-ap-ink-2 ${c.align === "r" ? "text-right c-num" : ""}`}>
                   {c.render ? c.render(r) : String((r as Record<string, unknown>)[c.key] ?? "—")}
                 </td>
               ))}
@@ -186,12 +186,12 @@ export function AgentTree({
   const c = TONEHEX[statusTone];
   const isRoot = depth === 0;
   const [expanded, setExpanded] = useState(tone !== "ap" || depth === 0);
-  const borderCls = tone === "ap" ? "border-ap-line" : "border-[var(--c-border)]";
-  const connectorCls = tone === "ap" ? "before:bg-ap-line" : "before:bg-[var(--c-border)]";
-  const roleCls = tone === "ap" ? "text-ap-brand" : "text-[var(--c-hud)]";
-  const nameCls = tone === "ap" ? "text-ap-ink-1" : "text-[var(--c-text-1)]";
-  const detailCls = tone === "ap" ? "text-ap-ink-3" : "text-[var(--c-text-3)]";
-  const toggleCls = tone === "ap" ? "text-ap-brand" : "text-[var(--c-hud)]";
+  const borderCls = tone === "ap" ? "border-ap-line" : "border-ap-line";
+  const connectorCls = tone === "ap" ? "before:bg-ap-line" : "before:bg-ap-line";
+  const roleCls = tone === "ap" ? "text-ap-brand" : "text-ap-brand";
+  const nameCls = tone === "ap" ? "text-ap-ink-1" : "text-ap-ink-1";
+  const detailCls = tone === "ap" ? "text-ap-ink-3" : "text-ap-ink-3";
+  const toggleCls = tone === "ap" ? "text-ap-brand" : "text-ap-brand";
   const hasChildren = !!node.children && node.children.length > 0;
   return (
     <div className={depth > 0 ? `pl-5 border-l ${borderCls} ml-3` : ""}>
@@ -199,14 +199,14 @@ export function AgentTree({
         <span className="mt-1.5 h-2 w-2 rounded-full shrink-0" style={{ background: c, boxShadow: `0 0 8px ${c}` }} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            {node.role && <span className={`text-[9px] font-semibold tracking-[0.18em] uppercase ${roleCls}`}>{node.role}</span>}
-            <span className={`${isRoot ? "text-[15px]" : "text-[13px]"} font-medium ${nameCls}`}>{node.name}</span>
+            {node.role && <span className={`text-ap-micro font-semibold tracking-[0.18em] uppercase ${roleCls}`}>{node.role}</span>}
+            <span className={`text-ap-title font-medium ${nameCls}`}>{node.name}</span>
             <StatusPill status={node.status} />
           </div>
-          {node.detail && <div className={`text-[11px] c-num mt-0.5 ${detailCls}`}>{node.detail}</div>}
+          {node.detail && <div className={`text-ap-body c-num mt-0.5 ${detailCls}`}>{node.detail}</div>}
           {hasChildren && depth === 1 && !expanded && (
             <button onClick={() => setExpanded(true)}
-              className={`mt-1 text-[11px] border-0 bg-transparent cursor-pointer ${toggleCls}`}>
+              className={`mt-1 text-ap-body border-0 bg-transparent cursor-pointer ${toggleCls}`}>
               하위 {node.children!.length}개 보기 ›
             </button>
           )}

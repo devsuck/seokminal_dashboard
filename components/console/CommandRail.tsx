@@ -53,9 +53,9 @@ const OPEN_GROUPS_KEY = "commandRailOpenGroups";
 function Diamond() {
   return (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="shrink-0">
-      <path d="M11 1.5 20.5 11 11 20.5 1.5 11Z" stroke="var(--c-hud)" strokeWidth="1.2" />
-      <path d="M11 5.5 16.5 11 11 16.5 5.5 11Z" fill="var(--c-hud)" fillOpacity="0.12" stroke="var(--c-hud)" strokeWidth="0.8" />
-      <circle cx="11" cy="11" r="1.6" fill="var(--c-hud)" />
+      <path d="M11 1.5 20.5 11 11 20.5 1.5 11Z" stroke="var(--color-ap-brand)" strokeWidth="1.2" />
+      <path d="M11 5.5 16.5 11 11 16.5 5.5 11Z" fill="var(--color-ap-brand)" fillOpacity="0.12" stroke="var(--color-ap-brand)" strokeWidth="0.8" />
+      <circle cx="11" cy="11" r="1.6" fill="var(--color-ap-brand)" />
     </svg>
   );
 }
@@ -127,11 +127,11 @@ export function CommandRail() {
         return (
           <Link key={g.label} href={it.href} className="block no-underline">
             <div className={`group relative flex items-center gap-2.5 h-8 px-3.5 no-underline transition-colors ${
-              active ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]"
-                     : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
-              {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
+              active ? "text-ap-brand bg-[color-mix(in_srgb,var(--color-ap-brand)_8%,transparent)]"
+                     : "text-ap-ink-2 hover:text-ap-ink-1 hover:bg-ap-bg"}`}>
+              {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-ap-brand shadow-[0_0_8px_var(--color-ap-brand)]" />}
               <GroupGlyph label={g.label} />
-              {open && <span className="text-[13px] tracking-wide truncate flex-1">{g.label}</span>}
+              {open && <span className="text-ap-title tracking-wide truncate flex-1">{g.label}</span>}
             </div>
           </Link>
         );
@@ -142,8 +142,8 @@ export function CommandRail() {
         <div key={g.label} className="mb-0.5">
           <button
             onClick={() => toggleGroup(g.label)}
-            className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1 border-0 bg-transparent cursor-pointer text-[11px] font-semibold tracking-[0.2em] uppercase transition-colors ${
-              groupIsActive(g) ? "text-[var(--c-hud)]" : "text-[var(--c-text-3)] hover:text-[var(--c-text-2)]"}`}
+            className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1 border-0 bg-transparent cursor-pointer text-ap-body font-semibold tracking-[0.2em] uppercase transition-colors ${
+              groupIsActive(g) ? "text-ap-brand" : "text-ap-ink-3 hover:text-ap-ink-2"}`}
           >
             <GroupGlyph label={g.label} />
             {open && <span className="flex-1 text-left">{g.label}</span>}
@@ -159,11 +159,11 @@ export function CommandRail() {
             return (
               <Link key={it.href} href={it.href} className="block no-underline">
                 <div className={`group relative flex items-center gap-2.5 h-8 pl-7 pr-3 no-underline transition-colors ${
-                  active ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_8%,transparent)]"
-                         : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
-                  {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_8px_var(--c-hud)]" />}
-                  <span className={`h-1 w-1 rounded-full shrink-0 ${active ? "bg-[var(--c-hud)]" : "bg-[var(--c-text-3)]"}`} />
-                  {open && <span className="text-[13px] tracking-wide truncate flex-1">{it.label}</span>}
+                  active ? "text-ap-brand bg-[color-mix(in_srgb,var(--color-ap-brand)_8%,transparent)]"
+                         : "text-ap-ink-2 hover:text-ap-ink-1 hover:bg-ap-bg"}`}>
+                  {active && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-ap-brand shadow-[0_0_8px_var(--color-ap-brand)]" />}
+                  <span className={`h-1 w-1 rounded-full shrink-0 ${active ? "bg-ap-brand" : "bg-ap-ink-3"}`} />
+                  {open && <span className="text-ap-title tracking-wide truncate flex-1">{it.label}</span>}
                 </div>
               </Link>
             );
@@ -174,31 +174,31 @@ export function CommandRail() {
 
   return (
     <>
-    <nav className={`rail-ap console-rail hidden md:flex relative flex-col shrink-0 h-full border-r border-[var(--c-border)] bg-[var(--c-panel)] transition-[width] duration-200 ${open ? "w-60" : "w-14"}`}>
+    <nav className={`rail-ap console-rail hidden md:flex relative flex-col shrink-0 h-full border-r border-ap-line bg-ap-surface transition-[width] duration-200 ${open ? "w-60" : "w-14"}`}>
       {/* Brand */}
-      <Link href="/hud" className="flex items-center gap-2.5 h-14 px-3.5 border-b border-[var(--c-border)] no-underline select-none shrink-0">
+      <Link href="/hud" className="flex items-center gap-2.5 h-14 px-3.5 border-b border-ap-line no-underline select-none shrink-0">
         <Diamond />
         {open && (
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold tracking-[0.18em] text-[var(--c-text-1)] leading-none">SEOKMIN·AI</div>
-            <div className="text-[9px] tracking-[0.28em] text-[var(--c-hud)] mt-1 leading-none uppercase">헤지펀드 OS</div>
+            <div className="text-ap-title font-semibold tracking-[0.18em] text-ap-ink-1 leading-none">SEOKMIN·AI</div>
+            <div className="text-ap-micro tracking-[0.28em] text-ap-brand mt-1 leading-none uppercase">헤지펀드 OS</div>
           </div>
         )}
       </Link>
 
       {/* Home */}
       <Link href="/hud" className={`group relative flex items-center gap-3 h-11 px-3.5 no-underline shrink-0 transition-colors ${
-        isActive("/hud") ? "text-[var(--c-hud)] bg-[color-mix(in_srgb,var(--c-hud)_9%,transparent)]"
-                             : "text-[var(--c-text-2)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)]"}`}>
-        {isActive("/hud") && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--c-hud)] shadow-[0_0_10px_var(--c-hud)]" />}
+        isActive("/hud") ? "text-ap-brand bg-[color-mix(in_srgb,var(--color-ap-brand)_9%,transparent)]"
+                             : "text-ap-ink-2 hover:text-ap-ink-1 hover:bg-ap-bg"}`}>
+        {isActive("/hud") && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-ap-brand shadow-[0_0_10px_var(--color-ap-brand)]" />}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="8" cy="8" r="6.5" /><circle cx="8" cy="8" r="2" /><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
         </svg>
-        {open && <span className="text-[13px] font-medium tracking-wide">홈</span>}
+        {open && <span className="text-ap-title font-medium tracking-wide">홈</span>}
       </Link>
 
       {/* Search */}
-      <div className="border-b border-[var(--c-border)] shrink-0">
+      <div className="border-b border-ap-line shrink-0">
         <CommandPalette groups={ALL_GROUPS} iconOnly={!open} />
       </div>
 
@@ -206,37 +206,37 @@ export function CommandRail() {
       <div className="flex-1 min-h-0 overflow-y-auto py-1.5">
         {renderGroups(operatorMode ? filterGroupsForOperator(CONSOLE_GROUPS) : CONSOLE_GROUPS)}
         {/* divider → 레거시 트레이딩 터미널 */}
-        <div className="mt-3 mb-1 mx-3.5 border-t border-[var(--c-border)]" />
-        {open && <div className="px-3.5 pt-1 pb-1 text-[9px] font-semibold tracking-[0.28em] text-[var(--c-text-3)] uppercase opacity-70">터미널 · 레거시</div>}
+        <div className="mt-3 mb-1 mx-3.5 border-t border-ap-line" />
+        {open && <div className="px-3.5 pt-1 pb-1 text-ap-micro font-semibold tracking-[0.28em] text-ap-ink-3 uppercase opacity-70">터미널 · 레거시</div>}
         {renderGroups(operatorMode ? filterGroupsForOperator(TERMINAL_GROUPS) : TERMINAL_GROUPS)}
       </div>
 
       {/* Footer: status + shutdown + collapse */}
-      <div className="shrink-0 border-t border-[var(--c-border)]">
+      <div className="shrink-0 border-t border-ap-line">
         {open && (
           <div className="flex items-center gap-2 px-3.5 h-9">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--c-warn)] animate-pulse shadow-[0_0_8px_var(--c-warn)]" />
-            <span className="text-[11px] tracking-wider text-[var(--c-text-2)]">실전 자본</span>
-            <span className="text-[11px] font-semibold tracking-widest text-[var(--c-warn)] ml-auto">휴장</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-ap-caution animate-pulse shadow-[0_0_8px_var(--color-ap-caution)]" />
+            <span className="text-ap-body tracking-wider text-ap-ink-2">실전 자본</span>
+            <span className="text-ap-body font-semibold tracking-widest text-ap-caution ml-auto">휴장</span>
           </div>
         )}
         {open && (
-          <div className="flex items-center gap-2 px-3.5 h-9 border-t border-[var(--c-border)]">
+          <div className="flex items-center gap-2 px-3.5 h-9 border-t border-ap-line">
             {/* ISR 캐시된 HTML의 날짜와 클라이언트 실제 날짜가 며칠씩 어긋날 수 있음 — 하이드레이션 비교 대상 아님 */}
-            <span className="text-[9px] c-num text-[var(--c-text-3)]" suppressHydrationWarning>{new Date().toISOString().slice(0, 10)}</span>
+            <span className="text-ap-micro c-num text-ap-ink-3" suppressHydrationWarning>{new Date().toISOString().slice(0, 10)}</span>
             <ShutdownButton collapsed />
           </div>
         )}
         <button onClick={toggleOperatorMode}
-          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[11px] tracking-wide">
+          className="flex items-center justify-center w-full h-8 border-t border-ap-line text-ap-ink-3 hover:text-ap-ink-1 hover:bg-ap-bg bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-ap-body tracking-wide">
           {open ? (operatorMode ? "전체보기" : "간단히 보기") : (operatorMode ? "전체" : "간단")}
         </button>
         <button onClick={() => setSettingsOpen(true)}
-          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-[11px] tracking-wide">
+          className="flex items-center justify-center w-full h-8 border-t border-ap-line text-ap-ink-3 hover:text-ap-ink-1 hover:bg-ap-bg bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors text-ap-body tracking-wide">
           {open ? "⚙ 설정" : "⚙"}
         </button>
         <button onClick={() => setOpen((v) => !v)}
-          className="flex items-center justify-center w-full h-8 border-t border-[var(--c-border)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-panel-2)] bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors">
+          className="flex items-center justify-center w-full h-8 border-t border-ap-line text-ap-ink-3 hover:text-ap-ink-1 hover:bg-ap-bg bg-transparent border-x-0 border-b-0 cursor-pointer transition-colors">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? "" : "rotate-180"}`}>
             <path d="M9 3.5 5 7l4 3.5" />
           </svg>
