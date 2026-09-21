@@ -1,3 +1,50 @@
+## Phase 276 — 잔여 legacy 토큰(var(--c-*)/text-[Npx]) → ap-토큰 코스메틱 정리 (2026-09-21) ✅ SHIPPED
+
+### 배경
+Phase 275에서 "토스/로빈후드 디자인 다 됐냐" 재확인 시 남겨뒀던 항목 —
+`.rail-ap` 스코프 안이라 시각적으로는 이미 라이트인데 문법만 legacy
+dark-token(`var(--c-hud)` 등)이거나 `text-[11px]` 같은 매직넘버인 8개
+파일. "선택사항, 시각 영향 0"이라고 설명 후 "응 작업해줘" 승인받아 진행.
+
+### 완료된 작업
+1. **8개 파일 기계적 치환** — `app/(console)/investment-os/page.tsx`,
+   `app/(console)/research-os/{chat,governance,validation}/page.tsx`,
+   `components/console/{BottomTabBar,CommandPalette,CommandRail,widgets}.tsx`.
+   Tailwind arbitrary-value 형태(`text-[var(--c-hud)]`)는 `text-ap-brand`
+   같은 정식 유틸로, `style={{...}}`/SVG prop 안의 bare `var(--c-X)`는
+   `var(--color-ap-Y)`로, `text-[9/11/13px]` 등 매직넘버는
+   `text-ap-micro/body/title`로 변환. `research-os/chat/page.tsx`의 동적
+   템플릿 리터럴(`` `var(--c-${cond})` ``) 한 곳은 정규식 스윕이 못 잡아서
+   수동 수정. `components/console/widgets.tsx`의 고립 케이스 `text-[15px]`는
+   기존 룰링(2026-09-20 design-system-formalization 선례)대로 가장 가까운
+   토큰 `text-ap-title`로 흡수 — 그 결과 root/non-root 분기 값이 같아져서
+   죽은 삼항연산자가 됐길래 `text-ap-title` 고정값으로 단순화.
+2. **검증** — `npx tsc --noEmit` 클린, `npm run build` 19개 라우트 전부
+   생성 성공. `npm run build`가 이미 떠있던 프로덕션 `com.seokminal.dashboard`
+   launchd 서비스의 인메모리 청크 매니페스트를 구버전으로 만들어
+   `ChunkLoadError` 유발 → `launchctl kickstart -k gui/$(id -u)/com.seokminal.dashboard`로
+   해소. 이후 브라우저로 `/investment-os`(개요/리스크), `/research-os/governance`
+   (위원회/지식그래프 SVG), `/research-os/validation`, `/research-os/chat`
+   (LOW/HIGH 신뢰도 색상 분기) 4개 페이지 직접 확인 — 시각 회귀 없음.
+
+### 변경된 파일
+- `app/(console)/investment-os/page.tsx`, `app/(console)/research-os/{chat,governance,validation}/page.tsx`
+- `components/console/{BottomTabBar,CommandPalette,CommandRail,widgets}.tsx`
+- 커밋: `8279e29`
+
+### 다음 할 일 / 남은 스코프
+- 이번 스윕 대상이 아니었던 나머지 `text-[Npx]` 매직넘버 7개 파일
+  (`components/{AccountBalances,Jarvis}.tsx`, `components/charts/{BarChart,ChartFrame}.tsx`,
+  `components/console/SettingsDrawer.tsx`, `components/hud/StatusDot.tsx`,
+  `components/ui/SegmentedToggle.tsx`) — 유저에게 "나머지 debt"로 명시한
+  8개 목록엔 없었음. 확장 요청 없으면 건드리지 않음.
+- `h-dvh` 모바일 하단탭 겹침 수정(Phase 275, 커밋 `8fc0b31`) 실기기 시각
+  검증 아직 안 함.
+- origin/main push 안 함(지시 없었음, 현재 로컬만 다수 커밋 앞섬).
+
+### 막힌 부분/결정사항
+- 없음 — 이번 작업은 순수 코스메틱 치환, 막힌 지점 없음.
+
 ## Phase 275 — 자산 탭 HOME 흡수 + 다크 프래그먼트 정리 + 수집기 비활성화 원인 조사 (2026-09-21) ✅ SHIPPED
 
 ### 배경
