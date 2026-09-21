@@ -48,7 +48,7 @@ export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
   if (input.autoResearch && input.autoResearch.n_candidates > 0) {
     items.push({
       id: "research-candidates", label: "리서치 후보 검토 대기",
-      detail: `${input.autoResearch.n_candidates}건`, href: "/auto-research", tone: "info",
+      detail: `${input.autoResearch.n_candidates}건`, href: "/investment-os/research-candidates", tone: "info",
     });
   }
 
@@ -72,7 +72,7 @@ export function deriveAttentionItems(input: AttentionInput): AttentionItem[] {
   if (claimPending > 0) {
     items.push({
       id: "capital-claim-candidates", label: "자본배정 승인 대기",
-      detail: `${claimPending}건`, href: "/investment-os/live-agents", tone: "warn",
+      detail: `${claimPending}건`, href: "/investment-os/capital-claims", tone: "warn",
     });
   }
 
